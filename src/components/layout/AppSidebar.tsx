@@ -1,0 +1,150 @@
+import { useLocation, Link } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
+} from '@/components/ui/sidebar';
+import {
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Receipt,
+  Users,
+  Settings,
+  Building2,
+  CreditCard,
+  TrendingUp,
+  Shield,
+  LogOut,
+  Store,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+const AppSidebar = () => {
+  const location = useLocation();
+  const { profile, isSuperAdmin, signOut } = useAuth();
+
+  const superAdminItems = [
+    { title: 'Panel Admin', url: '/admin', icon: Shield },
+    { title: 'Negocios', url: '/admin/businesses', icon: Store },
+    { title: 'Estadísticas', url: '/admin/stats', icon: TrendingUp },
+  ];
+
+  const businessItems = [
+    { title: 'Dashboard', url: '/', icon: LayoutDashboard },
+    { title: 'Inventario', url: '/inventory', icon: Package },
+    { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
+    { title: 'Ventas', url: '/sales', icon: Receipt },
+    { title: 'Gastos', url: '/expenses', icon: CreditCard },
+    { title: 'Empleados', url: '/employees', icon: Users },
+    { title: 'Sucursales', url: '/branches', icon: Building2 },
+    { title: 'Configuración', url: '/settings', icon: Settings },
+  ];
+
+  const isActive = (url: string) => {
+    if (url === '/') return location.pathname === '/';
+    return location.pathname.startsWith(url);
+  };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  return (
+    <Sidebar>
+      <SidebarHeader className="border-b border-sidebar-border p-4">
+        <Link to="/" className="flex items-center gap-2">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
+            <Building2 className="h-6 w-6 text-primary-foreground" />
+          </div>
+          <span className="text-lg font-bold">GestorPro</span>
+        </Link>
+      </SidebarHeader>
+
+      <SidebarContent>
+        {isSuperAdmin && (
+          <SidebarGroup>
+            <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {superAdminItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.url)}
+                    >
+                      <Link to={item.url}>
+                        <item.icon className="h-5 w-5" />
+                        <span>{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        <SidebarGroup>
+          <SidebarGroupLabel>Menú Principal</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {businessItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive(item.url)}
+                  >
+                    <Link to={item.url}>
+                      <item.icon className="h-5 w-5" />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      </SidebarContent>
+
+      <SidebarFooter className="border-t border-sidebar-border p-4">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-9 w-9">
+            <AvatarImage src={profile?.avatar_url || ''} />
+            <AvatarFallback className="bg-primary text-primary-foreground">
+              {profile?.full_name ? getInitials(profile.full_name) : 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex-1 truncate">
+            <p className="truncate text-sm font-medium">{profile?.full_name || 'Usuario'}</p>
+            <p className="truncate text-xs text-muted-foreground">{profile?.email}</p>
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={signOut}
+            title="Cerrar sesión"
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </SidebarFooter>
+    </Sidebar>
+  );
+};
+
+export default AppSidebar;
