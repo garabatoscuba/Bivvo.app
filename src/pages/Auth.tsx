@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Building2, Loader2 } from 'lucide-react';
+import { Building2, Loader2, Chrome } from 'lucide-react';
 import { z } from 'zod';
+import { lovable } from '@/integrations/lovable/index';
 
 const emailSchema = z.string().email('Email inválido');
 const passwordSchema = z.string().min(6, 'La contraseña debe tener al menos 6 caracteres');
@@ -26,6 +27,7 @@ const Auth = () => {
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -73,6 +75,22 @@ const Auth = () => {
         description: 'Has iniciado sesión correctamente.'
       });
       navigate('/');
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    const { error } = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    
+    if (error) {
+      toast({
+        title: 'Error',
+        description: 'No se pudo iniciar sesión con Google. Intenta de nuevo.',
+        variant: 'destructive'
+      });
+      setGoogleLoading(false);
     }
   };
 
@@ -195,6 +213,32 @@ const Auth = () => {
                     'Iniciar Sesión'
                   )}
                 </Button>
+                
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                      O continúa con
+                    </span>
+                  </div>
+                </div>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading || isLoading}
+                >
+                  {googleLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Chrome className="mr-2 h-4 w-4" />
+                  )}
+                  Google
+                </Button>
               </form>
             </TabsContent>
 
@@ -253,6 +297,32 @@ const Auth = () => {
                   ) : (
                     'Crear Cuenta'
                   )}
+                </Button>
+                
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                      O continúa con
+                    </span>
+                  </div>
+                </div>
+                
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleGoogleSignIn}
+                  disabled={googleLoading || isLoading}
+                >
+                  {googleLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Chrome className="mr-2 h-4 w-4" />
+                  )}
+                  Google
                 </Button>
               </form>
             </TabsContent>
