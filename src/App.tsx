@@ -7,6 +7,8 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
+import Inventory from "./pages/Inventory";
+import POS from "./pages/POS";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -37,9 +39,8 @@ const App = () => (
                 </ProtectedRoute>
               }
             />
-            {/* Placeholder routes for navigation */}
-            <Route path="/inventory" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/pos" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+            <Route path="/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
             <Route path="/sales" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/expenses" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/employees" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />

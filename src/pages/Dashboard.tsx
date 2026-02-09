@@ -1,6 +1,9 @@
+import { Link } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
+import { useProducts, useBranchStock } from '@/hooks/useProducts';
+import { useBranches } from '@/hooks/useBranches';
 import {
   ShoppingCart,
   Package,
@@ -12,6 +15,16 @@ import {
 
 const Dashboard = () => {
   const { profile, roles } = useAuth();
+  const { products } = useProducts();
+  const { data: branches } = useBranches();
+  const currentBranch = profile?.branch_id || branches?.[0]?.id;
+  const { data: branchStock } = useBranchStock(currentBranch);
+
+  // Calcular alertas de stock bajo
+  const lowStockProducts = branchStock?.filter((bs: any) => {
+    const product = products.find(p => p.id === bs.product_id);
+    return product && bs.quantity <= product.min_stock && bs.quantity > 0;
+  }) || [];
 
   const stats = [
     {
@@ -23,10 +36,10 @@ const Dashboard = () => {
     },
     {
       title: 'Productos',
-      value: '0',
+      value: products.length.toString(),
       icon: Package,
-      change: '0 en stock bajo',
-      changeType: 'neutral' as const,
+      change: `${lowStockProducts.length} en stock bajo`,
+      changeType: lowStockProducts.length > 0 ? 'warning' : 'neutral' as const,
     },
     {
       title: 'Ingresos del Mes',
@@ -72,7 +85,7 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{stat.value}</div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className={`mt-1 text-xs ${stat.changeType === 'warning' ? 'text-warning' : 'text-muted-foreground'}`}>
                   {stat.change}
                 </p>
               </CardContent>
@@ -82,41 +95,47 @@ const Dashboard = () => {
 
         {/* Quick Actions */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="cursor-pointer transition-shadow hover:shadow-md">
-            <CardHeader className="flex flex-row items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-category-green/20">
-                <ShoppingCart className="h-6 w-6 text-category-green-foreground" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Punto de Venta</CardTitle>
-                <p className="text-sm text-muted-foreground">Realizar una venta</p>
-              </div>
-            </CardHeader>
-          </Card>
+          <Link to="/pos">
+            <Card className="cursor-pointer transition-shadow hover:shadow-md">
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-category-green/20">
+                  <ShoppingCart className="h-6 w-6 text-category-green-foreground" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Punto de Venta</CardTitle>
+                  <p className="text-sm text-muted-foreground">Realizar una venta</p>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
 
-          <Card className="cursor-pointer transition-shadow hover:shadow-md">
-            <CardHeader className="flex flex-row items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-category-blue/20">
-                <Package className="h-6 w-6 text-category-blue-foreground" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Inventario</CardTitle>
-                <p className="text-sm text-muted-foreground">Gestionar productos</p>
-              </div>
-            </CardHeader>
-          </Card>
+          <Link to="/inventory">
+            <Card className="cursor-pointer transition-shadow hover:shadow-md">
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-category-blue/20">
+                  <Package className="h-6 w-6 text-category-blue-foreground" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Inventario</CardTitle>
+                  <p className="text-sm text-muted-foreground">Gestionar productos</p>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
 
-          <Card className="cursor-pointer transition-shadow hover:shadow-md">
-            <CardHeader className="flex flex-row items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-category-pink/20">
-                <Users className="h-6 w-6 text-category-pink-foreground" />
-              </div>
-              <div>
-                <CardTitle className="text-base">Empleados</CardTitle>
-                <p className="text-sm text-muted-foreground">Gestionar equipo</p>
-              </div>
-            </CardHeader>
-          </Card>
+          <Link to="/employees">
+            <Card className="cursor-pointer transition-shadow hover:shadow-md">
+              <CardHeader className="flex flex-row items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-category-pink/20">
+                  <Users className="h-6 w-6 text-category-pink-foreground" />
+                </div>
+                <div>
+                  <CardTitle className="text-base">Empleados</CardTitle>
+                  <p className="text-sm text-muted-foreground">Gestionar equipo</p>
+                </div>
+              </CardHeader>
+            </Card>
+          </Link>
         </div>
 
         {/* Alerts Section */}
@@ -128,9 +147,25 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              No hay alertas en este momento. ¡Todo está funcionando correctamente!
-            </p>
+            {lowStockProducts.length > 0 ? (
+              <div className="space-y-2">
+                {lowStockProducts.slice(0, 5).map((bs: any) => {
+                  const product = products.find(p => p.id === bs.product_id);
+                  return product ? (
+                    <div key={bs.id} className="flex items-center justify-between rounded-lg bg-warning/10 p-3">
+                      <span className="font-medium">{product.name}</span>
+                      <span className="text-sm text-warning">
+                        Stock: {bs.quantity} (mín: {product.min_stock})
+                      </span>
+                    </div>
+                  ) : null;
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                No hay alertas en este momento. ¡Todo está funcionando correctamente!
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      branch_stock: {
+        Row: {
+          branch_id: string
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          updated_at: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "branch_stock_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "branch_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branches: {
         Row: {
           address: string | null
@@ -93,6 +135,202 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          business_id: string
+          color: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          color?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          address: string | null
+          business_id: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          business_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          business_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          branch_id: string
+          created_at: string
+          id: string
+          movement_type: Database["public"]["Enums"]["inventory_movement_type"]
+          notes: string | null
+          product_id: string
+          quantity: number
+          reference_id: string | null
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          id?: string
+          movement_type: Database["public"]["Enums"]["inventory_movement_type"]
+          notes?: string | null
+          product_id: string
+          quantity: number
+          reference_id?: string | null
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          id?: string
+          movement_type?: Database["public"]["Enums"]["inventory_movement_type"]
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          reference_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          business_id: string
+          category_id: string | null
+          code: string
+          cost_price: number
+          created_at: string
+          description: string | null
+          id: string
+          image_url: string | null
+          min_stock: number
+          name: string
+          sale_price: number
+          status: Database["public"]["Enums"]["product_status"]
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          category_id?: string | null
+          code: string
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          min_stock?: number
+          name: string
+          sale_price?: number
+          status?: Database["public"]["Enums"]["product_status"]
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          category_id?: string | null
+          code?: string
+          cost_price?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          image_url?: string | null
+          min_stock?: number
+          name?: string
+          sale_price?: number
+          status?: Database["public"]["Enums"]["product_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -147,6 +385,123 @@ export type Database = {
           },
         ]
       }
+      sale_items: {
+        Row: {
+          cost_price: number
+          created_at: string
+          discount: number
+          id: string
+          product_id: string
+          quantity: number
+          sale_id: string
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          cost_price: number
+          created_at?: string
+          discount?: number
+          id?: string
+          product_id: string
+          quantity: number
+          sale_id: string
+          total: number
+          unit_price: number
+        }
+        Update: {
+          cost_price?: number
+          created_at?: string
+          discount?: number
+          id?: string
+          product_id?: string
+          quantity?: number
+          sale_id?: string
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sale_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sales: {
+        Row: {
+          amount_paid: number
+          branch_id: string
+          created_at: string
+          customer_id: string | null
+          discount: number
+          id: string
+          notes: string | null
+          payment_type: Database["public"]["Enums"]["payment_type"]
+          sale_number: string
+          status: Database["public"]["Enums"]["sale_status"]
+          subtotal: number
+          total: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_paid?: number
+          branch_id: string
+          created_at?: string
+          customer_id?: string | null
+          discount?: number
+          id?: string
+          notes?: string | null
+          payment_type?: Database["public"]["Enums"]["payment_type"]
+          sale_number: string
+          status?: Database["public"]["Enums"]["sale_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_paid?: number
+          branch_id?: string
+          created_at?: string
+          customer_id?: string | null
+          discount?: number
+          id?: string
+          notes?: string | null
+          payment_type?: Database["public"]["Enums"]["payment_type"]
+          sale_number?: string
+          status?: Database["public"]["Enums"]["sale_status"]
+          subtotal?: number
+          total?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
@@ -170,6 +525,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      generate_product_code: { Args: { _business_id: string }; Returns: string }
+      generate_sale_number: { Args: { _branch_id: string }; Returns: string }
+      get_branch_business_id: { Args: { _branch_id: string }; Returns: string }
       get_user_business_id: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
@@ -182,6 +540,17 @@ export type Database = {
     }
     Enums: {
       app_role: "super_admin" | "owner" | "manager" | "seller" | "accountant"
+      inventory_movement_type:
+        | "purchase"
+        | "sale"
+        | "transfer_in"
+        | "transfer_out"
+        | "loss"
+        | "adjustment"
+        | "return"
+      payment_type: "cash" | "credit" | "card" | "transfer"
+      product_status: "for_sale" | "warehouse" | "discontinued"
+      sale_status: "completed" | "pending" | "cancelled"
       subscription_status: "pending" | "active" | "suspended" | "cancelled"
     }
     CompositeTypes: {
@@ -311,6 +680,18 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["super_admin", "owner", "manager", "seller", "accountant"],
+      inventory_movement_type: [
+        "purchase",
+        "sale",
+        "transfer_in",
+        "transfer_out",
+        "loss",
+        "adjustment",
+        "return",
+      ],
+      payment_type: ["cash", "credit", "card", "transfer"],
+      product_status: ["for_sale", "warehouse", "discontinued"],
+      sale_status: ["completed", "pending", "cancelled"],
       subscription_status: ["pending", "active", "suspended", "cancelled"],
     },
   },
