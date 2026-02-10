@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -71,6 +72,25 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       status: product?.status || 'for_sale',
     },
   });
+
+  useEffect(() => {
+    if (product) {
+      form.reset({
+        name: product.name,
+        description: product.description || '',
+        category_id: product.category_id || undefined,
+        cost_price: product.cost_price,
+        sale_price: product.sale_price,
+        min_stock: product.min_stock,
+        status: product.status,
+      });
+    } else {
+      form.reset({
+        name: '', description: '', category_id: undefined,
+        cost_price: 0, sale_price: 0, min_stock: 5, status: 'for_sale',
+      });
+    }
+  }, [product, form]);
 
   const onSubmit = async (data: ProductFormData) => {
     if (!profile?.business_id) return;

@@ -159,10 +159,59 @@ export const useCategories = () => {
     },
   });
 
+  const updateCategory = useMutation({
+    mutationFn: async ({ id, ...category }: Partial<Category> & { id: string }) => {
+      const { data, error } = await supabase
+        .from('categories')
+        .update(category)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      toast({ title: 'Categoría actualizada' });
+    },
+    onError: (error) => {
+      toast({ 
+        title: 'Error al actualizar categoría', 
+        description: error.message,
+        variant: 'destructive' 
+      });
+    },
+  });
+
+  const deleteCategory = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['categories'] });
+      toast({ title: 'Categoría eliminada' });
+    },
+    onError: (error) => {
+      toast({ 
+        title: 'Error al eliminar categoría', 
+        description: error.message,
+        variant: 'destructive' 
+      });
+    },
+  });
+
   return {
     categories: categoriesQuery.data || [],
     isLoading: categoriesQuery.isLoading,
     createCategory,
+    updateCategory,
+    deleteCategory,
   };
 };
 
