@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -28,6 +29,7 @@ import { useCategories } from '@/hooks/useProducts';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import type { Category } from '@/types/database';
 
 const categorySchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(50),
@@ -40,6 +42,7 @@ type CategoryFormData = z.infer<typeof categorySchema>;
 interface CategoryFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  category?: Category | null;
 }
 
 const colorOptions = [
@@ -50,9 +53,9 @@ const colorOptions = [
   { value: 'purple', label: 'Púrpura', class: 'bg-category-purple' },
 ];
 
-export const CategoryForm = ({ open, onOpenChange }: CategoryFormProps) => {
+export const CategoryForm = ({ open, onOpenChange, category }: CategoryFormProps) => {
   const { profile } = useAuth();
-  const { createCategory } = useCategories();
+  const { createCategory, updateCategory } = useCategories();
 
   const form = useForm<CategoryFormData>({
     resolver: zodResolver(categorySchema),
@@ -63,25 +66,48 @@ export const CategoryForm = ({ open, onOpenChange }: CategoryFormProps) => {
     },
   });
 
+  useEffect(() => {
+    if (category) {
+      form.reset({
+        name: category.name,
+        color: category.color,
+        description: category.description || '',
+      });
+    } else {
+      form.reset({ name: '', color: 'blue', description: '' });
+    }
+  }, [category, form]);
+
   const onSubmit = async (data: CategoryFormData) => {
     if (!profile?.business_id) return;
 
-    await createCategory.mutateAsync({
-      name: data.name,
-      color: data.color,
-      business_id: profile.business_id,
-      description: data.description || null,
-    });
+    if (category) {
+      await updateCategory.mutateAsync({
+        id: category.id,
+        name: data.name,
+        color: data.color,
+        description: data.description || null,
+      });
+    } else {
+      await createCategory.mutateAsync({
+        name: data.name,
+        color: data.color,
+        business_id: profile.business_id,
+        description: data.description || null,
+      });
+    }
 
     onOpenChange(false);
     form.reset();
   };
 
+  const isLoading = createCategory.isPending || updateCategory.isPending;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>Nueva Categoría</DialogTitle>
+          <DialogTitle>{category ? 'Editar Categoría' : 'Nueva Categoría'}</DialogTitle>
         </DialogHeader>
 
         <Form {...form}>
@@ -154,12 +180,10 @@ export const CategoryForm = ({ open, onOpenChange }: CategoryFormProps) => {
               <Button 
                 type="submit" 
                 className="flex-1" 
-                disabled={createCategory.isPending}
+                disabled={isLoading}
               >
-                {createCategory.isPending && (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                )}
-                Crear
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {category ? 'Guardar' : 'Crear'}
               </Button>
             </div>
           </form>
