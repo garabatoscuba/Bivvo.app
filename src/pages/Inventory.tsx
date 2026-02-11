@@ -199,25 +199,23 @@ const Inventory = () => {
               <TabsTrigger value="categories">Categorías</TabsTrigger>
             </TabsList>
 
-            {canManage && (
-              <div className="flex gap-2">
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  onClick={() => { setEditingCategory(null); setCategoryFormOpen(true); }}
-                >
-                  <Plus className="mr-1 h-4 w-4" />
-                  <span className="hidden sm:inline">Categoría</span>
-                </Button>
-                <Button 
-                  size="sm" 
-                  onClick={() => { setEditingProduct(null); setProductFormOpen(true); }}
-                >
-                  <Plus className="mr-1 h-4 w-4" />
-                  <span className="hidden sm:inline">Producto</span>
-                </Button>
-              </div>
-            )}
+            <div className="flex gap-2">
+              <Button 
+                size="sm" 
+                variant="outline"
+                onClick={() => { setEditingCategory(null); setCategoryFormOpen(true); }}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                <span className="hidden sm:inline">Categoría</span>
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={() => { setEditingProduct(null); setProductFormOpen(true); }}
+              >
+                <Plus className="mr-1 h-4 w-4" />
+                <span className="hidden sm:inline">Producto</span>
+              </Button>
+            </div>
           </div>
 
           {/* ─── Products Tab ─── */}
