@@ -146,25 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     });
 
-    if (error) return { error };
-
-    // Create profile for new user
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          user_id: data.user.id,
-          full_name: fullName,
-          email: email
-        });
-
-      if (profileError) {
-        console.error('Error creating profile:', profileError);
-        return { error: new Error('Error al crear el perfil') };
-      }
-    }
-
-    return { error: null };
+    return { error: error || null };
   };
 
   const signOut = async () => {
