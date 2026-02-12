@@ -10,6 +10,8 @@ import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import POS from "./pages/POS";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminBusinesses from "./pages/admin/AdminBusinesses";
+import AdminStats from "./pages/admin/AdminStats";
 import Employees from "./pages/Employees";
 import NotFound from "./pages/NotFound";
 
@@ -47,8 +49,8 @@ const App = () => (
             <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
             <Route path="/branches" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-            <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
-            <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminBusinesses /></ProtectedRoute>} />
+            <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminStats /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
