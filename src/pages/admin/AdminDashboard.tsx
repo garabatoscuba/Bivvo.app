@@ -82,8 +82,8 @@ const AdminDashboard = () => {
             <Card key={stat.title}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                <div className={`rounded-lg p-2 ${stat.color}`}>
-                  <stat.icon className="h-4 w-4" />
+                <div className="rounded-md p-2 bg-muted">
+                  <stat.icon className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
               <CardContent>
@@ -134,9 +134,9 @@ const AdminDashboard = () => {
                 {data?.recentBusinesses.map((b) => (
                   <div key={b.id} className="flex items-center justify-between rounded-lg border p-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-md bg-primary/10">
-                        <Building2 className="h-4 w-4 text-primary" />
-                      </div>
+                       <div className="flex h-9 w-9 items-center justify-center rounded-md bg-muted">
+                         <Building2 className="h-4 w-4 text-muted-foreground" />
+                       </div>
                       <div>
                         <p className="font-medium">{b.name}</p>
                         <p className="text-xs text-muted-foreground">

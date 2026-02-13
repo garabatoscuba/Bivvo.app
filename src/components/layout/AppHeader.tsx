@@ -30,8 +30,8 @@ const AppHeader = ({ title }: AppHeaderProps) => {
           />
         </div>
         <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive" />
+          <Bell className="h-4 w-4" />
+          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-destructive" />
         </Button>
       </div>
     </header>

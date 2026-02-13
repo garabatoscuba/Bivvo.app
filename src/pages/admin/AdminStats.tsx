@@ -100,8 +100,8 @@ const AdminStats = () => {
                 <CardTitle className="text-sm font-medium text-muted-foreground">
                   {stat.title}
                 </CardTitle>
-                <div className={`rounded-lg p-2 ${stat.color}`}>
-                  <stat.icon className="h-4 w-4" />
+                 <div className="rounded-md p-2 bg-muted">
+                   <stat.icon className="h-4 w-4 text-muted-foreground" />
                 </div>
               </CardHeader>
               <CardContent>

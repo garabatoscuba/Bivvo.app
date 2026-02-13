@@ -218,9 +218,9 @@ const AdminBusinesses = () => {
                     <TableRow key={b.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-primary/10">
-                            <Building2 className="h-4 w-4 text-primary" />
-                          </div>
+                          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
+                             <Building2 className="h-4 w-4 text-muted-foreground" />
+                           </div>
                           <span className="font-medium">{b.name}</span>
                         </div>
                       </TableCell>
