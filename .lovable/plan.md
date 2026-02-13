@@ -1,148 +1,80 @@
 
-# 📦 Sistema de Gestión Empresarial - MVP
+## Plan de Rediseño Minimalista - "Flat y Limpio"
 
-## Visión General
-Una plataforma SaaS multi-tenant que permite a pequeños y grandes negocios gestionar inventario, punto de venta, gastos y personal. Tú como Super Admin controlas las suscripciones y tus clientes (dueños de negocios) acceden a su propio espacio de trabajo.
+### Objetivos Principales
+Transformar la interfaz actual hacia un diseño minimalista similar a Notion, eliminando sombras excesivas, gradientes, y colores saturados. Mantener toda la funcionalidad, estructura de componentes y lógica de negocio intacta.
 
----
+### Cambios de Diseño
 
-## Fase 1: Fundamentos y Autenticación
+#### 1. **Paleta de Colores (src/index.css)**
+- **Fondo principal**: Cambiar de `98%` (casi blanco) a `99%` (blanco puro) para máximo contraste
+- **Foreground**: Mantener oscuro neutral `220 15% 15%`
+- **Bordes**: Suavizar de `91%` a `94%` (bordes más sutiles, casi imperceptibles)
+- **Card**: Blanco puro sin elevación visual
+- **Primary**: Mantener el azul corporativo pero reducir saturación ligeramente para menor agresividad
+- **Secondary/Accent/Muted**: Simplificar a grises neutros sin azules sutiles
+- **Sombras**: Eliminar sombras proyectadas, usar solo bordes sutiles
+- **Border radius**: Reducir de `0.75rem` a `0.5rem` (más cuadrado, menos redondeado)
 
-### Portal de Super Admin
-- Panel para ver todos los negocios registrados
-- Activar/desactivar suscripciones manualmente
-- Ver estadísticas generales de la plataforma
+#### 2. **Variables CSS Específicas**
+- Eliminar gradientes del design system
+- Reducir contraste de colores de categoría (mantenerlos pero más desaturados)
+- Simplificar tokens de color a valores primarios, sin variaciones complejas
 
-### Sistema de Autenticación
-- Login para Super Admin, Dueños de negocio y Empleados
-- Registro de nuevos negocios (pendiente de activación)
-- Sistema de roles: Super Admin → Dueño → Gerente → Vendedor → Contable
+#### 3. **Componentes UI (src/components/ui/)**
+- **Card**: Remover `shadow-sm`, usar solo `border border-border` simple
+- **Button**: Eliminar estilos complejos, mantener bordes sutiles y colores planos
+- **Input**: Bordes finos, sin sombras de focus (anillo solo)
+- **Dialog/Popover**: Sin sombras, bordes simples
+- **Sidebar**: Blanco puro, bordes sutiles separadores
 
-### Gestión de Negocios
-- Cada negocio tiene su espacio aislado
-- Configuración de múltiples sucursales por negocio
-- Datos completamente separados entre negocios
+#### 4. **Layout (src/components/layout/)**
+- **AppLayout**: Reducir padding innecesario, aumentar espacio blanco
+- **AppSidebar**: 
+  - Header: Remover box de color de icono (fondo primary), usar solo icono neutro + texto
+  - Items: Simplificar hover state (solo cambio de background sutil)
+  - Footer: Remover bordes pesados, mantener separación minimalista
+- **AppHeader**: Remover sombras de búsqueda/notificaciones, bordes sutiles
 
----
+#### 5. **Dashboard y Páginas**
+- **Gradientes de bienvenida**: Remover `bg-gradient-to-r`, usar fondo neutral simple
+- **Stats Cards**: Bordes simples, sin colores de fondo (background puro), iconos neutros
+- **Quick Actions Cards**: Remover colores de fondo de iconos (`bg-category-*/20`), usar solo iconos
+- **Alerts Section**: Simplificar background de alerta
 
-## Fase 2: Inventario y Productos
+#### 6. **Animaciones**
+- Mantener las animaciones existentes (fade-in, slide, accordion)
+- Reducir velocidad ligeramente para efecto más "sereno" (0.4s en lugar de 0.3s)
+- Eliminar transiciones de hover complejas, usar solo opacity suave
 
-### Catálogo de Productos
-- Crear productos con: nombre, imagen, costo, precio de venta
-- Organización por grupos/categorías (con colores como en tu diseño)
-- Estados: "En venta" vs "Almacén"
-- Código de producto automático
+#### 7. **Tipografía**
+- Mantener `Inter` como fuente
+- Reducir algunos tamaños de font-weight (menos contraste visual)
+- Aumentar line-height ligeramente para mejor legibilidad en diseño minimalista
 
-### Control de Stock
-- Stock separado por sucursal
-- Registro de entradas (compras/producción)
-- Registro de salidas (ventas/pérdidas)
-- **Alertas de stock bajo** con notificaciones
+### Archivos a Modificar
 
-### Movimientos de Inventario
-- Historial de todos los movimientos
-- Transferencias entre sucursales
-- Registro de pérdidas/mermas con motivo
+1. **src/index.css**: Redefine variables de color y border radius
+2. **tailwind.config.ts**: Ajustar keyframes para animaciones más lentas
+3. **src/components/ui/card.tsx**: Remover shadow-sm
+4. **src/components/ui/button.tsx**: Simplificar estilos
+5. **src/components/layout/AppSidebar.tsx**: Remover backgrounds de colores, simplificar estructura visual
+6. **src/components/layout/AppHeader.tsx**: Remover elementos visuales pesados
+7. **src/pages/Dashboard.tsx**: Remover gradientes, simplificar colores
+8. **Otros componentes UI**: Auditoría y limpieza de sombras y gradientes
 
----
+### Resultado Esperado
+- Interfaz limpia, minimalista similar a Notion
+- Máximo espacio blanco y respiro visual
+- Jerarquía clara sin decoraciones
+- Todos los botones, formularios, y tablas funcionan igual
+- Autenticación, roles, y lógica de negocio intacta
+- Navegación y estructura preservada
 
-## Fase 3: Punto de Venta (POS)
+### Secuencia de Trabajo
+1. Actualizar variables CSS base (colores, borders, radius)
+2. Actualizar componentes UI principales (card, button, input)
+3. Actualizar layout components (sidebar, header)
+4. Actualizar páginas (dashboard, admin pages)
+5. Prueba visual de la interfaz completa
 
-### Interfaz de Ventas
-- Vista de productos organizados por categorías (estilo de tu diseño Figma)
-- Selección rápida con teclado numérico
-- Carrito de compras con cantidades
-- Cálculo automático de total y vuelto
-
-### Procesamiento de Ventas
-- Ventas al contado
-- Ventas a crédito (cuentas por cobrar)
-- Aplicar descuentos
-- Ticket/recibo de venta
-
-### Historial de Ventas
-- Listado completo de transacciones
-- Filtros por fecha, vendedor, producto
-- Detalle de cada venta
-- Opción de anular ventas (con permisos)
-
----
-
-## Fase 4: Gestión de Gastos
-
-### Categorías de Gastos
-- **Fijos**: Renta, seguros (recurrentes)
-- **Variables**: Impuestos, electricidad, agua
-- **Salarios**: Pagos a empleados con frecuencia
-- **Activos**: Compras de equipamiento
-
-### Registro de Gastos
-- Nombre, importe, frecuencia
-- Fecha de pago
-- Estado: pagado/pendiente
-
----
-
-## Fase 5: Recursos Humanos
-
-### Gestión de Empleados
-- Crear usuarios por negocio
-- Asignar roles (Gerente, Vendedor, Contable)
-- Asignar a sucursales específicas
-- Registro de salarios
-
-### Permisos por Rol
-- **Dueño**: Acceso total al negocio
-- **Gerente**: Inventario, ventas, empleados de su sucursal
-- **Vendedor**: Solo POS y ventas
-- **Contable**: Reportes, gastos, cuentas
-
----
-
-## Fase 6: Cuentas y Finanzas
-
-### Cuentas por Cobrar
-- Clientes con deudas pendientes
-- Historial de pagos parciales
-- Alertas de cuentas vencidas
-
-### Cuentas por Pagar
-- Proveedores pendientes de pago
-- Fecha de vencimiento
-- Estado de pagos
-
----
-
-## Fase 7: Dashboard y Reportes
-
-### Dashboard Principal
-- Ventas del día/semana/mes
-- Productos más vendidos
-- Gráficos de tendencias
-- Resumen de gastos vs ingresos
-- Alertas de stock bajo
-
-### Reportes
-- Ventas por período
-- Rentabilidad por producto
-- Movimientos de inventario
-- Estado financiero general
-
----
-
-## Diseño y Experiencia
-
-- Diseño **mobile-first** siguiendo tu mockup de Figma
-- Colores por categoría de productos (rosa, verde, azul)
-- Navegación lateral con: Dashboard, Inventario, Gastos, Rec. Humanos, Configuración
-- Header con logo, búsqueda y menú hamburguesa
-- Interfaz limpia, minimalista y fácil de usar
-
----
-
-## Tecnología
-
-- **Frontend**: React con diseño responsivo
-- **Backend**: Supabase (base de datos, autenticación, almacenamiento)
-- **Tiempo real**: Actualizaciones instantáneas entre sucursales
-- **Seguridad**: Aislamiento completo de datos por negocio
