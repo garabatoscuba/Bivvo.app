@@ -61,11 +61,11 @@ const Dashboard = () => {
     <AppLayout>
       <div className="space-y-6">
         {/* Welcome Message */}
-        <div className="rounded-xl bg-gradient-to-r from-primary/10 to-primary/5 p-6">
-          <h2 className="text-xl font-semibold text-foreground">
+        <div className="py-2">
+          <h2 className="text-lg font-semibold text-foreground">
             ¡Bienvenido, {profile?.full_name?.split(' ')[0]}!
           </h2>
-          <p className="mt-1 text-muted-foreground">
+          <p className="mt-0.5 text-sm text-muted-foreground">
             {roles.length > 0 
               ? `Tu rol: ${roles.map(r => r.replace('_', ' ')).join(', ')}`
               : 'Comienza configurando tu negocio'
@@ -96,11 +96,9 @@ const Dashboard = () => {
         {/* Quick Actions */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           <Link to="/pos">
-            <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <Card className="cursor-pointer transition-colors hover:bg-muted/50">
               <CardHeader className="flex flex-row items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-category-green/20">
-                  <ShoppingCart className="h-6 w-6 text-category-green-foreground" />
-                </div>
+                <ShoppingCart className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <CardTitle className="text-base">Punto de Venta</CardTitle>
                   <p className="text-sm text-muted-foreground">Realizar una venta</p>
@@ -110,11 +108,9 @@ const Dashboard = () => {
           </Link>
 
           <Link to="/inventory">
-            <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <Card className="cursor-pointer transition-colors hover:bg-muted/50">
               <CardHeader className="flex flex-row items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-category-blue/20">
-                  <Package className="h-6 w-6 text-category-blue-foreground" />
-                </div>
+                <Package className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <CardTitle className="text-base">Inventario</CardTitle>
                   <p className="text-sm text-muted-foreground">Gestionar productos</p>
@@ -124,11 +120,9 @@ const Dashboard = () => {
           </Link>
 
           <Link to="/employees">
-            <Card className="cursor-pointer transition-shadow hover:shadow-md">
+            <Card className="cursor-pointer transition-colors hover:bg-muted/50">
               <CardHeader className="flex flex-row items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-category-pink/20">
-                  <Users className="h-6 w-6 text-category-pink-foreground" />
-                </div>
+                <Users className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <CardTitle className="text-base">Empleados</CardTitle>
                   <p className="text-sm text-muted-foreground">Gestionar equipo</p>

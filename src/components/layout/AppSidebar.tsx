@@ -68,10 +68,8 @@ const AppSidebar = () => {
     <Sidebar>
       <SidebarHeader className="border-b border-sidebar-border p-4">
         <Link to="/" className="flex items-center gap-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary">
-            <Building2 className="h-6 w-6 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-bold">GestorPro</span>
+          <Building2 className="h-5 w-5 text-foreground" />
+          <span className="text-base font-semibold text-foreground">GestorPro</span>
         </Link>
       </SidebarHeader>
 
@@ -123,9 +121,9 @@ const AppSidebar = () => {
 
       <SidebarFooter className="border-t border-sidebar-border p-4">
         <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9">
+          <Avatar className="h-8 w-8">
             <AvatarImage src={profile?.avatar_url || ''} />
-            <AvatarFallback className="bg-primary text-primary-foreground">
+            <AvatarFallback className="bg-muted text-muted-foreground text-xs">
               {profile?.full_name ? getInitials(profile.full_name) : 'U'}
             </AvatarFallback>
           </Avatar>
