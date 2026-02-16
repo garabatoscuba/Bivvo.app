@@ -193,30 +193,40 @@ const Inventory = () => {
 
         {/* Tabs + Action Buttons */}
         <Tabs value={mainTab} onValueChange={setMainTab}>
-          <div className="flex items-center justify-between">
-            <TabsList>
-              <TabsTrigger value="products">Productos</TabsTrigger>
-              <TabsTrigger value="categories">Categorías</TabsTrigger>
-            </TabsList>
-
-            <div className="flex gap-2">
-              <Button 
-                size="sm" 
-                variant="outline"
-                onClick={() => { setEditingCategory(null); setCategoryFormOpen(true); }}
-              >
-                <Plus className="mr-1 h-4 w-4" />
-                <span className="hidden sm:inline">Categoría</span>
-              </Button>
-              <Button 
-                size="sm" 
-                onClick={() => { setEditingProduct(null); setProductFormOpen(true); }}
-              >
-                <Plus className="mr-1 h-4 w-4" />
-                <span className="hidden sm:inline">Producto</span>
-              </Button>
-            </div>
-          </div>
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="products" className="flex items-center gap-2">
+              Productos
+              {canManage && (
+                <button
+                  type="button"
+                  className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingProduct(null);
+                    setProductFormOpen(true);
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="categories" className="flex items-center gap-2">
+              Categorías
+              {canManage && (
+                <button
+                  type="button"
+                  className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingCategory(null);
+                    setCategoryFormOpen(true);
+                  }}
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </TabsTrigger>
+          </TabsList>
 
           {/* ─── Products Tab ─── */}
           <TabsContent value="products" className="mt-4 space-y-4">
