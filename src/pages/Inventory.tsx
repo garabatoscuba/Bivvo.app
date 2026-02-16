@@ -193,7 +193,7 @@ const Inventory = () => {
 
         {/* Tabs + Action Buttons */}
         <Tabs value={mainTab} onValueChange={setMainTab}>
-          <TabsList className="w-full grid grid-cols-2">
+          <TabsList>
             <TabsTrigger value="products" className="flex items-center gap-2">
               Productos
               {canManage && (
