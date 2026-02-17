@@ -1,48 +1,36 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from '@/hooks/use-toast';
-import { getAllFromStore, putManyInStore } from '@/lib/offlineDb';
 import type { Product, Category } from '@/types/database';
 
 export const useProducts = () => {
   const { profile } = useAuth();
-  const { isOnline } = useOffline();
   const queryClient = useQueryClient();
 
   const productsQuery = useQuery({
     queryKey: ['products', profile?.business_id],
     queryFn: async () => {
       if (!profile?.business_id) return [];
+      
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          category:categories(*)
+        `)
+        .eq('business_id', profile.business_id)
+        .order('name');
 
-      if (isOnline) {
-        try {
-          const { data, error } = await supabase
-            .from('products')
-            .select(`*, category:categories(*)`)
-            .eq('business_id', profile.business_id)
-            .order('name');
-
-          if (error) throw error;
-          const result = data as (Product & { category: Category | null })[];
-          // Cache to IndexedDB
-          await putManyInStore('products', result);
-          return result;
-        } catch (err) {
-          console.warn('Products online fetch failed, using cache:', err);
-        }
-      }
-
-      // Offline fallback
-      const cached = await getAllFromStore<Product & { category: Category | null }>('products', 'by-business', profile.business_id);
-      return cached.sort((a, b) => a.name.localeCompare(b.name));
+      if (error) throw error;
+      return data as (Product & { category: Category | null })[];
     },
     enabled: !!profile?.business_id,
   });
 
   const createProduct = useMutation({
     mutationFn: async (product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'code' | 'category'>) => {
+      // Generar código automáticamente
       const { data: code } = await supabase.rpc('generate_product_code', {
         _business_id: product.business_id,
       });
@@ -61,7 +49,11 @@ export const useProducts = () => {
       toast({ title: 'Producto creado exitosamente' });
     },
     onError: (error) => {
-      toast({ title: 'Error al crear producto', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error al crear producto', 
+        description: error.message,
+        variant: 'destructive' 
+      });
     },
   });
 
@@ -82,13 +74,21 @@ export const useProducts = () => {
       toast({ title: 'Producto actualizado' });
     },
     onError: (error) => {
-      toast({ title: 'Error al actualizar', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error al actualizar', 
+        description: error.message,
+        variant: 'destructive' 
+      });
     },
   });
 
   const deleteProduct = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('products').delete().eq('id', id);
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -96,7 +96,11 @@ export const useProducts = () => {
       toast({ title: 'Producto eliminado' });
     },
     onError: (error) => {
-      toast({ title: 'Error al eliminar', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error al eliminar', 
+        description: error.message,
+        variant: 'destructive' 
+      });
     },
   });
 
@@ -112,39 +116,33 @@ export const useProducts = () => {
 
 export const useCategories = () => {
   const { profile } = useAuth();
-  const { isOnline } = useOffline();
   const queryClient = useQueryClient();
 
   const categoriesQuery = useQuery({
     queryKey: ['categories', profile?.business_id],
     queryFn: async () => {
       if (!profile?.business_id) return [];
+      
+      const { data, error } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('business_id', profile.business_id)
+        .order('name');
 
-      if (isOnline) {
-        try {
-          const { data, error } = await supabase
-            .from('categories')
-            .select('*')
-            .eq('business_id', profile.business_id)
-            .order('name');
-
-          if (error) throw error;
-          await putManyInStore('categories', data as Category[]);
-          return data as Category[];
-        } catch (err) {
-          console.warn('Categories online fetch failed, using cache:', err);
-        }
-      }
-
-      const cached = await getAllFromStore<Category>('categories', 'by-business', profile.business_id);
-      return cached.sort((a, b) => a.name.localeCompare(b.name));
+      if (error) throw error;
+      return data as Category[];
     },
     enabled: !!profile?.business_id,
   });
 
   const createCategory = useMutation({
     mutationFn: async (category: Omit<Category, 'id' | 'created_at' | 'updated_at'>) => {
-      const { data, error } = await supabase.from('categories').insert(category).select().single();
+      const { data, error } = await supabase
+        .from('categories')
+        .insert(category)
+        .select()
+        .single();
+
       if (error) throw error;
       return data;
     },
@@ -153,13 +151,23 @@ export const useCategories = () => {
       toast({ title: 'Categoría creada' });
     },
     onError: (error) => {
-      toast({ title: 'Error al crear categoría', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error al crear categoría', 
+        description: error.message,
+        variant: 'destructive' 
+      });
     },
   });
 
   const updateCategory = useMutation({
     mutationFn: async ({ id, ...category }: Partial<Category> & { id: string }) => {
-      const { data, error } = await supabase.from('categories').update(category).eq('id', id).select().single();
+      const { data, error } = await supabase
+        .from('categories')
+        .update(category)
+        .eq('id', id)
+        .select()
+        .single();
+
       if (error) throw error;
       return data;
     },
@@ -168,13 +176,21 @@ export const useCategories = () => {
       toast({ title: 'Categoría actualizada' });
     },
     onError: (error) => {
-      toast({ title: 'Error al actualizar categoría', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error al actualizar categoría', 
+        description: error.message,
+        variant: 'destructive' 
+      });
     },
   });
 
   const deleteCategory = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('categories').delete().eq('id', id);
+      const { error } = await supabase
+        .from('categories')
+        .delete()
+        .eq('id', id);
+
       if (error) throw error;
     },
     onSuccess: () => {
@@ -182,7 +198,11 @@ export const useCategories = () => {
       toast({ title: 'Categoría eliminada' });
     },
     onError: (error) => {
-      toast({ title: 'Error al eliminar categoría', description: error.message, variant: 'destructive' });
+      toast({ 
+        title: 'Error al eliminar categoría', 
+        description: error.message,
+        variant: 'destructive' 
+      });
     },
   });
 
@@ -197,29 +217,22 @@ export const useCategories = () => {
 
 export const useBranchStock = (branchId?: string) => {
   const { profile } = useAuth();
-  const { isOnline } = useOffline();
 
   return useQuery({
     queryKey: ['branch-stock', branchId],
     queryFn: async () => {
       if (!branchId) return [];
+      
+      const { data, error } = await supabase
+        .from('branch_stock')
+        .select(`
+          *,
+          product:products(*, category:categories(*))
+        `)
+        .eq('branch_id', branchId);
 
-      if (isOnline) {
-        try {
-          const { data, error } = await supabase
-            .from('branch_stock')
-            .select(`*, product:products(*, category:categories(*))`)
-            .eq('branch_id', branchId);
-
-          if (error) throw error;
-          await putManyInStore('branch_stock', data || []);
-          return data;
-        } catch (err) {
-          console.warn('BranchStock online fetch failed, using cache:', err);
-        }
-      }
-
-      return getAllFromStore<any>('branch_stock', 'by-branch', branchId);
+      if (error) throw error;
+      return data;
     },
     enabled: !!branchId && !!profile?.business_id,
   });
