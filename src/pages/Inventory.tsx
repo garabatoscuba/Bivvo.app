@@ -8,7 +8,10 @@ import { CategoryForm } from '@/components/inventory/CategoryForm';
 import { useProducts, useCategories, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/contexts/AuthContext';
-import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, TrendingUp, AlertTriangle, DollarSign, BarChart3 } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
+import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, TrendingUp, AlertTriangle, DollarSign, BarChart3, PackagePlus } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -54,9 +57,10 @@ const colorDotMap: Record<string, string> = {
 
 const Inventory = () => {
   const { profile, isOwner, isManager } = useAuth();
-  const { products, isLoading: productsLoading } = useProducts();
+  const { products, isLoading: productsLoading, deleteProduct } = useProducts();
   const { categories, isLoading: categoriesLoading, deleteCategory } = useCategories();
   const { data: branches } = useBranches();
+  const queryClient = useQueryClient();
   
   const [search, setSearch] = useState('');
   const [selectedBranch, setSelectedBranch] = useState<string>('');
@@ -67,6 +71,11 @@ const Inventory = () => {
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<(Product & { category: Category | null }) | null>(null);
   const [mainTab, setMainTab] = useState<string>('products');
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+  const [stockEntryProduct, setStockEntryProduct] = useState<Product | null>(null);
+  const [stockQtyForSale, setStockQtyForSale] = useState(0);
+  const [stockQtyWarehouse, setStockQtyWarehouse] = useState(0);
+  const [addingStock, setAddingStock] = useState(false);
 
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
 
@@ -151,6 +160,66 @@ const Inventory = () => {
     if (deletingCategory) {
       await deleteCategory.mutateAsync(deletingCategory.id);
       setDeletingCategory(null);
+    }
+  };
+
+  const handleDeleteProduct = async () => {
+    if (deletingProduct) {
+      await deleteProduct.mutateAsync(deletingProduct.id);
+      setDeletingProduct(null);
+    }
+  };
+
+  const handleAddStock = async () => {
+    if (!stockEntryProduct || !profile?.user_id) return;
+    const totalQty = stockQtyForSale + stockQtyWarehouse;
+    if (totalQty <= 0) return;
+
+    setAddingStock(true);
+    try {
+      const branchId = selectedBranch || profile.branch_id || branches?.[0]?.id;
+      if (!branchId) return;
+
+      // Upsert branch_stock
+      const { data: existing } = await supabase
+        .from('branch_stock')
+        .select('id, quantity')
+        .eq('branch_id', branchId)
+        .eq('product_id', stockEntryProduct.id)
+        .maybeSingle();
+
+      if (existing) {
+        await supabase
+          .from('branch_stock')
+          .update({ quantity: existing.quantity + totalQty })
+          .eq('id', existing.id);
+      } else {
+        await supabase
+          .from('branch_stock')
+          .insert({ branch_id: branchId, product_id: stockEntryProduct.id, quantity: totalQty });
+      }
+
+      // Registrar movimiento
+      await supabase
+        .from('inventory_movements')
+        .insert({
+          branch_id: branchId,
+          product_id: stockEntryProduct.id,
+          user_id: profile.user_id,
+          movement_type: 'purchase' as const,
+          quantity: totalQty,
+          notes: `Entrada: ${stockQtyForSale} venta, ${stockQtyWarehouse} almacén`,
+        });
+
+      queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
+      toast({ title: `Entrada de ${totalQty} unidades registrada` });
+      setStockEntryProduct(null);
+      setStockQtyForSale(0);
+      setStockQtyWarehouse(0);
+    } catch (err: any) {
+      toast({ title: 'Error al dar entrada', description: err.message, variant: 'destructive' });
+    } finally {
+      setAddingStock(false);
     }
   };
 
@@ -271,6 +340,9 @@ const Inventory = () => {
                         stock={stockMap.get(product.id) || 0}
                         color={product.category?.color || 'blue'}
                         onClick={() => handleProductTap(product)}
+                        canManage={canManage}
+                        onDelete={() => setDeletingProduct(product)}
+                        onAddStock={() => { setStockEntryProduct(product); setStockQtyForSale(0); setStockQtyWarehouse(0); }}
                       />
                     ))}
                     <Separator className="my-2" />
@@ -285,6 +357,9 @@ const Inventory = () => {
                         stock={stockMap.get(product.id) || 0}
                         color="blue"
                         onClick={() => handleProductTap(product)}
+                        canManage={canManage}
+                        onDelete={() => setDeletingProduct(product)}
+                        onAddStock={() => { setStockEntryProduct(product); setStockQtyForSale(0); setStockQtyWarehouse(0); }}
                       />
                     ))}
                   </div>
@@ -467,6 +542,66 @@ const Inventory = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Delete Product Confirmation */}
+      <AlertDialog open={!!deletingProduct} onOpenChange={(open) => !open && setDeletingProduct(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar producto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará "{deletingProduct?.name}" permanentemente. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteProduct} className="bg-destructive text-destructive-foreground">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Stock Entry Dialog */}
+      <AlertDialog open={!!stockEntryProduct} onOpenChange={(open) => { if (!open) { setStockEntryProduct(null); setStockQtyForSale(0); setStockQtyWarehouse(0); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Dar entrada — {stockEntryProduct?.name}</AlertDialogTitle>
+            <AlertDialogDescription>
+              Ingresa las cantidades a agregar al inventario.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="grid grid-cols-2 gap-4 py-4">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">En venta</label>
+              <Input 
+                type="number" 
+                min="0" 
+                value={stockQtyForSale} 
+                onChange={(e) => setStockQtyForSale(Math.max(0, parseInt(e.target.value) || 0))} 
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">En almacén</label>
+              <Input 
+                type="number" 
+                min="0" 
+                value={stockQtyWarehouse} 
+                onChange={(e) => setStockQtyWarehouse(Math.max(0, parseInt(e.target.value) || 0))} 
+              />
+            </div>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleAddStock} 
+              disabled={addingStock || (stockQtyForSale + stockQtyWarehouse) <= 0}
+            >
+              {addingStock ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Dar entrada ({stockQtyForSale + stockQtyWarehouse})
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
@@ -478,26 +613,41 @@ interface ProductRowProps {
   stock: number;
   color: string;
   onClick: () => void;
+  canManage: boolean;
+  onDelete: () => void;
+  onAddStock: () => void;
 }
 
-const ProductRow = ({ product, stock, color, onClick }: ProductRowProps) => {
+const ProductRow = ({ product, stock, color, onClick, canManage, onDelete, onAddStock }: ProductRowProps) => {
   const bgColor = colorMap[color] || colorMap.blue;
   const isLow = stock <= product.min_stock;
 
   return (
-    <button
-      className="flex items-center gap-3 w-full text-left py-2.5 px-1 rounded-lg hover:bg-muted/50 active:bg-muted transition-colors"
-      onClick={onClick}
-    >
-      <span className={cn(
-        'inline-flex items-center justify-center h-8 min-w-[2.5rem] px-2 rounded-md text-sm font-semibold',
-        bgColor
-      )}>
-        {stock.toString().padStart(2, '0')}
-      </span>
-      <span className="font-medium text-sm truncate flex-1">{product.name}</span>
-      {isLow && <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />}
-    </button>
+    <div className="flex items-center gap-2 py-1.5 px-1 rounded-lg hover:bg-muted/50 transition-colors group">
+      <button
+        className="flex items-center gap-3 flex-1 text-left min-w-0"
+        onClick={onClick}
+      >
+        <span className={cn(
+          'inline-flex items-center justify-center h-8 min-w-[2.5rem] px-2 rounded-md text-sm font-semibold',
+          bgColor
+        )}>
+          {stock.toString().padStart(2, '0')}
+        </span>
+        <span className="font-medium text-sm truncate flex-1">{product.name}</span>
+        {isLow && <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />}
+      </button>
+      {canManage && (
+        <div className="flex gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onAddStock} title="Dar entrada">
+            <PackagePlus className="h-3.5 w-3.5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={onDelete} title="Eliminar">
+            <Trash2 className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
+    </div>
   );
 };
 
