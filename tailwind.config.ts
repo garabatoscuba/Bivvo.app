@@ -140,17 +140,7 @@ export default {
   				'Roboto',
   				'Helvetica Neue',
   				'Arial',
-  				'Noto Sans',
   				'sans-serif'
-  			],
-  			serif: [
-  				'Crimson Pro',
-  				'ui-serif',
-  				'Georgia',
-  				'Cambria',
-  				'Times New Roman',
-  				'Times',
-  				'serif'
   			],
   			mono: [
   				'SF Mono',
@@ -159,8 +149,6 @@ export default {
   				'Menlo',
   				'Monaco',
   				'Consolas',
-  				'Liberation Mono',
-  				'Courier New',
   				'monospace'
   			]
   		},

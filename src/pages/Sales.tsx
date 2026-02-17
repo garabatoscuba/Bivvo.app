@@ -25,10 +25,10 @@ const paymentLabels: Record<PaymentType, string> = {
 };
 
 const paymentColors: Record<PaymentType, string> = {
-  cash: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
-  card: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
-  transfer: 'bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200',
-  credit: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+  cash: 'bg-success/15 text-success',
+  card: 'bg-info/15 text-info',
+  transfer: 'bg-category-purple/20 text-category-purple-foreground',
+  credit: 'bg-warning/15 text-warning',
 };
 
 const statusLabels: Record<SaleStatus, string> = {
@@ -38,9 +38,9 @@ const statusLabels: Record<SaleStatus, string> = {
 };
 
 const statusColors: Record<SaleStatus, string> = {
-  completed: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200',
-  pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
-  cancelled: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+  completed: 'bg-success/15 text-success',
+  pending: 'bg-warning/15 text-warning',
+  cancelled: 'bg-destructive/15 text-destructive',
 };
 
 const Sales = () => {
