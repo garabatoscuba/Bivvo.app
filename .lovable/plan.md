@@ -1,126 +1,52 @@
-# Dashboard Moderno con Analiticas y Graficas
+
+# Pagina de Configuracion
 
 ## Que se va a construir
 
-Reemplazar el dashboard actual (que muestra datos estaticos "$0.00") por un dashboard completo con datos reales, graficas interactivas y un selector de periodo (dia, semana, mes, ano).
+Crear una pagina de Configuracion completa (`/settings`) que reemplace el Dashboard que se muestra actualmente en esa ruta. La pagina incluira varias secciones organizadas con tabs.
 
-## Estructura del nuevo Dashboard
+## Secciones
 
-### 1. Barra superior: Selector de periodo
+### 1. Perfil de Usuario
+- Nombre completo (editable, se guarda en `profiles.full_name`)
+- Email (solo lectura)
+- Telefono (editable, se guarda en `profiles.phone`)
+- Boton "Guardar cambios"
 
-Un grupo de botones (ToggleGroup) para cambiar entre:
+### 2. Apariencia
+- Toggle de modo oscuro / claro / sistema usando `next-themes` (ya instalado como dependencia)
+- Tres opciones visuales: Claro, Oscuro, Sistema
+- Se aplica inmediatamente al seleccionar
 
-- **Hoy** - datos del dia actual, en vivo
-- **Semana** - ultimos 7 dias
-- **Mes** - mes actual
-- **Ano** - ano actual
+### 3. Negocio
+- Nombre del negocio (editable, se guarda en `businesses.name`)
+- Logo del negocio (solo visualizacion por ahora, campo `businesses.logo_url`)
+- Solo visible para usuarios con rol `owner` o `manager`
 
-### 2. KPIs principales (4 cards)
+### 4. Seguridad
+- Boton para cambiar contrasena (usa `supabase.auth.updateUser`)
+- Campos: contrasena actual (no requerido por Supabase), nueva contrasena, confirmar contrasena
 
-Cuatro tarjetas con datos reales filtrados por el periodo seleccionado:
+## Cambios tecnicos
 
-- **Total Ventas**: monto total de ventas completadas en el periodo
-- **Cantidad de Ventas**: numero de transacciones completadas
-- **Ticket Promedio**: total / cantidad de ventas
-- **Cuentas por Cobrar**: total de ventas con status "pending" (credito vigente, no afectado por periodo)
+### 1. Agregar ThemeProvider en `src/App.tsx`
+- Importar `ThemeProvider` de `next-themes`
+- Envolver la app con `ThemeProvider` con `attribute="class"` (ya configurado en tailwind con `darkMode: ["class"]`)
+- Los estilos dark ya estan definidos en `index.css`
 
-Cada card mostrara la comparacion porcentual vs el periodo anterior (ej: "hoy vs ayer", "esta semana vs la anterior", etc.)
+### 2. Crear `src/pages/Settings.tsx`
+- Pagina nueva con `AppLayout`
+- Usa `Tabs` de radix para organizar las secciones (Perfil, Apariencia, Negocio, Seguridad)
+- Cada tab con su formulario correspondiente
+- Seccion de Apariencia usa `useTheme()` de `next-themes` para cambiar entre light/dark/system
+- Formularios usan `useState` y llamadas directas a Supabase para guardar
 
-### 3. Grafica de ventas (Area/Bar chart)
-
-- Grafica principal usando recharts (ya instalado)
-- Eje X: fechas/horas segun el periodo (horas si es "hoy", dias si es semana/mes, meses si es ano)
-- Eje Y: monto de ventas
-- Tooltip con detalle al pasar el mouse
-
-### 4. Grafica de metodos de pago (Pie/Donut chart)
-
-- Distribucion de ventas por metodo de pago (efectivo, tarjeta, transferencia, credito)
-- Colores diferenciados por metodo
-- Leyenda con montos y porcentajes
-
-### 5. Top 5 productos mas vendidos (Bar chart horizontal)
-
-- Los 5 productos con mayor cantidad vendida en el periodo
-- Nombre del producto y cantidad
-
-### 6. Seccion de alertas (se mantiene)
-
-- Productos con stock bajo (ya existente, se conserva)
-
-### 7. Acciones rapidas (se mantienen)
-
-- Botones de acceso rapido a POS, Inventario, Empleados
-
-## Cambios necesarios
-
-### 1. Nuevo hook `src/hooks/useDashboardStats.ts`
-
-- Recibe `branchId` y `period` (today/week/month/year)
-- Calcula rango de fechas segun el periodo
-- Hace queries a `sales` y `sale_items` filtrados por branch y rango
-- Calcula KPIs, datos para graficas y comparaciones con periodo anterior
-- Query a `sale_items` con join a `products` para top productos
-
-### 2. Reescribir `src/pages/Dashboard.tsx`
-
-- Importar y usar el nuevo hook
-- Selector de periodo con ToggleGroup
-- Cards con datos reales y variacion porcentual
-- Graficas con componentes de recharts (AreaChart, PieChart, BarChart)
-- Usar los componentes ChartContainer, ChartTooltip del archivo chart.tsx existente
-- Mantener alertas de stock bajo y acciones rapidas
-
-### 3. No se requieren cambios en App.tsx ni migraciones
-
-La ruta `/` ya apunta a Dashboard. Los datos se obtienen de tablas existentes.
-
-## Detalles tecnicos
-
-### Calculo de periodos
-
-```typescript
-// Ejemplo para "today"
-const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
-// Para comparacion: ayer
-const startOfYesterday = subDays(startOfToday, 1);
-
-// "week": ultimos 7 dias vs 7 dias anteriores
-// "month": dia 1 del mes actual vs dia 1 del mes anterior
-// "year": dia 1 de enero vs ano anterior
-```
-
-### Datos para grafica de ventas por tiempo
-
-```typescript
-// Para "hoy": agrupar por hora (0-23)
-// Para "semana": agrupar por dia (lun-dom)
-// Para "mes": agrupar por dia (1-28/31)
-// Para "ano": agrupar por mes (ene-dic)
-```
-
-### Query de top productos
-
-```sql
-SELECT products.name, SUM(sale_items.quantity) as total_qty
-FROM sale_items
-JOIN sales ON sales.id = sale_items.sale_id
-JOIN products ON products.id = sale_items.product_id
-WHERE sales.branch_id = :branch AND sales.created_at >= :start
-  AND sales.status = 'completed'
-GROUP BY products.name
-ORDER BY total_qty DESC LIMIT 5
-```
-
-En codigo se hara con el SDK procesando los datos en el cliente ya que Supabase JS no soporta GROUP BY directamente.
+### 3. Actualizar ruta en `src/App.tsx`
+- Cambiar la ruta `/settings` para que renderice `Settings` en lugar de `Dashboard`
 
 ### Archivos a crear/modificar
+- `src/pages/Settings.tsx` (nuevo)
+- `src/App.tsx` (agregar ThemeProvider + cambiar ruta /settings)
 
-- `src/hooks/useDashboardStats.ts` (nuevo)
-- `src/pages/Dashboard.tsx` (reescribir)
-
-### Dependencias
-
-- `recharts` (ya instalado)
-- `date-fns` (ya instalado)
-- Componentes chart.tsx (ya existen)
+### Sin migraciones de base de datos
+Todos los campos necesarios ya existen en las tablas `profiles` y `businesses`.
