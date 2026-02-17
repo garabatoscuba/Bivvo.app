@@ -81,10 +81,12 @@ const Inventory = () => {
 
   const canManage = isOwner || isManager;
 
-  // Stock map
+  // Stock maps
   const stockMap = new Map<string, number>();
+  const warehouseStockMap = new Map<string, number>();
   branchStock?.forEach((bs: any) => {
     stockMap.set(bs.product_id, bs.quantity);
+    warehouseStockMap.set(bs.product_id, bs.warehouse_quantity || 0);
   });
 
   // Filter products (all statuses except discontinued)
@@ -126,6 +128,7 @@ const Inventory = () => {
     const forSale = products.filter(p => p.status === 'for_sale').length;
     const warehouse = products.filter(p => p.status === 'warehouse').length;
     const totalStock = Array.from(stockMap.values()).reduce((a, b) => a + b, 0);
+    const totalWarehouseStock = Array.from(warehouseStockMap.values()).reduce((a, b) => a + b, 0);
     const lowStock = products.filter(p => {
       const stock = stockMap.get(p.id) || 0;
       return stock <= p.min_stock && stock > 0 && p.status === 'for_sale';
@@ -136,14 +139,16 @@ const Inventory = () => {
     }).length;
     const totalValue = products.reduce((sum, p) => {
       const stock = stockMap.get(p.id) || 0;
-      return sum + (stock * Number(p.sale_price));
+      const wStock = warehouseStockMap.get(p.id) || 0;
+      return sum + ((stock + wStock) * Number(p.sale_price));
     }, 0);
     const costValue = products.reduce((sum, p) => {
       const stock = stockMap.get(p.id) || 0;
-      return sum + (stock * Number(p.cost_price));
+      const wStock = warehouseStockMap.get(p.id) || 0;
+      return sum + ((stock + wStock) * Number(p.cost_price));
     }, 0);
-    return { forSale, warehouse, totalStock, lowStock, outOfStock, totalValue, costValue };
-  }, [products, stockMap]);
+    return { forSale, warehouse, totalStock, totalWarehouseStock, lowStock, outOfStock, totalValue, costValue };
+  }, [products, stockMap, warehouseStockMap]);
 
   const handleProductTap = (product: Product & { category: Category | null }) => {
     setSelectedProduct(product);
@@ -189,7 +194,7 @@ const Inventory = () => {
       // Upsert branch_stock
       const { data: existing } = await supabase
         .from('branch_stock')
-        .select('id, quantity')
+        .select('id, quantity, warehouse_quantity')
         .eq('branch_id', branchId)
         .eq('product_id', stockEntryProduct.id)
         .maybeSingle();
@@ -197,12 +202,20 @@ const Inventory = () => {
       if (existing) {
         await supabase
           .from('branch_stock')
-          .update({ quantity: existing.quantity + totalQty })
+          .update({ 
+            quantity: existing.quantity + stockQtyForSale,
+            warehouse_quantity: (existing.warehouse_quantity || 0) + stockQtyWarehouse,
+          })
           .eq('id', existing.id);
       } else {
         await supabase
           .from('branch_stock')
-          .insert({ branch_id: branchId, product_id: stockEntryProduct.id, quantity: totalQty });
+          .insert({ 
+            branch_id: branchId, 
+            product_id: stockEntryProduct.id, 
+            quantity: stockQtyForSale,
+            warehouse_quantity: stockQtyWarehouse,
+          });
       }
 
       // Registrar movimiento
@@ -231,6 +244,8 @@ const Inventory = () => {
 
   // Product detail data
   const selectedStock = selectedProduct ? (stockMap.get(selectedProduct.id) || 0) : 0;
+  const selectedWarehouseStock = selectedProduct ? (warehouseStockMap.get(selectedProduct.id) || 0) : 0;
+  const selectedTotalStock = selectedStock + selectedWarehouseStock;
   const selectedMargin = selectedProduct 
     ? ((Number(selectedProduct.sale_price) - Number(selectedProduct.cost_price)) / Number(selectedProduct.sale_price) * 100)
     : 0;
@@ -314,7 +329,7 @@ const Inventory = () => {
                 expanded={expandedStat === 'forSale'}
                 onToggle={() => setExpandedStat(expandedStat === 'forSale' ? null : 'forSale')}
                 details={[
-                  { label: 'Unidades totales', value: `${stats.totalStock}` },
+                  { label: 'Unidades en venta', value: `${stats.totalStock}` },
                   { label: 'Valor inventario', value: `$${stats.totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
                 ]}
               />
@@ -325,8 +340,8 @@ const Inventory = () => {
                 expanded={expandedStat === 'warehouse'}
                 onToggle={() => setExpandedStat(expandedStat === 'warehouse' ? null : 'warehouse')}
                 details={[
-                  { label: 'Productos en reserva', value: '' },
-                  { label: 'Unidades totales', value: `${stats.totalStock}` },
+                  { label: 'Unidades en almacén', value: `${stats.totalWarehouseStock}` },
+                  { label: 'Costo total', value: `$${stats.costValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
                 ]}
               />
               <StatPill 
@@ -380,6 +395,7 @@ const Inventory = () => {
                         key={product.id}
                         product={product}
                         stock={stockMap.get(product.id) || 0}
+                        warehouseStock={warehouseStockMap.get(product.id) || 0}
                         color={product.category?.color || 'blue'}
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
@@ -397,6 +413,7 @@ const Inventory = () => {
                         key={product.id}
                         product={product}
                         stock={stockMap.get(product.id) || 0}
+                        warehouseStock={warehouseStockMap.get(product.id) || 0}
                         color="blue"
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
@@ -499,10 +516,15 @@ const Inventory = () => {
               {/* Key metrics */}
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard
-                  label="Stock actual"
+                  label="En venta"
                   value={selectedStock.toString()}
-                  sublabel={selectedProduct.status === 'for_sale' ? 'En venta' : 'Almacén'}
+                  sublabel="Disponible en POS"
                   alert={selectedStock <= selectedProduct.min_stock}
+                />
+                <MetricCard
+                  label="En almacén"
+                  value={selectedWarehouseStock.toString()}
+                  sublabel="En reserva"
                 />
                 <MetricCard
                   label="Margen"
@@ -510,14 +532,9 @@ const Inventory = () => {
                   sublabel={`Costo $${Number(selectedProduct.cost_price).toFixed(2)}`}
                 />
                 <MetricCard
-                  label="Precio venta"
-                  value={`$${Number(selectedProduct.sale_price).toFixed(2)}`}
-                  sublabel="PVP"
-                />
-                <MetricCard
                   label="Valor en stock"
-                  value={`$${(selectedStock * Number(selectedProduct.sale_price)).toFixed(2)}`}
-                  sublabel={`${selectedStock} × $${Number(selectedProduct.sale_price).toFixed(2)}`}
+                  value={`$${(selectedTotalStock * Number(selectedProduct.sale_price)).toFixed(2)}`}
+                  sublabel={`${selectedTotalStock} uds. total`}
                 />
               </div>
 
@@ -653,6 +670,7 @@ const Inventory = () => {
 interface ProductRowProps {
   product: Product & { category: Category | null };
   stock: number;
+  warehouseStock: number;
   color: string;
   onClick: () => void;
   canManage: boolean;
@@ -660,22 +678,27 @@ interface ProductRowProps {
   onAddStock: () => void;
 }
 
-const ProductRow = ({ product, stock, color, onClick, canManage, onDelete, onAddStock }: ProductRowProps) => {
+const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock }: ProductRowProps) => {
   const bgColor = colorMap[color] || colorMap.blue;
   const isLow = stock <= product.min_stock;
 
   return (
     <div className="flex items-center gap-2 py-1.5 px-1 rounded-lg hover:bg-muted/50 transition-colors group">
       <button
-        className="flex items-center gap-3 flex-1 text-left min-w-0"
+        className="flex items-center gap-2 flex-1 text-left min-w-0"
         onClick={onClick}
       >
-        <span className={cn(
-          'inline-flex items-center justify-center h-8 min-w-[2.5rem] px-2 rounded-md text-sm font-semibold',
-          bgColor
-        )}>
-          {stock.toString().padStart(2, '0')}
-        </span>
+        <div className="flex gap-1 flex-shrink-0">
+          <span className={cn(
+            'inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold',
+            bgColor
+          )} title="En venta">
+            {stock}
+          </span>
+          <span className="inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground" title="Almacén">
+            {warehouseStock}
+          </span>
+        </div>
         <span className="font-medium text-sm truncate flex-1">{product.name}</span>
         {isLow && <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />}
       </button>
