@@ -105,27 +105,39 @@ export type Database = {
           created_at: string
           id: string
           logo_url: string | null
+          max_branches: number | null
           name: string
           owner_id: string | null
+          plan_type: string | null
+          subscription_ends_at: string | null
           subscription_status: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
           id?: string
           logo_url?: string | null
+          max_branches?: number | null
           name: string
           owner_id?: string | null
+          plan_type?: string | null
+          subscription_ends_at?: string | null
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
           id?: string
           logo_url?: string | null
+          max_branches?: number | null
           name?: string
           owner_id?: string | null
+          plan_type?: string | null
+          subscription_ends_at?: string | null
           subscription_status?: Database["public"]["Enums"]["subscription_status"]
+          trial_ends_at?: string | null
           updated_at?: string
         }
         Relationships: [

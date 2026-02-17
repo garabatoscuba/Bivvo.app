@@ -17,7 +17,9 @@ import Employees from "./pages/Employees";
 import Branches from "./pages/Branches";
 import Sales from "./pages/Sales";
 import Settings from "./pages/Settings";
+import Plans from "./pages/Plans";
 import NotFound from "./pages/NotFound";
+import WhatsAppButton from "./components/layout/WhatsAppButton";
 
 const queryClient = new QueryClient();
 
@@ -54,10 +56,12 @@ const App = () => (
             <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
             <Route path="/branches" element={<ProtectedRoute><Branches /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
             <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminBusinesses /></ProtectedRoute>} />
             <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminStats /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <WhatsAppButton />
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
