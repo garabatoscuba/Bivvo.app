@@ -125,11 +125,11 @@ const POS = () => {
 
   return (
     <AppLayout>
-      <div className="flex h-[calc(100vh-8rem)] gap-4">
+      <div className="flex h-[calc(100vh-6.5rem)] md:h-[calc(100vh-8rem)] gap-3 md:gap-4">
         {/* Products Section */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Search & Categories */}
-          <div className="space-y-3 pb-4">
+          <div className="space-y-2 md:space-y-3 pb-3 md:pb-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input

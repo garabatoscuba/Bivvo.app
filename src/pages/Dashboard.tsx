@@ -80,10 +80,10 @@ const Dashboard = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 md:space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="hidden md:block">
             <h2 className="text-lg font-semibold text-foreground">
               ¡Bienvenido, {profile?.full_name?.split(' ')[0]}!
             </h2>
@@ -97,10 +97,10 @@ const Dashboard = () => {
             type="single"
             value={period}
             onValueChange={(v) => v && setPeriod(v as Period)}
-            className="border border-border bg-card"
+            className="border border-border bg-card w-full sm:w-auto"
           >
             {PERIOD_OPTIONS.map(opt => (
-              <ToggleGroupItem key={opt.value} value={opt.value} className="gap-1.5 text-xs px-3">
+              <ToggleGroupItem key={opt.value} value={opt.value} className="gap-1 text-xs px-2.5 flex-1 sm:flex-none sm:px-3">
                 <opt.icon className="h-3.5 w-3.5" />
                 {opt.label}
               </ToggleGroupItem>
@@ -109,7 +109,7 @@ const Dashboard = () => {
         </div>
 
         {/* KPI Cards */}
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             {
               title: 'Total Ventas',
@@ -124,7 +124,7 @@ const Dashboard = () => {
               icon: Hash,
             },
             {
-              title: 'Ticket Promedio',
+              title: 'Ticket Prom.',
               value: isLoading ? null : formatCurrency(stats?.avgTicket || 0),
               change: stats?.avgTicketChange || 0,
               icon: TrendingUp,
@@ -137,15 +137,15 @@ const Dashboard = () => {
             },
           ].map(kpi => (
             <Card key={kpi.title}>
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">{kpi.title}</CardTitle>
-                <kpi.icon className="h-4 w-4 text-muted-foreground" />
+              <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6 md:pt-6">
+                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">{kpi.title}</CardTitle>
+                <kpi.icon className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent>
+              <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
                 {kpi.value === null ? (
-                  <Skeleton className="h-8 w-24" />
+                  <Skeleton className="h-7 w-20 md:h-8 md:w-24" />
                 ) : (
-                  <div className="text-2xl font-bold">{kpi.value}</div>
+                  <div className="text-lg md:text-2xl font-bold">{kpi.value}</div>
                 )}
                 {kpi.change !== null && !isLoading && <ChangeIndicator value={kpi.change} />}
               </CardContent>
@@ -154,7 +154,7 @@ const Dashboard = () => {
         </div>
 
         {/* Charts Row */}
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid gap-3 md:gap-4 lg:grid-cols-3">
           {/* Sales over time */}
           <Card className="lg:col-span-2">
             <CardHeader>
@@ -162,9 +162,9 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Skeleton className="h-[250px] w-full" />
+               <Skeleton className="h-[180px] md:h-[250px] w-full" />
               ) : (
-                <ChartContainer config={areaChartConfig} className="h-[250px] w-full">
+                <ChartContainer config={areaChartConfig} className="h-[180px] md:h-[250px] w-full">
                   <AreaChart data={stats?.salesOverTime || []}>
                     <defs>
                       <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
@@ -198,13 +198,13 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               {isLoading ? (
-                <Skeleton className="h-[250px] w-full" />
+               <Skeleton className="h-[180px] md:h-[250px] w-full" />
               ) : (stats?.paymentMethods?.length || 0) === 0 ? (
-                <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
+                <div className="flex h-[180px] md:h-[250px] items-center justify-center text-sm text-muted-foreground">
                   Sin datos en este período
                 </div>
               ) : (
-                <ChartContainer config={pieChartConfig} className="h-[250px] w-full">
+                <ChartContainer config={pieChartConfig} className="h-[180px] md:h-[250px] w-full">
                   <PieChart>
                     <ChartTooltip
                       content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />}
@@ -248,11 +248,11 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             {isLoading ? (
-              <Skeleton className="h-[200px] w-full" />
+             <Skeleton className="h-[160px] md:h-[200px] w-full" />
             ) : (stats?.topProducts?.length || 0) === 0 ? (
               <p className="text-sm text-muted-foreground">Sin ventas en este período</p>
             ) : (
-              <ChartContainer config={barChartConfig} className="h-[200px] w-full">
+              <ChartContainer config={barChartConfig} className="h-[160px] md:h-[200px] w-full">
                 <BarChart data={stats?.topProducts} layout="vertical">
                   <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                   <XAxis type="number" tickLine={false} axisLine={false} fontSize={11} />
@@ -273,40 +273,24 @@ const Dashboard = () => {
         </Card>
 
         {/* Quick Actions */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <Link to="/pos">
-            <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-              <CardHeader className="flex flex-row items-center gap-4">
-                <ShoppingCart className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <CardTitle className="text-base">Punto de Venta</CardTitle>
-                  <p className="text-sm text-muted-foreground">Realizar una venta</p>
-                </div>
-              </CardHeader>
-            </Card>
-          </Link>
-          <Link to="/inventory">
-            <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-              <CardHeader className="flex flex-row items-center gap-4">
-                <Package className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <CardTitle className="text-base">Inventario</CardTitle>
-                  <p className="text-sm text-muted-foreground">Gestionar productos</p>
-                </div>
-              </CardHeader>
-            </Card>
-          </Link>
-          <Link to="/employees">
-            <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-              <CardHeader className="flex flex-row items-center gap-4">
-                <Users className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <CardTitle className="text-base">Empleados</CardTitle>
-                  <p className="text-sm text-muted-foreground">Gestionar equipo</p>
-                </div>
-              </CardHeader>
-            </Card>
-          </Link>
+        <div className="grid grid-cols-3 gap-2 md:gap-4 md:grid-cols-3">
+          {[
+            { to: '/pos', icon: ShoppingCart, title: 'POS', desc: 'Realizar venta' },
+            { to: '/inventory', icon: Package, title: 'Inventario', desc: 'Gestionar productos' },
+            { to: '/employees', icon: Users, title: 'Empleados', desc: 'Gestionar equipo' },
+          ].map(action => (
+            <Link key={action.to} to={action.to}>
+              <Card className="cursor-pointer transition-colors hover:bg-muted/50">
+                <CardHeader className="flex flex-col items-center gap-1.5 p-3 md:flex-row md:gap-4 md:p-6">
+                  <action.icon className="h-5 w-5 text-muted-foreground" />
+                  <div className="text-center md:text-left">
+                    <CardTitle className="text-sm md:text-base">{action.title}</CardTitle>
+                    <p className="text-xs text-muted-foreground hidden md:block">{action.desc}</p>
+                  </div>
+                </CardHeader>
+              </Card>
+            </Link>
+          ))}
         </div>
 
         {/* Alerts */}
