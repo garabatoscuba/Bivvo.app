@@ -1,7 +1,6 @@
 import { SidebarTrigger } from '@/components/ui/sidebar';
-import { Button } from '@/components/ui/button';
-import { Bell } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import NotificationCenter from './NotificationCenter';
 
 interface AppHeaderProps {
   title?: string;
@@ -20,10 +19,7 @@ const AppHeader = ({ title }: AppHeaderProps) => {
       </div>
 
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon" className="relative h-8 w-8">
-          <Bell className="h-4 w-4" />
-          <span className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-destructive" />
-        </Button>
+        <NotificationCenter />
       </div>
     </header>
   );
