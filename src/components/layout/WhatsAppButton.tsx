@@ -1,6 +1,6 @@
 import { MessageCircle } from 'lucide-react';
 
-const WHATSAPP_NUMBER = '53552514878';
+const WHATSAPP_NUMBER = '5352514878';
 const WHATSAPP_MESSAGE = encodeURIComponent('Hola, me interesa activar/renovar mi plan de GestorPro');
 const WHATSAPP_URL = `https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`;
 
