@@ -16,9 +16,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Store, Plus, CheckCircle, XCircle, Clock, Ban, Search, Loader2, Building2,
   Settings, Users, Package, ShoppingCart, TrendingUp, DollarSign, Crown,
-  AlertTriangle, BarChart3, Activity,
+  AlertTriangle, BarChart3, Activity, Trash2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,7 +60,14 @@ const AdminDashboard = () => {
   const [manageData, setManageData] = useState<ManageData | null>(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
-  const [newBusiness, setNewBusiness] = useState({ name: '' });
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [newBusiness, setNewBusiness] = useState({
+    name: '',
+    plan_type: 'trial' as string,
+    subscription_status: 'pending' as SubscriptionStatus,
+    max_branches: 1,
+    subscription_ends_at: '',
+  });
 
   // Unified query for all admin data
   const { data, isLoading } = useQuery({
@@ -143,11 +154,25 @@ const AdminDashboard = () => {
     },
   });
 
+  const defaultNewBusiness = {
+    name: '',
+    plan_type: 'trial' as string,
+    subscription_status: 'pending' as SubscriptionStatus,
+    max_branches: 1,
+    subscription_ends_at: '',
+  };
+
   const createMutation = useMutation({
-    mutationFn: async ({ name }: { name: string }) => {
+    mutationFn: async (biz: typeof defaultNewBusiness) => {
       const { data, error } = await supabase
         .from('businesses')
-        .insert({ name, subscription_status: 'pending' as SubscriptionStatus })
+        .insert({
+          name: biz.name,
+          plan_type: biz.plan_type,
+          subscription_status: biz.subscription_status,
+          max_branches: biz.max_branches,
+          subscription_ends_at: biz.subscription_ends_at || null,
+        })
         .select()
         .single();
       if (error) throw error;
@@ -161,10 +186,26 @@ const AdminDashboard = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
       toast({ title: 'Negocio creado' });
       setCreateOpen(false);
-      setNewBusiness({ name: '' });
+      setNewBusiness({ ...defaultNewBusiness });
     },
     onError: (err: any) => {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('businesses').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
+      toast({ title: 'Negocio eliminado', description: 'El negocio y todos sus datos han sido eliminados.' });
+      setDeleteTarget(null);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error al eliminar', description: err.message, variant: 'destructive' });
+      setDeleteTarget(null);
     },
   });
 
@@ -489,9 +530,19 @@ const AdminDashboard = () => {
                               <TableCell className="text-center text-sm">{b.branch_count}/{(b as any).max_branches || 1}</TableCell>
                               <TableCell className="text-center text-sm">{b.product_count}</TableCell>
                               <TableCell className="text-right">
-                                <Button variant="ghost" size="sm" onClick={() => openManage(b)} className="gap-1 h-7 text-xs">
-                                  <Settings className="h-3.5 w-3.5" /> Gestionar
-                                </Button>
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button variant="ghost" size="sm" onClick={() => openManage(b)} className="gap-1 h-7 text-xs">
+                                    <Settings className="h-3.5 w-3.5" /> Gestionar
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => setDeleteTarget({ id: b.id, name: b.name })}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
                               </TableCell>
                             </TableRow>
                           );
@@ -613,23 +664,67 @@ const AdminDashboard = () => {
             <DialogTitle className="text-base">Registrar Nuevo Negocio</DialogTitle>
             <DialogDescription className="text-sm">Crea un negocio con su sucursal principal.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="grid gap-3 py-2">
             <div className="space-y-1.5">
-              <Label htmlFor="business-name" className="text-sm">Nombre del Negocio</Label>
+              <Label className="text-sm">Nombre del Negocio *</Label>
               <Input
-                id="business-name"
                 placeholder="Ej: Tienda La Esquina"
                 value={newBusiness.name}
-                onChange={(e) => setNewBusiness({ name: e.target.value })}
+                onChange={(e) => setNewBusiness(prev => ({ ...prev, name: e.target.value }))}
                 className="h-9"
               />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Plan</Label>
+                <Select value={newBusiness.plan_type} onValueChange={(v) => setNewBusiness(prev => ({ ...prev, plan_type: v }))}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="trial">Prueba</SelectItem>
+                    <SelectItem value="mvp">Profesional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Estado</Label>
+                <Select value={newBusiness.subscription_status} onValueChange={(v) => setNewBusiness(prev => ({ ...prev, subscription_status: v as SubscriptionStatus }))}>
+                  <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="active">Activo</SelectItem>
+                    <SelectItem value="suspended">Suspendido</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Vencimiento suscripción</Label>
+                <Input
+                  type="date"
+                  className="h-9 text-sm"
+                  value={newBusiness.subscription_ends_at}
+                  onChange={(e) => setNewBusiness(prev => ({ ...prev, subscription_ends_at: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Máx. sucursales</Label>
+                <Input
+                  type="number"
+                  min={1}
+                  className="h-9 text-sm"
+                  value={newBusiness.max_branches}
+                  onChange={(e) => setNewBusiness(prev => ({ ...prev, max_branches: parseInt(e.target.value) || 1 }))}
+                />
+              </div>
             </div>
           </div>
           <DialogFooter className="gap-2">
             <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)}>Cancelar</Button>
             <Button
               size="sm"
-              onClick={() => createMutation.mutate({ name: newBusiness.name })}
+              onClick={() => createMutation.mutate(newBusiness)}
               disabled={!newBusiness.name.trim() || createMutation.isPending}
             >
               {createMutation.isPending ? 'Creando...' : 'Crear Negocio'}
@@ -695,17 +790,54 @@ const AdminDashboard = () => {
             </div>
           )}
           <DialogFooter className="gap-2">
-            <Button variant="outline" size="sm" onClick={() => setManageOpen(false)}>Cancelar</Button>
-            <Button
-              size="sm"
-              onClick={() => manageData && manageMutation.mutate(manageData)}
-              disabled={manageMutation.isPending}
-            >
-              {manageMutation.isPending ? 'Guardando...' : 'Guardar'}
-            </Button>
+            <div className="flex w-full items-center justify-between">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 gap-1"
+                onClick={() => {
+                  setManageOpen(false);
+                  if (manageData) setDeleteTarget({ id: manageData.id, name: manageData.name });
+                }}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Eliminar
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" onClick={() => setManageOpen(false)}>Cancelar</Button>
+                <Button
+                  size="sm"
+                  onClick={() => manageData && manageMutation.mutate(manageData)}
+                  disabled={manageMutation.isPending}
+                >
+                  {manageMutation.isPending ? 'Guardando...' : 'Guardar'}
+                </Button>
+              </div>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar negocio?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará <strong>{deleteTarget?.name}</strong> junto con todas sus sucursales, productos, ventas, empleados y datos asociados. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? 'Eliminando...' : 'Sí, eliminar'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
