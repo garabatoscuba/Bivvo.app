@@ -11,7 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, TrendingUp, AlertTriangle, DollarSign, BarChart3, PackagePlus } from 'lucide-react';
+import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, TrendingUp, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX } from 'lucide-react';
 import {
   Select,
   SelectContent,
@@ -119,6 +119,8 @@ const Inventory = () => {
     return { groups, uncategorized };
   }, [filteredProducts]);
 
+  const [expandedStat, setExpandedStat] = useState<string | null>(null);
+
   // Stats
   const stats = useMemo(() => {
     const forSale = products.filter(p => p.status === 'for_sale').length;
@@ -136,7 +138,11 @@ const Inventory = () => {
       const stock = stockMap.get(p.id) || 0;
       return sum + (stock * Number(p.sale_price));
     }, 0);
-    return { forSale, warehouse, totalStock, lowStock, outOfStock, totalValue };
+    const costValue = products.reduce((sum, p) => {
+      const stock = stockMap.get(p.id) || 0;
+      return sum + (stock * Number(p.cost_price));
+    }, 0);
+    return { forSale, warehouse, totalStock, lowStock, outOfStock, totalValue, costValue };
   }, [products, stockMap]);
 
   const handleProductTap = (product: Product & { category: Category | null }) => {
@@ -300,14 +306,49 @@ const Inventory = () => {
           {/* ─── Products Tab ─── */}
           <TabsContent value="products" className="mt-4 space-y-4">
             {/* Quick stats bar */}
-            <div className="grid grid-cols-3 gap-2">
-              <StatPill icon={Package} label="En venta" value={stats.forSale} />
-              <StatPill icon={BarChart3} label="Almacén" value={stats.warehouse} />
+            <div className="grid grid-cols-4 gap-1.5">
+              <StatPill 
+                icon={Package} 
+                label="En venta" 
+                value={stats.forSale} 
+                expanded={expandedStat === 'forSale'}
+                onToggle={() => setExpandedStat(expandedStat === 'forSale' ? null : 'forSale')}
+                details={[
+                  { label: 'Unidades totales', value: `${stats.totalStock}` },
+                  { label: 'Valor inventario', value: `$${stats.totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
+                ]}
+              />
+              <StatPill 
+                icon={BarChart3} 
+                label="Almacén" 
+                value={stats.warehouse}
+                expanded={expandedStat === 'warehouse'}
+                onToggle={() => setExpandedStat(expandedStat === 'warehouse' ? null : 'warehouse')}
+                details={[
+                  { label: 'Costo total', value: `$${stats.costValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
+                ]}
+              />
               <StatPill 
                 icon={AlertTriangle} 
                 label="Stock bajo" 
-                value={stats.lowStock + stats.outOfStock} 
-                alert={stats.lowStock + stats.outOfStock > 0}
+                value={stats.lowStock} 
+                alert={stats.lowStock > 0}
+                expanded={expandedStat === 'lowStock'}
+                onToggle={() => setExpandedStat(expandedStat === 'lowStock' ? null : 'lowStock')}
+                details={[
+                  { label: 'Requieren reabastecimiento pronto', value: '' },
+                ]}
+              />
+              <StatPill 
+                icon={PackageX} 
+                label="Sin stock" 
+                value={stats.outOfStock} 
+                alert={stats.outOfStock > 0}
+                expanded={expandedStat === 'outOfStock'}
+                onToggle={() => setExpandedStat(expandedStat === 'outOfStock' ? null : 'outOfStock')}
+                details={[
+                  { label: 'No disponibles para venta', value: '' },
+                ]}
               />
             </div>
 
@@ -656,16 +697,36 @@ interface StatPillProps {
   label: string;
   value: number;
   alert?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
+  details?: { label: string; value: string }[];
 }
 
-const StatPill = ({ icon: Icon, label, value, alert }: StatPillProps) => (
-  <div className={cn(
-    'flex flex-col items-center rounded-lg border p-2.5 text-center',
-    alert && 'border-warning/50 bg-warning/5'
-  )}>
-    <Icon className={cn('h-4 w-4 mb-1', alert ? 'text-warning' : 'text-muted-foreground')} />
-    <span className="text-lg font-bold leading-none">{value}</span>
-    <span className="text-[10px] text-muted-foreground mt-0.5">{label}</span>
+const StatPill = ({ icon: Icon, label, value, alert, expanded, onToggle, details }: StatPillProps) => (
+  <div className="flex flex-col">
+    <button
+      type="button"
+      onClick={onToggle}
+      className={cn(
+        'flex flex-col items-center rounded-lg border p-2 text-center transition-colors w-full',
+        alert && 'border-warning/50 bg-warning/5',
+        expanded && !alert && 'border-primary/50 bg-primary/5',
+      )}
+    >
+      <Icon className={cn('h-3.5 w-3.5 mb-0.5', alert ? 'text-warning' : 'text-muted-foreground')} />
+      <span className="text-base font-bold leading-none">{value}</span>
+      <span className="text-[9px] text-muted-foreground mt-0.5 leading-tight">{label}</span>
+    </button>
+    {expanded && details && details.length > 0 && (
+      <div className="mt-1 rounded-md border bg-muted/30 px-2 py-1.5 space-y-0.5">
+        {details.map((d, i) => (
+          <div key={i} className="flex justify-between items-center gap-1">
+            <span className="text-[10px] text-muted-foreground">{d.label}</span>
+            {d.value && <span className="text-[10px] font-semibold">{d.value}</span>}
+          </div>
+        ))}
+      </div>
+    )}
   </div>
 );
 
