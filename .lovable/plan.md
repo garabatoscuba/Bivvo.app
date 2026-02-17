@@ -1,181 +1,124 @@
 
 
-# Sistema de Planes, Suscripciones y Prueba Gratuita
+# Boton "Descargar App" integrado en el sitio
 
 ## Resumen
 
-Implementar un sistema completo de planes y suscripciones con prueba gratuita por tiempo, cobro manual via WhatsApp, y bloqueo de acceso cuando la suscripcion expira. Los usuarios veran los planes de forma clara e intuitiva, con un boton de WhatsApp siempre visible para contacto.
+Agregar un sistema inteligente de promocion de instalacion PWA directamente dentro de la app. Incluye un banner visible para usuarios moviles que aun no han instalado la app, y una pagina dedicada `/install` con instrucciones paso a paso.
 
-## Modelo de negocio
+## Como funciona
 
-- **Prueba gratuita**: 14 dias desde el registro, acceso completo
-- **Plan MVP**: $10 USD/mes por negocio (1 sucursal incluida)
-- **Sucursales extra**: $10 USD/mes cada una
-- **Cobro**: Manual. El usuario contacta por WhatsApp, paga, y el Super Admin activa/extiende la suscripcion
-- **Futuro**: Pasarela de pago automatica (no se implementa ahora, pero se deja preparado el campo `payment_method` en la BD)
+1. Cuando un usuario abre la app desde Chrome en Android, vera un banner en la parte superior que dice "Instalar app para usar sin internet"
+2. Al tocar "Instalar", se dispara el dialogo nativo de instalacion del navegador
+3. Si el usuario ya instalo la app o esta en escritorio, el banner no aparece
+4. En el menu lateral (sidebar) habra un enlace "Descargar App" que lleva a la pagina `/install`
+5. La pagina `/install` tiene instrucciones visuales para iPhone (que no soporta instalacion automatica) y Android
 
-## Cambios en la base de datos
+## Deteccion inteligente
 
-### Migracion: agregar campos a `businesses`
+- Detecta si el usuario esta en un navegador movil (no instalada aun)
+- Captura el evento `beforeinstallprompt` del navegador para disparar la instalacion nativa
+- Si ya esta instalada como PWA, oculta todo el sistema de promocion
+- En escritorio muestra un enlace discreto en el sidebar en vez del banner
 
-```sql
-ALTER TABLE businesses
-  ADD COLUMN trial_ends_at timestamptz DEFAULT (now() + interval '14 days'),
-  ADD COLUMN subscription_ends_at timestamptz,
-  ADD COLUMN plan_type text DEFAULT 'trial',
-  ADD COLUMN max_branches integer DEFAULT 1;
-```
+## Que vera el usuario
 
-- `trial_ends_at`: fecha de fin de prueba (se calcula al crear el negocio)
-- `subscription_ends_at`: fecha hasta la cual esta pagada la suscripcion (null = no pagada)
-- `plan_type`: 'trial', 'mvp', o futuros planes
-- `max_branches`: cuantas sucursales puede tener (1 por defecto, el admin lo ajusta al cobrar extras)
-
-### Actualizar trigger `handle_new_user`
-
-El trigger ya crea el negocio con status `pending`. Se ajustara para que `trial_ends_at` se calcule automaticamente (ya lo hara el DEFAULT de la columna).
-
-## Nuevos archivos y componentes
-
-### 1. Pagina de Planes `/plans` (nueva)
-
-Pagina publica accesible desde el sidebar y desde banners. Muestra:
-
-- **Card de prueba gratuita**: "14 dias gratis, acceso completo"
-- **Card Plan MVP ($10/mes)**: lista de funciones incluidas (POS, inventario, empleados, reportes, 1 sucursal)
-- **Card Sucursales Extra**: "+$10/mes por sucursal adicional"
-- **Boton de WhatsApp prominente**: "Contactar para activar" con enlace directo `https://wa.me/NUMERO`
-- **Estado actual del usuario**: muestra si esta en prueba (y cuantos dias le quedan), activo, o vencido
-
-### 2. Hook `useSubscription` (nuevo)
-
-Hook que calcula el estado de la suscripcion del negocio:
-
-```typescript
-// Logica:
-// 1. Si plan_type === 'trial' y trial_ends_at > now() => en prueba, mostrar dias restantes
-// 2. Si subscription_status === 'active' y subscription_ends_at > now() => activo
-// 3. Si subscription_status === 'active' y subscription_ends_at <= now() => vencido (bloquear)
-// 4. Si subscription_status === 'suspended' o 'cancelled' => bloqueado
-// 5. Si trial vencido y no tiene suscripcion => bloqueado
-```
-
-Retorna: `{ status, daysLeft, isBlocked, planType, trialEndsAt, subscriptionEndsAt }`
-
-### 3. Componente `SubscriptionBanner` (nuevo)
-
-Banner que aparece en el layout principal:
-- **En prueba**: banner azul "Te quedan X dias de prueba gratuita. Ver planes"
-- **Por vencer (menos de 3 dias)**: banner amarillo/naranja de urgencia
-- **Vencido/bloqueado**: banner rojo con boton de WhatsApp para renovar
-- No se muestra si la suscripcion esta activa y vigente
-
-### 4. Componente `SubscriptionGate` (nuevo)
-
-Wrapper que bloquea el acceso a las rutas protegidas cuando la suscripcion esta vencida:
-- Si esta bloqueado, redirige a `/plans` en lugar de mostrar el contenido
-- Permite siempre acceso a `/settings` y `/plans`
-- El Super Admin nunca es bloqueado
-
-### 5. Boton flotante de WhatsApp (nuevo)
-
-Boton circular flotante en la esquina inferior derecha con icono de WhatsApp. Visible en toda la app. Abre enlace directo al chat de WhatsApp con un mensaje predefinido como "Hola, me interesa activar/renovar mi plan de GestorPro".
-
-## Cambios en archivos existentes
-
-### `src/App.tsx`
-- Agregar ruta `/plans` (publica para usuarios autenticados)
-- Agregar componente `WhatsAppButton` flotante global
-
-### `src/components/layout/AppLayout.tsx`
-- Insertar `SubscriptionBanner` arriba del contenido
-
-### `src/components/layout/AppSidebar.tsx`
-- Agregar item "Planes" en el menu con icono de `CreditCard` o `Crown`
-
-### `src/components/auth/ProtectedRoute.tsx`
-- Integrar `SubscriptionGate`: si el negocio esta bloqueado y la ruta no es `/plans` ni `/settings`, redirigir a `/plans`
-
-### `src/pages/admin/AdminBusinesses.tsx`
-- Agregar columnas visibles: `plan_type`, `trial_ends_at`, `subscription_ends_at`
-- Agregar accion para que el Super Admin pueda extender la suscripcion (input de fecha `subscription_ends_at`) y cambiar `plan_type` a 'mvp'
-- Agregar accion para ajustar `max_branches`
-
-### `src/contexts/AuthContext.tsx`
-- Agregar datos de suscripcion del negocio al contexto (o delegarlo al hook `useSubscription`)
-
-## Flujo del usuario
-
+### En movil (Chrome Android, no instalada):
 ```text
-1. Usuario se registra
-   -> Se crea negocio con plan_type='trial', trial_ends_at=+14 dias, status='pending'
-
-2. Durante la prueba (14 dias)
-   -> Banner azul: "Te quedan X dias de prueba"
-   -> Acceso completo a todas las funciones
-   -> Item "Planes" visible en el menu
-
-3. Prueba por vencer (ultimos 3 dias)
-   -> Banner naranja: "Tu prueba vence en X dias. Contactanos por WhatsApp"
-
-4. Prueba vencida
-   -> Banner rojo: "Tu prueba ha vencido"
-   -> Se bloquea acceso a POS, Inventario, etc.
-   -> Solo acceso a /plans y /settings
-   -> Boton de WhatsApp prominente
-
-5. Usuario paga via WhatsApp
-   -> Super Admin va a /admin/businesses
-   -> Cambia plan_type a 'mvp'
-   -> Pone subscription_status='active'
-   -> Establece subscription_ends_at (ej: +30 dias)
-
-6. Suscripcion activa
-   -> Sin banners, acceso completo
-   -> Si se acercan los ultimos 3 dias, banner de renovacion
++------------------------------------------+
+| [icono] Instala la app  [Instalar] [ X ] |
++------------------------------------------+
+|          (resto de la app)               |
 ```
 
-## Flujo del Super Admin
-
+### En la pagina /install:
 ```text
-1. Va a /admin/businesses
-2. Ve la tabla con columnas: Negocio, Dueno, Plan, Estado, Vence, Sucursales
-3. Click en "Gestionar" abre un dialog con:
-   - Selector de plan (trial/mvp)
-   - Input de fecha de vencimiento
-   - Input de max sucursales
-   - Selector de estado (active/suspended/cancelled)
-   - Boton guardar
++------------------------------------------+
+|         Instala SyncSales                |
+|                                          |
+|  [icono de la app]                       |
+|                                          |
+|  Android:                                |
+|  1. Toca "Instalar" abajo               |
+|  2. Confirma la instalacion              |
+|                                          |
+|  iPhone:                                 |
+|  1. Toca el icono de Compartir           |
+|  2. Selecciona "Agregar a inicio"        |
+|                                          |
+|         [ Instalar App ]                 |
++------------------------------------------+
 ```
 
-## Archivos a crear
+### En el sidebar:
+```text
+  Dashboard
+  Inventario
+  POS
+  Ventas
+  ...
+  ─────────────
+  Descargar App   <-- nuevo enlace
+```
 
-| Archivo | Descripcion |
-|---------|-------------|
-| `src/pages/Plans.tsx` | Pagina de planes y precios |
-| `src/hooks/useSubscription.ts` | Hook de estado de suscripcion |
-| `src/components/layout/SubscriptionBanner.tsx` | Banner de estado de suscripcion |
-| `src/components/layout/WhatsAppButton.tsx` | Boton flotante de WhatsApp |
+## Plan de implementacion
 
-## Archivos a modificar
+### Paso 1: Configurar PWA base
+- Instalar `vite-plugin-pwa`
+- Crear manifest con nombre "SyncSales", iconos y colores de la app
+- Configurar Service Worker para cache de assets
+- Agregar meta tags moviles en `index.html`
+- Excluir `/~oauth` del cache del Service Worker
 
-| Archivo | Cambio |
-|---------|--------|
-| `src/App.tsx` | Ruta /plans + WhatsAppButton |
-| `src/components/layout/AppLayout.tsx` | SubscriptionBanner |
-| `src/components/layout/AppSidebar.tsx` | Item "Planes" en menu |
-| `src/components/auth/ProtectedRoute.tsx` | SubscriptionGate logic |
-| `src/pages/admin/AdminBusinesses.tsx` | Gestion de suscripciones |
+### Paso 2: Hook de instalacion PWA
+- Crear `src/hooks/usePWAInstall.ts`
+- Capturar el evento `beforeinstallprompt`
+- Detectar si la app ya esta instalada (modo standalone)
+- Detectar si es dispositivo movil
+- Exponer funcion `promptInstall()` y estados `canInstall`, `isInstalled`, `isMobile`
 
-## Detalles tecnicos
+### Paso 3: Banner de instalacion
+- Crear componente `src/components/layout/InstallBanner.tsx`
+- Mostrar solo si: es movil + no esta instalada + no fue descartado
+- Guardar en localStorage si el usuario cerro el banner (no molestar por 7 dias)
+- Integrar en `AppLayout.tsx` arriba del header
 
-### Numero de WhatsApp
-Se usara el numero que el usuario proporcione. El enlace sera:
-`https://wa.me/NUMERO?text=Hola%2C%20me%20interesa%20activar%20mi%20plan%20de%20GestorPro`
+### Paso 4: Pagina /install
+- Crear `src/pages/Install.tsx` como pagina publica (sin ProtectedRoute)
+- Instrucciones visuales para Android e iPhone
+- Boton "Instalar" que usa el hook de PWA
+- Agregar ruta en `App.tsx`
 
-### No se necesitan edge functions
-Todo el control de suscripcion se hace desde el cliente leyendo los campos del negocio. El Super Admin actualiza manualmente. No hay logica de backend adicional necesaria por ahora.
+### Paso 5: Enlace en sidebar
+- Agregar enlace "Descargar App" en `AppSidebar.tsx`
+- Mostrar solo si la app no esta instalada como PWA
+- Enlazar a `/install`
 
-### Preparado para pasarela de pago futura
-El campo `plan_type` y la estructura de la pagina de planes permiten agregar Stripe u otra pasarela mas adelante sin cambios estructurales grandes.
+## Seccion tecnica
+
+### Dependencia nueva
+- `vite-plugin-pwa` - Genera el Service Worker y manifest automaticamente
+
+### Archivos nuevos
+- `src/hooks/usePWAInstall.ts` - Hook para gestion de instalacion PWA
+- `src/components/layout/InstallBanner.tsx` - Banner de promocion
+- `src/pages/Install.tsx` - Pagina de instrucciones de instalacion
+
+### Archivos modificados
+- `vite.config.ts` - Agregar plugin PWA con configuracion de manifest y Service Worker
+- `index.html` - Meta tags para movil (theme-color, apple-mobile-web-app)
+- `src/App.tsx` - Agregar ruta `/install`
+- `src/components/layout/AppLayout.tsx` - Integrar InstallBanner
+- `src/components/layout/AppSidebar.tsx` - Agregar enlace "Descargar App"
+
+### Logica del hook usePWAInstall
+```text
+- Escucha evento "beforeinstallprompt" -> guarda referencia
+- Escucha evento "appinstalled" -> marca isInstalled = true
+- Detecta display-mode: standalone -> ya instalada
+- promptInstall() -> dispara el dialogo nativo del navegador
+```
+
+### Nota importante
+Este paso configura la PWA basica (instalable + cache). La funcionalidad offline completa (IndexedDB, sync engine, bloqueo por 7 dias) se implementara en fases posteriores segun el plan original.
 
