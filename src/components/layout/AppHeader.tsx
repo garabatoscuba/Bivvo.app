@@ -10,7 +10,7 @@ const AppHeader = ({ title }: AppHeaderProps) => {
   const { profile } = useAuth();
 
   return (
-    <header className="flex h-14 shrink-0 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-4">
+    <header className="flex h-11 md:h-14 shrink-0 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-3 md:px-4">
       <div className="flex items-center gap-3">
         <SidebarTrigger className="md:hidden" />
         <h1 className="text-base font-semibold text-foreground">
