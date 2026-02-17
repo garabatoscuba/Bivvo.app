@@ -7,7 +7,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -18,7 +18,11 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-import { Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart, Loader2 } from 'lucide-react';
+import { toast as sonnerToast } from 'sonner';
+import {
+  Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
+  Loader2, Pencil, Trash2,
+} from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -31,23 +35,90 @@ const ROLE_CONFIG: Record<AppRole, { label: string; icon: typeof Shield; color: 
   accountant: { label: 'Contable', icon: Calculator, color: 'bg-muted text-muted-foreground' },
 };
 
+const POSITION_OPTIONS = [
+  { value: 'owner', label: 'Dueño' },
+  { value: 'manager', label: 'Gerente' },
+  { value: 'seller', label: 'Vendedor' },
+  { value: 'accountant', label: 'Contable' },
+];
+
 const ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'accountant'];
 
+interface Employee {
+  id: string;
+  business_id: string;
+  branch_id: string | null;
+  contract_number: string;
+  full_name: string;
+  age: number | null;
+  ci: string;
+  license_number: string | null;
+  address: string | null;
+  position: string;
+  start_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface EmployeeForm {
+  contract_number: string;
+  full_name: string;
+  age: string;
+  ci: string;
+  license_number: string;
+  address: string;
+  position: string;
+  start_date: string;
+}
+
+const emptyForm: EmployeeForm = {
+  contract_number: '',
+  full_name: '',
+  age: '',
+  ci: '',
+  license_number: '',
+  address: '',
+  position: 'seller',
+  start_date: new Date().toISOString().split('T')[0],
+};
+
 const Employees = () => {
-  const { profile, isSuperAdmin } = useAuth();
+  const { profile, isSuperAdmin, isOwner, isManager } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  // Role management state
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<{ userId: string; name: string; roles: AppRole[] } | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole | ''>('');
-  const [inviteOpen, setInviteOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteName, setInviteName] = useState('');
-  const [inviteRole, setInviteRole] = useState<AppRole>('seller');
+
+  // Employee form state
+  const [employeeDialogOpen, setEmployeeDialogOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [form, setForm] = useState<EmployeeForm>(emptyForm);
+  const [saving, setSaving] = useState(false);
 
   const businessId = profile?.business_id;
+  const canManage = isOwner || isManager || isSuperAdmin;
 
-  const { data: employees, isLoading } = useQuery({
+  // Fetch HR employees
+  const { data: hrEmployees = [], isLoading: loadingHR } = useQuery({
+    queryKey: ['hr-employees', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('business_id', businessId)
+        .order('full_name');
+      if (error) throw error;
+      return data as Employee[];
+    },
+    enabled: !!businessId,
+  });
+
+  // Fetch auth-based team members (existing logic)
+  const { data: teamMembers = [], isLoading: loadingTeam } = useQuery({
     queryKey: ['employees', businessId],
     queryFn: async () => {
       if (!businessId) return [];
@@ -57,7 +128,6 @@ const Employees = () => {
         .eq('business_id', businessId);
       if (error) throw error;
 
-      // Fetch roles for each profile
       const enriched = await Promise.all(
         profiles.map(async (p) => {
           const { data: roles } = await supabase
@@ -72,11 +142,10 @@ const Employees = () => {
     enabled: !!businessId,
   });
 
+  // Role mutations (existing)
   const addRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .insert({ user_id: userId, role });
+      const { error } = await supabase.from('user_roles').insert({ user_id: userId, role });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -92,11 +161,7 @@ const Employees = () => {
 
   const removeRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
-      const { error } = await supabase
-        .from('user_roles')
-        .delete()
-        .eq('user_id', userId)
-        .eq('role', role);
+      const { error } = await supabase.from('user_roles').delete().eq('user_id', userId).eq('role', role);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -108,13 +173,91 @@ const Employees = () => {
     },
   });
 
-  const inviteMutation = useMutation({
-    mutationFn: async () => {
-      // Create user via edge function or just create profile placeholder
-      // For now, we create a profile entry that will be linked when the user signs up
-      toast({ title: 'Función de invitación', description: 'Por ahora, pide al empleado que se registre y luego asígnale el rol desde aquí.' });
-    },
-  });
+  // Employee CRUD
+  const handleSaveEmployee = async () => {
+    if (!form.contract_number.trim() || !form.full_name.trim() || !form.ci.trim()) {
+      sonnerToast.error('No. de contrato, nombre y CI son obligatorios');
+      return;
+    }
+    if (!businessId) return;
+
+    setSaving(true);
+    try {
+      if (editingEmployee) {
+        const { error } = await supabase
+          .from('employees')
+          .update({
+            contract_number: form.contract_number.trim(),
+            full_name: form.full_name.trim(),
+            age: form.age ? parseInt(form.age) : null,
+            ci: form.ci.trim(),
+            license_number: form.license_number.trim() || null,
+            address: form.address.trim() || null,
+            position: form.position,
+            start_date: form.start_date,
+          })
+          .eq('id', editingEmployee.id);
+        if (error) throw error;
+        sonnerToast.success('Empleado actualizado');
+      } else {
+        const { error } = await supabase
+          .from('employees')
+          .insert({
+            business_id: businessId,
+            branch_id: profile?.branch_id || null,
+            contract_number: form.contract_number.trim(),
+            full_name: form.full_name.trim(),
+            age: form.age ? parseInt(form.age) : null,
+            ci: form.ci.trim(),
+            license_number: form.license_number.trim() || null,
+            address: form.address.trim() || null,
+            position: form.position,
+            start_date: form.start_date,
+          });
+        if (error) throw error;
+        sonnerToast.success('Empleado registrado');
+      }
+      queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
+      setEmployeeDialogOpen(false);
+      setEditingEmployee(null);
+      setForm(emptyForm);
+    } catch (err: any) {
+      sonnerToast.error(err.message || 'Error al guardar');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteEmployee = async (id: string) => {
+    const { error } = await supabase.from('employees').delete().eq('id', id);
+    if (error) {
+      sonnerToast.error(error.message);
+    } else {
+      queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
+      sonnerToast.success('Empleado eliminado');
+    }
+  };
+
+  const openAddEmployee = () => {
+    setEditingEmployee(null);
+    setForm(emptyForm);
+    setEmployeeDialogOpen(true);
+  };
+
+  const openEditEmployee = (emp: Employee) => {
+    setEditingEmployee(emp);
+    setForm({
+      contract_number: emp.contract_number,
+      full_name: emp.full_name,
+      age: emp.age?.toString() || '',
+      ci: emp.ci,
+      license_number: emp.license_number || '',
+      address: emp.address || '',
+      position: emp.position,
+      start_date: emp.start_date,
+    });
+    setEmployeeDialogOpen(true);
+  };
 
   const openRoleDialog = (emp: { user_id: string; full_name: string; roles: AppRole[] }) => {
     setSelectedUser({ userId: emp.user_id, name: emp.full_name, roles: emp.roles });
@@ -132,6 +275,10 @@ const Employees = () => {
     removeRoleMutation.mutate({ userId, role });
   };
 
+  const updateField = (field: keyof EmployeeForm, value: string) => {
+    setForm(prev => ({ ...prev, [field]: value }));
+  };
+
   return (
     <AppLayout title="Empleados">
       <div className="space-y-6">
@@ -140,21 +287,104 @@ const Employees = () => {
             <h2 className="text-lg font-semibold text-foreground">Equipo de Trabajo</h2>
             <p className="text-sm text-muted-foreground">Gestiona los miembros y sus roles</p>
           </div>
+          {canManage && (
+            <Button onClick={openAddEmployee}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Agregar Empleado
+            </Button>
+          )}
         </div>
 
+        {/* HR Employees Table */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Miembros ({employees?.length || 0})
+              Empleados ({hrEmployees.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {loadingHR ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-            ) : employees && employees.length > 0 ? (
+            ) : hrEmployees.length > 0 ? (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>No. Contrato</TableHead>
+                      <TableHead>Nombre</TableHead>
+                      <TableHead>Edad</TableHead>
+                      <TableHead>CI</TableHead>
+                      <TableHead>No. Licencia</TableHead>
+                      <TableHead>Dirección</TableHead>
+                      <TableHead>Puesto</TableHead>
+                      <TableHead>Alta</TableHead>
+                      {canManage && <TableHead className="text-right">Acciones</TableHead>}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {hrEmployees.map((emp) => (
+                      <TableRow key={emp.id}>
+                        <TableCell className="font-medium">{emp.contract_number}</TableCell>
+                        <TableCell>{emp.full_name}</TableCell>
+                        <TableCell>{emp.age ?? '—'}</TableCell>
+                        <TableCell>{emp.ci}</TableCell>
+                        <TableCell>{emp.license_number || '—'}</TableCell>
+                        <TableCell className="max-w-[200px] truncate">{emp.address || '—'}</TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{emp.start_date}</TableCell>
+                        {canManage && (
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => openEditEmployee(emp)}>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => handleDeleteEmployee(emp.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="py-8 text-center">
+                <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                <p className="mt-4 text-muted-foreground">No hay empleados registrados</p>
+                {canManage && (
+                  <Button variant="outline" className="mt-2" onClick={openAddEmployee}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Agregar el primero
+                  </Button>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Team members with system roles */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Usuarios del Sistema ({teamMembers.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loadingTeam ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : teamMembers.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -165,7 +395,7 @@ const Employees = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {employees.map((emp) => (
+                  {teamMembers.map((emp) => (
                     <TableRow key={emp.id}>
                       <TableCell className="font-medium">{emp.full_name}</TableCell>
                       <TableCell className="text-muted-foreground">{emp.email}</TableCell>
@@ -194,11 +424,7 @@ const Employees = () => {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => openRoleDialog(emp)}
-                        >
+                        <Button variant="outline" size="sm" onClick={() => openRoleDialog(emp)}>
                           + Rol
                         </Button>
                       </TableCell>
@@ -209,11 +435,78 @@ const Employees = () => {
             ) : (
               <div className="py-8 text-center">
                 <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <p className="mt-4 text-muted-foreground">No hay empleados registrados</p>
+                <p className="mt-4 text-muted-foreground">No hay usuarios del sistema</p>
               </div>
             )}
           </CardContent>
         </Card>
+
+        {/* Add/Edit Employee Dialog */}
+        <Dialog open={employeeDialogOpen} onOpenChange={setEmployeeDialogOpen}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>{editingEmployee ? 'Editar Empleado' : 'Agregar Empleado'}</DialogTitle>
+              <DialogDescription>
+                {editingEmployee ? 'Actualiza los datos del empleado.' : 'Completa los datos del nuevo empleado.'}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="contract_number">No. de Contrato *</Label>
+                  <Input id="contract_number" value={form.contract_number} onChange={(e) => updateField('contract_number', e.target.value)} placeholder="CTR-001" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="ci">CI *</Label>
+                  <Input id="ci" value={form.ci} onChange={(e) => updateField('ci', e.target.value)} placeholder="Carnet de identidad" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="full_name">Nombre y Apellidos *</Label>
+                <Input id="full_name" value={form.full_name} onChange={(e) => updateField('full_name', e.target.value)} placeholder="Nombre completo" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="age">Edad</Label>
+                  <Input id="age" type="number" value={form.age} onChange={(e) => updateField('age', e.target.value)} placeholder="25" />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="license_number">No. de Licencia</Label>
+                  <Input id="license_number" value={form.license_number} onChange={(e) => updateField('license_number', e.target.value)} placeholder="Opcional" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="address">Dirección Particular</Label>
+                <Input id="address" value={form.address} onChange={(e) => updateField('address', e.target.value)} placeholder="Dirección del empleado" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="position">Puesto de Trabajo *</Label>
+                  <Select value={form.position} onValueChange={(v) => updateField('position', v)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecciona puesto" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {POSITION_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="start_date">Fecha de Alta *</Label>
+                  <Input id="start_date" type="date" value={form.start_date} onChange={(e) => updateField('start_date', e.target.value)} />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEmployeeDialogOpen(false)}>Cancelar</Button>
+              <Button onClick={handleSaveEmployee} disabled={saving}>
+                {saving ? 'Guardando...' : editingEmployee ? 'Guardar cambios' : 'Registrar'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Add Role Dialog */}
         <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
@@ -246,9 +539,7 @@ const Employees = () => {
               </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>
-                Cancelar
-              </Button>
+              <Button variant="outline" onClick={() => setRoleDialogOpen(false)}>Cancelar</Button>
               <Button onClick={handleAddRole} disabled={!selectedRole || addRoleMutation.isPending}>
                 {addRoleMutation.isPending ? 'Asignando...' : 'Asignar Rol'}
               </Button>

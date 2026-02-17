@@ -220,6 +220,69 @@ export type Database = {
           },
         ]
       }
+      employees: {
+        Row: {
+          address: string | null
+          age: number | null
+          branch_id: string | null
+          business_id: string
+          ci: string
+          contract_number: string
+          created_at: string
+          full_name: string
+          id: string
+          license_number: string | null
+          position: string
+          start_date: string
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          age?: number | null
+          branch_id?: string | null
+          business_id: string
+          ci: string
+          contract_number: string
+          created_at?: string
+          full_name: string
+          id?: string
+          license_number?: string | null
+          position?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          age?: number | null
+          branch_id?: string | null
+          business_id?: string
+          ci?: string
+          contract_number?: string
+          created_at?: string
+          full_name?: string
+          id?: string
+          license_number?: string | null
+          position?: string
+          start_date?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employees_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employees_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_movements: {
         Row: {
           branch_id: string
