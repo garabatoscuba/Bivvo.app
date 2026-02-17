@@ -320,12 +320,13 @@ const Inventory = () => {
               />
               <StatPill 
                 icon={BarChart3} 
-                label="Almacén" 
-                value={stats.warehouse}
-                expanded={expandedStat === 'warehouse'}
-                onToggle={() => setExpandedStat(expandedStat === 'warehouse' ? null : 'warehouse')}
+                label="Unidades" 
+                value={stats.totalStock}
+                expanded={expandedStat === 'units'}
+                onToggle={() => setExpandedStat(expandedStat === 'units' ? null : 'units')}
                 details={[
                   { label: 'Costo total', value: `$${stats.costValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
+                  { label: 'Valor venta', value: `$${stats.totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
                 ]}
               />
               <StatPill 
