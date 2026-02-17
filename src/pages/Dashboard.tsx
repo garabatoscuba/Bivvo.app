@@ -265,7 +265,7 @@ const Dashboard = () => {
                     width={120}
                   />
                   <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="quantity" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="quantity" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} barSize={14} />
                 </BarChart>
               </ChartContainer>
             )}
