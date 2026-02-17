@@ -126,7 +126,7 @@ const Inventory = () => {
   // Stats
   const stats = useMemo(() => {
     const forSale = products.filter(p => p.status === 'for_sale').length;
-    const warehouse = products.filter(p => p.status === 'warehouse').length;
+    const warehouse = products.filter(p => (warehouseStockMap.get(p.id) || 0) > 0).length;
     const totalStock = Array.from(stockMap.values()).reduce((a, b) => a + b, 0);
     const totalWarehouseStock = Array.from(warehouseStockMap.values()).reduce((a, b) => a + b, 0);
     const lowStock = products.filter(p => {
