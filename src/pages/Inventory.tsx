@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,7 +65,23 @@ const Inventory = () => {
   const queryClient = useQueryClient();
   
   const [search, setSearch] = useState('');
-  const [selectedBranch, setSelectedBranch] = useState<string>('');
+  const [selectedBranch, setSelectedBranch] = useState<string>(() => {
+    return localStorage.getItem('last-branch') || '';
+  });
+
+  // Default to profile branch or main branch, and remember selection
+  useEffect(() => {
+    if (selectedBranch || !branches?.length) return;
+    const profileBranch = branches.find(b => b.id === profile?.branch_id);
+    const mainBranch = branches.find(b => b.is_main);
+    const fallback = profileBranch || mainBranch || branches[0];
+    if (fallback) setSelectedBranch(fallback.id);
+  }, [branches, profile?.branch_id, selectedBranch]);
+
+  const handleBranchChange = (branchId: string) => {
+    setSelectedBranch(branchId);
+    localStorage.setItem('last-branch', branchId);
+  };
   const [productFormOpen, setProductFormOpen] = useState(false);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -330,9 +346,9 @@ const Inventory = () => {
           </div>
           
           {branches && branches.length > 1 && (
-            <Select value={selectedBranch} onValueChange={setSelectedBranch}>
+            <Select value={selectedBranch} onValueChange={handleBranchChange}>
               <SelectTrigger className="w-32">
-                <SelectValue placeholder="Sucursal" />
+                <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 {branches.map((branch) => (
