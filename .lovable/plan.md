@@ -1,124 +1,111 @@
 
+# Actualizacion inteligente de la PWA
 
-# Boton "Descargar App" integrado en el sitio
+## Problema actual
 
-## Resumen
+La app usa `registerType: "autoUpdate"` que descarga actualizaciones en segundo plano, pero:
+- El usuario nunca se entera de que hay una version nueva
+- La actualizacion solo se aplica al cerrar y reabrir la app
+- No hay forma de forzar una sincronizacion de datos
 
-Agregar un sistema inteligente de promocion de instalacion PWA directamente dentro de la app. Incluye un banner visible para usuarios moviles que aun no han instalado la app, y una pagina dedicada `/install` con instrucciones paso a paso.
+## Solucion
 
-## Como funciona
+### 1. Cambiar estrategia de actualizacion PWA
 
-1. Cuando un usuario abre la app desde Chrome en Android, vera un banner en la parte superior que dice "Instalar app para usar sin internet"
-2. Al tocar "Instalar", se dispara el dialogo nativo de instalacion del navegador
-3. Si el usuario ya instalo la app o esta en escritorio, el banner no aparece
-4. En el menu lateral (sidebar) habra un enlace "Descargar App" que lleva a la pagina `/install`
-5. La pagina `/install` tiene instrucciones visuales para iPhone (que no soporta instalacion automatica) y Android
+Cambiar de `autoUpdate` a `prompt` en `vite.config.ts`. Esto permite que la app detecte la nueva version y le **pregunte** al usuario si quiere actualizar, en vez de hacerlo silenciosamente.
 
-## Deteccion inteligente
+### 2. Hook de actualizacion (`src/hooks/usePWAUpdate.ts`)
 
-- Detecta si el usuario esta en un navegador movil (no instalada aun)
-- Captura el evento `beforeinstallprompt` del navegador para disparar la instalacion nativa
-- Si ya esta instalada como PWA, oculta todo el sistema de promocion
-- En escritorio muestra un enlace discreto en el sidebar en vez del banner
+Crear un hook que:
+- Registra el Service Worker manualmente usando `registerSW` de `vite-plugin-pwa`
+- Detecta cuando hay una actualizacion disponible (`onNeedRefresh`)
+- Expone `needsUpdate` (boolean) y `updateApp()` (funcion que recarga con la nueva version)
+- Verifica actualizaciones periodicamente (cada 60 minutos)
 
-## Que vera el usuario
+### 3. Banner de actualizacion (`src/components/layout/UpdateBanner.tsx`)
 
-### En movil (Chrome Android, no instalada):
+Un banner que aparece en la parte superior cuando se detecta una nueva version:
+
 ```text
-+------------------------------------------+
-| [icono] Instala la app  [Instalar] [ X ] |
-+------------------------------------------+
-|          (resto de la app)               |
++----------------------------------------------+
+| Nueva version disponible  [Actualizar ahora] |
++----------------------------------------------+
 ```
 
-### En la pagina /install:
+Se integra en `AppLayout.tsx` arriba de todo.
+
+### 4. Botones en el header
+
+Agregar dos botones pequenos en el `AppHeader.tsx` junto al centro de notificaciones:
+
+- **Sincronizar** (icono RefreshCw): Invalida los caches de React Query para forzar una recarga de datos frescos desde la base de datos. Util cuando el usuario quiere asegurarse de tener la informacion mas reciente.
+- **Actualizar** (icono Download): Solo aparece cuando hay una version nueva disponible. Al tocarlo, aplica la actualizacion y recarga la app.
+
 ```text
-+------------------------------------------+
-|         Instala SyncSales                |
-|                                          |
-|  [icono de la app]                       |
-|                                          |
-|  Android:                                |
-|  1. Toca "Instalar" abajo               |
-|  2. Confirma la instalacion              |
-|                                          |
-|  iPhone:                                 |
-|  1. Toca el icono de Compartir           |
-|  2. Selecciona "Agregar a inicio"        |
-|                                          |
-|         [ Instalar App ]                 |
-+------------------------------------------+
+[RefreshCw] [Download*] [Bell]
+             * solo si hay update
 ```
 
-### En el sidebar:
-```text
-  Dashboard
-  Inventario
-  POS
-  Ventas
-  ...
-  ─────────────
-  Descargar App   <-- nuevo enlace
-```
+### 5. Verificacion periodica
 
-## Plan de implementacion
+En el hook, configurar `intervalMS` para que el Service Worker verifique si hay una nueva version cada 60 minutos automaticamente.
 
-### Paso 1: Configurar PWA base
-- Instalar `vite-plugin-pwa`
-- Crear manifest con nombre "SyncSales", iconos y colores de la app
-- Configurar Service Worker para cache de assets
-- Agregar meta tags moviles en `index.html`
-- Excluir `/~oauth` del cache del Service Worker
-
-### Paso 2: Hook de instalacion PWA
-- Crear `src/hooks/usePWAInstall.ts`
-- Capturar el evento `beforeinstallprompt`
-- Detectar si la app ya esta instalada (modo standalone)
-- Detectar si es dispositivo movil
-- Exponer funcion `promptInstall()` y estados `canInstall`, `isInstalled`, `isMobile`
-
-### Paso 3: Banner de instalacion
-- Crear componente `src/components/layout/InstallBanner.tsx`
-- Mostrar solo si: es movil + no esta instalada + no fue descartado
-- Guardar en localStorage si el usuario cerro el banner (no molestar por 7 dias)
-- Integrar en `AppLayout.tsx` arriba del header
-
-### Paso 4: Pagina /install
-- Crear `src/pages/Install.tsx` como pagina publica (sin ProtectedRoute)
-- Instrucciones visuales para Android e iPhone
-- Boton "Instalar" que usa el hook de PWA
-- Agregar ruta en `App.tsx`
-
-### Paso 5: Enlace en sidebar
-- Agregar enlace "Descargar App" en `AppSidebar.tsx`
-- Mostrar solo si la app no esta instalada como PWA
-- Enlazar a `/install`
-
-## Seccion tecnica
-
-### Dependencia nueva
-- `vite-plugin-pwa` - Genera el Service Worker y manifest automaticamente
+## Detalle tecnico
 
 ### Archivos nuevos
-- `src/hooks/usePWAInstall.ts` - Hook para gestion de instalacion PWA
-- `src/components/layout/InstallBanner.tsx` - Banner de promocion
-- `src/pages/Install.tsx` - Pagina de instrucciones de instalacion
+- `src/hooks/usePWAUpdate.ts` - Hook para deteccion y aplicacion de actualizaciones
 
 ### Archivos modificados
-- `vite.config.ts` - Agregar plugin PWA con configuracion de manifest y Service Worker
-- `index.html` - Meta tags para movil (theme-color, apple-mobile-web-app)
-- `src/App.tsx` - Agregar ruta `/install`
-- `src/components/layout/AppLayout.tsx` - Integrar InstallBanner
-- `src/components/layout/AppSidebar.tsx` - Agregar enlace "Descargar App"
+- `vite.config.ts` - Cambiar `registerType` de `"autoUpdate"` a `"prompt"`
+- `src/components/layout/AppHeader.tsx` - Agregar botones de Sincronizar y Actualizar
+- `src/components/layout/AppLayout.tsx` - Integrar banner de actualizacion (inline, sin componente separado)
 
-### Logica del hook usePWAInstall
+### Flujo de actualizacion
+
 ```text
-- Escucha evento "beforeinstallprompt" -> guarda referencia
-- Escucha evento "appinstalled" -> marca isInstalled = true
-- Detecta display-mode: standalone -> ya instalada
-- promptInstall() -> dispara el dialogo nativo del navegador
+Tu publicas cambios
+        |
+        v
+Service Worker detecta nueva version (check cada 60 min)
+        |
+        v
+Aparece banner "Nueva version disponible"
++ Aparece icono de descarga en el header
+        |
+        v
+Usuario toca "Actualizar ahora"
+        |
+        v
+Se activa el nuevo Service Worker y se recarga la pagina
+        |
+        v
+App corriendo con la version mas reciente
 ```
 
-### Nota importante
-Este paso configura la PWA basica (instalable + cache). La funcionalidad offline completa (IndexedDB, sync engine, bloqueo por 7 dias) se implementara en fases posteriores segun el plan original.
+### Flujo de sincronizacion
 
+```text
+Usuario toca icono RefreshCw en el header
+        |
+        v
+Se invalidan todos los caches de React Query
+        |
+        v
+Se refetch automatico de todos los datos visibles
+        |
+        v
+Toast: "Datos sincronizados"
+```
+
+### Logica del hook usePWAUpdate
+
+```text
+import { useRegisterSW } from 'virtual:pwa-register/react'
+
+- onNeedRefresh -> setNeedsUpdate(true)
+- updateApp() -> updateServiceWorker(true) // activa SW y recarga
+- intervalMS: 60 * 60 * 1000 // verificar cada hora
+```
+
+### Nota para el usuario
+Una vez implementado, tus clientes nunca tendran que reinstalar la app. Cada vez que publiques cambios, les aparecera un aviso y con un toque actualizan. El boton de sincronizar les permite refrescar los datos en cualquier momento.
