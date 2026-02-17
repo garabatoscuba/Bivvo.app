@@ -1,17 +1,55 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
+import { useDashboardStats, type Period } from '@/hooks/useDashboardStats';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import {
-  ShoppingCart,
-  Package,
-  TrendingUp,
-  AlertTriangle,
-  
-  Users,
+  AreaChart, Area, XAxis, YAxis, CartesianGrid,
+  PieChart, Pie, Cell,
+  BarChart, Bar, ResponsiveContainer,
+} from 'recharts';
+import {
+  ShoppingCart, Package, TrendingUp, AlertTriangle,
+  Users, DollarSign, Hash, CreditCard,
+  Calendar, CalendarDays, CalendarRange, CalendarClock,
+  ArrowUpRight, ArrowDownRight, Minus,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+
+const PERIOD_OPTIONS: { value: Period; label: string; icon: typeof Calendar }[] = [
+  { value: 'today', label: 'Hoy', icon: Calendar },
+  { value: 'week', label: 'Semana', icon: CalendarDays },
+  { value: 'month', label: 'Mes', icon: CalendarRange },
+  { value: 'year', label: 'Año', icon: CalendarClock },
+];
+
+const formatCurrency = (n: number) =>
+  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
+
+const ChangeIndicator = ({ value }: { value: number }) => {
+  if (value > 0)
+    return (
+      <span className="flex items-center gap-0.5 text-xs text-success">
+        <ArrowUpRight className="h-3 w-3" />+{value}%
+      </span>
+    );
+  if (value < 0)
+    return (
+      <span className="flex items-center gap-0.5 text-xs text-destructive">
+        <ArrowDownRight className="h-3 w-3" />{value}%
+      </span>
+    );
+  return (
+    <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
+      <Minus className="h-3 w-3" />0%
+    </span>
+  );
+};
 
 const Dashboard = () => {
   const { profile, roles } = useAuth();
@@ -20,71 +58,219 @@ const Dashboard = () => {
   const currentBranch = profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
 
-  // Calcular alertas de stock bajo
+  const [period, setPeriod] = useState<Period>('today');
+  const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
+
   const lowStockProducts = branchStock?.filter((bs: any) => {
     const product = products.find(p => p.id === bs.product_id);
     return product && bs.quantity <= product.min_stock && bs.quantity > 0;
   }) || [];
 
-  const stats = [
-    {
-      title: 'Ventas Hoy',
-      value: '$0.00',
-      icon: ShoppingCart,
-      change: '+0%',
-      changeType: 'neutral' as const,
-    },
-    {
-      title: 'Productos',
-      value: products.length.toString(),
-      icon: Package,
-      change: `${lowStockProducts.length} en stock bajo`,
-      changeType: lowStockProducts.length > 0 ? 'warning' : 'neutral' as const,
-    },
-    {
-      title: 'Ingresos del Mes',
-      value: '$0.00',
-      icon: TrendingUp,
-      change: '+0%',
-      changeType: 'neutral' as const,
-    },
-  ];
+  const areaChartConfig = {
+    total: { label: 'Ventas', color: 'hsl(var(--chart-1))' },
+  };
+
+  const pieChartConfig = Object.fromEntries(
+    (stats?.paymentMethods || []).map(pm => [pm.name, { label: pm.name, color: pm.fill }])
+  );
+
+  const barChartConfig = {
+    quantity: { label: 'Cantidad', color: 'hsl(var(--chart-2))' },
+  };
 
   return (
     <AppLayout>
       <div className="space-y-6">
-        {/* Welcome Message */}
-        <div className="py-2">
-          <h2 className="text-lg font-semibold text-foreground">
-            ¡Bienvenido, {profile?.full_name?.split(' ')[0]}!
-          </h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            {roles.length > 0 
-              ? `Tu rol: ${roles.map(r => r.replace('_', ' ')).join(', ')}`
-              : 'Comienza configurando tu negocio'
-            }
-          </p>
+        {/* Header */}
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-foreground">
+              ¡Bienvenido, {profile?.full_name?.split(' ')[0]}!
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              {roles.length > 0
+                ? `Tu rol: ${roles.map(r => r.replace('_', ' ')).join(', ')}`
+                : 'Comienza configurando tu negocio'}
+            </p>
+          </div>
+          <ToggleGroup
+            type="single"
+            value={period}
+            onValueChange={(v) => v && setPeriod(v as Period)}
+            className="border border-border bg-card"
+          >
+            {PERIOD_OPTIONS.map(opt => (
+              <ToggleGroupItem key={opt.value} value={opt.value} className="gap-1.5 text-xs px-3">
+                <opt.icon className="h-3.5 w-3.5" />
+                {opt.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
         </div>
 
-        {/* Stats Grid */}
+        {/* KPI Cards */}
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <Card key={stat.title} className="overflow-hidden">
+          {[
+            {
+              title: 'Total Ventas',
+              value: isLoading ? null : formatCurrency(stats?.totalSales || 0),
+              change: stats?.totalSalesChange || 0,
+              icon: DollarSign,
+            },
+            {
+              title: 'Transacciones',
+              value: isLoading ? null : (stats?.salesCount || 0).toString(),
+              change: stats?.salesCountChange || 0,
+              icon: Hash,
+            },
+            {
+              title: 'Ticket Promedio',
+              value: isLoading ? null : formatCurrency(stats?.avgTicket || 0),
+              change: stats?.avgTicketChange || 0,
+              icon: TrendingUp,
+            },
+            {
+              title: 'Por Cobrar',
+              value: isLoading ? null : formatCurrency(stats?.pendingCredit || 0),
+              change: null,
+              icon: CreditCard,
+            },
+          ].map(kpi => (
+            <Card key={kpi.title}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.title}
-                </CardTitle>
-                <stat.icon className="h-4 w-4 text-muted-foreground" />
+                <CardTitle className="text-sm font-medium text-muted-foreground">{kpi.title}</CardTitle>
+                <kpi.icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <p className={`mt-1 text-xs ${stat.changeType === 'warning' ? 'text-warning' : 'text-muted-foreground'}`}>
-                  {stat.change}
-                </p>
+                {kpi.value === null ? (
+                  <Skeleton className="h-8 w-24" />
+                ) : (
+                  <div className="text-2xl font-bold">{kpi.value}</div>
+                )}
+                {kpi.change !== null && !isLoading && <ChangeIndicator value={kpi.change} />}
               </CardContent>
             </Card>
           ))}
         </div>
+
+        {/* Charts Row */}
+        <div className="grid gap-4 lg:grid-cols-3">
+          {/* Sales over time */}
+          <Card className="lg:col-span-2">
+            <CardHeader>
+              <CardTitle className="text-base">Ventas por Período</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-[250px] w-full" />
+              ) : (
+                <ChartContainer config={areaChartConfig} className="h-[250px] w-full">
+                  <AreaChart data={stats?.salesOverTime || []}>
+                    <defs>
+                      <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                    <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
+                    <YAxis tickLine={false} axisLine={false} fontSize={11} tickFormatter={v => `$${v}`} />
+                    <ChartTooltip
+                      content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="total"
+                      stroke="hsl(var(--chart-1))"
+                      fill="url(#fillTotal)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ChartContainer>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Payment methods donut */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Métodos de Pago</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <Skeleton className="h-[250px] w-full" />
+              ) : (stats?.paymentMethods?.length || 0) === 0 ? (
+                <div className="flex h-[250px] items-center justify-center text-sm text-muted-foreground">
+                  Sin datos en este período
+                </div>
+              ) : (
+                <ChartContainer config={pieChartConfig} className="h-[250px] w-full">
+                  <PieChart>
+                    <ChartTooltip
+                      content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />}
+                    />
+                    <Pie
+                      data={stats?.paymentMethods}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={3}
+                    >
+                      {stats?.paymentMethods.map((entry, i) => (
+                        <Cell key={i} fill={entry.fill} />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ChartContainer>
+              )}
+              {/* Legend */}
+              {(stats?.paymentMethods?.length || 0) > 0 && (
+                <div className="mt-2 flex flex-wrap justify-center gap-3">
+                  {stats?.paymentMethods.map(pm => (
+                    <div key={pm.name} className="flex items-center gap-1.5 text-xs">
+                      <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: pm.fill }} />
+                      <span className="text-muted-foreground">{pm.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Top Products */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Top 5 Productos Más Vendidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <Skeleton className="h-[200px] w-full" />
+            ) : (stats?.topProducts?.length || 0) === 0 ? (
+              <p className="text-sm text-muted-foreground">Sin ventas en este período</p>
+            ) : (
+              <ChartContainer config={barChartConfig} className="h-[200px] w-full">
+                <BarChart data={stats?.topProducts} layout="vertical">
+                  <CartesianGrid horizontal={false} strokeDasharray="3 3" />
+                  <XAxis type="number" tickLine={false} axisLine={false} fontSize={11} />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tickLine={false}
+                    axisLine={false}
+                    fontSize={11}
+                    width={120}
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Bar dataKey="quantity" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Quick Actions */}
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -99,7 +285,6 @@ const Dashboard = () => {
               </CardHeader>
             </Card>
           </Link>
-
           <Link to="/inventory">
             <Card className="cursor-pointer transition-colors hover:bg-muted/50">
               <CardHeader className="flex flex-row items-center gap-4">
@@ -111,7 +296,6 @@ const Dashboard = () => {
               </CardHeader>
             </Card>
           </Link>
-
           <Link to="/employees">
             <Card className="cursor-pointer transition-colors hover:bg-muted/50">
               <CardHeader className="flex flex-row items-center gap-4">
@@ -125,7 +309,7 @@ const Dashboard = () => {
           </Link>
         </div>
 
-        {/* Alerts Section */}
+        {/* Alerts */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-base">
