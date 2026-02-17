@@ -2,8 +2,8 @@ import { useState } from 'react';
 import { useInventoryMovements } from '@/hooks/useInventoryMovements';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, PackageX, RotateCcw, Wrench, ShoppingCart, Calendar, User, Filter } from 'lucide-react';
-import { format } from 'date-fns';
+import { Loader2, Search, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, PackageX, RotateCcw, Wrench, Calendar, User, Filter } from 'lucide-react';
+import { format, isToday, isThisWeek, isThisMonth, subDays, subWeeks, subMonths, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import {
@@ -18,9 +18,11 @@ interface MovementsLogProps {
   branchId: string;
 }
 
+// Only warehouse-relevant movement types (no sales)
+const ALLOWED_TYPES = ['purchase', 'transfer_in', 'transfer_out', 'loss', 'adjustment', 'return'];
+
 const movementConfig: Record<string, { label: string; icon: React.ElementType; className: string }> = {
   purchase: { label: 'Compra / Entrada', icon: ArrowDownCircle, className: 'bg-success/15 text-success' },
-  sale: { label: 'Venta', icon: ShoppingCart, className: 'bg-primary/15 text-primary' },
   transfer_in: { label: 'Transferencia entrada', icon: ArrowDownCircle, className: 'bg-info/15 text-info' },
   transfer_out: { label: 'Transferencia salida', icon: ArrowUpCircle, className: 'bg-warning/15 text-warning' },
   loss: { label: 'Pérdida', icon: PackageX, className: 'bg-destructive/15 text-destructive' },
@@ -28,19 +30,47 @@ const movementConfig: Record<string, { label: string; icon: React.ElementType; c
   return: { label: 'Devolución', icon: RotateCcw, className: 'bg-accent text-accent-foreground' },
 };
 
+type DateFilter = 'all' | 'today' | '3days' | '7days' | 'month' | '3months';
+
+const dateFilterLabels: Record<DateFilter, string> = {
+  all: 'Todo',
+  today: 'Hoy',
+  '3days': '3 días',
+  '7days': '7 días',
+  month: 'Este mes',
+  '3months': '3 meses',
+};
+
+const filterByDate = (dateStr: string, filter: DateFilter): boolean => {
+  if (filter === 'all') return true;
+  const date = new Date(dateStr);
+  switch (filter) {
+    case 'today': return isToday(date);
+    case '3days': return isAfter(date, subDays(new Date(), 3));
+    case '7days': return isAfter(date, subWeeks(new Date(), 1));
+    case 'month': return isThisMonth(date);
+    case '3months': return isAfter(date, subMonths(new Date(), 3));
+    default: return true;
+  }
+};
+
 export const MovementsLog = ({ branchId }: MovementsLogProps) => {
   const { data: movements, isLoading } = useInventoryMovements(branchId);
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('today');
 
   const filtered = (movements || []).filter(m => {
+    // Exclude sales entirely
+    if (!ALLOWED_TYPES.includes(m.movement_type)) return false;
     const matchesSearch = !search ||
       m.product?.name?.toLowerCase().includes(search.toLowerCase()) ||
       m.product?.code?.toLowerCase().includes(search.toLowerCase()) ||
       m.user_profile?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
       m.notes?.toLowerCase().includes(search.toLowerCase());
     const matchesType = typeFilter === 'all' || m.movement_type === typeFilter;
-    return matchesSearch && matchesType;
+    const matchesDate = filterByDate(m.created_at, dateFilter);
+    return matchesSearch && matchesType && matchesDate;
   });
 
   // Group by date
@@ -62,7 +92,26 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
 
   return (
     <div className="space-y-3">
-      {/* Filters */}
+      {/* Date filter chips */}
+      <div className="flex gap-1.5 flex-wrap">
+        {(Object.entries(dateFilterLabels) as [DateFilter, string][]).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setDateFilter(key)}
+            className={cn(
+              'px-3 py-1 rounded-full text-xs font-medium transition-colors border',
+              dateFilter === key
+                ? 'bg-primary text-primary-foreground border-primary'
+                : 'bg-background text-muted-foreground border-border hover:bg-muted'
+            )}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* Search + type filter */}
       <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -81,9 +130,8 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="purchase">Compra / Entrada</SelectItem>
-            <SelectItem value="sale">Venta</SelectItem>
-            <SelectItem value="transfer_in">Trans. entrada</SelectItem>
-            <SelectItem value="transfer_out">Trans. salida</SelectItem>
+            <SelectItem value="transfer_in">Almacén → Venta</SelectItem>
+            <SelectItem value="transfer_out">Salida almacén</SelectItem>
             <SelectItem value="loss">Pérdida</SelectItem>
             <SelectItem value="adjustment">Ajuste</SelectItem>
             <SelectItem value="return">Devolución</SelectItem>
@@ -102,7 +150,7 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
           <ArrowRightLeft className="h-12 w-12 text-muted-foreground mb-4" />
           <h3 className="font-semibold">No hay movimientos</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            {search || typeFilter !== 'all' ? 'No se encontraron resultados' : 'Los movimientos aparecerán aquí cuando realices operaciones de inventario'}
+            {search || typeFilter !== 'all' || dateFilter !== 'all' ? 'No se encontraron resultados para este filtro' : 'Los movimientos aparecerán aquí cuando realices operaciones de inventario'}
           </p>
         </div>
       ) : (
