@@ -22,6 +22,7 @@ export type Database = {
           product_id: string
           quantity: number
           updated_at: string
+          warehouse_quantity: number
         }
         Insert: {
           branch_id: string
@@ -30,6 +31,7 @@ export type Database = {
           product_id: string
           quantity?: number
           updated_at?: string
+          warehouse_quantity?: number
         }
         Update: {
           branch_id?: string
@@ -38,6 +40,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           updated_at?: string
+          warehouse_quantity?: number
         }
         Relationships: [
           {
