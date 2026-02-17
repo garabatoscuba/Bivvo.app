@@ -16,8 +16,8 @@ import { Search, ShoppingCart, Loader2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
-  SheetTrigger,
-} from '@/components/ui/sheet';
+  SheetTrigger } from
+'@/components/ui/sheet';
 import type { CartItem, Product, Category, PaymentType } from '@/types/database';
 import { cn } from '@/lib/utils';
 
@@ -49,36 +49,36 @@ const POS = () => {
 
   const filteredProducts = availableProducts.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
-                         product.code.toLowerCase().includes(search.toLowerCase());
+    product.code.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
   // Cart functions
-  const addToCart = useCallback((product: Product & { category: Category | null }) => {
+  const addToCart = useCallback((product: Product & {category: Category | null;}) => {
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
       if (existing) {
         return prev.map((item) =>
-          item.product.id === product.id
-            ? {
-                ...item,
-                quantity: item.quantity + 1,
-                total: (item.quantity + 1) * item.unitPrice - item.discount,
-              }
-            : item
+        item.product.id === product.id ?
+        {
+          ...item,
+          quantity: item.quantity + 1,
+          total: (item.quantity + 1) * item.unitPrice - item.discount
+        } :
+        item
         );
       }
       return [
-        ...prev,
-        {
-          product,
-          quantity: 1,
-          unitPrice: Number(product.sale_price),
-          discount: 0,
-          total: Number(product.sale_price),
-        },
-      ];
+      ...prev,
+      {
+        product,
+        quantity: 1,
+        unitPrice: Number(product.sale_price),
+        discount: 0,
+        total: Number(product.sale_price)
+      }];
+
     });
   }, []);
 
@@ -87,11 +87,11 @@ const POS = () => {
       setCart((prev) => prev.filter((item) => item.product.id !== productId));
     } else {
       setCart((prev) =>
-        prev.map((item) =>
-          item.product.id === productId
-            ? { ...item, quantity, total: quantity * item.unitPrice - item.discount }
-            : item
-        )
+      prev.map((item) =>
+      item.product.id === productId ?
+      { ...item, quantity, total: quantity * item.unitPrice - item.discount } :
+      item
+      )
       );
     }
   }, []);
@@ -113,7 +113,7 @@ const POS = () => {
       items: cart,
       paymentType,
       discount,
-      amountPaid,
+      amountPaid
     });
 
     setPaymentOpen(false);
@@ -136,20 +136,20 @@ const POS = () => {
                 placeholder="Buscar productos..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
+                className="pl-10" />
+
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-2">
               <button
                 onClick={() => setSelectedCategory(null)}
-                className={cn(
-                  "px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors border-b-2",
-                  !selectedCategory
-                    ? "bg-primary text-primary-foreground border-primary"
-                    : "bg-muted text-muted-foreground hover:bg-accent border-transparent"
-                )}
-              >
+                className={cn("px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors bg-border text-primary",
+
+                !selectedCategory ?
+                "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-background" :
+                "bg-muted text-muted-foreground hover:bg-accent"
+                )}>
+
                 Todos
               </button>
               {categories.map((cat) => {
@@ -159,46 +159,46 @@ const POS = () => {
                     key={cat.id}
                     onClick={() => setSelectedCategory(cat.id)}
                     className={cn(
-                      "px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors border-b-2",
-                      isActive
-                        ? "border-primary"
-                        : "border-transparent hover:opacity-80"
+                      "px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors",
+                      isActive ?
+                      "ring-2 ring-primary ring-offset-2 ring-offset-background" :
+                      "hover:opacity-80"
                     )}
                     style={{
                       backgroundColor: `hsl(var(--category-${cat.color}))`,
-                      color: `hsl(var(--category-${cat.color}-foreground))`,
-                    }}
-                  >
+                      color: `hsl(var(--category-${cat.color}-foreground))`
+                    }}>
+
                     {cat.name}
-                  </button>
-                );
+                  </button>);
+
               })}
             </div>
           </div>
 
           {/* Products Grid */}
           <div className="flex-1 overflow-auto">
-            {isLoading ? (
-              <div className="flex items-center justify-center h-full">
+            {isLoading ?
+            <div className="flex items-center justify-center h-full">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : filteredProducts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center h-full text-center">
+              </div> :
+            filteredProducts.length === 0 ?
+            <div className="flex flex-col items-center justify-center h-full text-center">
                 <p className="text-muted-foreground">No se encontraron productos</p>
+              </div> :
+
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+                {filteredProducts.map((product) =>
+              <ProductCard
+                key={product.id}
+                product={product}
+                stock={stockMap.get(product.id) || 0}
+                onClick={() => addToCart(product)}
+                compact />
+
+              )}
               </div>
-            ) : (
-              <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {filteredProducts.map((product) => (
-                  <ProductCard
-                    key={product.id}
-                    product={product}
-                    stock={stockMap.get(product.id) || 0}
-                    onClick={() => addToCart(product)}
-                    compact
-                  />
-                ))}
-              </div>
-            )}
+            }
           </div>
         </div>
 
@@ -210,19 +210,19 @@ const POS = () => {
             onRemoveItem={removeItem}
             onClearCart={clearCart}
             discount={discount}
-            onDiscountChange={setDiscount}
-          />
+            onDiscountChange={setDiscount} />
+
           
-          {cart.length > 0 && (
-            <div className="p-4 border-t">
-              <Button 
-                className="w-full h-12 text-lg" 
-                onClick={() => setPaymentOpen(true)}
-              >
+          {cart.length > 0 &&
+          <div className="p-4 border-t">
+              <Button
+              className="w-full h-12 text-lg"
+              onClick={() => setPaymentOpen(true)}>
+
                 Cobrar ${cartTotal.toFixed(2)}
               </Button>
             </div>
-          )}
+          }
         </Card>
 
         {/* Mobile Cart Button */}
@@ -232,11 +232,11 @@ const POS = () => {
               <Button className="w-full h-14 text-lg relative">
                 <ShoppingCart className="mr-2 h-5 w-5" />
                 Ver Carrito (${cartTotal.toFixed(2)})
-                {cartItemsCount > 0 && (
-                  <Badge className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center">
+                {cartItemsCount > 0 &&
+                <Badge className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center">
                     {cartItemsCount}
                   </Badge>
-                )}
+                }
               </Button>
             </SheetTrigger>
             <SheetContent side="bottom" className="h-[80vh] p-0">
@@ -247,22 +247,22 @@ const POS = () => {
                   onRemoveItem={removeItem}
                   onClearCart={clearCart}
                   discount={discount}
-                  onDiscountChange={setDiscount}
-                />
+                  onDiscountChange={setDiscount} />
+
                 
-                {cart.length > 0 && (
-                  <div className="p-4 border-t">
-                    <Button 
-                      className="w-full h-12 text-lg" 
-                      onClick={() => {
-                        setMobileCartOpen(false);
-                        setPaymentOpen(true);
-                      }}
-                    >
+                {cart.length > 0 &&
+                <div className="p-4 border-t">
+                    <Button
+                    className="w-full h-12 text-lg"
+                    onClick={() => {
+                      setMobileCartOpen(false);
+                      setPaymentOpen(true);
+                    }}>
+
                       Cobrar ${cartTotal.toFixed(2)}
                     </Button>
                   </div>
-                )}
+                }
               </div>
             </SheetContent>
           </Sheet>
@@ -276,10 +276,10 @@ const POS = () => {
         items={cart}
         discount={discount}
         onConfirm={handlePayment}
-        isProcessing={isCreating}
-      />
-    </AppLayout>
-  );
+        isProcessing={isCreating} />
+
+    </AppLayout>);
+
 };
 
 export default POS;
