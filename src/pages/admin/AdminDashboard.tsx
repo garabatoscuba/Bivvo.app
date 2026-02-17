@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,15 +10,15 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
   Store, Plus, CheckCircle, XCircle, Clock, Ban, Search, Loader2, Building2,
-  Settings, Users, Package, ShoppingCart, TrendingUp, DollarSign, ArrowRight, Crown,
-  CalendarDays, AlertTriangle,
+  Settings, Users, Package, ShoppingCart, TrendingUp, DollarSign, Crown,
+  AlertTriangle, BarChart3, Activity,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +26,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 import { format, differenceInDays } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, AreaChart, Area, CartesianGrid } from 'recharts';
 
 type SubscriptionStatus = Database['public']['Enums']['subscription_status'];
 
@@ -78,12 +78,10 @@ const AdminDashboard = () => {
       const completedSales = allSales.filter(s => s.status === 'completed');
       const totalRevenue = completedSales.reduce((sum, s) => sum + Number(s.total), 0);
 
-      // Enrich businesses
       const enriched = biz.map(b => {
         const owner = allProfiles.find(p => p.id === (b.owner_id ?? ''));
         const branchCount = allBranches.filter(br => br.business_id === b.id).length;
         const productCount = allProducts.filter(p => p.business_id === b.id).length;
-
         return {
           ...b,
           owner_name: owner?.full_name || 'Sin dueño',
@@ -93,7 +91,6 @@ const AdminDashboard = () => {
         };
       });
 
-      // Status counts
       const statusCounts = {
         active: biz.filter(b => b.subscription_status === 'active').length,
         pending: biz.filter(b => b.subscription_status === 'pending').length,
@@ -101,7 +98,6 @@ const AdminDashboard = () => {
         cancelled: biz.filter(b => b.subscription_status === 'cancelled').length,
       };
 
-      // Monthly registrations (last 6 months)
       const now = new Date();
       const monthlyData = [];
       for (let i = 5; i >= 0; i--) {
@@ -125,7 +121,6 @@ const AdminDashboard = () => {
         monthlyData.push({ name: label, negocios: bizCount, ventas: salesCount, ingresos: revenue });
       }
 
-      // Businesses expiring soon (within 7 days)
       const expiringSoon = enriched.filter(b => {
         const endDate = (b as any).subscription_ends_at || (b as any).trial_ends_at;
         if (!endDate) return false;
@@ -220,7 +215,7 @@ const AdminDashboard = () => {
     const config = STATUS_CONFIG[status];
     const Icon = config.icon;
     return (
-      <Badge variant={config.variant} className="gap-1">
+      <Badge variant={config.variant} className="gap-1 text-[11px]">
         <Icon className="h-3 w-3" />
         {config.label}
       </Badge>
@@ -244,371 +239,396 @@ const AdminDashboard = () => {
     return (
       <AppLayout title="Panel de Administración">
         <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
         </div>
       </AppLayout>
     );
   }
 
+  const kpiItems = [
+    { title: 'Negocios', value: data?.totalBusinesses || 0, icon: Store, sub: `${data?.statusCounts.active || 0} activos` },
+    { title: 'Usuarios', value: data?.totalUsers || 0, icon: Users, sub: 'registrados' },
+    { title: 'Ventas', value: data?.totalSales || 0, icon: ShoppingCart, sub: 'completadas' },
+    { title: 'Ingresos', value: `$${(data?.totalRevenue || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, icon: DollarSign, sub: 'total facturado' },
+  ];
+
   return (
     <AppLayout title="Panel de Administración">
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList>
-          <TabsTrigger value="overview" className="gap-2">
-            <TrendingUp className="h-4 w-4" /> Resumen
-          </TabsTrigger>
-          <TabsTrigger value="businesses" className="gap-2">
-            <Store className="h-4 w-4" /> Negocios
-          </TabsTrigger>
-          <TabsTrigger value="stats" className="gap-2">
-            <BarChart className="h-4 w-4" /> Estadísticas
-          </TabsTrigger>
-        </TabsList>
+      <div className="space-y-6">
+        <Tabs defaultValue="overview" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <TabsList className="bg-muted/60">
+              <TabsTrigger value="overview" className="gap-1.5 text-xs">
+                <Activity className="h-3.5 w-3.5" /> Resumen
+              </TabsTrigger>
+              <TabsTrigger value="businesses" className="gap-1.5 text-xs">
+                <Store className="h-3.5 w-3.5" /> Negocios
+              </TabsTrigger>
+              <TabsTrigger value="stats" className="gap-1.5 text-xs">
+                <BarChart3 className="h-3.5 w-3.5" /> Estadísticas
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        {/* === OVERVIEW TAB === */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* KPI Cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[
-              { title: 'Negocios', value: data?.totalBusinesses || 0, icon: Store, sub: `${data?.statusCounts.active || 0} activos` },
-              { title: 'Usuarios', value: data?.totalUsers || 0, icon: Users, sub: 'registrados' },
-              { title: 'Ventas', value: data?.totalSales || 0, icon: ShoppingCart, sub: 'completadas' },
-              { title: 'Ingresos', value: `$${(data?.totalRevenue || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, icon: DollarSign, sub: 'total facturado' },
-            ].map((stat) => (
-              <Card key={stat.title}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                  <div className="rounded-md p-2 bg-muted">
-                    <stat.icon className="h-4 w-4 text-muted-foreground" />
-                  </div>
+          {/* === OVERVIEW === */}
+          <TabsContent value="overview" className="space-y-5 mt-0">
+            <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
+              {kpiItems.map((stat) => (
+                <Card key={stat.title} className="border-border/60">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">{stat.title}</span>
+                      <stat.icon className="h-4 w-4 text-muted-foreground/60" />
+                    </div>
+                    <div className="text-xl font-semibold tracking-tight">{stat.value}</div>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{stat.sub}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-5">
+              <Card className="lg:col-span-3 border-border/60">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Tendencia de Ingresos</CardTitle>
+                  <CardDescription className="text-xs">Últimos 6 meses</CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground mt-1">{stat.sub}</p>
+                <CardContent className="pt-0">
+                  <ResponsiveContainer width="100%" height={240}>
+                    <AreaChart data={data?.monthlyData || []}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                      <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip
+                        formatter={(v: number) => `$${v.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`}
+                        contentStyle={{
+                          background: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                        }}
+                      />
+                      <Area type="monotone" dataKey="ingresos" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.08)" strokeWidth={2} />
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </CardContent>
               </Card>
-            ))}
-          </div>
 
-          <div className="grid gap-6 lg:grid-cols-3">
-            {/* Revenue trend */}
-            <Card className="lg:col-span-2">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" /> Tendencia de Ingresos
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={260}>
-                  <AreaChart data={data?.monthlyData || []}>
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis tick={{ fontSize: 12 }} />
-                    <Tooltip formatter={(v: number) => `$${v.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`} />
-                    <Area type="monotone" dataKey="ingresos" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.15)" strokeWidth={2} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Expiring soon */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-warning" /> Por Vencer
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {data?.expiringSoon && data.expiringSoon.length > 0 ? (
-                  <div className="space-y-3">
-                    {data.expiringSoon.map((b: any) => {
-                      const endDate = b.subscription_ends_at || b.trial_ends_at;
-                      const days = endDate ? differenceInDays(new Date(endDate), new Date()) : 0;
-                      return (
-                        <div key={b.id} className="flex items-center justify-between rounded-lg border p-3">
-                          <div>
-                            <p className="text-sm font-medium">{b.name}</p>
-                            <p className="text-xs text-muted-foreground">{b.owner_email}</p>
-                          </div>
-                          <Badge variant={days <= 3 ? 'destructive' : 'secondary'}>
-                            {days} día{days !== 1 ? 's' : ''}
-                          </Badge>
-                        </div>
-                      );
-                    })}
+              <Card className="lg:col-span-2 border-border/60">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="h-4 w-4 text-warning" />
+                    <CardTitle className="text-sm font-medium">Por Vencer</CardTitle>
                   </div>
-                ) : (
-                  <p className="py-6 text-center text-sm text-muted-foreground">No hay negocios por vencer</p>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Recent businesses quick view */}
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="text-base">Últimos Registros</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {data?.businesses.slice(0, 5).map((b) => (
-                  <div key={b.id} className="flex items-center justify-between rounded-lg border p-3">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">{b.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {b.owner_name} · {format(new Date(b.created_at), "d MMM yyyy", { locale: es })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline">{getPlanLabel((b as any).plan_type)}</Badge>
-                      {getStatusBadge(b.subscription_status)}
-                      <Button variant="ghost" size="sm" onClick={() => openManage(b)}>
-                        <Settings className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* === BUSINESSES TAB === */}
-        <TabsContent value="businesses" className="space-y-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-1 items-center gap-3">
-              <div className="relative flex-1 max-w-sm">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  placeholder="Buscar negocio o dueño..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="active">Activos</SelectItem>
-                  <SelectItem value="pending">Pendientes</SelectItem>
-                  <SelectItem value="suspended">Suspendidos</SelectItem>
-                  <SelectItem value="cancelled">Cancelados</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button onClick={() => setCreateOpen(true)} className="gap-2">
-              <Plus className="h-4 w-4" />
-              Nuevo Negocio
-            </Button>
-          </div>
-
-          {/* Status summary pills */}
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(data?.statusCounts || {}).map(([key, val]) => {
-              const config = STATUS_CONFIG[key as SubscriptionStatus];
-              return (
-                <button
-                  key={key}
-                  onClick={() => setFilterStatus(filterStatus === key ? 'all' : key)}
-                  className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${filterStatus === key ? 'bg-primary text-primary-foreground' : 'bg-card text-card-foreground hover:bg-muted'}`}
-                >
-                  <config.icon className="h-3 w-3" />
-                  {config.label}: {val}
-                </button>
-              );
-            })}
-          </div>
-
-          <Card>
-            <CardContent className="pt-6">
-              {filtered && filtered.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Negocio</TableHead>
-                        <TableHead>Dueño</TableHead>
-                        <TableHead>Plan</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead>Vence</TableHead>
-                        <TableHead className="text-center">Sucursales</TableHead>
-                        <TableHead className="text-center">Productos</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filtered.map((b) => {
-                        const endDate = (b as any).subscription_ends_at || (b as any).trial_ends_at;
-                        const daysLeft = endDate ? differenceInDays(new Date(endDate), new Date()) : null;
+                  <CardDescription className="text-xs">Próximos 7 días</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {data?.expiringSoon && data.expiringSoon.length > 0 ? (
+                    <div className="space-y-2">
+                      {data.expiringSoon.map((b: any) => {
+                        const endDate = b.subscription_ends_at || b.trial_ends_at;
+                        const days = endDate ? differenceInDays(new Date(endDate), new Date()) : 0;
                         return (
-                          <TableRow key={b.id}>
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                                  <Building2 className="h-4 w-4 text-muted-foreground" />
-                                </div>
-                                <span className="font-medium">{b.name}</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div>
-                                <p className="text-sm font-medium">{b.owner_name}</p>
-                                <p className="text-xs text-muted-foreground">{b.owner_email}</p>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="gap-1">
-                                {(b as any).plan_type === 'mvp' && <Crown className="h-3 w-3" />}
-                                {getPlanLabel((b as any).plan_type)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>{getStatusBadge(b.subscription_status)}</TableCell>
-                            <TableCell>
-                              {endDate ? (
-                                <div>
-                                  <p className="text-sm">{format(new Date(endDate), "d MMM yyyy", { locale: es })}</p>
-                                  <p className={`text-xs ${daysLeft !== null && daysLeft <= 3 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
-                                    {daysLeft !== null && daysLeft >= 0 ? `${daysLeft} días` : daysLeft !== null ? 'Vencido' : ''}
-                                  </p>
-                                </div>
-                              ) : '—'}
-                            </TableCell>
-                            <TableCell className="text-center">{b.branch_count}/{(b as any).max_branches || 1}</TableCell>
-                            <TableCell className="text-center">{b.product_count}</TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="sm" onClick={() => openManage(b)} className="gap-1">
-                                <Settings className="h-4 w-4" /> Gestionar
-                              </Button>
-                            </TableCell>
-                          </TableRow>
+                          <div key={b.id} className="flex items-center justify-between border border-border/60 p-2.5 rounded-md">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{b.name}</p>
+                              <p className="text-[11px] text-muted-foreground truncate">{b.owner_email}</p>
+                            </div>
+                            <Badge variant={days <= 3 ? 'destructive' : 'secondary'} className="text-[11px] ml-2 shrink-0">
+                              {days}d
+                            </Badge>
+                          </div>
                         );
                       })}
-                    </TableBody>
-                  </Table>
-                </div>
-              ) : (
-                <div className="py-8 text-center">
-                  <Store className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                  <p className="mt-4 text-muted-foreground">No se encontraron negocios</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        {/* === STATS TAB === */}
-        <TabsContent value="stats" className="space-y-6">
-          {/* Stat cards */}
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[
-              { title: 'Total Negocios', value: data?.totalBusinesses || 0, icon: Store },
-              { title: 'Usuarios', value: data?.totalUsers || 0, icon: Users },
-              { title: 'Productos', value: data?.totalProducts || 0, icon: Package },
-              { title: 'Ventas', value: data?.totalSales || 0, icon: ShoppingCart },
-              { title: 'Sucursales', value: data?.totalBranches || 0, icon: Building2 },
-              { title: 'Ingresos', value: `$${(data?.totalRevenue || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, icon: DollarSign },
-            ].map((stat) => (
-              <Card key={stat.title}>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium text-muted-foreground">{stat.title}</CardTitle>
-                  <div className="rounded-md p-2 bg-muted">
-                    <stat.icon className="h-4 w-4 text-muted-foreground" />
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                      <CheckCircle className="h-8 w-8 mb-2 opacity-30" />
+                      <p className="text-xs">Sin vencimientos próximos</p>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            {/* Monthly registrations */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" /> Registros Mensuales
-                </CardTitle>
+            <Card className="border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Últimos Registros</CardTitle>
+                <CardDescription className="text-xs">Negocios recién creados</CardDescription>
               </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data?.monthlyData || []}>
-                    <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                    <Tooltip />
-                    <Bar dataKey="negocios" name="Negocios" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="ventas" name="Ventas" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
+              <CardContent className="pt-0">
+                <div className="divide-y divide-border/60">
+                  {data?.businesses.slice(0, 5).map((b) => (
+                    <div key={b.id} className="flex items-center justify-between py-3 first:pt-0 last:pb-0">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-muted/60">
+                          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{b.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">
+                            {b.owner_name} · {format(new Date(b.created_at), "d MMM yyyy", { locale: es })}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 ml-2 shrink-0">
+                        <Badge variant="outline" className="text-[11px] hidden sm:inline-flex">{getPlanLabel((b as any).plan_type)}</Badge>
+                        {getStatusBadge(b.subscription_status)}
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openManage(b)}>
+                          <Settings className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </CardContent>
             </Card>
+          </TabsContent>
 
-            {/* Status distribution */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Store className="h-4 w-4" /> Distribución por Estado
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pieData.length > 0 ? (
-                  <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={100}
-                        dataKey="value"
-                        label={({ name, value }) => `${name}: ${value}`}
-                      >
-                        {pieData.map((_, i) => (
-                          <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Legend />
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
+          {/* === BUSINESSES === */}
+          <TabsContent value="businesses" className="space-y-4 mt-0">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-1 items-center gap-2">
+                <div className="relative flex-1 max-w-xs">
+                  <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar negocio..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-8 h-9 text-sm"
+                  />
+                </div>
+                <Select value={filterStatus} onValueChange={setFilterStatus}>
+                  <SelectTrigger className="w-[140px] h-9 text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos</SelectItem>
+                    <SelectItem value="active">Activos</SelectItem>
+                    <SelectItem value="pending">Pendientes</SelectItem>
+                    <SelectItem value="suspended">Suspendidos</SelectItem>
+                    <SelectItem value="cancelled">Cancelados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button onClick={() => setCreateOpen(true)} size="sm" className="gap-1.5">
+                <Plus className="h-3.5 w-3.5" />
+                Nuevo Negocio
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap gap-1.5">
+              {Object.entries(data?.statusCounts || {}).map(([key, val]) => {
+                const config = STATUS_CONFIG[key as SubscriptionStatus];
+                const isActive = filterStatus === key;
+                return (
+                  <button
+                    key={key}
+                    onClick={() => setFilterStatus(filterStatus === key ? 'all' : key)}
+                    className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${isActive ? 'bg-primary text-primary-foreground border-primary' : 'bg-card text-muted-foreground border-border/60 hover:bg-muted/60'}`}
+                  >
+                    <config.icon className="h-3 w-3" />
+                    {config.label}: {val}
+                  </button>
+                );
+              })}
+            </div>
+
+            <Card className="border-border/60">
+              <CardContent className="p-0">
+                {filtered && filtered.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="text-[11px] uppercase tracking-wide">Negocio</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Dueño</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Plan</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Estado</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Vence</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide text-center">Suc.</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide text-center">Prod.</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filtered.map((b) => {
+                          const endDate = (b as any).subscription_ends_at || (b as any).trial_ends_at;
+                          const daysLeft = endDate ? differenceInDays(new Date(endDate), new Date()) : null;
+                          return (
+                            <TableRow key={b.id}>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-muted/60">
+                                    <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </div>
+                                  <span className="text-sm font-medium">{b.name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <p className="text-sm">{b.owner_name}</p>
+                                <p className="text-[11px] text-muted-foreground">{b.owner_email}</p>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline" className="gap-1 text-[11px]">
+                                  {(b as any).plan_type === 'mvp' && <Crown className="h-3 w-3" />}
+                                  {getPlanLabel((b as any).plan_type)}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>{getStatusBadge(b.subscription_status)}</TableCell>
+                              <TableCell>
+                                {endDate ? (
+                                  <div>
+                                    <p className="text-sm">{format(new Date(endDate), "d MMM yy", { locale: es })}</p>
+                                    <p className={`text-[11px] ${daysLeft !== null && daysLeft <= 3 ? 'text-destructive font-medium' : 'text-muted-foreground'}`}>
+                                      {daysLeft !== null && daysLeft >= 0 ? `${daysLeft}d restantes` : daysLeft !== null ? 'Vencido' : ''}
+                                    </p>
+                                  </div>
+                                ) : <span className="text-muted-foreground">—</span>}
+                              </TableCell>
+                              <TableCell className="text-center text-sm">{b.branch_count}/{(b as any).max_branches || 1}</TableCell>
+                              <TableCell className="text-center text-sm">{b.product_count}</TableCell>
+                              <TableCell className="text-right">
+                                <Button variant="ghost" size="sm" onClick={() => openManage(b)} className="gap-1 h-7 text-xs">
+                                  <Settings className="h-3.5 w-3.5" /> Gestionar
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
                 ) : (
-                  <div className="flex h-[280px] items-center justify-center text-muted-foreground">
-                    No hay datos suficientes
+                  <div className="py-12 text-center">
+                    <Store className="mx-auto h-10 w-10 text-muted-foreground/30" />
+                    <p className="mt-3 text-sm text-muted-foreground">No se encontraron negocios</p>
                   </div>
                 )}
               </CardContent>
             </Card>
-          </div>
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+
+          {/* === STATS === */}
+          <TabsContent value="stats" className="space-y-5 mt-0">
+            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+              {[
+                { title: 'Negocios', value: data?.totalBusinesses || 0, icon: Store },
+                { title: 'Usuarios', value: data?.totalUsers || 0, icon: Users },
+                { title: 'Productos', value: data?.totalProducts || 0, icon: Package },
+                { title: 'Ventas', value: data?.totalSales || 0, icon: ShoppingCart },
+                { title: 'Sucursales', value: data?.totalBranches || 0, icon: Building2 },
+                { title: 'Ingresos', value: `$${(data?.totalRevenue || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, icon: DollarSign },
+              ].map((stat) => (
+                <Card key={stat.title} className="border-border/60">
+                  <CardContent className="p-3.5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <stat.icon className="h-3.5 w-3.5 text-muted-foreground/60" />
+                      <span className="text-[11px] font-medium text-muted-foreground">{stat.title}</span>
+                    </div>
+                    <div className="text-lg font-semibold tracking-tight">{stat.value}</div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              <Card className="border-border/60">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Registros Mensuales</CardTitle>
+                  <CardDescription className="text-xs">Negocios y ventas por mes</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <BarChart data={data?.monthlyData || []} barGap={2}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                      <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
+                      <Tooltip
+                        contentStyle={{
+                          background: 'hsl(var(--card))',
+                          border: '1px solid hsl(var(--border))',
+                          borderRadius: '6px',
+                          fontSize: '12px',
+                        }}
+                      />
+                      <Bar dataKey="negocios" name="Negocios" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
+                      <Bar dataKey="ventas" name="Ventas" fill="hsl(var(--success))" radius={[3, 3, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card className="border-border/60">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium">Distribución por Estado</CardTitle>
+                  <CardDescription className="text-xs">Estado de suscripción de negocios</CardDescription>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {pieData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={55}
+                          outerRadius={90}
+                          dataKey="value"
+                          strokeWidth={2}
+                          stroke="hsl(var(--card))"
+                          label={({ name, value }) => `${name}: ${value}`}
+                        >
+                          {pieData.map((_, i) => (
+                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Legend wrapperStyle={{ fontSize: '12px' }} />
+                        <Tooltip
+                          contentStyle={{
+                            background: 'hsl(var(--card))',
+                            border: '1px solid hsl(var(--border))',
+                            borderRadius: '6px',
+                            fontSize: '12px',
+                          }}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="flex h-[260px] items-center justify-center text-sm text-muted-foreground">
+                      No hay datos suficientes
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Create Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Registrar Nuevo Negocio</DialogTitle>
+            <DialogTitle className="text-base">Registrar Nuevo Negocio</DialogTitle>
+            <DialogDescription className="text-sm">Crea un negocio con su sucursal principal.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="business-name">Nombre del Negocio *</Label>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="business-name" className="text-sm">Nombre del Negocio</Label>
               <Input
                 id="business-name"
                 placeholder="Ej: Tienda La Esquina"
                 value={newBusiness.name}
                 onChange={(e) => setNewBusiness({ name: e.target.value })}
+                className="h-9"
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)}>Cancelar</Button>
             <Button
+              size="sm"
               onClick={() => createMutation.mutate({ name: newBusiness.name })}
               disabled={!newBusiness.name.trim() || createMutation.isPending}
             >
@@ -620,56 +640,64 @@ const AdminDashboard = () => {
 
       {/* Manage Dialog */}
       <Dialog open={manageOpen} onOpenChange={setManageOpen}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Gestionar — {manageData?.name}</DialogTitle>
+            <DialogTitle className="text-base">{manageData?.name}</DialogTitle>
+            <DialogDescription className="text-sm">Configura plan, estado y límites.</DialogDescription>
           </DialogHeader>
           {manageData && (
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label>Plan</Label>
-                <Select value={manageData.plan_type} onValueChange={(v) => setManageData(prev => prev ? { ...prev, plan_type: v } : null)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="trial">Prueba</SelectItem>
-                    <SelectItem value="mvp">Profesional ($10/mes)</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="grid gap-3 py-2">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Plan</Label>
+                  <Select value={manageData.plan_type} onValueChange={(v) => setManageData(prev => prev ? { ...prev, plan_type: v } : null)}>
+                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="trial">Prueba</SelectItem>
+                      <SelectItem value="mvp">Profesional</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Estado</Label>
+                  <Select value={manageData.subscription_status} onValueChange={(v) => setManageData(prev => prev ? { ...prev, subscription_status: v as SubscriptionStatus } : null)}>
+                    <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendiente</SelectItem>
+                      <SelectItem value="active">Activo</SelectItem>
+                      <SelectItem value="suspended">Suspendido</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label>Estado</Label>
-                <Select value={manageData.subscription_status} onValueChange={(v) => setManageData(prev => prev ? { ...prev, subscription_status: v as SubscriptionStatus } : null)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="pending">Pendiente</SelectItem>
-                    <SelectItem value="active">Activo</SelectItem>
-                    <SelectItem value="suspended">Suspendido</SelectItem>
-                    <SelectItem value="cancelled">Cancelado</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Fecha de vencimiento</Label>
-                <Input
-                  type="date"
-                  value={manageData.subscription_ends_at}
-                  onChange={(e) => setManageData(prev => prev ? { ...prev, subscription_ends_at: e.target.value } : null)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Máx. sucursales</Label>
-                <Input
-                  type="number"
-                  min={1}
-                  value={manageData.max_branches}
-                  onChange={(e) => setManageData(prev => prev ? { ...prev, max_branches: parseInt(e.target.value) || 1 } : null)}
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Vencimiento</Label>
+                  <Input
+                    type="date"
+                    className="h-9 text-sm"
+                    value={manageData.subscription_ends_at}
+                    onChange={(e) => setManageData(prev => prev ? { ...prev, subscription_ends_at: e.target.value } : null)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Máx. sucursales</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    className="h-9 text-sm"
+                    value={manageData.max_branches}
+                    onChange={(e) => setManageData(prev => prev ? { ...prev, max_branches: parseInt(e.target.value) || 1 } : null)}
+                  />
+                </div>
               </div>
             </div>
           )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setManageOpen(false)}>Cancelar</Button>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" size="sm" onClick={() => setManageOpen(false)}>Cancelar</Button>
             <Button
+              size="sm"
               onClick={() => manageData && manageMutation.mutate(manageData)}
               disabled={manageMutation.isPending}
             >
