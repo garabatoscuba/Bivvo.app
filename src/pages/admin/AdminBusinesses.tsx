@@ -15,12 +15,13 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Store, Plus, CheckCircle, XCircle, Clock, Ban, Search, Loader2, Building2,
+  Store, Plus, CheckCircle, XCircle, Clock, Ban, Search, Loader2, Building2, Settings,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
+import { format } from 'date-fns';
 
 type SubscriptionStatus = Database['public']['Enums']['subscription_status'];
 
@@ -31,10 +32,20 @@ const STATUS_CONFIG: Record<SubscriptionStatus, { label: string; variant: 'defau
   cancelled: { label: 'Cancelado', variant: 'outline', icon: Ban },
 };
 
+interface ManageData {
+  id: string;
+  plan_type: string;
+  subscription_status: SubscriptionStatus;
+  subscription_ends_at: string;
+  max_branches: number;
+}
+
 const AdminBusinesses = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [createOpen, setCreateOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [manageData, setManageData] = useState<ManageData | null>(null);
   const [search, setSearch] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [newBusiness, setNewBusiness] = useState({ name: '', ownerEmail: '' });
@@ -48,7 +59,6 @@ const AdminBusinesses = () => {
         .order('created_at', { ascending: false });
       if (error) throw error;
 
-      // Enrich with owner info and counts
       const enriched = await Promise.all(
         data.map(async (b) => {
           const { data: owner } = await supabase
@@ -89,7 +99,6 @@ const AdminBusinesses = () => {
         .single();
       if (error) throw error;
 
-      // Create a default main branch
       const { error: branchError } = await supabase
         .from('branches')
         .insert({ business_id: data.id, name: 'Principal', is_main: true });
@@ -108,22 +117,39 @@ const AdminBusinesses = () => {
     },
   });
 
-  const toggleStatusMutation = useMutation({
-    mutationFn: async ({ id, newStatus }: { id: string; newStatus: SubscriptionStatus }) => {
+  const manageMutation = useMutation({
+    mutationFn: async (data: ManageData) => {
       const { error } = await supabase
         .from('businesses')
-        .update({ subscription_status: newStatus })
-        .eq('id', id);
+        .update({
+          plan_type: data.plan_type,
+          subscription_status: data.subscription_status,
+          subscription_ends_at: data.subscription_ends_at || null,
+          max_branches: data.max_branches,
+        })
+        .eq('id', data.id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-businesses'] });
-      toast({ title: 'Estado actualizado' });
+      toast({ title: 'Suscripción actualizada' });
+      setManageOpen(false);
     },
     onError: (err: any) => {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     },
   });
+
+  const openManage = (b: any) => {
+    setManageData({
+      id: b.id,
+      plan_type: b.plan_type || 'trial',
+      subscription_status: b.subscription_status,
+      subscription_ends_at: b.subscription_ends_at ? format(new Date(b.subscription_ends_at), 'yyyy-MM-dd') : '',
+      max_branches: b.max_branches || 1,
+    });
+    setManageOpen(true);
+  };
 
   const filtered = businesses?.filter((b) => {
     const matchSearch = b.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -144,13 +170,10 @@ const AdminBusinesses = () => {
     );
   };
 
-  const getNextStatuses = (current: SubscriptionStatus): { label: string; status: SubscriptionStatus }[] => {
-    switch (current) {
-      case 'pending': return [{ label: 'Activar', status: 'active' }, { label: 'Cancelar', status: 'cancelled' }];
-      case 'active': return [{ label: 'Suspender', status: 'suspended' }, { label: 'Cancelar', status: 'cancelled' }];
-      case 'suspended': return [{ label: 'Reactivar', status: 'active' }, { label: 'Cancelar', status: 'cancelled' }];
-      case 'cancelled': return [{ label: 'Reactivar', status: 'active' }];
-    }
+  const getPlanLabel = (plan: string | null) => {
+    if (plan === 'mvp') return 'MVP';
+    if (plan === 'trial') return 'Prueba';
+    return plan || 'Prueba';
   };
 
   return (
@@ -201,60 +224,66 @@ const AdminBusinesses = () => {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : filtered && filtered.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Negocio</TableHead>
-                    <TableHead>Dueño</TableHead>
-                    <TableHead>Estado</TableHead>
-                    <TableHead className="text-center">Sucursales</TableHead>
-                    <TableHead className="text-center">Productos</TableHead>
-                    <TableHead>Registro</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filtered.map((b) => (
-                    <TableRow key={b.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
-                             <Building2 className="h-4 w-4 text-muted-foreground" />
-                           </div>
-                          <span className="font-medium">{b.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="text-sm font-medium">{b.owner_name}</p>
-                          <p className="text-xs text-muted-foreground">{b.owner_email}</p>
-                        </div>
-                      </TableCell>
-                      <TableCell>{getStatusBadge(b.subscription_status)}</TableCell>
-                      <TableCell className="text-center">{b.branch_count}</TableCell>
-                      <TableCell className="text-center">{b.product_count}</TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {new Date(b.created_at).toLocaleDateString('es-ES')}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          {getNextStatuses(b.subscription_status).map((action) => (
-                            <Button
-                              key={action.status}
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => toggleStatusMutation.mutate({ id: b.id, newStatus: action.status })}
-                              disabled={toggleStatusMutation.isPending}
-                            >
-                              {action.label}
-                            </Button>
-                          ))}
-                        </div>
-                      </TableCell>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Negocio</TableHead>
+                      <TableHead>Dueño</TableHead>
+                      <TableHead>Plan</TableHead>
+                      <TableHead>Estado</TableHead>
+                      <TableHead>Vence</TableHead>
+                      <TableHead className="text-center">Sucursales</TableHead>
+                      <TableHead className="text-center">Productos</TableHead>
+                      <TableHead className="text-right">Acciones</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.map((b) => (
+                      <TableRow key={b.id}>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted">
+                              <Building2 className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                            <span className="font-medium">{b.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="text-sm font-medium">{b.owner_name}</p>
+                            <p className="text-xs text-muted-foreground">{b.owner_email}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{getPlanLabel((b as any).plan_type)}</Badge>
+                        </TableCell>
+                        <TableCell>{getStatusBadge(b.subscription_status)}</TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {(b as any).subscription_ends_at
+                            ? new Date((b as any).subscription_ends_at).toLocaleDateString('es-ES')
+                            : (b as any).trial_ends_at
+                              ? `Prueba: ${new Date((b as any).trial_ends_at).toLocaleDateString('es-ES')}`
+                              : '—'}
+                        </TableCell>
+                        <TableCell className="text-center">{b.branch_count}/{(b as any).max_branches || 1}</TableCell>
+                        <TableCell className="text-center">{b.product_count}</TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => openManage(b)}
+                            className="gap-1"
+                          >
+                            <Settings className="h-4 w-4" />
+                            Gestionar
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             ) : (
               <div className="py-8 text-center">
                 <Store className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -290,6 +319,67 @@ const AdminBusinesses = () => {
                 disabled={!newBusiness.name.trim() || createMutation.isPending}
               >
                 {createMutation.isPending ? 'Creando...' : 'Crear Negocio'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Manage Subscription Dialog */}
+        <Dialog open={manageOpen} onOpenChange={setManageOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Gestionar Suscripción</DialogTitle>
+            </DialogHeader>
+            {manageData && (
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label>Plan</Label>
+                  <Select value={manageData.plan_type} onValueChange={(v) => setManageData(prev => prev ? { ...prev, plan_type: v } : null)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="trial">Prueba</SelectItem>
+                      <SelectItem value="mvp">MVP ($10/mes)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Estado</Label>
+                  <Select value={manageData.subscription_status} onValueChange={(v) => setManageData(prev => prev ? { ...prev, subscription_status: v as SubscriptionStatus } : null)}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pendiente</SelectItem>
+                      <SelectItem value="active">Activo</SelectItem>
+                      <SelectItem value="suspended">Suspendido</SelectItem>
+                      <SelectItem value="cancelled">Cancelado</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Fecha de vencimiento</Label>
+                  <Input
+                    type="date"
+                    value={manageData.subscription_ends_at}
+                    onChange={(e) => setManageData(prev => prev ? { ...prev, subscription_ends_at: e.target.value } : null)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Máx. sucursales</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={manageData.max_branches}
+                    onChange={(e) => setManageData(prev => prev ? { ...prev, max_branches: parseInt(e.target.value) || 1 } : null)}
+                  />
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setManageOpen(false)}>Cancelar</Button>
+              <Button
+                onClick={() => manageData && manageMutation.mutate(manageData)}
+                disabled={manageMutation.isPending}
+              >
+                {manageMutation.isPending ? 'Guardando...' : 'Guardar'}
               </Button>
             </DialogFooter>
           </DialogContent>

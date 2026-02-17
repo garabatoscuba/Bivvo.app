@@ -26,6 +26,7 @@ import {
   Shield,
   LogOut,
   Store,
+  CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -52,6 +53,7 @@ const AppSidebar = () => {
     { title: 'Empleados', url: '/employees', icon: Users },
     { title: 'Sucursales', url: '/branches', icon: Building2 },
     { title: 'Configuración', url: '/settings', icon: Settings },
+    { title: 'Planes', url: '/plans', icon: CreditCard },
   ];
 
   const isActive = (url: string) => {
