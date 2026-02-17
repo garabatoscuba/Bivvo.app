@@ -21,7 +21,7 @@ import {
   Users,
   Settings,
   Building2,
-  CreditCard,
+  
   TrendingUp,
   Shield,
   LogOut,
@@ -48,7 +48,7 @@ const AppSidebar = () => {
     { title: 'Inventario', url: '/inventory', icon: Package },
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
     { title: 'Ventas', url: '/sales', icon: Receipt },
-    { title: 'Gastos', url: '/expenses', icon: CreditCard },
+    
     { title: 'Empleados', url: '/employees', icon: Users },
     { title: 'Sucursales', url: '/branches', icon: Building2 },
     { title: 'Configuración', url: '/settings', icon: Settings },
