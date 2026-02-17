@@ -143,11 +143,11 @@ const POS = () => {
             <div className="flex gap-2 overflow-x-auto pb-2">
               <button
                 onClick={() => setSelectedCategory(null)}
-                className={cn("px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors bg-border text-primary",
+                className={cn("px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors border-b-2",
 
                 !selectedCategory ?
-                "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-background" :
-                "bg-muted text-muted-foreground hover:bg-accent"
+                "bg-primary text-primary-foreground border-primary" :
+                "bg-muted text-muted-foreground hover:bg-accent border-transparent"
                 )}>
 
                 Todos
