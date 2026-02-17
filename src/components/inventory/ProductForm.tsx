@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -40,11 +41,12 @@ const productSchema = z.object({
   cost_price: z.coerce.number().min(0, 'El costo debe ser positivo'),
   sale_price: z.coerce.number().min(0, 'El precio debe ser positivo'),
   min_stock: z.coerce.number().int().min(0),
-  status: z.enum(['for_sale', 'warehouse', 'discontinued']),
   barcode: z.string().max(50).optional(),
   supplier: z.string().max(200).optional(),
   unit_of_measure: z.string().min(1),
   brand: z.string().max(100).optional(),
+  qty_for_sale: z.coerce.number().int().min(0).optional(),
+  qty_warehouse: z.coerce.number().int().min(0).optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -55,11 +57,6 @@ interface ProductFormProps {
   product?: Product | null;
 }
 
-const statusOptions = [
-  { value: 'for_sale', label: 'En venta' },
-  { value: 'warehouse', label: 'Almacén' },
-  { value: 'discontinued', label: 'Descontinuado' },
-];
 
 const unitOptions = [
   'Pieza', 'Kilogramo', 'Gramo', 'Litro', 'Mililitro',
@@ -83,8 +80,9 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '', description: '', category_id: undefined,
-      cost_price: 0, sale_price: 0, min_stock: 5, status: 'for_sale',
+      cost_price: 0, sale_price: 0, min_stock: 5,
       barcode: '', supplier: '', unit_of_measure: 'Pieza', brand: '',
+      qty_for_sale: 0, qty_warehouse: 0,
     },
   });
 
@@ -97,23 +95,27 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
         cost_price: product.cost_price,
         sale_price: product.sale_price,
         min_stock: product.min_stock,
-        status: product.status,
         barcode: product.barcode || '',
         supplier: product.supplier || '',
         unit_of_measure: product.unit_of_measure || 'Pieza',
         brand: product.brand || '',
+        qty_for_sale: 0,
+        qty_warehouse: 0,
       });
     } else {
       form.reset({
         name: '', description: '', category_id: undefined,
-        cost_price: 0, sale_price: 0, min_stock: 5, status: 'for_sale',
+        cost_price: 0, sale_price: 0, min_stock: 5,
         barcode: '', supplier: '', unit_of_measure: 'Pieza', brand: '',
+        qty_for_sale: 0, qty_warehouse: 0,
       });
     }
   }, [product, form]);
 
   const onSubmit = async (data: ProductFormData) => {
     if (!profile?.business_id) return;
+
+    const status = (data.qty_for_sale || 0) > 0 ? 'for_sale' : ((data.qty_warehouse || 0) > 0 ? 'warehouse' : 'for_sale');
 
     const payload = {
       name: data.name,
@@ -122,25 +124,77 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       cost_price: data.cost_price,
       sale_price: data.sale_price,
       min_stock: data.min_stock,
-      status: data.status as Product['status'],
+      status: status as Product['status'],
       barcode: data.barcode || null,
       supplier: data.supplier || null,
       unit_of_measure: data.unit_of_measure,
       brand: data.brand || null,
     };
 
+    const qtyForSale = data.qty_for_sale || 0;
+    const qtyWarehouse = data.qty_warehouse || 0;
+
     if (product) {
       await updateProduct.mutateAsync({ id: product.id, ...payload });
+      // Si se ingresaron cantidades adicionales, dar entrada
+      if (qtyForSale > 0 || qtyWarehouse > 0) {
+        const branchId = profile.branch_id || mainBranchId;
+        if (branchId) {
+          await addStockEntry(product.id, branchId, qtyForSale + qtyWarehouse);
+        }
+      }
     } else {
-      await createProduct.mutateAsync({
+      const created = await createProduct.mutateAsync({
         ...payload,
         business_id: profile.business_id,
         image_url: null,
       });
+      // Dar entrada inicial si se ingresaron cantidades
+      if ((qtyForSale > 0 || qtyWarehouse > 0) && created?.id) {
+        const branchId = profile.branch_id || mainBranchId;
+        if (branchId) {
+          await addStockEntry(created.id, branchId, qtyForSale + qtyWarehouse);
+        }
+      }
     }
 
     onOpenChange(false);
     form.reset();
+  };
+
+  const addStockEntry = async (productId: string, branchId: string, quantity: number) => {
+    if (quantity <= 0 || !profile?.user_id) return;
+    
+    // Upsert branch_stock
+    const { data: existing } = await supabase
+      .from('branch_stock')
+      .select('id, quantity')
+      .eq('branch_id', branchId)
+      .eq('product_id', productId)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from('branch_stock')
+        .update({ quantity: existing.quantity + quantity })
+        .eq('id', existing.id);
+    } else {
+      await supabase
+        .from('branch_stock')
+        .insert({ branch_id: branchId, product_id: productId, quantity });
+    }
+
+    // Registrar movimiento
+    await supabase
+      .from('inventory_movements')
+      .insert({
+        branch_id: branchId,
+        product_id: productId,
+        user_id: profile.user_id,
+        movement_type: 'purchase' as const,
+        quantity,
+        notes: 'Entrada inicial desde formulario de producto',
+      });
   };
 
   const isLoading = createProduct.isPending || updateProduct.isPending;
@@ -339,33 +393,39 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
                     </FormItem>
                   )}
                 />
+              </div>
+
+              {/* Entrada de stock */}
+              <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
-                  name="status"
+                  name="qty_for_sale"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Estado</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {statusOptions.map((opt) => (
-                            <SelectItem key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Entrada en venta</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" placeholder="0" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="qty_warehouse"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Entrada en almacén</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" placeholder="0" {...field} />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
               </div>
 
-              {/* Existencias (solo al editar) */}
+              {/* Existencias actuales (solo al editar) */}
               {product && (
                 <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
                   <div className="flex items-center gap-2 text-sm font-medium">
