@@ -270,6 +270,8 @@ export type Database = {
       }
       products: {
         Row: {
+          barcode: string | null
+          brand: string | null
           business_id: string
           category_id: string | null
           code: string
@@ -282,9 +284,13 @@ export type Database = {
           name: string
           sale_price: number
           status: Database["public"]["Enums"]["product_status"]
+          supplier: string | null
+          unit_of_measure: string
           updated_at: string
         }
         Insert: {
+          barcode?: string | null
+          brand?: string | null
           business_id: string
           category_id?: string | null
           code: string
@@ -297,9 +303,13 @@ export type Database = {
           name: string
           sale_price?: number
           status?: Database["public"]["Enums"]["product_status"]
+          supplier?: string | null
+          unit_of_measure?: string
           updated_at?: string
         }
         Update: {
+          barcode?: string | null
+          brand?: string | null
           business_id?: string
           category_id?: string | null
           code?: string
@@ -312,6 +322,8 @@ export type Database = {
           name?: string
           sale_price?: number
           status?: Database["public"]["Enums"]["product_status"]
+          supplier?: string | null
+          unit_of_measure?: string
           updated_at?: string
         }
         Relationships: [

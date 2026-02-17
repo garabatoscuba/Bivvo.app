@@ -370,6 +370,15 @@ const Inventory = () => {
                 </div>
               </SheetHeader>
 
+              {/* Extra info */}
+              {(selectedProduct.brand || selectedProduct.supplier || selectedProduct.unit_of_measure) && (
+                <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  {selectedProduct.brand && <span className="bg-muted px-2 py-1 rounded">{selectedProduct.brand}</span>}
+                  {selectedProduct.unit_of_measure && <span className="bg-muted px-2 py-1 rounded">{selectedProduct.unit_of_measure}</span>}
+                  {selectedProduct.supplier && <span className="bg-muted px-2 py-1 rounded">Prov: {selectedProduct.supplier}</span>}
+                </div>
+              )}
+
               {/* Key metrics */}
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard

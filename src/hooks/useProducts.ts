@@ -29,7 +29,7 @@ export const useProducts = () => {
   });
 
   const createProduct = useMutation({
-    mutationFn: async (product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'code'>) => {
+    mutationFn: async (product: Omit<Product, 'id' | 'created_at' | 'updated_at' | 'code' | 'category'>) => {
       // Generar código automáticamente
       const { data: code } = await supabase.rpc('generate_product_code', {
         _business_id: product.business_id,

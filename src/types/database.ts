@@ -26,6 +26,10 @@ export interface Product {
   image_url: string | null;
   status: ProductStatus;
   min_stock: number;
+  barcode: string | null;
+  supplier: string | null;
+  unit_of_measure: string;
+  brand: string | null;
   created_at: string;
   updated_at: string;
   category?: Category;
