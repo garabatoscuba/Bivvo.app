@@ -1,80 +1,67 @@
+## Mejorar el formulario de productos del inventario
 
-## Plan de Rediseño Minimalista - "Flat y Limpio"
+### Resumen
 
-### Objetivos Principales
-Transformar la interfaz actual hacia un diseño minimalista similar a Notion, eliminando sombras excesivas, gradientes, y colores saturados. Mantener toda la funcionalidad, estructura de componentes y lógica de negocio intacta.
+Agregar nuevos campos al formulario de productos para hacerlo mas completo y profesional: codigo interno automatico, codigo de barras, proveedor, unidad de medida, marca, precio mayoreo, y mostrar existencias actuales.
 
-### Cambios de Diseño
+### Cambios en la base de datos
 
-#### 1. **Paleta de Colores (src/index.css)**
-- **Fondo principal**: Cambiar de `98%` (casi blanco) a `99%` (blanco puro) para máximo contraste
-- **Foreground**: Mantener oscuro neutral `220 15% 15%`
-- **Bordes**: Suavizar de `91%` a `94%` (bordes más sutiles, casi imperceptibles)
-- **Card**: Blanco puro sin elevación visual
-- **Primary**: Mantener el azul corporativo pero reducir saturación ligeramente para menor agresividad
-- **Secondary/Accent/Muted**: Simplificar a grises neutros sin azules sutiles
-- **Sombras**: Eliminar sombras proyectadas, usar solo bordes sutiles
-- **Border radius**: Reducir de `0.75rem` a `0.5rem` (más cuadrado, menos redondeado)
+Agregar las siguientes columnas a la tabla `products`:
 
-#### 2. **Variables CSS Específicas**
-- Eliminar gradientes del design system
-- Reducir contraste de colores de categoría (mantenerlos pero más desaturados)
-- Simplificar tokens de color a valores primarios, sin variaciones complejas
 
-#### 3. **Componentes UI (src/components/ui/)**
-- **Card**: Remover `shadow-sm`, usar solo `border border-border` simple
-- **Button**: Eliminar estilos complejos, mantener bordes sutiles y colores planos
-- **Input**: Bordes finos, sin sombras de focus (anillo solo)
-- **Dialog/Popover**: Sin sombras, bordes simples
-- **Sidebar**: Blanco puro, bordes sutiles separadores
+| Campo             | Tipo                  | Descripcion                      |
+| ----------------- | --------------------- | -------------------------------- |
+| `barcode`         | text, nullable        | Codigo de barras EAN/SKU externo |
+| `supplier`        | text, nullable        | Nombre del proveedor             |
+| `unit_of_measure` | text, default 'pieza' | Unidad de medida                 |
+| `brand`           | text, nullable        | Marca del producto               |
+| &nbsp;            | &nbsp;                | &nbsp;                           |
 
-#### 4. **Layout (src/components/layout/)**
-- **AppLayout**: Reducir padding innecesario, aumentar espacio blanco
-- **AppSidebar**: 
-  - Header: Remover box de color de icono (fondo primary), usar solo icono neutro + texto
-  - Items: Simplificar hover state (solo cambio de background sutil)
-  - Footer: Remover bordes pesados, mantener separación minimalista
-- **AppHeader**: Remover sombras de búsqueda/notificaciones, bordes sutiles
 
-#### 5. **Dashboard y Páginas**
-- **Gradientes de bienvenida**: Remover `bg-gradient-to-r`, usar fondo neutral simple
-- **Stats Cards**: Bordes simples, sin colores de fondo (background puro), iconos neutros
-- **Quick Actions Cards**: Remover colores de fondo de iconos (`bg-category-*/20`), usar solo iconos
-- **Alerts Section**: Simplificar background de alerta
+**Nota sobre el codigo interno:** El sistema actual ya genera codigos tipo `PRD-00001`. Cambiaremos el formato a `0001A` como solicitas, actualizando la funcion SQL `generate_product_code`.
 
-#### 6. **Animaciones**
-- Mantener las animaciones existentes (fade-in, slide, accordion)
-- Reducir velocidad ligeramente para efecto más "sereno" (0.4s en lugar de 0.3s)
-- Eliminar transiciones de hover complejas, usar solo opacity suave
+### Cambios en el formulario de productos
 
-#### 7. **Tipografía**
-- Mantener `Inter` como fuente
-- Reducir algunos tamaños de font-weight (menos contraste visual)
-- Aumentar line-height ligeramente para mejor legibilidad en diseño minimalista
+El formulario quedara organizado en secciones logicas:
 
-### Archivos a Modificar
+**Seccion 1 - Identificacion:**
 
-1. **src/index.css**: Redefine variables de color y border radius
-2. **tailwind.config.ts**: Ajustar keyframes para animaciones más lentas
-3. **src/components/ui/card.tsx**: Remover shadow-sm
-4. **src/components/ui/button.tsx**: Simplificar estilos
-5. **src/components/layout/AppSidebar.tsx**: Remover backgrounds de colores, simplificar estructura visual
-6. **src/components/layout/AppHeader.tsx**: Remover elementos visuales pesados
-7. **src/pages/Dashboard.tsx**: Remover gradientes, simplificar colores
-8. **Otros componentes UI**: Auditoría y limpieza de sombras y gradientes
+- Codigo (solo lectura, auto-generado) + Codigo de barras (opcional)
+- Nombre del producto
+- Descripcion
+- Marca
 
-### Resultado Esperado
-- Interfaz limpia, minimalista similar a Notion
-- Máximo espacio blanco y respiro visual
-- Jerarquía clara sin decoraciones
-- Todos los botones, formularios, y tablas funcionan igual
-- Autenticación, roles, y lógica de negocio intacta
-- Navegación y estructura preservada
+**Seccion 2 - Clasificacion:**
 
-### Secuencia de Trabajo
-1. Actualizar variables CSS base (colores, borders, radius)
-2. Actualizar componentes UI principales (card, button, input)
-3. Actualizar layout components (sidebar, header)
-4. Actualizar páginas (dashboard, admin pages)
-5. Prueba visual de la interfaz completa
+- Categoria + Unidad de medida
 
+**Seccion 3 - Precios:**
+
+- Costo + Precio venta + Precio mayoreo
+
+**Seccion 4 - Inventario:**
+
+- Stock minimo + Estado
+- Dar entrada a los productos, ya sea solo para el almacen o la venta, o ambas 
+- Existencia en venta y almacen (solo lectura, informativo al editar)
+
+**Seccion 5 - Adicional:**
+
+- Proveedor
+  &nbsp;
+
+### Archivos a modificar
+
+1. **Nueva migracion SQL** — agregar columnas a `products` y actualizar funcion `generate_product_code` para formato `0001A`
+2. `**src/types/database.ts**` — agregar los nuevos campos al tipo `Product` (se actualizara automaticamente)
+3. `**src/components/inventory/ProductForm.tsx**` — redisenar el formulario con los nuevos campos organizados en secciones
+4. `**src/hooks/useProducts.ts**` — incluir los nuevos campos en las mutaciones de crear/actualizar
+5. `**src/pages/Inventory.tsx**` — mostrar marca y proveedor en el panel de detalle del producto (Sheet)
+
+### Detalles tecnicos
+
+**Formato del codigo:** La funcion `generate_product_code` se actualizara para generar codigos tipo `0001A`, `0002A`, etc. incrementando el numero secuencialmente por negocio.
+
+**Unidades de medida disponibles:** Pieza, Kilogramo, Gramo, Litro, Mililitro, Metro, Centimetro, Caja, Paquete, Par, Docena, Rollo.
+
+**Existencias:** Al editar un producto, se mostraran las cantidades actuales de stock por sucursal como campos de solo lectura. Al crear un producto nuevo, no se muestran (el stock se ingresa despues mediante movimientos de inventario).
