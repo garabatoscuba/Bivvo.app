@@ -140,7 +140,7 @@ const POS = () => {
 
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-2">
+            <div className="gap-2 overflow-x-auto pb-2 flex items-end justify-start my-0 py-[10px]">
               <button
                 onClick={() => setSelectedCategory(null)}
                 className={cn("px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors border-b-2",
