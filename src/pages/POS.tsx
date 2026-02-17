@@ -141,24 +141,38 @@ const POS = () => {
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-2">
-              <Button
-                variant={!selectedCategory ? 'default' : 'outline'}
-                size="sm"
+              <button
                 onClick={() => setSelectedCategory(null)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors",
+                  !selectedCategory
+                    ? "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-background"
+                    : "bg-muted text-muted-foreground hover:bg-accent"
+                )}
               >
                 Todos
-              </Button>
-              {categories.map((cat) => (
-                <Button
-                  key={cat.id}
-                  variant={selectedCategory === cat.id ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className="flex-shrink-0"
-                >
-                  <CategoryBadge name={cat.name} color={cat.color} />
-                </Button>
-              ))}
+              </button>
+              {categories.map((cat) => {
+                const isActive = selectedCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => setSelectedCategory(cat.id)}
+                    className={cn(
+                      "px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors",
+                      isActive
+                        ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                        : "hover:opacity-80"
+                    )}
+                    style={{
+                      backgroundColor: `hsl(var(--category-${cat.color}))`,
+                      color: `hsl(var(--category-${cat.color}-foreground))`,
+                    }}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
