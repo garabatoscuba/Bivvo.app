@@ -1,5 +1,6 @@
 import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useBranches } from '@/hooks/useBranches';
 import {
   Sidebar,
   SidebarContent,
@@ -32,6 +33,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 const AppSidebar = () => {
   const location = useLocation();
   const { profile, isSuperAdmin, signOut } = useAuth();
+  const { data: branches = [] } = useBranches();
+
+  const activeBranch = branches.find(b => b.id === profile?.branch_id);
 
   const superAdminItems = [
     { title: 'Panel Admin', url: '/admin', icon: Shield },
@@ -130,6 +134,12 @@ const AppSidebar = () => {
           <div className="flex-1 truncate">
             <p className="truncate text-sm font-medium">{profile?.full_name || 'Usuario'}</p>
             <p className="truncate text-xs text-muted-foreground">{profile?.email}</p>
+            {activeBranch && (
+              <p className="truncate text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                <Building2 className="h-3 w-3 shrink-0" />
+                {activeBranch.name}
+              </p>
+            )}
           </div>
           <Button
             variant="ghost"

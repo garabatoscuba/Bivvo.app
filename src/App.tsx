@@ -13,6 +13,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminBusinesses from "./pages/admin/AdminBusinesses";
 import AdminStats from "./pages/admin/AdminStats";
 import Employees from "./pages/Employees";
+import Branches from "./pages/Branches";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,7 +48,7 @@ const App = () => (
             <Route path="/sales" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/expenses" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
-            <Route path="/branches" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/branches" element={<ProtectedRoute><Branches /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminBusinesses /></ProtectedRoute>} />
             <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminStats /></ProtectedRoute>} />
