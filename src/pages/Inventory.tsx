@@ -13,6 +13,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, TrendingUp, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft } from 'lucide-react';
 import { MovementsLog } from '@/components/inventory/MovementsLog';
+import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowDialog';
 import {
   Select,
   SelectContent,
@@ -80,6 +81,7 @@ const Inventory = () => {
   const [transferQty, setTransferQty] = useState(0);
   const [transferring, setTransferring] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [outflowProduct, setOutflowProduct] = useState<Product | null>(null);
 
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
 
@@ -649,14 +651,27 @@ const Inventory = () => {
               {canManage && selectedWarehouseStock > 0 && (
                 <div className="space-y-2">
                   {!showTransfer ? (
-                    <Button 
-                      variant="outline" 
-                      className="w-full"
-                      onClick={() => { setShowTransfer(true); setTransferQty(1); }}
-                    >
-                      <TrendingUp className="mr-2 h-4 w-4" />
-                      Pasar de almacén a venta
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => { setShowTransfer(true); setTransferQty(1); }}
+                      >
+                        <TrendingUp className="mr-2 h-4 w-4" />
+                        Pasar a venta
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="flex-1"
+                        onClick={() => {
+                          setOutflowProduct(selectedProduct);
+                          setSelectedProduct(null);
+                        }}
+                      >
+                        <PackageX className="mr-2 h-4 w-4" />
+                        Salida almacén
+                      </Button>
+                    </div>
                   ) : (
                     <div className="rounded-lg border p-3 space-y-3">
                       <div className="flex items-center justify-between">
@@ -813,6 +828,14 @@ const Inventory = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Warehouse Outflow Dialog */}
+      <WarehouseOutflowDialog
+        open={!!outflowProduct}
+        onOpenChange={(open) => { if (!open) setOutflowProduct(null); }}
+        product={outflowProduct}
+        warehouseStock={outflowProduct ? (warehouseStockMap.get(outflowProduct.id) || 0) : 0}
+        branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
+      />
     </AppLayout>
   );
 };
