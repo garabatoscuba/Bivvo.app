@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,8 +31,11 @@ import { useCategories, useProducts, useBranchStock } from '@/hooks/useProducts'
 import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Product } from '@/types/database';
-import { Loader2, Package } from 'lucide-react';
+import { Loader2, Package, Camera, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { toast } from '@/hooks/use-toast';
+
+const MAX_IMAGE_SIZE = 512000; // 500 KB
 
 const productSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(100),
@@ -70,11 +73,21 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
   const { data: branches } = useBranches();
   const mainBranchId = branches?.find(b => b.is_main)?.id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(mainBranchId);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Stock info for editing
   const productStock = product && branchStock
     ? branchStock.find((bs: any) => bs.product_id === product.id)?.quantity || 0
     : 0;
+
+  // Set image preview when editing
+  useEffect(() => {
+    setImagePreview(product?.image_url || null);
+    setImageFile(null);
+  }, [product]);
 
   const form = useForm<ProductFormData>({
     resolver: zodResolver(productSchema),
@@ -112,6 +125,57 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     }
   }, [product, form]);
 
+  const uploadImage = async (productId: string): Promise<string | null> => {
+    if (!imageFile) return product?.image_url || null;
+    
+    setUploadingImage(true);
+    try {
+      const ext = imageFile.name.split('.').pop() || 'jpg';
+      const path = `${profile?.business_id}/${productId}.${ext}`;
+      
+      const { error } = await supabase.storage
+        .from('product-images')
+        .upload(path, imageFile, { upsert: true });
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('product-images')
+        .getPublicUrl(path);
+
+      return publicUrl;
+    } catch (err: any) {
+      toast({ title: 'Error al subir imagen', description: err.message, variant: 'destructive' });
+      return product?.image_url || null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast({ title: 'Imagen muy grande', description: 'El tamaño máximo es 500 KB', variant: 'destructive' });
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast({ title: 'Archivo no válido', description: 'Solo se permiten imágenes', variant: 'destructive' });
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
   const onSubmit = async (data: ProductFormData) => {
     if (!profile?.business_id) return;
 
@@ -135,8 +199,8 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     const qtyWarehouse = data.qty_warehouse || 0;
 
     if (product) {
-      await updateProduct.mutateAsync({ id: product.id, ...payload });
-      // Si se ingresaron cantidades adicionales, dar entrada
+      const imageUrl = await uploadImage(product.id);
+      await updateProduct.mutateAsync({ id: product.id, ...payload, image_url: imageUrl });
       if (qtyForSale > 0 || qtyWarehouse > 0) {
         const branchId = profile.branch_id || mainBranchId;
         if (branchId) {
@@ -149,11 +213,16 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
         business_id: profile.business_id,
         image_url: null,
       });
-      // Dar entrada inicial si se ingresaron cantidades
-      if ((qtyForSale > 0 || qtyWarehouse > 0) && created?.id) {
-        const branchId = profile.branch_id || mainBranchId;
-        if (branchId) {
-          await addStockEntry(created.id, branchId, qtyForSale + qtyWarehouse);
+      if (created?.id) {
+        const imageUrl = await uploadImage(created.id);
+        if (imageUrl) {
+          await updateProduct.mutateAsync({ id: created.id, image_url: imageUrl });
+        }
+        if ((qtyForSale > 0 || qtyWarehouse > 0)) {
+          const branchId = profile.branch_id || mainBranchId;
+          if (branchId) {
+            await addStockEntry(created.id, branchId, qtyForSale + qtyWarehouse);
+          }
         }
       }
     }
@@ -197,7 +266,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       });
   };
 
-  const isLoading = createProduct.isPending || updateProduct.isPending;
+  const isLoading = createProduct.isPending || updateProduct.isPending || uploadingImage;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -213,7 +282,40 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
             {/* ─── Sección 1: Identificación ─── */}
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Identificación</p>
-              
+
+              {/* Foto del producto */}
+              <div className="flex items-center gap-3">
+                <div 
+                  className="relative h-20 w-20 rounded-lg border-2 border-dashed border-muted-foreground/30 flex items-center justify-center overflow-hidden cursor-pointer hover:border-primary/50 transition-colors flex-shrink-0"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {imagePreview ? (
+                    <img src={imagePreview} alt="Producto" className="h-full w-full object-cover" />
+                  ) : (
+                    <Camera className="h-6 w-6 text-muted-foreground/50" />
+                  )}
+                  {imagePreview && (
+                    <button
+                      type="button"
+                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center"
+                      onClick={(e) => { e.stopPropagation(); removeImage(); }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+                <div className="text-xs text-muted-foreground space-y-0.5">
+                  <p className="font-medium">Foto del producto</p>
+                  <p>Máx. 500 KB · JPG, PNG, WebP</p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
                   <label className="text-sm font-medium">Código</label>
