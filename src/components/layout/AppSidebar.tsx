@@ -21,15 +21,13 @@ import {
   Users,
   Settings,
   Building2,
-  
-  TrendingUp,
   Shield,
   LogOut,
-  Store,
   CreditCard,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 const AppSidebar = () => {
   const location = useLocation();
@@ -47,7 +45,6 @@ const AppSidebar = () => {
     { title: 'Inventario', url: '/inventory', icon: Package },
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
     { title: 'Ventas', url: '/sales', icon: Receipt },
-    
     { title: 'Empleados', url: '/employees', icon: Users },
     { title: 'Sucursales', url: '/branches', icon: Building2 },
     { title: 'Configuración', url: '/settings', icon: Settings },
@@ -70,17 +67,21 @@ const AppSidebar = () => {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border p-4">
-        <Link to="/" className="flex items-center gap-2">
-          <Building2 className="h-5 w-5 text-foreground" />
-          <span className="text-base font-semibold text-foreground">GestorPro</span>
+      <SidebarHeader className="p-4">
+        <Link to="/" className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <Building2 className="h-4 w-4 text-primary-foreground" />
+          </div>
+          <span className="text-sm font-bold tracking-tight text-foreground">GestorPro</span>
         </Link>
       </SidebarHeader>
 
-      <SidebarContent>
+      <Separator className="mx-4 w-auto" />
+
+      <SidebarContent className="pt-2">
         {isSuperAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel>Super Admin</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Admin</SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {superAdminItems.map((item) => (
@@ -90,8 +91,8 @@ const AppSidebar = () => {
                       isActive={isActive(item.url)}
                     >
                       <Link to={item.url}>
-                        <item.icon className="h-5 w-5" />
-                        <span>{item.title}</span>
+                        <item.icon className="h-4 w-4" />
+                        <span className="text-sm">{item.title}</span>
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
@@ -102,7 +103,7 @@ const AppSidebar = () => {
         )}
 
         <SidebarGroup>
-          <SidebarGroupLabel>Menú Principal</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Menú</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {businessItems.map((item) => (
@@ -112,8 +113,8 @@ const AppSidebar = () => {
                     isActive={isActive(item.url)}
                   >
                     <Link to={item.url}>
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
+                      <item.icon className="h-4 w-4" />
+                      <span className="text-sm">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -123,20 +124,20 @@ const AppSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-4">
-        <div className="flex items-center gap-3">
+      <SidebarFooter className="border-t border-border/60 p-3">
+        <div className="flex items-center gap-2.5">
           <Avatar className="h-8 w-8">
             <AvatarImage src={profile?.avatar_url || ''} />
-            <AvatarFallback className="bg-muted text-muted-foreground text-xs">
+            <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
               {profile?.full_name ? getInitials(profile.full_name) : 'U'}
             </AvatarFallback>
           </Avatar>
-          <div className="flex-1 truncate">
-            <p className="truncate text-sm font-medium">{profile?.full_name || 'Usuario'}</p>
-            <p className="truncate text-xs text-muted-foreground">{profile?.email}</p>
+          <div className="flex-1 min-w-0">
+            <p className="truncate text-sm font-medium leading-tight">{profile?.full_name || 'Usuario'}</p>
+            <p className="truncate text-[11px] text-muted-foreground">{profile?.email}</p>
             {activeBranch && (
-              <p className="truncate text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                <Building2 className="h-3 w-3 shrink-0" />
+              <p className="truncate text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                <Building2 className="h-2.5 w-2.5 shrink-0" />
                 {activeBranch.name}
               </p>
             )}
@@ -144,10 +145,11 @@ const AppSidebar = () => {
           <Button
             variant="ghost"
             size="icon"
+            className="h-7 w-7 shrink-0"
             onClick={signOut}
             title="Cerrar sesión"
           >
-            <LogOut className="h-4 w-4" />
+            <LogOut className="h-3.5 w-3.5" />
           </Button>
         </div>
       </SidebarFooter>
