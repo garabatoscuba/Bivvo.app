@@ -25,6 +25,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
+  switchBranch: (branchId: string) => Promise<void>;
   isSuperAdmin: boolean;
   isOwner: boolean;
   isManager: boolean;
@@ -157,6 +158,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRoles([]);
   };
 
+  const switchBranch = async (branchId: string) => {
+    if (!user) return;
+    const { error } = await supabase
+      .from('profiles')
+      .update({ branch_id: branchId })
+      .eq('user_id', user.id);
+    if (error) throw error;
+    setProfile(prev => prev ? { ...prev, branch_id: branchId } : null);
+  };
+
   const value: AuthContextType = {
     user,
     session,
@@ -166,6 +177,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signOut,
+    switchBranch,
     isSuperAdmin: roles.includes('super_admin'),
     isOwner: roles.includes('owner'),
     isManager: roles.includes('manager'),
