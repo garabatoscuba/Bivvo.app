@@ -1,4 +1,4 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -14,15 +14,58 @@ interface CreateSaleParams {
   notes?: string;
 }
 
-export const useSales = () => {
+export const useSales = (branchId?: string | null) => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // Query: list sales with seller and customer names
+  const salesQuery = useQuery({
+    queryKey: ['sales', branchId],
+    queryFn: async () => {
+      if (!branchId) return [];
+      const { data, error } = await supabase
+        .from('sales')
+        .select('*, profiles!sales_user_id_fkey(full_name), customers(name)')
+        .eq('branch_id', branchId)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      return (data || []).map((s: any) => ({
+        ...s,
+        seller_name: s.profiles?.full_name ?? 'Desconocido',
+        customer_name: s.customers?.name ?? 'Público general',
+      }));
+    },
+    enabled: !!branchId,
+  });
+
+  // Query: sale items for a specific sale
+  const useSaleItems = (saleId: string | null) =>
+    useQuery({
+      queryKey: ['sale-items', saleId],
+      queryFn: async () => {
+        if (!saleId) return [];
+        const { data, error } = await supabase
+          .from('sale_items')
+          .select('*, products(name, code)')
+          .eq('sale_id', saleId);
+
+        if (error) throw error;
+        return (data || []).map((item: any) => ({
+          ...item,
+          product_name: item.products?.name ?? '',
+          product_code: item.products?.code ?? '',
+        }));
+      },
+      enabled: !!saleId,
+    });
+
+  // Mutation: create sale (existing logic)
   const createSale = useMutation({
     mutationFn: async ({ branchId, items, paymentType, discount, amountPaid, customerId, notes }: CreateSaleParams) => {
       if (!user?.id) throw new Error('No hay usuario autenticado');
 
-      // Generar número de venta
       const { data: saleNumber } = await supabase.rpc('generate_sale_number', {
         _branch_id: branchId,
       });
@@ -30,7 +73,6 @@ export const useSales = () => {
       const subtotal = items.reduce((sum, item) => sum + item.total, 0);
       const total = subtotal - discount;
 
-      // Crear la venta
       const { data: sale, error: saleError } = await supabase
         .from('sales')
         .insert({
@@ -51,7 +93,6 @@ export const useSales = () => {
 
       if (saleError) throw saleError;
 
-      // Crear los items de la venta (esto actualizará el stock automáticamente via trigger)
       const saleItems = items.map(item => ({
         sale_id: sale.id,
         product_id: item.product.id,
@@ -67,29 +108,76 @@ export const useSales = () => {
         .insert(saleItems);
 
       if (itemsError) throw itemsError;
-
       return sale;
     },
     onSuccess: (sale) => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast({ 
+      toast({
         title: 'Venta completada',
         description: `Venta ${sale.sale_number} por $${sale.total.toFixed(2)}`
       });
     },
     onError: (error) => {
-      toast({ 
-        title: 'Error al procesar venta', 
+      toast({
+        title: 'Error al procesar venta',
         description: error.message,
-        variant: 'destructive' 
+        variant: 'destructive'
       });
     },
   });
 
+  // Mutation: cancel sale
+  const cancelSale = useMutation({
+    mutationFn: async (saleId: string) => {
+      const { error } = await supabase
+        .from('sales')
+        .update({ status: 'cancelled' as const })
+        .eq('id', saleId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      toast({ title: 'Venta cancelada' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error al cancelar', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Mutation: register payment on credit sale
+  const registerPayment = useMutation({
+    mutationFn: async ({ saleId, currentAmountPaid, paymentAmount, total }: {
+      saleId: string;
+      currentAmountPaid: number;
+      paymentAmount: number;
+      total: number;
+    }) => {
+      const newAmountPaid = currentAmountPaid + paymentAmount;
+      const newStatus = newAmountPaid >= total ? 'completed' : 'pending';
+      const { error } = await supabase
+        .from('sales')
+        .update({ amount_paid: newAmountPaid, status: newStatus as 'completed' | 'pending' })
+        .eq('id', saleId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['sales'] });
+      toast({ title: 'Pago registrado' });
+    },
+    onError: (error) => {
+      toast({ title: 'Error al registrar pago', description: error.message, variant: 'destructive' });
+    },
+  });
+
   return {
+    sales: salesQuery.data ?? [],
+    isLoadingSales: salesQuery.isLoading,
+    useSaleItems,
     createSale,
     isCreating: createSale.isPending,
+    cancelSale,
+    registerPayment,
   };
 };
