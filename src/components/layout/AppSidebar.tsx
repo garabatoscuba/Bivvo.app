@@ -24,7 +24,9 @@ import {
   Shield,
   LogOut,
   CreditCard,
+  Download,
 } from 'lucide-react';
+import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -33,6 +35,7 @@ const AppSidebar = () => {
   const location = useLocation();
   const { profile, isSuperAdmin, signOut } = useAuth();
   const { data: branches = [] } = useBranches();
+  const { isInstalled } = usePWAInstall();
 
   const activeBranch = branches.find(b => b.id === profile?.branch_id);
 
@@ -122,6 +125,23 @@ const AppSidebar = () => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {!isInstalled && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/install')}>
+                    <Link to="/install">
+                      <Download className="h-4 w-4" />
+                      <span className="text-sm">Descargar App</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/60 p-3">

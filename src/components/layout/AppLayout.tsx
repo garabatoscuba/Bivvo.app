@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import AppSidebar from './AppSidebar';
 import AppHeader from './AppHeader';
 import SubscriptionBanner from './SubscriptionBanner';
+import InstallBanner from './InstallBanner';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -15,6 +16,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
       <div className="flex min-h-screen w-full">
         <AppSidebar />
         <SidebarInset className="flex flex-1 flex-col">
+          <InstallBanner />
           <SubscriptionBanner />
           <AppHeader title={title} />
           <main className="flex-1 overflow-auto p-4 md:p-6">
