@@ -638,7 +638,7 @@ const ProductRow = ({ product, stock, color, onClick, canManage, onDelete, onAdd
         {isLow && <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />}
       </button>
       {canManage && (
-        <div className="flex gap-0.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="flex gap-0.5 flex-shrink-0">
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onAddStock} title="Dar entrada">
             <PackagePlus className="h-3.5 w-3.5" />
           </Button>
