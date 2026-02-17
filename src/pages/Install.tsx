@@ -1,15 +1,17 @@
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
-import { Download, Share, Plus, Smartphone, CheckCircle, ArrowLeft } from 'lucide-react';
+import { Download, Share, Plus, Smartphone, CheckCircle, ArrowLeft, Monitor, Chrome } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Install = () => {
   const { canInstall, isInstalled, promptInstall } = usePWAInstall();
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isDesktop = !isMobile;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
-      <div className="w-full max-w-md space-y-8 text-center">
+      <div className="w-full max-w-md space-y-6 text-center">
         <div className="space-y-2">
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">
             <Smartphone className="h-8 w-8 text-primary-foreground" />
@@ -29,62 +31,83 @@ const Install = () => {
             </p>
           </div>
         ) : (
-          <>
-            {/* Android instructions */}
-            {!isIOS && (
-              <div className="rounded-lg border border-border bg-card p-6 text-left space-y-4">
-                <h2 className="font-semibold text-foreground">Android</h2>
-                <ol className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">1</span>
-                    <span>Toca el botón <strong className="text-foreground">"Instalar"</strong> de abajo</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">2</span>
-                    <span>Confirma la instalación en el diálogo del navegador</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">3</span>
-                    <span>¡Listo! Busca <strong className="text-foreground">SyncSales</strong> en tu pantalla de inicio</span>
-                  </li>
-                </ol>
-              </div>
-            )}
-
-            {/* iOS instructions */}
-            {isIOS && (
-              <div className="rounded-lg border border-border bg-card p-6 text-left space-y-4">
-                <h2 className="font-semibold text-foreground">iPhone / iPad</h2>
-                <ol className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex gap-3">
-                    <Share className="h-5 w-5 shrink-0 text-primary" />
-                    <span>Toca el icono de <strong className="text-foreground">Compartir</strong> en Safari (cuadrado con flecha hacia arriba)</span>
-                  </li>
-                  <li className="flex gap-3">
-                    <Plus className="h-5 w-5 shrink-0 text-primary" />
-                    <span>Selecciona <strong className="text-foreground">"Agregar a pantalla de inicio"</strong></span>
-                  </li>
-                  <li className="flex gap-3">
-                    <CheckCircle className="h-5 w-5 shrink-0 text-primary" />
-                    <span>Toca <strong className="text-foreground">"Agregar"</strong> y listo</span>
-                  </li>
-                </ol>
-              </div>
-            )}
-
+          <div className="space-y-4">
+            {/* Direct install button - most prominent */}
             {canInstall && (
-              <Button size="lg" className="w-full gap-2" onClick={promptInstall}>
+              <Button size="lg" className="w-full gap-2 text-base" onClick={promptInstall}>
                 <Download className="h-5 w-5" />
-                Instalar App
+                Instalar App Ahora
               </Button>
             )}
 
-            {!canInstall && !isIOS && (
-              <p className="text-sm text-muted-foreground">
-                Abre esta página en <strong>Chrome</strong> en tu teléfono Android para poder instalar la app.
-              </p>
+            {/* Desktop message */}
+            {isDesktop && (
+              <div className="rounded-lg border border-border bg-card p-5 space-y-3">
+                <Monitor className="mx-auto h-8 w-8 text-muted-foreground" />
+                <p className="text-sm text-muted-foreground">
+                  Estás en una computadora. Para instalar la app, abre este enlace desde tu teléfono:
+                </p>
+                <div className="rounded-md bg-muted px-3 py-2">
+                  <p className="text-xs font-mono text-foreground break-all select-all">
+                    {window.location.origin}/install
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Copia el enlace y ábrelo en <strong className="text-foreground">Chrome</strong> (Android) o <strong className="text-foreground">Safari</strong> (iPhone)
+                </p>
+              </div>
             )}
-          </>
+
+            {/* Android instructions */}
+            <div className="rounded-lg border border-border bg-card p-5 text-left space-y-3">
+              <div className="flex items-center gap-2">
+                <Chrome className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold text-foreground">Android (Chrome)</h2>
+              </div>
+              {canInstall ? (
+                <p className="text-sm text-muted-foreground">
+                  ¡Toca el botón <strong className="text-foreground">"Instalar App Ahora"</strong> de arriba y confirma!
+                </p>
+              ) : (
+                <ol className="space-y-2.5 text-sm text-muted-foreground">
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">1</span>
+                    <span>Abre esta página en <strong className="text-foreground">Chrome</strong></span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">2</span>
+                    <span>Toca el menú <strong className="text-foreground">⋮</strong> (tres puntos arriba a la derecha)</span>
+                  </li>
+                  <li className="flex gap-2.5">
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">3</span>
+                    <span>Selecciona <strong className="text-foreground">"Instalar app"</strong> o <strong className="text-foreground">"Agregar a pantalla de inicio"</strong></span>
+                  </li>
+                </ol>
+              )}
+            </div>
+
+            {/* iOS instructions */}
+            <div className="rounded-lg border border-border bg-card p-5 text-left space-y-3">
+              <div className="flex items-center gap-2">
+                <Share className="h-5 w-5 text-primary" />
+                <h2 className="font-semibold text-foreground">iPhone / iPad (Safari)</h2>
+              </div>
+              <ol className="space-y-2.5 text-sm text-muted-foreground">
+                <li className="flex gap-2.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">1</span>
+                  <span>Abre esta página en <strong className="text-foreground">Safari</strong></span>
+                </li>
+                <li className="flex gap-2.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">2</span>
+                  <span>Toca el icono <Share className="inline h-3.5 w-3.5 -mt-0.5" /> <strong className="text-foreground">Compartir</strong></span>
+                </li>
+                <li className="flex gap-2.5">
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">3</span>
+                  <span>Selecciona <Plus className="inline h-3.5 w-3.5 -mt-0.5" /> <strong className="text-foreground">"Agregar a pantalla de inicio"</strong></span>
+                </li>
+              </ol>
+            </div>
+          </div>
         )}
 
         <Link
