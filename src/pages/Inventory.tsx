@@ -11,7 +11,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, TrendingUp, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX } from 'lucide-react';
+import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, TrendingUp, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft } from 'lucide-react';
+import { MovementsLog } from '@/components/inventory/MovementsLog';
 import {
   Select,
   SelectContent,
@@ -377,6 +378,10 @@ const Inventory = () => {
                 </button>
               )}
             </TabsTrigger>
+            <TabsTrigger value="movements" className="flex items-center gap-2">
+              <ArrowRightLeft className="h-3.5 w-3.5" />
+              Movimientos
+            </TabsTrigger>
           </TabsList>
 
           {/* ─── Products Tab ─── */}
@@ -539,6 +544,10 @@ const Inventory = () => {
                 })}
               </div>
             )}
+          </TabsContent>
+          {/* ─── Movements Tab ─── */}
+          <TabsContent value="movements" className="mt-4">
+            <MovementsLog branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''} />
           </TabsContent>
         </Tabs>
       </div>
