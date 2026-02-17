@@ -335,7 +335,7 @@ const Inventory = () => {
       <div className="space-y-3 overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-2">
-          <div className="relative flex-1 min-w-0">
+          <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar..."
@@ -347,7 +347,7 @@ const Inventory = () => {
           
           {branches && branches.length > 1 && (
             <Select value={selectedBranch} onValueChange={handleBranchChange}>
-              <SelectTrigger className="w-auto max-w-[8rem] shrink-0">
+              <SelectTrigger className="w-auto shrink-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
