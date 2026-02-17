@@ -332,10 +332,10 @@ const Inventory = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-4">
+      <div className="space-y-3 overflow-hidden">
         {/* Header */}
         <div className="flex items-center gap-2">
-          <div className="relative flex-1">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar..."
@@ -347,7 +347,7 @@ const Inventory = () => {
           
           {branches && branches.length > 1 && (
             <Select value={selectedBranch} onValueChange={handleBranchChange}>
-              <SelectTrigger className="w-32">
+              <SelectTrigger className="w-auto max-w-[8rem] shrink-0">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -363,49 +363,49 @@ const Inventory = () => {
 
         {/* Tabs + Action Buttons */}
         <Tabs value={mainTab} onValueChange={setMainTab}>
-          <TabsList>
-            <TabsTrigger value="products" className="flex items-center gap-2">
+          <TabsList className="w-full">
+            <TabsTrigger value="products" className="flex items-center gap-1 flex-1 text-xs px-2">
               Productos
               {canManage && (
                 <button
                   type="button"
-                  className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  className="inline-flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     setEditingProduct(null);
                     setProductFormOpen(true);
                   }}
                 >
-                  <Plus className="h-3.5 w-3.5" />
+                  <Plus className="h-3 w-3" />
                 </button>
               )}
             </TabsTrigger>
-            <TabsTrigger value="categories" className="flex items-center gap-2">
+            <TabsTrigger value="categories" className="flex items-center gap-1 flex-1 text-xs px-2">
               Categorías
               {canManage && (
                 <button
                   type="button"
-                  className="ml-1 inline-flex h-5 w-5 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                  className="inline-flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
                     setEditingCategory(null);
                     setCategoryFormOpen(true);
                   }}
                 >
-                  <Plus className="h-3.5 w-3.5" />
+                  <Plus className="h-3 w-3" />
                 </button>
               )}
             </TabsTrigger>
-            <TabsTrigger value="movements" className="flex items-center gap-2">
-              <ArrowRightLeft className="h-3.5 w-3.5" />
-              Movimientos
+            <TabsTrigger value="movements" className="flex items-center gap-1 flex-1 text-xs px-2">
+              <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
+              Movim.
             </TabsTrigger>
           </TabsList>
 
           {/* ─── Products Tab ─── */}
           <TabsContent value="products" className="mt-4 space-y-4">
             {/* Quick stats bar */}
-            <div className="grid grid-cols-4 gap-1.5">
+            <div className="grid grid-cols-4 gap-1">
               <StatPill 
                 icon={Package} 
                 label="En venta" 
@@ -918,26 +918,26 @@ interface StatPillProps {
 }
 
 const StatPill = ({ icon: Icon, label, value, alert, expanded, onToggle, details }: StatPillProps) => (
-  <div className="flex flex-col">
+  <div className="flex flex-col min-w-0">
     <button
       type="button"
       onClick={onToggle}
       className={cn(
-        'flex flex-col items-center rounded-lg border p-2 text-center transition-colors w-full',
+        'flex flex-col items-center rounded-lg border p-1.5 text-center transition-colors w-full',
         alert && 'border-warning/50 bg-warning/5',
         expanded && !alert && 'border-primary/50 bg-primary/5',
       )}
     >
-      <Icon className={cn('h-3.5 w-3.5 mb-0.5', alert ? 'text-warning' : 'text-muted-foreground')} />
-      <span className="text-base font-bold leading-none">{value}</span>
-      <span className="text-[9px] text-muted-foreground mt-0.5 leading-tight">{label}</span>
+      <Icon className={cn('h-3 w-3 mb-0.5', alert ? 'text-warning' : 'text-muted-foreground')} />
+      <span className="text-sm font-bold leading-none">{value}</span>
+      <span className="text-[8px] text-muted-foreground mt-0.5 leading-tight truncate w-full">{label}</span>
     </button>
     {expanded && details && details.length > 0 && (
-      <div className="mt-1 rounded-md border bg-muted/30 px-2 py-1.5 space-y-0.5">
+      <div className="mt-1 rounded-md border bg-muted/30 px-1.5 py-1 space-y-0.5">
         {details.map((d, i) => (
           <div key={i} className="flex justify-between items-center gap-1">
-            <span className="text-[10px] text-muted-foreground">{d.label}</span>
-            {d.value && <span className="text-[10px] font-semibold">{d.value}</span>}
+            <span className="text-[9px] text-muted-foreground truncate">{d.label}</span>
+            {d.value && <span className="text-[9px] font-semibold shrink-0">{d.value}</span>}
           </div>
         ))}
       </div>
