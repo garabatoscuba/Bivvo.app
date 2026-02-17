@@ -11,8 +11,6 @@ import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import POS from "./pages/POS";
 import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminBusinesses from "./pages/admin/AdminBusinesses";
-import AdminStats from "./pages/admin/AdminStats";
 import Employees from "./pages/Employees";
 import Branches from "./pages/Branches";
 import Sales from "./pages/Sales";
@@ -57,8 +55,8 @@ const App = () => (
             <Route path="/branches" element={<ProtectedRoute><Branches /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
-            <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminBusinesses /></ProtectedRoute>} />
-            <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminStats /></ProtectedRoute>} />
+            <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
+            <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <WhatsAppButton />
