@@ -9,7 +9,7 @@ import {
   Package,
   TrendingUp,
   AlertTriangle,
-  DollarSign,
+  
   Users,
 } from 'lucide-react';
 
@@ -46,13 +46,6 @@ const Dashboard = () => {
       value: '$0.00',
       icon: TrendingUp,
       change: '+0%',
-      changeType: 'neutral' as const,
-    },
-    {
-      title: 'Gastos del Mes',
-      value: '$0.00',
-      icon: DollarSign,
-      change: '-0%',
       changeType: 'neutral' as const,
     },
   ];
