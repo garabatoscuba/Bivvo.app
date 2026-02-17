@@ -9,7 +9,7 @@ import { useBranches } from '@/hooks/useBranches';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-const WHATSAPP_NUMBER = '53552514878';
+const WHATSAPP_NUMBER = '5352514878';
 const WHATSAPP_URL = (msg: string) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
 const PLAN_PRICE = 10;
 const BRANCH_PRICE = 10;
