@@ -25,28 +25,35 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false }: Pr
         )}
         onClick={onClick}
       >
-        <CardContent className="p-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
-              {product.image_url ? (
-                <img 
-                  src={product.image_url} 
-                  alt={product.name}
-                  className="h-full w-full rounded-lg object-cover"
-                />
-              ) : (
-                <Package className="h-6 w-6 text-muted-foreground" />
+        <CardContent className="p-2.5">
+          <div className="flex flex-col gap-2">
+            <div className="flex items-start gap-2">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-muted">
+                {product.image_url ? (
+                  <img 
+                    src={product.image_url} 
+                    alt={product.name}
+                    className="h-full w-full rounded-md object-cover"
+                  />
+                ) : (
+                  <Package className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-xs leading-tight line-clamp-2">{product.name}</h4>
+              </div>
+              {isLowStock && (
+                <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
               )}
             </div>
-            <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-sm truncate">{product.name}</h4>
-              <p className="text-lg font-bold text-primary">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-bold text-primary">
                 ${Number(product.sale_price).toFixed(2)}
-              </p>
+              </span>
+              <Badge variant={isOutOfStock ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 h-5">
+                {stock} disp.
+              </Badge>
             </div>
-            {isLowStock && (
-              <AlertTriangle className="h-4 w-4 text-warning flex-shrink-0" />
-            )}
           </div>
         </CardContent>
       </Card>
