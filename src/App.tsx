@@ -17,7 +17,7 @@ import Sales from "./pages/Sales";
 import Settings from "./pages/Settings";
 import Plans from "./pages/Plans";
 import NotFound from "./pages/NotFound";
-import WhatsAppButton from "./components/layout/WhatsAppButton";
+
 
 const queryClient = new QueryClient();
 
@@ -59,7 +59,7 @@ const App = () => (
             <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <WhatsAppButton />
+          
         </BrowserRouter>
       </AuthProvider>
     </TooltipProvider>
