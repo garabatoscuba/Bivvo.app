@@ -76,6 +76,9 @@ const Inventory = () => {
   const [stockQtyForSale, setStockQtyForSale] = useState(0);
   const [stockQtyWarehouse, setStockQtyWarehouse] = useState(0);
   const [addingStock, setAddingStock] = useState(false);
+  const [transferQty, setTransferQty] = useState(0);
+  const [transferring, setTransferring] = useState(false);
+  const [showTransfer, setShowTransfer] = useState(false);
 
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
 
@@ -239,6 +242,64 @@ const Inventory = () => {
       toast({ title: 'Error al dar entrada', description: err.message, variant: 'destructive' });
     } finally {
       setAddingStock(false);
+    }
+  };
+
+  const handleTransferToSale = async () => {
+    if (!selectedProduct || !profile?.user_id || transferQty <= 0) return;
+    setTransferring(true);
+    try {
+      const branchId = selectedBranch || profile.branch_id || branches?.[0]?.id;
+      if (!branchId) return;
+
+      const { data: existing } = await supabase
+        .from('branch_stock')
+        .select('id, quantity, warehouse_quantity')
+        .eq('branch_id', branchId)
+        .eq('product_id', selectedProduct.id)
+        .maybeSingle();
+
+      if (!existing || (existing.warehouse_quantity || 0) < transferQty) {
+        toast({ title: 'No hay suficientes unidades en almacén', variant: 'destructive' });
+        return;
+      }
+
+      await supabase
+        .from('branch_stock')
+        .update({
+          quantity: existing.quantity + transferQty,
+          warehouse_quantity: existing.warehouse_quantity - transferQty,
+        })
+        .eq('id', existing.id);
+
+      // Register movements
+      await supabase.from('inventory_movements').insert([
+        {
+          branch_id: branchId,
+          product_id: selectedProduct.id,
+          user_id: profile.user_id,
+          movement_type: 'transfer_out' as const,
+          quantity: transferQty,
+          notes: 'Transferencia: almacén → venta',
+        },
+        {
+          branch_id: branchId,
+          product_id: selectedProduct.id,
+          user_id: profile.user_id,
+          movement_type: 'transfer_in' as const,
+          quantity: transferQty,
+          notes: 'Transferencia: almacén → venta',
+        },
+      ]);
+
+      queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
+      toast({ title: `${transferQty} unidades pasadas a venta` });
+      setTransferQty(0);
+      setShowTransfer(false);
+    } catch (err: any) {
+      toast({ title: 'Error al transferir', description: err.message, variant: 'destructive' });
+    } finally {
+      setTransferring(false);
     }
   };
 
@@ -538,16 +599,98 @@ const Inventory = () => {
                 />
               </div>
 
+              {/* Stock distribution bar */}
+              {selectedTotalStock > 0 && (
+                <div className="space-y-1.5">
+                  <p className="text-xs font-medium text-muted-foreground">Distribución de stock</p>
+                  <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+                    <div 
+                      className="bg-primary transition-all" 
+                      style={{ width: `${(selectedStock / selectedTotalStock) * 100}%` }} 
+                      title={`Venta: ${selectedStock}`}
+                    />
+                    <div 
+                      className="bg-muted-foreground/30 transition-all" 
+                      style={{ width: `${(selectedWarehouseStock / selectedTotalStock) * 100}%` }} 
+                      title={`Almacén: ${selectedWarehouseStock}`}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-muted-foreground">
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> Venta ({selectedStock})</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground/30 inline-block" /> Almacén ({selectedWarehouseStock})</span>
+                  </div>
+                </div>
+              )}
+
               {/* Stock alert */}
               {selectedStock <= selectedProduct.min_stock && (
                 <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm">
                   <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
                   <span>
                     {selectedStock <= 0 
-                      ? 'Sin stock disponible' 
+                      ? 'Sin stock disponible para venta' 
                       : `Stock bajo — mínimo recomendado: ${selectedProduct.min_stock}`
                     }
+                    {selectedWarehouseStock > 0 && ' — Hay unidades en almacén'}
                   </span>
+                </div>
+              )}
+
+              {/* Transfer warehouse → sale */}
+              {canManage && selectedWarehouseStock > 0 && (
+                <div className="space-y-2">
+                  {!showTransfer ? (
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={() => { setShowTransfer(true); setTransferQty(1); }}
+                    >
+                      <TrendingUp className="mr-2 h-4 w-4" />
+                      Pasar de almacén a venta
+                    </Button>
+                  ) : (
+                    <div className="rounded-lg border p-3 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium">Almacén → Venta</p>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowTransfer(false)}>
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Button 
+                          variant="outline" size="icon" className="h-8 w-8"
+                          onClick={() => setTransferQty(Math.max(1, transferQty - 1))}
+                          disabled={transferQty <= 1}
+                        >
+                          <span className="text-lg leading-none">−</span>
+                        </Button>
+                        <Input 
+                          type="number" 
+                          min={1} 
+                          max={selectedWarehouseStock}
+                          value={transferQty}
+                          onChange={(e) => setTransferQty(Math.min(selectedWarehouseStock, Math.max(1, parseInt(e.target.value) || 1)))}
+                          className="w-20 text-center"
+                        />
+                        <Button 
+                          variant="outline" size="icon" className="h-8 w-8"
+                          onClick={() => setTransferQty(Math.min(selectedWarehouseStock, transferQty + 1))}
+                          disabled={transferQty >= selectedWarehouseStock}
+                        >
+                          <span className="text-lg leading-none">+</span>
+                        </Button>
+                        <span className="text-xs text-muted-foreground">/ {selectedWarehouseStock}</span>
+                      </div>
+                      <Button 
+                        className="w-full" 
+                        onClick={handleTransferToSale}
+                        disabled={transferring || transferQty <= 0}
+                      >
+                        {transferring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                        Transferir {transferQty} unidad{transferQty !== 1 ? 'es' : ''}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
 
