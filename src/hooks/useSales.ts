@@ -23,17 +23,29 @@ export const useSales = (branchId?: string | null) => {
     queryKey: ['sales', branchId],
     queryFn: async () => {
       if (!branchId) return [];
-      const { data, error } = await supabase
+      // Fetch sales with customer join
+      const { data: salesData, error: salesError } = await supabase
         .from('sales')
-        .select('*, profiles!sales_user_id_fkey(full_name), customers(name)')
+        .select('*, customers(name)')
         .eq('branch_id', branchId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (salesError) throw salesError;
+      if (!salesData || salesData.length === 0) return [];
 
-      return (data || []).map((s: any) => ({
+      // Fetch seller names from profiles using user_ids
+      const userIds = [...new Set(salesData.map((s: any) => s.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds);
+
+      const profileMap = new Map<string, string>();
+      profiles?.forEach((p: any) => profileMap.set(p.user_id, p.full_name));
+
+      return salesData.map((s: any) => ({
         ...s,
-        seller_name: s.profiles?.full_name ?? 'Desconocido',
+        seller_name: profileMap.get(s.user_id) ?? 'Desconocido',
         customer_name: s.customers?.name ?? 'Público general',
       }));
     },
