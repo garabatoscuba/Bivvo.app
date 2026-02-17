@@ -1,114 +1,126 @@
-
-
-# Modulo de Ventas - Historial, Detalle y Cuentas por Cobrar
+# Dashboard Moderno con Analiticas y Graficas
 
 ## Que se va a construir
 
-Una pagina completa en `/sales` con cuatro secciones principales:
+Reemplazar el dashboard actual (que muestra datos estaticos "$0.00") por un dashboard completo con datos reales, graficas interactivas y un selector de periodo (dia, semana, mes, ano).
 
-### 1. Resumen rapido (cards superiores)
-Cuatro tarjetas con metricas clave, filtradas por la sucursal activa:
-- **Ventas hoy**: cantidad y monto total del dia
-- **Ventas del mes**: cantidad y monto total del mes actual
-- **Ticket promedio**: monto promedio por venta en el mes
-- **Pendientes de cobro**: total de ventas a credito con status "pending"
+## Estructura del nuevo Dashboard
 
-### 2. Historial de ventas (tabla principal)
-Tabla con todas las ventas de la sucursal activa, mostrando:
-- Numero de venta (VTA-000001)
-- Fecha y hora
-- Vendedor (nombre del usuario que realizo la venta)
-- Cliente (si se registro, sino "Publico general")
-- Metodo de pago (badge con color: efectivo, tarjeta, transferencia, credito)
-- Total
-- Estado (badge: completada verde, pendiente amarillo, cancelada rojo)
-- Boton para ver detalle
+### 1. Barra superior: Selector de periodo
 
-**Filtros disponibles:**
-- Rango de fechas (fecha inicio / fecha fin)
-- Metodo de pago (todos, efectivo, tarjeta, transferencia, credito)
-- Estado (todos, completada, pendiente, cancelada)
+Un grupo de botones (ToggleGroup) para cambiar entre:
 
-### 3. Detalle de venta (Sheet lateral)
-Al hacer clic en una venta, se abre un panel lateral con:
-- Informacion general: numero, fecha, vendedor, cliente, notas
-- Tabla de productos vendidos: nombre, cantidad, precio unitario, descuento, total por linea
-- Resumen: subtotal, descuento, total, monto pagado, cambio/saldo pendiente
-- Boton "Cancelar venta" (solo owner/manager) que cambiara el estado a "cancelled" -- la devolucion de stock se implementara despues
+- **Hoy** - datos del dia actual, en vivo
+- **Semana** - ultimos 7 dias
+- **Mes** - mes actual
+- **Ano** - ano actual
 
-### 4. Pestana de Cuentas por Cobrar
-Una segunda pestana (Tabs) que muestra solo las ventas con status "pending" (credito):
-- Misma tabla pero filtrada a credito pendiente
-- En el detalle de cada una, boton "Registrar pago" que actualiza `amount_paid` y cambia status a "completed" cuando se paga el total
+### 2. KPIs principales (4 cards)
+
+Cuatro tarjetas con datos reales filtrados por el periodo seleccionado:
+
+- **Total Ventas**: monto total de ventas completadas en el periodo
+- **Cantidad de Ventas**: numero de transacciones completadas
+- **Ticket Promedio**: total / cantidad de ventas
+- **Cuentas por Cobrar**: total de ventas con status "pending" (credito vigente, no afectado por periodo)
+
+Cada card mostrara la comparacion porcentual vs el periodo anterior (ej: "hoy vs ayer", "esta semana vs la anterior", etc.)
+
+### 3. Grafica de ventas (Area/Bar chart)
+
+- Grafica principal usando recharts (ya instalado)
+- Eje X: fechas/horas segun el periodo (horas si es "hoy", dias si es semana/mes, meses si es ano)
+- Eje Y: monto de ventas
+- Tooltip con detalle al pasar el mouse
+
+### 4. Grafica de metodos de pago (Pie/Donut chart)
+
+- Distribucion de ventas por metodo de pago (efectivo, tarjeta, transferencia, credito)
+- Colores diferenciados por metodo
+- Leyenda con montos y porcentajes
+
+### 5. Top 5 productos mas vendidos (Bar chart horizontal)
+
+- Los 5 productos con mayor cantidad vendida en el periodo
+- Nombre del producto y cantidad
+
+### 6. Seccion de alertas (se mantiene)
+
+- Productos con stock bajo (ya existente, se conserva)
+
+### 7. Acciones rapidas (se mantienen)
+
+- Botones de acceso rapido a POS, Inventario, Empleados
 
 ## Cambios necesarios
 
-### 1. Nueva pagina `src/pages/Sales.tsx`
-- Layout con AppLayout
-- Cards de resumen arriba
-- Tabs: "Historial" y "Cuentas por Cobrar"
-- Tabla de ventas con filtros
-- Sheet de detalle
+### 1. Nuevo hook `src/hooks/useDashboardStats.ts`
 
-### 2. Actualizar `src/hooks/useSales.ts`
-- Agregar query para obtener ventas con joins a profiles (vendedor) y customers
-- Agregar query para obtener sale_items de una venta especifica
-- Agregar mutation para cancelar venta (update status)
-- Agregar mutation para registrar pago en venta a credito
+- Recibe `branchId` y `period` (today/week/month/year)
+- Calcula rango de fechas segun el periodo
+- Hace queries a `sales` y `sale_items` filtrados por branch y rango
+- Calcula KPIs, datos para graficas y comparaciones con periodo anterior
+- Query a `sale_items` con join a `products` para top productos
 
-### 3. Actualizar `src/App.tsx`
-- Cambiar la ruta `/sales` para usar el nuevo componente Sales
+### 2. Reescribir `src/pages/Dashboard.tsx`
+
+- Importar y usar el nuevo hook
+- Selector de periodo con ToggleGroup
+- Cards con datos reales y variacion porcentual
+- Graficas con componentes de recharts (AreaChart, PieChart, BarChart)
+- Usar los componentes ChartContainer, ChartTooltip del archivo chart.tsx existente
+- Mantener alertas de stock bajo y acciones rapidas
+
+### 3. No se requieren cambios en App.tsx ni migraciones
+
+La ruta `/` ya apunta a Dashboard. Los datos se obtienen de tablas existentes.
 
 ## Detalles tecnicos
 
-### Consulta de ventas
-```sql
--- La query traera ventas de la sucursal activa con datos del vendedor
-SELECT sales.*, 
-  profiles.full_name as seller_name,
-  customers.name as customer_name
-FROM sales
-LEFT JOIN profiles ON profiles.user_id = sales.user_id
-LEFT JOIN customers ON customers.id = sales.customer_id
-WHERE sales.branch_id = :currentBranch
-ORDER BY sales.created_at DESC
+### Calculo de periodos
+
+```typescript
+// Ejemplo para "today"
+const startOfToday = new Date(); startOfToday.setHours(0,0,0,0);
+// Para comparacion: ayer
+const startOfYesterday = subDays(startOfToday, 1);
+
+// "week": ultimos 7 dias vs 7 dias anteriores
+// "month": dia 1 del mes actual vs dia 1 del mes anterior
+// "year": dia 1 de enero vs ano anterior
 ```
 
-En codigo se hara con el SDK de Supabase usando selects con relaciones.
+### Datos para grafica de ventas por tiempo
 
-### Consulta de items de una venta
+```typescript
+// Para "hoy": agrupar por hora (0-23)
+// Para "semana": agrupar por dia (lun-dom)
+// Para "mes": agrupar por dia (1-28/31)
+// Para "ano": agrupar por mes (ene-dic)
+```
+
+### Query de top productos
+
 ```sql
-SELECT sale_items.*, products.name, products.code
+SELECT products.name, SUM(sale_items.quantity) as total_qty
 FROM sale_items
-LEFT JOIN products ON products.id = sale_items.product_id
-WHERE sale_items.sale_id = :saleId
+JOIN sales ON sales.id = sale_items.sale_id
+JOIN products ON products.id = sale_items.product_id
+WHERE sales.branch_id = :branch AND sales.created_at >= :start
+  AND sales.status = 'completed'
+GROUP BY products.name
+ORDER BY total_qty DESC LIMIT 5
 ```
 
-### Cancelar venta
-```typescript
-await supabase.from('sales').update({ status: 'cancelled' }).eq('id', saleId);
-```
-Nota: la devolucion automatica de stock al cancelar se implementara en una fase posterior con un trigger de base de datos.
+En codigo se hara con el SDK procesando los datos en el cliente ya que Supabase JS no soporta GROUP BY directamente.
 
-### Registrar pago (cuentas por cobrar)
-```typescript
-const newAmountPaid = currentAmountPaid + paymentAmount;
-const newStatus = newAmountPaid >= total ? 'completed' : 'pending';
-await supabase.from('sales').update({ 
-  amount_paid: newAmountPaid, 
-  status: newStatus 
-}).eq('id', saleId);
-```
+### Archivos a crear/modificar
 
-### Estructura de archivos
-- `src/pages/Sales.tsx` - Pagina principal con tabs, filtros, tabla y detalle
-- `src/hooks/useSales.ts` - Se extiende con queries y mutations adicionales
+- `src/hooks/useDashboardStats.ts` (nuevo)
+- `src/pages/Dashboard.tsx` (reescribir)
 
-### No se requieren migraciones
-Las tablas `sales`, `sale_items`, `customers` y `profiles` ya existen con las columnas necesarias. Las RLS policies ya estan configuradas.
+### Dependencias
 
-### Permisos
-- Todos los roles pueden ver las ventas de su sucursal
-- Solo `owner` y `manager` pueden cancelar ventas
-- Todos pueden registrar pagos en cuentas por cobrar (el vendedor necesita poder cobrar)
-
+- `recharts` (ya instalado)
+- `date-fns` (ya instalado)
+- Componentes chart.tsx (ya existen)
