@@ -48,8 +48,6 @@ const productSchema = z.object({
   supplier: z.string().max(200).optional(),
   unit_of_measure: z.string().min(1),
   brand: z.string().max(100).optional(),
-  qty_for_sale: z.coerce.number().int().min(0).optional(),
-  qty_warehouse: z.coerce.number().int().min(0).optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -95,7 +93,6 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       name: '', description: '', category_id: undefined,
       cost_price: 0, sale_price: 0, min_stock: 5,
       barcode: '', supplier: '', unit_of_measure: 'Pieza', brand: '',
-      qty_for_sale: 0, qty_warehouse: 0,
     },
   });
 
@@ -112,15 +109,12 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
         supplier: product.supplier || '',
         unit_of_measure: product.unit_of_measure || 'Pieza',
         brand: product.brand || '',
-        qty_for_sale: 0,
-        qty_warehouse: 0,
       });
     } else {
       form.reset({
         name: '', description: '', category_id: undefined,
         cost_price: 0, sale_price: 0, min_stock: 5,
         barcode: '', supplier: '', unit_of_measure: 'Pieza', brand: '',
-        qty_for_sale: 0, qty_warehouse: 0,
       });
     }
   }, [product, form]);
@@ -179,8 +173,6 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
   const onSubmit = async (data: ProductFormData) => {
     if (!profile?.business_id) return;
 
-    const status = (data.qty_for_sale || 0) > 0 ? 'for_sale' : ((data.qty_warehouse || 0) > 0 ? 'warehouse' : 'for_sale');
-
     const payload = {
       name: data.name,
       description: data.description || null,
@@ -188,25 +180,16 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       cost_price: data.cost_price,
       sale_price: data.sale_price,
       min_stock: data.min_stock,
-      status: status as Product['status'],
+      status: 'for_sale' as Product['status'],
       barcode: data.barcode || null,
       supplier: data.supplier || null,
       unit_of_measure: data.unit_of_measure,
       brand: data.brand || null,
     };
 
-    const qtyForSale = data.qty_for_sale || 0;
-    const qtyWarehouse = data.qty_warehouse || 0;
-
     if (product) {
       const imageUrl = await uploadImage(product.id);
       await updateProduct.mutateAsync({ id: product.id, ...payload, image_url: imageUrl });
-      if (qtyForSale > 0 || qtyWarehouse > 0) {
-        const branchId = profile.branch_id || mainBranchId;
-        if (branchId) {
-          await addStockEntry(product.id, branchId, qtyForSale + qtyWarehouse);
-        }
-      }
     } else {
       const created = await createProduct.mutateAsync({
         ...payload,
@@ -218,12 +201,6 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
         if (imageUrl) {
           await updateProduct.mutateAsync({ id: created.id, image_url: imageUrl });
         }
-        if ((qtyForSale > 0 || qtyWarehouse > 0)) {
-          const branchId = profile.branch_id || mainBranchId;
-          if (branchId) {
-            await addStockEntry(created.id, branchId, qtyForSale + qtyWarehouse);
-          }
-        }
       }
     }
 
@@ -231,40 +208,6 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     form.reset();
   };
 
-  const addStockEntry = async (productId: string, branchId: string, quantity: number) => {
-    if (quantity <= 0 || !profile?.user_id) return;
-    
-    // Upsert branch_stock
-    const { data: existing } = await supabase
-      .from('branch_stock')
-      .select('id, quantity')
-      .eq('branch_id', branchId)
-      .eq('product_id', productId)
-      .maybeSingle();
-
-    if (existing) {
-      await supabase
-        .from('branch_stock')
-        .update({ quantity: existing.quantity + quantity })
-        .eq('id', existing.id);
-    } else {
-      await supabase
-        .from('branch_stock')
-        .insert({ branch_id: branchId, product_id: productId, quantity });
-    }
-
-    // Registrar movimiento
-    await supabase
-      .from('inventory_movements')
-      .insert({
-        branch_id: branchId,
-        product_id: productId,
-        user_id: profile.user_id,
-        movement_type: 'purchase' as const,
-        quantity,
-        notes: 'Entrada inicial desde formulario de producto',
-      });
-  };
 
   const isLoading = createProduct.isPending || updateProduct.isPending || uploadingImage;
 
@@ -497,51 +440,17 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
                 />
               </div>
 
-              {/* Entrada de stock */}
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="qty_for_sale"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Entrada en venta</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0" placeholder="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="qty_warehouse"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Entrada en almacén</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0" placeholder="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Existencias actuales (solo al editar) */}
-              {product && (
-                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Package className="h-4 w-4 text-muted-foreground" />
-                    Existencias actuales
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="text-xs text-muted-foreground">En sucursal</p>
-                      <p className="text-lg font-bold">{productStock}</p>
-                    </div>
-                  </div>
+              {/* Existencia actual (solo lectura) */}
+              <div className="rounded-lg border bg-muted/30 p-3">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                  Existencia actual
                 </div>
-              )}
+                <p className="text-lg font-bold mt-1">{product ? productStock : 0}</p>
+                {!product && (
+                  <p className="text-xs text-muted-foreground">Usa el botón de entrada en la lista para agregar stock</p>
+                )}
+              </div>
             </div>
 
             <Separator />
