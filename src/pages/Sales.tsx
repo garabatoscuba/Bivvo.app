@@ -120,100 +120,140 @@ const Sales = () => {
   };
 
   const SalesTable = ({ data }: { data: any[] }) => (
-    <div className="border rounded-md">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>No. Venta</TableHead>
-            <TableHead>Fecha</TableHead>
-            <TableHead>Vendedor</TableHead>
-            <TableHead>Cliente</TableHead>
-            <TableHead>Pago</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead></TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {data.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
-                No hay ventas para mostrar
-              </TableCell>
-            </TableRow>
-          ) : (
-            data.map((sale: any) => (
-              <TableRow key={sale.id}>
-                <TableCell className="font-mono text-sm">{sale.sale_number}</TableCell>
-                <TableCell className="text-sm">{format(new Date(sale.created_at), "dd/MM/yy HH:mm", { locale: es })}</TableCell>
-                <TableCell className="text-sm">{sale.seller_name}</TableCell>
-                <TableCell className="text-sm">{sale.customer_name}</TableCell>
-                <TableCell>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${paymentColors[sale.payment_type as PaymentType]}`}>
+    <>
+      {/* Mobile cards */}
+      <div className="space-y-2 md:hidden">
+        {data.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">No hay ventas para mostrar</p>
+        ) : (
+          data.map((sale: any) => (
+            <div
+              key={sale.id}
+              className="border rounded-lg p-3 space-y-2 active:bg-accent/50 cursor-pointer"
+              onClick={() => openDetail(sale.id)}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-mono text-xs text-muted-foreground">{sale.sale_number}</span>
+                <span className="text-xs text-muted-foreground">{format(new Date(sale.created_at), "dd/MM/yy HH:mm", { locale: es })}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="font-semibold text-base">${Number(sale.total).toFixed(2)}</span>
+                <div className="flex gap-1.5">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${paymentColors[sale.payment_type as PaymentType]}`}>
                     {paymentLabels[sale.payment_type as PaymentType]}
                   </span>
-                </TableCell>
-                <TableCell className="text-right font-medium">${Number(sale.total).toFixed(2)}</TableCell>
-                <TableCell>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[sale.status as SaleStatus]}`}>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusColors[sale.status as SaleStatus]}`}>
                     {statusLabels[sale.status as SaleStatus]}
                   </span>
-                </TableCell>
-                <TableCell>
-                  <Button variant="ghost" size="icon" onClick={() => openDetail(sale.id)}>
-                    <Eye className="h-4 w-4" />
-                  </Button>
+                </div>
+              </div>
+              {(sale.seller_name || sale.customer_name) && (
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  {sale.seller_name && <span>{sale.seller_name}</span>}
+                  {sale.customer_name && <span>{sale.customer_name}</span>}
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="border rounded-md hidden md:block">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>No. Venta</TableHead>
+              <TableHead>Fecha</TableHead>
+              <TableHead>Vendedor</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Pago</TableHead>
+              <TableHead className="text-right">Total</TableHead>
+              <TableHead>Estado</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {data.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  No hay ventas para mostrar
                 </TableCell>
               </TableRow>
-            ))
-          )}
-        </TableBody>
-      </Table>
-    </div>
+            ) : (
+              data.map((sale: any) => (
+                <TableRow key={sale.id}>
+                  <TableCell className="font-mono text-sm">{sale.sale_number}</TableCell>
+                  <TableCell className="text-sm">{format(new Date(sale.created_at), "dd/MM/yy HH:mm", { locale: es })}</TableCell>
+                  <TableCell className="text-sm">{sale.seller_name}</TableCell>
+                  <TableCell className="text-sm">{sale.customer_name}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${paymentColors[sale.payment_type as PaymentType]}`}>
+                      {paymentLabels[sale.payment_type as PaymentType]}
+                    </span>
+                  </TableCell>
+                  <TableCell className="text-right font-medium">${Number(sale.total).toFixed(2)}</TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[sale.status as SaleStatus]}`}>
+                      {statusLabels[sale.status as SaleStatus]}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Button variant="ghost" size="icon" onClick={() => openDetail(sale.id)}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </>
   );
 
   return (
     <AppLayout title="Ventas">
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Ventas hoy</CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Ventas hoy</CardTitle>
+            <ShoppingCart className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalToday.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">{salesToday.length} ventas</p>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-lg md:text-2xl font-bold">${totalToday.toFixed(2)}</div>
+            <p className="text-[10px] md:text-xs text-muted-foreground">{salesToday.length} ventas</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Ventas del mes</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Ventas mes</CardTitle>
+            <DollarSign className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${totalMonth.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">{salesMonth.length} ventas</p>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-lg md:text-2xl font-bold">${totalMonth.toFixed(2)}</div>
+            <p className="text-[10px] md:text-xs text-muted-foreground">{salesMonth.length} ventas</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Ticket promedio</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Ticket prom.</CardTitle>
+            <TrendingUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${avgTicket.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Este mes</p>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-lg md:text-2xl font-bold">${avgTicket.toFixed(2)}</div>
+            <p className="text-[10px] md:text-xs text-muted-foreground">Este mes</p>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Pendientes de cobro</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Pendientes</CardTitle>
+            <CreditCard className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">${pendingTotal.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">{pendingSales.length} ventas</p>
+          <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
+            <div className="text-lg md:text-2xl font-bold">${pendingTotal.toFixed(2)}</div>
+            <p className="text-[10px] md:text-xs text-muted-foreground">{pendingSales.length} ventas</p>
           </CardContent>
         </Card>
       </div>
@@ -227,11 +267,11 @@ const Sales = () => {
 
         <TabsContent value="history">
           {/* Filters */}
-          <div className="flex flex-wrap gap-3 mb-4">
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40" placeholder="Desde" />
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-40" placeholder="Hasta" />
+          <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-3 mb-3 md:mb-4">
+            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="md:w-40 text-sm" placeholder="Desde" />
+            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="md:w-40 text-sm" placeholder="Hasta" />
             <Select value={filterPayment} onValueChange={setFilterPayment}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Método de pago" /></SelectTrigger>
+              <SelectTrigger className="md:w-40 text-sm"><SelectValue placeholder="Pago" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="cash">Efectivo</SelectItem>
@@ -241,7 +281,7 @@ const Sales = () => {
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="w-40"><SelectValue placeholder="Estado" /></SelectTrigger>
+              <SelectTrigger className="md:w-40 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="completed">Completada</SelectItem>

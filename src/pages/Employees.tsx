@@ -284,13 +284,14 @@ const Employees = () => {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-foreground">Equipo de Trabajo</h2>
-            <p className="text-sm text-muted-foreground">Gestiona los miembros y sus roles</p>
+            <h2 className="text-base md:text-lg font-semibold text-foreground">Equipo de Trabajo</h2>
+            <p className="text-xs md:text-sm text-muted-foreground">Gestiona los miembros y sus roles</p>
           </div>
           {canManage && (
-            <Button onClick={openAddEmployee}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Agregar Empleado
+            <Button size="sm" onClick={openAddEmployee}>
+              <UserPlus className="h-4 w-4 mr-1 md:mr-2" />
+              <span className="hidden sm:inline">Agregar Empleado</span>
+              <span className="sm:hidden">Agregar</span>
             </Button>
           )}
         </div>
@@ -309,53 +310,86 @@ const Employees = () => {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : hrEmployees.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>No. Contrato</TableHead>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Edad</TableHead>
-                      <TableHead>CI</TableHead>
-                      <TableHead>No. Licencia</TableHead>
-                      <TableHead>Dirección</TableHead>
-                      <TableHead>Puesto</TableHead>
-                      <TableHead>Alta</TableHead>
-                      {canManage && <TableHead className="text-right">Acciones</TableHead>}
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {hrEmployees.map((emp) => (
-                      <TableRow key={emp.id}>
-                        <TableCell className="font-medium">{emp.contract_number}</TableCell>
-                        <TableCell>{emp.full_name}</TableCell>
-                        <TableCell>{emp.age ?? '—'}</TableCell>
-                        <TableCell>{emp.ci}</TableCell>
-                        <TableCell>{emp.license_number || '—'}</TableCell>
-                        <TableCell className="max-w-[200px] truncate">{emp.address || '—'}</TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{emp.start_date}</TableCell>
-                        {canManage && (
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button variant="ghost" size="icon" onClick={() => openEditEmployee(emp)}>
-                                <Pencil className="h-4 w-4" />
-                              </Button>
-                              <Button variant="ghost" size="icon" onClick={() => handleDeleteEmployee(emp.id)}>
-                                <Trash2 className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        )}
+              <>
+                {/* Mobile cards */}
+                <div className="space-y-2 md:hidden">
+                  {hrEmployees.map((emp) => (
+                    <div key={emp.id} className="border rounded-lg p-3 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{emp.full_name}</span>
+                        <Badge variant="secondary" className="text-[10px]">
+                          {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
+                        </Badge>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                        <span>CI: {emp.ci}</span>
+                        <span>Contrato: {emp.contract_number}</span>
+                        {emp.age && <span>Edad: {emp.age}</span>}
+                        <span>Alta: {emp.start_date}</span>
+                      </div>
+                      {canManage && (
+                        <div className="flex justify-end gap-1 pt-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEmployee(emp)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteEmployee(emp.id)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop table */}
+                <div className="overflow-x-auto hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>No. Contrato</TableHead>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Edad</TableHead>
+                        <TableHead>CI</TableHead>
+                        <TableHead>No. Licencia</TableHead>
+                        <TableHead>Dirección</TableHead>
+                        <TableHead>Puesto</TableHead>
+                        <TableHead>Alta</TableHead>
+                        {canManage && <TableHead className="text-right">Acciones</TableHead>}
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+                    </TableHeader>
+                    <TableBody>
+                      {hrEmployees.map((emp) => (
+                        <TableRow key={emp.id}>
+                          <TableCell className="font-medium">{emp.contract_number}</TableCell>
+                          <TableCell>{emp.full_name}</TableCell>
+                          <TableCell>{emp.age ?? '—'}</TableCell>
+                          <TableCell>{emp.ci}</TableCell>
+                          <TableCell>{emp.license_number || '—'}</TableCell>
+                          <TableCell className="max-w-[200px] truncate">{emp.address || '—'}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">
+                              {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>{emp.start_date}</TableCell>
+                          {canManage && (
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button variant="ghost" size="icon" onClick={() => openEditEmployee(emp)}>
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteEmployee(emp.id)}>
+                                  <Trash2 className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             ) : (
               <div className="py-8 text-center">
                 <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
@@ -385,53 +419,94 @@ const Employees = () => {
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : teamMembers.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nombre</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Roles</TableHead>
-                    <TableHead className="text-right">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+              <>
+                {/* Mobile cards */}
+                <div className="space-y-2 md:hidden">
                   {teamMembers.map((emp) => (
-                    <TableRow key={emp.id}>
-                      <TableCell className="font-medium">{emp.full_name}</TableCell>
-                      <TableCell className="text-muted-foreground">{emp.email}</TableCell>
-                      <TableCell>
-                        <div className="flex flex-wrap gap-1">
-                          {emp.roles.map((role) => {
-                            const config = ROLE_CONFIG[role];
-                            return (
-                              <Badge
-                                key={role}
-                                className={`${config.color} cursor-pointer`}
-                                onClick={() => {
-                                  if (role !== 'super_admin' || isSuperAdmin) {
-                                    handleRemoveRole(emp.user_id, role);
-                                  }
-                                }}
-                                title={role === 'super_admin' && !isSuperAdmin ? '' : 'Click para eliminar'}
-                              >
-                                {config.label} ✕
-                              </Badge>
-                            );
-                          })}
-                          {emp.roles.length === 0 && (
-                            <span className="text-sm text-muted-foreground">Sin roles</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm" onClick={() => openRoleDialog(emp)}>
+                    <div key={emp.id} className="border rounded-lg p-3 space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium text-sm">{emp.full_name}</span>
+                        <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => openRoleDialog(emp)}>
                           + Rol
                         </Button>
-                      </TableCell>
-                    </TableRow>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{emp.email}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {emp.roles.map((role) => {
+                          const config = ROLE_CONFIG[role];
+                          return (
+                            <Badge
+                              key={role}
+                              className={`${config.color} cursor-pointer text-[10px]`}
+                              onClick={() => {
+                                if (role !== 'super_admin' || isSuperAdmin) {
+                                  handleRemoveRole(emp.user_id, role);
+                                }
+                              }}
+                            >
+                              {config.label} ✕
+                            </Badge>
+                          );
+                        })}
+                        {emp.roles.length === 0 && (
+                          <span className="text-xs text-muted-foreground">Sin roles</span>
+                        )}
+                      </div>
+                    </div>
                   ))}
-                </TableBody>
-              </Table>
+                </div>
+
+                {/* Desktop table */}
+                <div className="hidden md:block">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        <TableHead>Email</TableHead>
+                        <TableHead>Roles</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {teamMembers.map((emp) => (
+                        <TableRow key={emp.id}>
+                          <TableCell className="font-medium">{emp.full_name}</TableCell>
+                          <TableCell className="text-muted-foreground">{emp.email}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {emp.roles.map((role) => {
+                                const config = ROLE_CONFIG[role];
+                                return (
+                                  <Badge
+                                    key={role}
+                                    className={`${config.color} cursor-pointer`}
+                                    onClick={() => {
+                                      if (role !== 'super_admin' || isSuperAdmin) {
+                                        handleRemoveRole(emp.user_id, role);
+                                      }
+                                    }}
+                                    title={role === 'super_admin' && !isSuperAdmin ? '' : 'Click para eliminar'}
+                                  >
+                                    {config.label} ✕
+                                  </Badge>
+                                );
+                              })}
+                              {emp.roles.length === 0 && (
+                                <span className="text-sm text-muted-foreground">Sin roles</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="outline" size="sm" onClick={() => openRoleDialog(emp)}>
+                              + Rol
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             ) : (
               <div className="py-8 text-center">
                 <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
