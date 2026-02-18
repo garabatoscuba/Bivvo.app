@@ -19,13 +19,13 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
           <InstallBanner />
           <SubscriptionBanner />
           <AppHeader title={title} />
-          <main className="flex-1 overflow-auto p-3 md:p-6">
+          <main className="flex-1 overflow-auto p-3 md:p-6 px-0 py-[5px]">
             {children}
           </main>
         </SidebarInset>
       </div>
-    </SidebarProvider>
-  );
+    </SidebarProvider>);
+
 };
 
 export default AppLayout;
