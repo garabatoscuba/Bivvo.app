@@ -16,7 +16,7 @@ const ProtectedRoute = ({ children, requireSuperAdmin = false }: ProtectedRouteP
   const { isBlocked, loading: subLoading } = useSubscription();
   const location = useLocation();
 
-  if (loading || subLoading) {
+  if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -26,6 +26,14 @@ const ProtectedRoute = ({ children, requireSuperAdmin = false }: ProtectedRouteP
 
   if (!user) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (subLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
   }
 
   if (requireSuperAdmin && !isSuperAdmin) {
