@@ -11,44 +11,44 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   PieChart, Pie, Cell,
-  BarChart, Bar, ResponsiveContainer,
-} from 'recharts';
+  BarChart, Bar, ResponsiveContainer } from
+'recharts';
 import {
   ShoppingCart, Package, TrendingUp, AlertTriangle,
   Users, DollarSign, Hash, CreditCard,
   Calendar, CalendarDays, CalendarRange, CalendarClock,
-  ArrowUpRight, ArrowDownRight, Minus,
-} from 'lucide-react';
+  ArrowUpRight, ArrowDownRight, Minus } from
+'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
-const PERIOD_OPTIONS: { value: Period; label: string; icon: typeof Calendar }[] = [
-  { value: 'today', label: 'Hoy', icon: Calendar },
-  { value: 'week', label: 'Semana', icon: CalendarDays },
-  { value: 'month', label: 'Mes', icon: CalendarRange },
-  { value: 'year', label: 'Año', icon: CalendarClock },
-];
+const PERIOD_OPTIONS: {value: Period;label: string;icon: typeof Calendar;}[] = [
+{ value: 'today', label: 'Hoy', icon: Calendar },
+{ value: 'week', label: 'Semana', icon: CalendarDays },
+{ value: 'month', label: 'Mes', icon: CalendarRange },
+{ value: 'year', label: 'Año', icon: CalendarClock }];
+
 
 const formatCurrency = (n: number) =>
-  new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
+new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
 
-const ChangeIndicator = ({ value }: { value: number }) => {
+const ChangeIndicator = ({ value }: {value: number;}) => {
   if (value > 0)
-    return (
-      <span className="flex items-center gap-0.5 text-xs text-success">
+  return (
+    <span className="flex items-center gap-0.5 text-xs text-success">
         <ArrowUpRight className="h-3 w-3" />+{value}%
-      </span>
-    );
+      </span>);
+
   if (value < 0)
-    return (
-      <span className="flex items-center gap-0.5 text-xs text-destructive">
+  return (
+    <span className="flex items-center gap-0.5 text-xs text-destructive">
         <ArrowDownRight className="h-3 w-3" />{value}%
-      </span>
-    );
+      </span>);
+
   return (
     <span className="flex items-center gap-0.5 text-xs text-muted-foreground">
       <Minus className="h-3 w-3" />0%
-    </span>
-  );
+    </span>);
+
 };
 
 const Dashboard = () => {
@@ -62,25 +62,25 @@ const Dashboard = () => {
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
 
   const lowStockProducts = branchStock?.filter((bs: any) => {
-    const product = products.find(p => p.id === bs.product_id);
+    const product = products.find((p) => p.id === bs.product_id);
     return product && bs.quantity <= product.min_stock && bs.quantity > 0;
   }) || [];
 
   const areaChartConfig = {
-    total: { label: 'Ventas', color: 'hsl(var(--chart-1))' },
+    total: { label: 'Ventas', color: 'hsl(var(--chart-1))' }
   };
 
   const pieChartConfig = Object.fromEntries(
-    (stats?.paymentMethods || []).map(pm => [pm.name, { label: pm.name, color: pm.fill }])
+    (stats?.paymentMethods || []).map((pm) => [pm.name, { label: pm.name, color: pm.fill }])
   );
 
   const barChartConfig = {
-    quantity: { label: 'Cantidad', color: 'hsl(var(--chart-2))' },
+    quantity: { label: 'Cantidad', color: 'hsl(var(--chart-2))' }
   };
 
   return (
     <AppLayout>
-      <div className="space-y-4 md:space-y-6">
+      <div className="space-y-4 md:space-y-6 border-4">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="hidden md:block">
@@ -88,69 +88,69 @@ const Dashboard = () => {
               ¡Bienvenido, {profile?.full_name?.split(' ')[0]}!
             </h2>
             <p className="text-sm text-muted-foreground">
-              {roles.length > 0
-                ? `Tu rol: ${roles.map(r => r.replace('_', ' ')).join(', ')}`
-                : 'Comienza configurando tu negocio'}
+              {roles.length > 0 ?
+              `Tu rol: ${roles.map((r) => r.replace('_', ' ')).join(', ')}` :
+              'Comienza configurando tu negocio'}
             </p>
           </div>
           <ToggleGroup
             type="single"
             value={period}
             onValueChange={(v) => v && setPeriod(v as Period)}
-            className="border border-border bg-card w-full sm:w-auto"
-          >
-            {PERIOD_OPTIONS.map(opt => (
-              <ToggleGroupItem key={opt.value} value={opt.value} className="gap-1 text-xs px-2.5 flex-1 sm:flex-none sm:px-3">
+            className="border border-border bg-card w-full sm:w-auto">
+
+            {PERIOD_OPTIONS.map((opt) =>
+            <ToggleGroupItem key={opt.value} value={opt.value} className="gap-1 text-xs px-2.5 flex-1 sm:flex-none sm:px-3">
                 <opt.icon className="h-3.5 w-3.5" />
                 {opt.label}
               </ToggleGroupItem>
-            ))}
+            )}
           </ToggleGroup>
         </div>
 
         {/* KPI Cards */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
-            {
-              title: 'Total Ventas',
-              value: isLoading ? null : formatCurrency(stats?.totalSales || 0),
-              change: stats?.totalSalesChange || 0,
-              icon: DollarSign,
-            },
-            {
-              title: 'Transacciones',
-              value: isLoading ? null : (stats?.salesCount || 0).toString(),
-              change: stats?.salesCountChange || 0,
-              icon: Hash,
-            },
-            {
-              title: 'Ticket Prom.',
-              value: isLoading ? null : formatCurrency(stats?.avgTicket || 0),
-              change: stats?.avgTicketChange || 0,
-              icon: TrendingUp,
-            },
-            {
-              title: 'Por Cobrar',
-              value: isLoading ? null : formatCurrency(stats?.pendingCredit || 0),
-              change: null,
-              icon: CreditCard,
-            },
-          ].map(kpi => (
-            <Card key={kpi.title}>
+          {
+            title: 'Total Ventas',
+            value: isLoading ? null : formatCurrency(stats?.totalSales || 0),
+            change: stats?.totalSalesChange || 0,
+            icon: DollarSign
+          },
+          {
+            title: 'Transacciones',
+            value: isLoading ? null : (stats?.salesCount || 0).toString(),
+            change: stats?.salesCountChange || 0,
+            icon: Hash
+          },
+          {
+            title: 'Ticket Prom.',
+            value: isLoading ? null : formatCurrency(stats?.avgTicket || 0),
+            change: stats?.avgTicketChange || 0,
+            icon: TrendingUp
+          },
+          {
+            title: 'Por Cobrar',
+            value: isLoading ? null : formatCurrency(stats?.pendingCredit || 0),
+            change: null,
+            icon: CreditCard
+          }].
+          map((kpi) =>
+          <Card key={kpi.title}>
               <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6 md:pt-6">
                 <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">{kpi.title}</CardTitle>
                 <kpi.icon className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-                {kpi.value === null ? (
-                  <Skeleton className="h-7 w-20 md:h-8 md:w-24" />
-                ) : (
-                  <div className="text-lg md:text-2xl font-bold">{kpi.value}</div>
-                )}
+                {kpi.value === null ?
+              <Skeleton className="h-7 w-20 md:h-8 md:w-24" /> :
+
+              <div className="text-lg md:text-2xl font-bold">{kpi.value}</div>
+              }
                 {kpi.change !== null && !isLoading && <ChangeIndicator value={kpi.change} />}
               </CardContent>
             </Card>
-          ))}
+          )}
         </div>
 
         {/* Charts Row */}
@@ -161,10 +161,10 @@ const Dashboard = () => {
               <CardTitle className="text-base">Ventas por Período</CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-               <Skeleton className="h-[180px] md:h-[250px] w-full" />
-              ) : (
-                <ChartContainer config={areaChartConfig} className="h-[180px] md:h-[250px] w-full">
+              {isLoading ?
+              <Skeleton className="h-[180px] md:h-[250px] w-full" /> :
+
+              <ChartContainer config={areaChartConfig} className="h-[180px] md:h-[250px] w-full">
                   <AreaChart data={stats?.salesOverTime || []}>
                     <defs>
                       <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
@@ -174,20 +174,20 @@ const Dashboard = () => {
                     </defs>
                     <CartesianGrid vertical={false} strokeDasharray="3 3" />
                     <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-                    <YAxis tickLine={false} axisLine={false} fontSize={11} tickFormatter={v => `$${v}`} />
+                    <YAxis tickLine={false} axisLine={false} fontSize={11} tickFormatter={(v) => `$${v}`} />
                     <ChartTooltip
-                      content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />}
-                    />
+                    content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />
+
                     <Area
-                      type="monotone"
-                      dataKey="total"
-                      stroke="hsl(var(--chart-1))"
-                      fill="url(#fillTotal)"
-                      strokeWidth={2}
-                    />
+                    type="monotone"
+                    dataKey="total"
+                    stroke="hsl(var(--chart-1))"
+                    fill="url(#fillTotal)"
+                    strokeWidth={2} />
+
                   </AreaChart>
                 </ChartContainer>
-              )}
+              }
             </CardContent>
           </Card>
 
@@ -197,46 +197,46 @@ const Dashboard = () => {
               <CardTitle className="text-base">Métodos de Pago</CardTitle>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-               <Skeleton className="h-[180px] md:h-[250px] w-full" />
-              ) : (stats?.paymentMethods?.length || 0) === 0 ? (
-                <div className="flex h-[180px] md:h-[250px] items-center justify-center text-sm text-muted-foreground">
+              {isLoading ?
+              <Skeleton className="h-[180px] md:h-[250px] w-full" /> :
+              (stats?.paymentMethods?.length || 0) === 0 ?
+              <div className="flex h-[180px] md:h-[250px] items-center justify-center text-sm text-muted-foreground">
                   Sin datos en este período
-                </div>
-              ) : (
-                <ChartContainer config={pieChartConfig} className="h-[180px] md:h-[250px] w-full">
+                </div> :
+
+              <ChartContainer config={pieChartConfig} className="h-[180px] md:h-[250px] w-full">
                   <PieChart>
                     <ChartTooltip
-                      content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />}
-                    />
+                    content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />
+
                     <Pie
-                      data={stats?.paymentMethods}
-                      dataKey="value"
-                      nameKey="name"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={3}
-                    >
-                      {stats?.paymentMethods.map((entry, i) => (
-                        <Cell key={i} fill={entry.fill} />
-                      ))}
+                    data={stats?.paymentMethods}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={3}>
+
+                      {stats?.paymentMethods.map((entry, i) =>
+                    <Cell key={i} fill={entry.fill} />
+                    )}
                     </Pie>
                   </PieChart>
                 </ChartContainer>
-              )}
+              }
               {/* Legend */}
-              {(stats?.paymentMethods?.length || 0) > 0 && (
-                <div className="mt-2 flex flex-wrap justify-center gap-3">
-                  {stats?.paymentMethods.map(pm => (
-                    <div key={pm.name} className="flex items-center gap-1.5 text-xs">
+              {(stats?.paymentMethods?.length || 0) > 0 &&
+              <div className="mt-2 flex flex-wrap justify-center gap-3">
+                  {stats?.paymentMethods.map((pm) =>
+                <div key={pm.name} className="flex items-center gap-1.5 text-xs">
                       <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: pm.fill }} />
                       <span className="text-muted-foreground">{pm.name}</span>
                     </div>
-                  ))}
+                )}
                 </div>
-              )}
+              }
             </CardContent>
           </Card>
         </div>
@@ -247,39 +247,39 @@ const Dashboard = () => {
             <CardTitle className="text-base">Top 5 Productos Más Vendidos</CardTitle>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
-             <Skeleton className="h-[160px] md:h-[200px] w-full" />
-            ) : (stats?.topProducts?.length || 0) === 0 ? (
-              <p className="text-sm text-muted-foreground">Sin ventas en este período</p>
-            ) : (
-              <ChartContainer config={barChartConfig} className="h-[160px] md:h-[200px] w-full">
+            {isLoading ?
+            <Skeleton className="h-[160px] md:h-[200px] w-full" /> :
+            (stats?.topProducts?.length || 0) === 0 ?
+            <p className="text-sm text-muted-foreground">Sin ventas en este período</p> :
+
+            <ChartContainer config={barChartConfig} className="h-[160px] md:h-[200px] w-full">
                 <BarChart data={stats?.topProducts} layout="vertical">
                   <CartesianGrid horizontal={false} strokeDasharray="3 3" />
                   <XAxis type="number" tickLine={false} axisLine={false} fontSize={11} />
                   <YAxis
-                    type="category"
-                    dataKey="name"
-                    tickLine={false}
-                    axisLine={false}
-                    fontSize={11}
-                    width={120}
-                  />
+                  type="category"
+                  dataKey="name"
+                  tickLine={false}
+                  axisLine={false}
+                  fontSize={11}
+                  width={120} />
+
                   <ChartTooltip content={<ChartTooltipContent />} />
                   <Bar dataKey="quantity" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} barSize={14} />
                 </BarChart>
               </ChartContainer>
-            )}
+            }
           </CardContent>
         </Card>
 
         {/* Quick Actions */}
         <div className="grid grid-cols-3 gap-2 md:gap-4 md:grid-cols-3">
           {[
-            { to: '/pos', icon: ShoppingCart, title: 'POS', desc: 'Realizar venta' },
-            { to: '/inventory', icon: Package, title: 'Inventario', desc: 'Gestionar productos' },
-            { to: '/employees', icon: Users, title: 'Empleados', desc: 'Gestionar equipo' },
-          ].map(action => (
-            <Link key={action.to} to={action.to}>
+          { to: '/pos', icon: ShoppingCart, title: 'POS', desc: 'Realizar venta' },
+          { to: '/inventory', icon: Package, title: 'Inventario', desc: 'Gestionar productos' },
+          { to: '/employees', icon: Users, title: 'Empleados', desc: 'Gestionar equipo' }].
+          map((action) =>
+          <Link key={action.to} to={action.to}>
               <Card className="cursor-pointer transition-colors hover:bg-muted/50">
                 <CardHeader className="flex flex-col items-center gap-1.5 p-3 md:flex-row md:gap-4 md:p-6">
                   <action.icon className="h-5 w-5 text-muted-foreground" />
@@ -290,7 +290,7 @@ const Dashboard = () => {
                 </CardHeader>
               </Card>
             </Link>
-          ))}
+          )}
         </div>
 
         {/* Alerts */}
@@ -302,30 +302,30 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {lowStockProducts.length > 0 ? (
-              <div className="space-y-2">
+            {lowStockProducts.length > 0 ?
+            <div className="space-y-2">
                 {lowStockProducts.slice(0, 5).map((bs: any) => {
-                  const product = products.find(p => p.id === bs.product_id);
-                  return product ? (
-                    <div key={bs.id} className="flex items-center justify-between rounded-lg bg-warning/10 p-3">
+                const product = products.find((p) => p.id === bs.product_id);
+                return product ?
+                <div key={bs.id} className="flex items-center justify-between rounded-lg bg-warning/10 p-3">
                       <span className="font-medium">{product.name}</span>
                       <span className="text-sm text-warning">
                         Stock: {bs.quantity} (mín: {product.min_stock})
                       </span>
-                    </div>
-                  ) : null;
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">
+                    </div> :
+                null;
+              })}
+              </div> :
+
+            <p className="text-sm text-muted-foreground">
                 No hay alertas en este momento. ¡Todo está funcionando correctamente!
               </p>
-            )}
+            }
           </CardContent>
         </Card>
       </div>
-    </AppLayout>
-  );
+    </AppLayout>);
+
 };
 
 export default Dashboard;
