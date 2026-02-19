@@ -26,8 +26,8 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false }: Pr
         onClick={onClick}>
 
         <CardContent className="p-2.5">
-          <div className="gap-2 flex-col flex items-center justify-center">
-            <div className="flex items-start gap-2">
+          <div className="flex-col gap-2 flex items-center justify-center">
+            <div className="gap-2 flex items-center justify-center">
               <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-muted">
                 {product.image_url ?
                 <img
@@ -40,7 +40,7 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false }: Pr
                 }
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-xs leading-tight line-clamp-2 text-right">{product.name}</h4>
+                <h4 className="font-medium text-xs leading-tight line-clamp-2">{product.name}</h4>
               </div>
               {isLowStock &&
               <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
