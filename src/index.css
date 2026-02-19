@@ -5,6 +5,9 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Lora&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Mono&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -99,10 +102,10 @@
   }
 
   .dark {
-    --background: 222 47% 11%;
+    --background: 240 3.7037% 15.8824%;
     --foreground: 210 40% 98%;
 
-    --card: 217 32% 17%;
+    --card: 0 0% 13%;
     --card-foreground: 210 40% 98%;
 
     --popover: 215 24% 26%;
