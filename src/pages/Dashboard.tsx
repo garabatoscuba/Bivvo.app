@@ -80,7 +80,7 @@ const Dashboard = () => {
 
   return (
     <AppLayout>
-      <div className="space-y-4 md:space-y-6 border-4">
+      <div className="space-y-4 md:space-y-6 border-4 border-transparent">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="hidden md:block">
