@@ -154,7 +154,7 @@ const Dashboard = () => {
         </div>
 
         {/* Charts Row */}
-        <div className="grid gap-3 md:gap-4 lg:grid-cols-3">
+        <div className="grid gap-3 md:gap-4 lg:grid-cols-3 border-transparent">
           {/* Sales over time */}
           <Card className="lg:col-span-2">
             <CardHeader>
