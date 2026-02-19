@@ -123,11 +123,11 @@
     --accent: 228 84% 4%;
     --accent-foreground: 215 20% 65%;
 
-    --destructive: 204 86% 73%;
+    --destructive: 0 72.2222% 50.5882%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 215 19% 34%;
-    --input: 215 19% 34%;
+    --border: 0 0% 10%;
+    --input: 0 0% 34%;
     --ring: 198 93% 59%;
 
     --sidebar-background: 224 28% 7%;
@@ -143,7 +143,7 @@
     --chart-2: 211 96% 78%;
     --chart-3: 215 20% 65%;
     --chart-4: 215 16% 46%;
-    --chart-5: 215 19% 34%;
+    --chart-5: 240 4% 16%;
 
     --sidebar: 217 32% 17%;
 
