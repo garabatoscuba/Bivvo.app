@@ -26,30 +26,26 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false }: Pr
         onClick={onClick}>
 
         <CardContent className="p-2.5">
-          <div className="flex-col gap-2 flex items-center justify-center">
-            <div className="gap-2 flex items-center justify-center">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md bg-muted">
-                {product.image_url ?
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="h-full w-full rounded-md object-cover" /> :
-
-
-                <Package className="h-5 w-5 text-muted-foreground" />
-                }
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-xs leading-tight line-clamp-2">{product.name}</h4>
-              </div>
-              {isLowStock &&
-              <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
+              {product.image_url ?
+              <img
+                src={product.image_url}
+                alt={product.name}
+                className="h-full w-full rounded-lg object-cover" /> :
+              <Package className="h-6 w-6 text-muted-foreground" />
               }
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-bold text-primary">
+            <div className="flex-1 min-w-0 space-y-0.5">
+              <div className="flex items-start gap-1">
+                <h4 className="font-medium text-xs leading-tight line-clamp-2 flex-1">{product.name}</h4>
+                {isLowStock &&
+                <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
+                }
+              </div>
+              <p className="text-sm font-bold text-primary">
                 ${Number(product.sale_price).toFixed(2)}
-              </span>
+              </p>
               <Badge variant={isOutOfStock ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 h-5">
                 {stock} disp.
               </Badge>
