@@ -131,7 +131,7 @@ export default {
   		},
   		fontFamily: {
   			sans: [
-  				'Open Sans',
+  				'Roboto',
   				'ui-sans-serif',
   				'system-ui',
   				'sans-serif',
@@ -141,7 +141,7 @@ export default {
   				'Noto Color Emoji'
   			],
   			mono: [
-  				'JetBrains Mono',
+  				'Source Code Pro',
   				'ui-monospace',
   				'SFMono-Regular',
   				'Menlo',
@@ -152,7 +152,7 @@ export default {
   				'monospace'
   			],
   			serif: [
-  				'Libre Baskerville',
+  				'Merriweather',
   				'ui-serif',
   				'Georgia',
   				'Cambria',
