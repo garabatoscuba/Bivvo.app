@@ -60,11 +60,11 @@
     --info: 205 70% 48%;
     --info-foreground: 0 0% 100%;
 
-    --border: 212 26% 83%;
-    --input: 212 26% 83%;
+    --border: 0 0% 96%;
+    --input: 0 0% 77%;
     --ring: 200 98% 39%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
 
     /* Sidebar */
     --sidebar-background: 0 0% 100%;
@@ -102,32 +102,32 @@
   }
 
   .dark {
-    --background: 222 47% 11%;
+    --background: 240 3.7037% 15.8824%;
     --foreground: 210 40% 98%;
 
-    --card: 217 32% 17%;
+    --card: 0 0% 13%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 215 24% 26%;
+    --popover: 214 24% 26%;
     --popover-foreground: 210 40% 98%;
 
     --primary: 198 93% 59%;
     --primary-foreground: 204 80% 15%;
 
-    --secondary: 212 26% 83%;
+    --secondary: 211 26% 83%;
     --secondary-foreground: 228 84% 4%;
 
-    --muted: 215 16% 46%;
+    --muted: 216 16% 46%;
     --muted-foreground: 210 40% 98%;
 
-    --accent: 228 84% 4%;
+    --accent: 229 80% 4%;
     --accent-foreground: 215 20% 65%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 72.2222% 50.5882%;
     --destructive-foreground: 0 85% 97%;
 
-    --border: 215 19% 34%;
-    --input: 215 19% 34%;
+    --border: 240 3.7037% 15.8824%;
+    --input: 0 0% 39%;
     --ring: 198 93% 59%;
 
     --sidebar-background: 224 28% 7%;
@@ -142,17 +142,17 @@
     --chart-1: 199 95% 73%;
     --chart-2: 211 96% 78%;
     --chart-3: 215 20% 65%;
-    --chart-4: 215 16% 46%;
-    --chart-5: 215 19% 34%;
+    --chart-4: 216 16% 46%;
+    --chart-5: transparent;
 
     --sidebar: 217 32% 17%;
 
     --shadow-2xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
     --shadow-xs: 0 1px 3px 0px hsl(0 0% 0% / 0.05);
-    --shadow-sm: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
-    --shadow-md: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 2px 4px -1px hsl(0 0% 0% / 0.1);
-    --shadow-lg: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 4px 6px -1px hsl(0 0% 0% / 0.1);
+    --shadow-sm: 0px 1px 1.5px 0px hsl(0, 0%, 0%);
+    --shadow: 0px 1px 3px 0px hsl(0, 0%, 0%);
+    --shadow-md: 0px 1px 4.5px 0px hsl(0, 0%, 0%);
+    --shadow-lg: 0px 1px 7.5px 0px hsl(0, 0%, 0%);
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
   }
