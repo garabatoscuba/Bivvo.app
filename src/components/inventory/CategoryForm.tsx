@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from '@/hooks/use-toast';
 import {
   Form,
   FormControl,
@@ -79,7 +80,10 @@ export const CategoryForm = ({ open, onOpenChange, category }: CategoryFormProps
   }, [category, form]);
 
   const onSubmit = async (data: CategoryFormData) => {
-    if (!profile?.business_id) return;
+    if (!profile?.business_id) {
+      toast({ title: 'Debes crear un negocio primero para agregar categorías', variant: 'destructive' });
+      return;
+    }
 
     if (category) {
       await updateCategory.mutateAsync({

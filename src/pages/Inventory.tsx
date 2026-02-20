@@ -495,6 +495,8 @@ const Inventory = () => {
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
                         onAddStock={() => { setStockEntryProduct(product); setStockQtyForSale(0); setStockQtyWarehouse(0); }}
+                        onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferQty(1); }}
+                        onOutflow={() => setOutflowProduct(product)}
                       />
                     ))}
                     <Separator className="my-2" />
@@ -513,6 +515,8 @@ const Inventory = () => {
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
                         onAddStock={() => { setStockEntryProduct(product); setStockQtyForSale(0); setStockQtyWarehouse(0); }}
+                        onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferQty(1); }}
+                        onOutflow={() => setOutflowProduct(product)}
                       />
                     ))}
                   </div>
@@ -674,29 +678,47 @@ const Inventory = () => {
               )}
 
               {/* Transfer warehouse → sale */}
-              {canManage && selectedWarehouseStock > 0 && (
+              {canManage && (
                 <div className="space-y-2">
                   {!showTransfer ? (
                     <div className="flex gap-2">
                       <Button 
                         variant="outline" 
                         className="flex-1"
-                        onClick={() => { setShowTransfer(true); setTransferQty(1); }}
-                      >
-                        <TrendingUp className="mr-2 h-4 w-4" />
-                        Pasar a venta
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="flex-1"
                         onClick={() => {
-                          setOutflowProduct(selectedProduct);
+                          const prod = selectedProduct;
+                          setStockEntryProduct(prod);
+                          setStockQtyForSale(0);
+                          setStockQtyWarehouse(0);
                           setSelectedProduct(null);
                         }}
                       >
-                        <PackageX className="mr-2 h-4 w-4" />
-                        Salida almacén
+                        <PackagePlus className="mr-2 h-4 w-4" />
+                        Dar entrada
                       </Button>
+                      {selectedWarehouseStock > 0 && (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => { setShowTransfer(true); setTransferQty(1); }}
+                        >
+                          <TrendingUp className="mr-2 h-4 w-4" />
+                          Pasar a venta
+                        </Button>
+                      )}
+                      {selectedWarehouseStock > 0 && (
+                        <Button 
+                          variant="outline" 
+                          className="flex-1"
+                          onClick={() => {
+                            setOutflowProduct(selectedProduct);
+                            setSelectedProduct(null);
+                          }}
+                        >
+                          <PackageX className="mr-2 h-4 w-4" />
+                          Salida almacén
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="rounded-lg border p-3 space-y-3">
@@ -877,9 +899,11 @@ interface ProductRowProps {
   canManage: boolean;
   onDelete: () => void;
   onAddStock: () => void;
+  onTransferToSale: () => void;
+  onOutflow: () => void;
 }
 
-const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock }: ProductRowProps) => {
+const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onOutflow }: ProductRowProps) => {
   const bgColor = colorMap[color] || colorMap.blue;
   const isLow = stock <= product.min_stock;
 
@@ -908,6 +932,16 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onAddStock} title="Dar entrada">
             <PackagePlus className="h-3.5 w-3.5" />
           </Button>
+          {warehouseStock > 0 && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onTransferToSale} title="Pasar a venta">
+              <TrendingUp className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {warehouseStock > 0 && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onOutflow} title="Salida almacén">
+              <PackageX className="h-3.5 w-3.5" />
+            </Button>
+          )}
           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={onDelete} title="Eliminar">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
