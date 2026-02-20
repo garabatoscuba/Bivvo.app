@@ -71,14 +71,12 @@ const AdminBusinesses = () => {
 
   const createMutation = useMutation({
     mutationFn: async (name: string) => {
-      const { data, error } = await supabase
-        .from('businesses')
-        .insert({ name })
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke('create-business', {
+        body: { name },
+      });
       if (error) throw error;
-      await supabase.from('branches').insert({ business_id: data.id, name: 'Principal', is_main: true });
-      return data;
+      if (data?.error) throw new Error(data.error);
+      return data.business;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-businesses'] });

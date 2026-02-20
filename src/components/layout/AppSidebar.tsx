@@ -67,24 +67,12 @@ const AppSidebar = () => {
 
   const createBizMutation = useMutation({
     mutationFn: async (name: string) => {
-      const { data: biz, error } = await supabase
-        .from('businesses')
-        .insert({ name, owner_id: profile!.id })
-        .select()
-        .single();
+      const { data, error } = await supabase.functions.invoke('create-business', {
+        body: { name },
+      });
       if (error) throw error;
-      // Create main branch
-      const { data: branch } = await supabase
-        .from('branches')
-        .insert({ business_id: biz.id, name: 'Principal', is_main: true })
-        .select()
-        .single();
-      // Auto-select this new business
-      await supabase
-        .from('profiles')
-        .update({ business_id: biz.id, branch_id: branch?.id || null })
-        .eq('user_id', profile!.user_id);
-      return biz;
+      if (data?.error) throw new Error(data.error);
+      return data.business;
     },
     onSuccess: (biz) => {
       queryClient.invalidateQueries({ queryKey: ['user-businesses'] });
