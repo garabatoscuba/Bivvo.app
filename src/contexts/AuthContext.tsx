@@ -96,6 +96,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     mountedRef.current = true;
 
+    const handleMissingProfile = async () => {
+      console.warn('Profile not found for active session. Signing out.');
+      await supabase.auth.signOut();
+      if (!mountedRef.current) return;
+      setUser(null);
+      setSession(null);
+      setProfile(null);
+      setRoles([]);
+      setLoading(false);
+      // Store message for Auth page to display
+      sessionStorage.setItem('auth_message', 'Tu cuenta no está disponible, por favor regístrate de nuevo.');
+      window.location.replace('/auth');
+    };
+
     // Listener for ONGOING auth changes (does NOT control initial loading)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
@@ -104,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(newSession?.user ?? null);
 
         if (newSession?.user) {
-          // Dispatch after callback to avoid Supabase deadlock
           setTimeout(async () => {
             if (!mountedRef.current) return;
             const [p, r] = await Promise.all([
@@ -112,6 +125,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               fetchRoles(newSession.user.id),
             ]);
             if (!mountedRef.current) return;
+            if (!p) {
+              await handleMissingProfile();
+              return;
+            }
             setProfile(p);
             setRoles(r);
           }, 0);
@@ -137,6 +154,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             fetchRoles(existingSession.user.id),
           ]);
           if (!mountedRef.current) return;
+          if (!p) {
+            await handleMissingProfile();
+            return;
+          }
           setProfile(p);
           setRoles(r);
         }
