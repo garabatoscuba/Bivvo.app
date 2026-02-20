@@ -3,13 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { differenceInDays } from 'date-fns';
 
-export type SubscriptionState = 'trial' | 'active' | 'expiring' | 'blocked';
+export type PlanType = 'free' | 'basic' | 'professional';
+export type SubscriptionState = 'active' | 'trial' | 'expiring' | 'blocked';
 
 interface SubscriptionInfo {
   status: SubscriptionState;
+  planType: PlanType;
   daysLeft: number | null;
   isBlocked: boolean;
-  planType: string;
   trialEndsAt: string | null;
   subscriptionEndsAt: string | null;
   loading: boolean;
@@ -33,47 +34,68 @@ export const useSubscription = (): SubscriptionInfo => {
     enabled: !!profile?.business_id,
   });
 
-  if (authLoading || isLoading || !business) {
-    return { status: 'trial', daysLeft: null, isBlocked: false, planType: 'trial', trialEndsAt: null, subscriptionEndsAt: null, loading: true };
-  }
+  const defaults: SubscriptionInfo = {
+    status: 'active',
+    planType: 'free',
+    daysLeft: null,
+    isBlocked: false,
+    trialEndsAt: null,
+    subscriptionEndsAt: null,
+    loading: true,
+  };
+
+  if (authLoading || isLoading || !business) return defaults;
+
+  const plan = (business.plan_type || 'free') as PlanType;
+  const base = {
+    trialEndsAt: business.trial_ends_at,
+    subscriptionEndsAt: business.subscription_ends_at,
+    loading: false,
+  };
 
   // Super admin never blocked
   if (isSuperAdmin) {
-    return { status: 'active', daysLeft: null, isBlocked: false, planType: business.plan_type || 'trial', trialEndsAt: business.trial_ends_at, subscriptionEndsAt: business.subscription_ends_at, loading: false };
+    return { ...base, status: 'active', planType: plan, daysLeft: null, isBlocked: false };
+  }
+
+  // Free plan — always active, never blocked
+  if (plan === 'free') {
+    return { ...base, status: 'active', planType: 'free', daysLeft: null, isBlocked: false };
   }
 
   const now = new Date();
 
-  // Active subscription
+  // Active paid subscription
   if (business.subscription_status === 'active' && business.subscription_ends_at) {
-    const subEnd = new Date(business.subscription_ends_at);
-    const days = differenceInDays(subEnd, now);
+    const days = differenceInDays(new Date(business.subscription_ends_at), now);
     if (days < 0) {
-      return { status: 'blocked', daysLeft: 0, isBlocked: true, planType: business.plan_type || 'mvp', trialEndsAt: business.trial_ends_at, subscriptionEndsAt: business.subscription_ends_at, loading: false };
+      // Subscription expired → downgrade to free (not blocked)
+      return { ...base, status: 'blocked', planType: plan, daysLeft: 0, isBlocked: true };
     }
     if (days <= 3) {
-      return { status: 'expiring', daysLeft: days, isBlocked: false, planType: business.plan_type || 'mvp', trialEndsAt: business.trial_ends_at, subscriptionEndsAt: business.subscription_ends_at, loading: false };
+      return { ...base, status: 'expiring', planType: plan, daysLeft: days, isBlocked: false };
     }
-    return { status: 'active', daysLeft: days, isBlocked: false, planType: business.plan_type || 'mvp', trialEndsAt: business.trial_ends_at, subscriptionEndsAt: business.subscription_ends_at, loading: false };
+    return { ...base, status: 'active', planType: plan, daysLeft: days, isBlocked: false };
   }
 
   // Suspended or cancelled
   if (business.subscription_status === 'suspended' || business.subscription_status === 'cancelled') {
-    return { status: 'blocked', daysLeft: 0, isBlocked: true, planType: business.plan_type || 'trial', trialEndsAt: business.trial_ends_at, subscriptionEndsAt: business.subscription_ends_at, loading: false };
+    return { ...base, status: 'blocked', planType: plan, daysLeft: 0, isBlocked: true };
   }
 
-  // Trial
+  // Trial period (for basic/professional)
   if (business.trial_ends_at) {
-    const trialEnd = new Date(business.trial_ends_at);
-    const days = differenceInDays(trialEnd, now);
+    const days = differenceInDays(new Date(business.trial_ends_at), now);
     if (days < 0) {
-      return { status: 'blocked', daysLeft: 0, isBlocked: true, planType: 'trial', trialEndsAt: business.trial_ends_at, subscriptionEndsAt: null, loading: false };
+      // Trial expired → user sees blocked, must choose plan or stays free
+      return { ...base, status: 'blocked', planType: plan, daysLeft: 0, isBlocked: true };
     }
-    if (days <= 3) {
-      return { status: 'expiring', daysLeft: days, isBlocked: false, planType: 'trial', trialEndsAt: business.trial_ends_at, subscriptionEndsAt: null, loading: false };
+    if (days <= 2) {
+      return { ...base, status: 'expiring', planType: plan, daysLeft: days, isBlocked: false };
     }
-    return { status: 'trial', daysLeft: days, isBlocked: false, planType: 'trial', trialEndsAt: business.trial_ends_at, subscriptionEndsAt: null, loading: false };
+    return { ...base, status: 'trial', planType: plan, daysLeft: days, isBlocked: false };
   }
 
-  return { status: 'blocked', daysLeft: 0, isBlocked: true, planType: 'trial', trialEndsAt: null, subscriptionEndsAt: null, loading: false };
+  // Pending subscription with no trial
+  return { ...base, status: 'blocked', planType: plan, daysLeft: 0, isBlocked: true };
 };
