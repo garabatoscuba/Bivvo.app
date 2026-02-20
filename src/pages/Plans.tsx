@@ -3,7 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, MessageCircle, CalendarDays, Building2, DollarSign, Star, Send, Loader2 } from 'lucide-react';
+import { Check, Crown, MessageCircle, CalendarDays, Building2, DollarSign, Star, Send, Loader2, Clock } from 'lucide-react';
 import { useSubscription, PlanType } from '@/hooks/useSubscription';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -58,6 +58,30 @@ const Plans = () => {
   const subtotal = pricePerBranch * branchCount * months;
   const discountAmount = subtotal * (durationOpt.discount / 100);
   const requestTotal = subtotal - discountAmount;
+
+  // Trial activation
+  const trialMutation = useMutation({
+    mutationFn: async (plan: 'basic' | 'professional') => {
+      const trialEnd = new Date();
+      trialEnd.setDate(trialEnd.getDate() + 7);
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          plan_type: plan,
+          subscription_status: 'active',
+          trial_ends_at: trialEnd.toISOString(),
+        })
+        .eq('user_id', user!.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Prueba activada', description: 'Tienes 7 días para probar todas las funciones.' });
+      window.location.reload();
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
 
   const requestMutation = useMutation({
     mutationFn: async () => {
@@ -233,13 +257,26 @@ const Plans = () => {
                 ))}
               </ul>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col gap-2">
               {planType === 'basic' && status !== 'blocked' ? (
                 <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
               ) : (
-                <Button className="w-full gap-2" onClick={() => openRequest('basic')}>
-                  <Send className="h-4 w-4" /> Solicitar plan
-                </Button>
+                <>
+                  <Button className="w-full gap-2" onClick={() => openRequest('basic')}>
+                    <Send className="h-4 w-4" /> Solicitar plan
+                  </Button>
+                  {planType === 'free' && (
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => trialMutation.mutate('basic')}
+                      disabled={trialMutation.isPending}
+                    >
+                      {trialMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
+                      Probar 7 días gratis
+                    </Button>
+                  )}
+                </>
               )}
             </CardFooter>
           </Card>
@@ -265,13 +302,26 @@ const Plans = () => {
                 ))}
               </ul>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="flex-col gap-2">
               {planType === 'professional' && status !== 'blocked' ? (
                 <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
               ) : (
-                <Button variant="outline" className="w-full gap-2" onClick={() => openRequest('professional')}>
-                  <Send className="h-4 w-4" /> Solicitar plan
-                </Button>
+                <>
+                  <Button variant="outline" className="w-full gap-2" onClick={() => openRequest('professional')}>
+                    <Send className="h-4 w-4" /> Solicitar plan
+                  </Button>
+                  {planType === 'free' && (
+                    <Button
+                      variant="ghost"
+                      className="w-full gap-2"
+                      onClick={() => trialMutation.mutate('professional')}
+                      disabled={trialMutation.isPending}
+                    >
+                      {trialMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
+                      Probar 7 días gratis
+                    </Button>
+                  )}
+                </>
               )}
             </CardFooter>
           </Card>
