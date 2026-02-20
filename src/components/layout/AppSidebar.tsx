@@ -1,21 +1,14 @@
 import { useState } from 'react';
 import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useTheme } from 'next-themes';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBranches } from '@/hooks/useBranches';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-  SidebarFooter,
+  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
 } from '@/components/ui/sidebar';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -25,8 +18,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import {
   LayoutDashboard, Package, ShoppingCart, Receipt, Users, Settings,
-  Building2, Shield, LogOut, CreditCard, Download, PlusCircle, Store,
-  ChevronDown, Dumbbell,
+  Building2, Shield, LogOut, CreditCard, Download, Store,
+  ChevronDown, Dumbbell, Check, Settings2, Sun, Moon,
 } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
@@ -35,6 +28,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 
 const AppSidebar = () => {
@@ -46,9 +40,13 @@ const AppSidebar = () => {
   const { isInstalled } = usePWAInstall();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { theme, setTheme } = useTheme();
 
   const [newBizOpen, setNewBizOpen] = useState(false);
   const [bizName, setBizName] = useState('');
+  const [editBizOpen, setEditBizOpen] = useState(false);
+  const [editBizId, setEditBizId] = useState('');
+  const [editBizName, setEditBizName] = useState('');
 
   const activeBranch = branches.find(b => b.id === profile?.branch_id);
 
@@ -75,19 +73,62 @@ const AppSidebar = () => {
         .select()
         .single();
       if (error) throw error;
-      await supabase.from('branches').insert({ business_id: biz.id, name: 'Principal', is_main: true });
+      // Create main branch
+      const { data: branch } = await supabase
+        .from('branches')
+        .insert({ business_id: biz.id, name: 'Principal', is_main: true })
+        .select()
+        .single();
+      // Auto-select this new business
+      await supabase
+        .from('profiles')
+        .update({ business_id: biz.id, branch_id: branch?.id || null })
+        .eq('user_id', profile!.user_id);
       return biz;
     },
     onSuccess: (biz) => {
       queryClient.invalidateQueries({ queryKey: ['user-businesses'] });
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
       toast({ title: 'Negocio creado', description: `${biz.name} está listo.` });
       setNewBizOpen(false);
       setBizName('');
+      window.location.reload();
     },
     onError: (err: any) => {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
     },
   });
+
+  const updateBizMutation = useMutation({
+    mutationFn: async ({ id, name }: { id: string; name: string }) => {
+      const { error } = await supabase.from('businesses').update({ name }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-businesses'] });
+      toast({ title: 'Negocio actualizado' });
+      setEditBizOpen(false);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const switchBusiness = async (bizId: string) => {
+    // Find the main branch of the selected business
+    const { data: bizBranches } = await supabase
+      .from('branches')
+      .select('id')
+      .eq('business_id', bizId)
+      .eq('is_main', true)
+      .limit(1);
+    const mainBranchId = bizBranches?.[0]?.id || null;
+    await supabase
+      .from('profiles')
+      .update({ business_id: bizId, branch_id: mainBranchId })
+      .eq('user_id', profile!.user_id);
+    window.location.reload();
+  };
 
   const handleAddBusiness = (type: 'store' | 'gym') => {
     if (type === 'gym') return;
@@ -96,6 +137,12 @@ const AppSidebar = () => {
       return;
     }
     setNewBizOpen(true);
+  };
+
+  const openEditBiz = (biz: { id: string; name: string }) => {
+    setEditBizId(biz.id);
+    setEditBizName(biz.name);
+    setEditBizOpen(true);
   };
 
   const superAdminItems = [
@@ -122,6 +169,8 @@ const AppSidebar = () => {
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
   };
+
+  const isDark = theme === 'dark';
 
   return (
     <Sidebar>
@@ -172,14 +221,39 @@ const AppSidebar = () => {
                       <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-56">
+                  <DropdownMenuContent align="start" className="w-64">
                     {userBusinesses.length > 0 ? (
-                      userBusinesses.map((biz) => (
-                        <DropdownMenuItem key={biz.id} className="gap-2">
-                          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="truncate">{biz.name}</span>
-                        </DropdownMenuItem>
-                      ))
+                      userBusinesses.map((biz) => {
+                        const isSelected = profile?.business_id === biz.id;
+                        return (
+                          <DropdownMenuItem
+                            key={biz.id}
+                            className="gap-2 justify-between"
+                            onSelect={(e) => {
+                              e.preventDefault();
+                              if (!isSelected) switchBusiness(biz.id);
+                            }}
+                          >
+                            <div className="flex items-center gap-2 min-w-0">
+                              {isSelected ? (
+                                <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                              ) : (
+                                <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                              )}
+                              <span className={`truncate ${isSelected ? 'font-medium' : ''}`}>{biz.name}</span>
+                            </div>
+                            <button
+                              className="shrink-0 p-0.5 rounded hover:bg-muted"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openEditBiz(biz);
+                              }}
+                            >
+                              <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+                            </button>
+                          </DropdownMenuItem>
+                        );
+                      })
                     ) : (
                       <DropdownMenuItem disabled className="text-xs text-muted-foreground">
                         Sin negocios
@@ -188,7 +262,7 @@ const AppSidebar = () => {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="gap-2" onSelect={() => handleAddBusiness('store')}>
                       <Store className="h-3.5 w-3.5" />
-                      <span>Tienda</span>
+                      <span>Nueva Tienda</span>
                     </DropdownMenuItem>
                     <DropdownMenuItem className="gap-2 opacity-50" disabled>
                       <Dumbbell className="h-3.5 w-3.5" />
@@ -238,7 +312,22 @@ const AppSidebar = () => {
         )}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/60 p-3">
+      <SidebarFooter className="border-t border-border/60 p-3 space-y-3">
+        {/* Theme toggle */}
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            {isDark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
+            <span className="text-xs">{isDark ? 'Oscuro' : 'Claro'}</span>
+          </div>
+          <Switch
+            checked={isDark}
+            onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+            className="scale-75"
+          />
+        </div>
+
+        <Separator />
+
         <div className="flex items-center gap-2.5">
           <Avatar className="h-8 w-8">
             <AvatarImage src={profile?.avatar_url || ''} />
@@ -287,6 +376,35 @@ const AppSidebar = () => {
               disabled={!bizName.trim() || createBizMutation.isPending}
             >
               {createBizMutation.isPending ? 'Creando...' : 'Crear'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Business Dialog */}
+      <Dialog open={editBizOpen} onOpenChange={setEditBizOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Configurar Negocio</DialogTitle>
+            <DialogDescription>Edita el nombre de tu negocio.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-sm">Nombre del negocio</Label>
+              <Input
+                value={editBizName}
+                onChange={(e) => setEditBizName(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setEditBizOpen(false)}>Cancelar</Button>
+            <Button
+              size="sm"
+              onClick={() => updateBizMutation.mutate({ id: editBizId, name: editBizName })}
+              disabled={!editBizName.trim() || updateBizMutation.isPending}
+            >
+              {updateBizMutation.isPending ? 'Guardando...' : 'Guardar'}
             </Button>
           </DialogFooter>
         </DialogContent>
