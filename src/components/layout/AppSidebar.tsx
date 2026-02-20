@@ -19,7 +19,7 @@ import {
 import {
   LayoutDashboard, Package, ShoppingCart, Receipt, Users, Settings,
   Building2, Shield, LogOut, CreditCard, Download, Store,
-  ChevronDown, Dumbbell, Check, Settings2, Sun, Moon,
+  ChevronDown, Dumbbell, Check, Settings2, Sun, Moon, ShoppingBag,
 } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
@@ -143,6 +143,7 @@ const AppSidebar = () => {
     { title: 'Inventario', url: '/inventory', icon: Package },
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
     { title: 'Ventas', url: '/sales', icon: Receipt },
+    { title: 'Mi Tienda', url: '/store-settings', icon: ShoppingBag },
     { title: 'Empleados', url: '/employees', icon: Users },
     { title: 'Sucursales', url: '/branches', icon: Building2 },
     { title: 'Configuración', url: '/settings', icon: Settings },
