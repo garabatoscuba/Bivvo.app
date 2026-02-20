@@ -41,6 +41,7 @@ const AppSidebar = () => {
 
   const superAdminItems = [
     { title: 'Panel Admin', url: '/admin', icon: Shield },
+    { title: 'Usuarios', url: '/admin/users', icon: Users },
   ];
 
   const businessItems = [
