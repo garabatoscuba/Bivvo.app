@@ -240,18 +240,19 @@ const POS = () => {
               </Button>
             </SheetTrigger>
             <SheetContent side="bottom" className="h-[80vh] p-0">
-              <div className="flex flex-col h-full">
-                <POSCart
-                  items={cart}
-                  onUpdateQuantity={updateQuantity}
-                  onRemoveItem={removeItem}
-                  onClearCart={clearCart}
-                  discount={discount}
-                  onDiscountChange={setDiscount} />
-
+              <div className="flex flex-col h-full overflow-hidden">
+                <div className="flex-1 min-h-0 overflow-hidden">
+                  <POSCart
+                    items={cart}
+                    onUpdateQuantity={updateQuantity}
+                    onRemoveItem={removeItem}
+                    onClearCart={clearCart}
+                    discount={discount}
+                    onDiscountChange={setDiscount} />
+                </div>
                 
                 {cart.length > 0 &&
-                <div className="p-4 border-t">
+                <div className="p-4 border-t flex-shrink-0">
                     <Button
                     className="w-full h-12 text-lg"
                     onClick={() => {

@@ -70,12 +70,22 @@ const Inventory = () => {
   });
 
   // Default to profile branch or main branch, and remember selection
+  // Also validate that saved branch still exists in the branches list
   useEffect(() => {
-    if (selectedBranch || !branches?.length) return;
+    if (!branches?.length) return;
+    // If selectedBranch is set, validate it exists in current branches
+    if (selectedBranch) {
+      const exists = branches.some(b => b.id === selectedBranch);
+      if (exists) return; // valid, keep it
+    }
+    // Fallback to profile branch, main branch, or first branch
     const profileBranch = branches.find(b => b.id === profile?.branch_id);
     const mainBranch = branches.find(b => b.is_main);
     const fallback = profileBranch || mainBranch || branches[0];
-    if (fallback) setSelectedBranch(fallback.id);
+    if (fallback) {
+      setSelectedBranch(fallback.id);
+      localStorage.setItem('last-branch', fallback.id);
+    }
   }, [branches, profile?.branch_id, selectedBranch]);
 
   const handleBranchChange = (branchId: string) => {
