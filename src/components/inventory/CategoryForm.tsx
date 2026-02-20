@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/dialog';
 import { useCategories } from '@/hooks/useProducts';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEnsureBusiness } from '@/hooks/useEnsureBusiness';
 import { Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Category } from '@/types/database';
@@ -56,6 +57,7 @@ const colorOptions = [
 
 export const CategoryForm = ({ open, onOpenChange, category }: CategoryFormProps) => {
   const { profile } = useAuth();
+  const { ensureBusiness } = useEnsureBusiness();
   const { createCategory, updateCategory } = useCategories();
 
   const form = useForm<CategoryFormData>({
@@ -80,9 +82,13 @@ export const CategoryForm = ({ open, onOpenChange, category }: CategoryFormProps
   }, [category, form]);
 
   const onSubmit = async (data: CategoryFormData) => {
-    if (!profile?.business_id) {
-      toast({ title: 'Crea un negocio primero desde el menú lateral', variant: 'destructive' });
-      return;
+    let businessId = profile?.business_id;
+    if (!businessId) {
+      businessId = await ensureBusiness();
+      if (!businessId) {
+        toast({ title: 'No se pudo inicializar tu negocio. Intenta de nuevo.', variant: 'destructive' });
+        return;
+      }
     }
 
     if (category) {
@@ -96,7 +102,7 @@ export const CategoryForm = ({ open, onOpenChange, category }: CategoryFormProps
       await createCategory.mutateAsync({
         name: data.name,
         color: data.color,
-        business_id: profile.business_id,
+        business_id: businessId,
         description: data.description || null,
       });
     }

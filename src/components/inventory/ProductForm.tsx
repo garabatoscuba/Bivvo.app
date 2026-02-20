@@ -30,6 +30,7 @@ import {
 import { useCategories, useProducts, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEnsureBusiness } from '@/hooks/useEnsureBusiness';
 import type { Product } from '@/types/database';
 import { Loader2, Package, Camera, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -66,6 +67,7 @@ const unitOptions = [
 
 export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) => {
   const { profile } = useAuth();
+  const { ensureBusiness } = useEnsureBusiness();
   const { categories } = useCategories();
   const { createProduct, updateProduct } = useProducts();
   const { data: branches } = useBranches();
@@ -171,7 +173,14 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
   };
 
   const onSubmit = async (data: ProductFormData) => {
-    if (!profile?.business_id) return;
+    let businessId = profile?.business_id;
+    if (!businessId) {
+      businessId = await ensureBusiness();
+      if (!businessId) {
+        toast({ title: 'No se pudo inicializar tu negocio. Intenta de nuevo.', variant: 'destructive' });
+        return;
+      }
+    }
 
     const payload = {
       name: data.name,
@@ -193,7 +202,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     } else {
       const created = await createProduct.mutateAsync({
         ...payload,
-        business_id: profile.business_id,
+        business_id: businessId,
         image_url: null,
       });
       if (created?.id) {
