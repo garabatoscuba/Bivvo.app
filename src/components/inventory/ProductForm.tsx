@@ -30,7 +30,6 @@ import {
 import { useCategories, useProducts, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEnsureBusiness } from '@/hooks/useEnsureBusiness';
 import type { Product } from '@/types/database';
 import { Loader2, Package, Camera, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
@@ -67,7 +66,6 @@ const unitOptions = [
 
 export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) => {
   const { profile } = useAuth();
-  const { ensureBusiness } = useEnsureBusiness();
   const { categories } = useCategories();
   const { createProduct, updateProduct } = useProducts();
   const { data: branches } = useBranches();
@@ -173,14 +171,11 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
   };
 
   const onSubmit = async (data: ProductFormData) => {
-    let businessId = profile?.business_id;
-    if (!businessId) {
-      businessId = await ensureBusiness();
-      if (!businessId) {
-        toast({ title: 'No se pudo inicializar tu negocio. Intenta de nuevo.', variant: 'destructive' });
-        return;
-      }
+    if (!profile?.business_id) {
+      toast({ title: 'Error', description: 'No se encontró tu negocio. Recarga la página.', variant: 'destructive' });
+      return;
     }
+    const businessId = profile.business_id;
 
     const payload = {
       name: data.name,

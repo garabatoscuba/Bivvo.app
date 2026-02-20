@@ -88,10 +88,10 @@ const Plans = () => {
   };
 
   const freePlanFeatures = [
-    'Inventario limitado (5 productos)',
+    'Inventario limitado (5 productos, 2 categorías)',
     'Punto de Venta (POS) completo',
     'Gráficas de desempeño',
-    'Sin negocio requerido',
+    'Negocio de prueba incluido',
     'Sin límite de tiempo',
   ];
 
