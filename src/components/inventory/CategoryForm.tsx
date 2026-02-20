@@ -81,7 +81,7 @@ export const CategoryForm = ({ open, onOpenChange, category }: CategoryFormProps
 
   const onSubmit = async (data: CategoryFormData) => {
     if (!profile?.business_id) {
-      toast({ title: 'Debes crear un negocio primero para agregar categorías', variant: 'destructive' });
+      toast({ title: 'Crea un negocio primero desde el menú lateral', variant: 'destructive' });
       return;
     }
 
