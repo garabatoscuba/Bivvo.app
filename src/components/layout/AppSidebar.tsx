@@ -71,7 +71,7 @@ const AppSidebar = () => {
     mutationFn: async (name: string) => {
       const { data: biz, error } = await supabase
         .from('businesses')
-        .insert({ name, owner_id: profile!.id, plan_type: 'free' })
+        .insert({ name, owner_id: profile!.id })
         .select()
         .single();
       if (error) throw error;
