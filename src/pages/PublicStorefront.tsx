@@ -62,7 +62,13 @@ const PublicStorefront = () => {
 
         const json = await response.json();
         if (!response.ok) {
-          setError(json.error || 'Error al cargar la tienda');
+          if (response.status === 403) {
+            setError('Esta tienda aún no está disponible. El propietario no la ha activado.');
+          } else if (response.status === 404) {
+            setError('Tienda no encontrada. Verifica el enlace.');
+          } else {
+            setError(json.error || 'Error al cargar la tienda');
+          }
         } else {
           setData(json);
         }
@@ -85,10 +91,9 @@ const PublicStorefront = () => {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-stone-50 gap-3 px-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-stone-50 gap-3 px-4 text-center">
         <AlertCircle className="h-12 w-12 text-stone-300" />
-        <p className="text-stone-500 text-lg font-medium">{error || 'Tienda no encontrada'}</p>
-        <p className="text-stone-400 text-sm">Verifica el enlace e intenta de nuevo.</p>
+        <p className="text-stone-500 text-lg font-medium max-w-xs">{error || 'Tienda no encontrada'}</p>
       </div>
     );
   }
