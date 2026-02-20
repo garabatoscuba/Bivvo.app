@@ -104,6 +104,7 @@ export interface Branch {
   id: string;
   business_id: string;
   name: string;
+  slug: string | null;
   is_main: boolean;
   address: string | null;
   phone: string | null;
