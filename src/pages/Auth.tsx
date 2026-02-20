@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { Building2, Loader2, Chrome } from 'lucide-react';
+import { Building2, Loader2, Chrome, Apple } from 'lucide-react';
 import { z } from 'zod';
 import { lovable } from '@/integrations/lovable/index';
 
@@ -28,6 +28,7 @@ const Auth = () => {
   const [signupPassword, setSignupPassword] = useState('');
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
   // Show message from redirected auth issues
   useEffect(() => {
@@ -92,14 +93,20 @@ const Auth = () => {
     const { error } = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin,
     });
-    
     if (error) {
-      toast({
-        title: 'Error',
-        description: 'No se pudo iniciar sesión con Google. Intenta de nuevo.',
-        variant: 'destructive'
-      });
+      toast({ title: 'Error', description: 'No se pudo iniciar sesión con Google. Intenta de nuevo.', variant: 'destructive' });
       setGoogleLoading(false);
+    }
+  };
+
+  const handleAppleSignIn = async () => {
+    setAppleLoading(true);
+    const { error } = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: window.location.origin,
+    });
+    if (error) {
+      toast({ title: 'Error', description: 'No se pudo iniciar sesión con Apple. Intenta de nuevo.', variant: 'destructive' });
+      setAppleLoading(false);
     }
   };
 
@@ -239,7 +246,7 @@ const Auth = () => {
                   variant="outline"
                   className="w-full"
                   onClick={handleGoogleSignIn}
-                  disabled={googleLoading || isLoading}
+                  disabled={googleLoading || appleLoading || isLoading}
                 >
                   {googleLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -247,6 +254,20 @@ const Auth = () => {
                     <Chrome className="mr-2 h-4 w-4" />
                   )}
                   Google
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleAppleSignIn}
+                  disabled={appleLoading || googleLoading || isLoading}
+                >
+                  {appleLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Apple className="mr-2 h-4 w-4" />
+                  )}
+                  Apple
                 </Button>
               </form>
             </TabsContent>
@@ -324,7 +345,7 @@ const Auth = () => {
                   variant="outline"
                   className="w-full"
                   onClick={handleGoogleSignIn}
-                  disabled={googleLoading || isLoading}
+                  disabled={googleLoading || appleLoading || isLoading}
                 >
                   {googleLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -332,6 +353,20 @@ const Auth = () => {
                     <Chrome className="mr-2 h-4 w-4" />
                   )}
                   Google
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleAppleSignIn}
+                  disabled={appleLoading || googleLoading || isLoading}
+                >
+                  {appleLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Apple className="mr-2 h-4 w-4" />
+                  )}
+                  Apple
                 </Button>
               </form>
             </TabsContent>
