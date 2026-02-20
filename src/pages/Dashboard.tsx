@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +6,14 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useProducts, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
 import { useDashboardStats, type Period } from '@/hooks/useDashboardStats';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Button as DialogButton } from '@/components/ui/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -26,7 +33,6 @@ const PERIOD_OPTIONS: {value: Period;label: string;icon: typeof Calendar;}[] = [
 { value: 'week', label: 'Semana', icon: CalendarDays },
 { value: 'month', label: 'Mes', icon: CalendarRange },
 { value: 'year', label: 'Año', icon: CalendarClock }];
-
 
 const formatCurrency = (n: number) =>
 new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
@@ -57,9 +63,48 @@ const Dashboard = () => {
   const { data: branches } = useBranches();
   const currentBranch = profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
+  const { planType } = useSubscription();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const [period, setPeriod] = useState<Period>('today');
+  const [renameOpen, setRenameOpen] = useState(false);
+  const [newBizName, setNewBizName] = useState('');
+  const [renaming, setRenaming] = useState(false);
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
+
+  // Show rename dialog when user upgrades from free and business is still default name
+  useEffect(() => {
+    const checkBizName = async () => {
+      if (!profile?.business_id || planType === 'free') return;
+      const { data } = await supabase
+        .from('businesses')
+        .select('name')
+        .eq('id', profile.business_id)
+        .single();
+      if (data?.name === 'Negocio de prueba') {
+        setRenameOpen(true);
+      }
+    };
+    checkBizName();
+  }, [profile?.business_id, planType]);
+
+  const handleRename = async () => {
+    if (!newBizName.trim() || !profile?.business_id) return;
+    setRenaming(true);
+    const { error } = await supabase
+      .from('businesses')
+      .update({ name: newBizName.trim() })
+      .eq('id', profile.business_id);
+    setRenaming(false);
+    if (error) {
+      toast({ title: 'Error', description: error.message, variant: 'destructive' });
+    } else {
+      toast({ title: 'Negocio renombrado' });
+      queryClient.invalidateQueries({ queryKey: ['user-businesses'] });
+      setRenameOpen(false);
+    }
+  };
 
   const lowStockProducts = branchStock?.filter((bs: any) => {
     const product = products.find((p) => p.id === bs.product_id);
@@ -324,6 +369,37 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Rename Business Dialog */}
+      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>¡Felicidades por tu nuevo plan!</DialogTitle>
+            <DialogDescription>
+              Tu negocio se llama "Negocio de prueba". ¿Quieres darle un nombre real?
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <Input
+              placeholder="Ej: Mi Tienda, Ferretería López..."
+              value={newBizName}
+              onChange={(e) => setNewBizName(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <DialogButton variant="outline" size="sm" onClick={() => setRenameOpen(false)}>
+              Después
+            </DialogButton>
+            <DialogButton
+              size="sm"
+              onClick={handleRename}
+              disabled={!newBizName.trim() || renaming}
+            >
+              {renaming ? 'Guardando...' : 'Renombrar'}
+            </DialogButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>);
 
 };
