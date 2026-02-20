@@ -14,6 +14,12 @@ interface Profile {
   email: string;
   avatar_url: string | null;
   phone: string | null;
+  plan_type: string;
+  subscription_status: string;
+  trial_ends_at: string | null;
+  subscription_ends_at: string | null;
+  deleted_at: string | null;
+  deletion_scheduled_at: string | null;
 }
 
 interface AuthContextType {

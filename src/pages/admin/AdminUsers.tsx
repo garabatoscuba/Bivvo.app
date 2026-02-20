@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
@@ -11,11 +12,13 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, Search, Loader2, Trash2, Shield } from 'lucide-react';
+import { Users, Search, Loader2, Trash2, Shield, RotateCcw, Clock, UserX } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
+import { format, differenceInDays } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -27,28 +30,32 @@ const ROLE_LABELS: Record<AppRole, string> = {
   accountant: 'Contable',
 };
 
+const PLAN_LABELS: Record<string, string> = {
+  free: 'Gratuito',
+  basic: 'Básico',
+  professional: 'Profesional',
+};
+
 const AdminUsers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; action: 'schedule' | 'hard' } | null>(null);
+  const [revertTarget, setRevertTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users'],
     queryFn: async () => {
-      // Get all profiles (super_admin can see all)
       const { data: profiles, error } = await supabase
         .from('profiles')
         .select('*')
         .order('created_at', { ascending: false });
       if (error) throw error;
 
-      // Get all roles
       const { data: allRoles } = await supabase
         .from('user_roles')
         .select('user_id, role');
 
-      // Get business names
       const businessIds = [...new Set(profiles.map(p => p.business_id).filter(Boolean))];
       const { data: businesses } = await supabase
         .from('businesses')
@@ -72,30 +79,111 @@ const AdminUsers = () => {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: async (userId: string) => {
+    mutationFn: async ({ userId, action }: { userId: string; action: string }) => {
       const { data, error } = await supabase.functions.invoke('delete-user', {
-        body: { user_id: userId },
+        body: { user_id: userId, action },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
-      queryClient.invalidateQueries({ queryKey: ['admin-businesses'] });
-      toast({ title: 'Usuario eliminado', description: 'El usuario ha sido eliminado correctamente.' });
+      const msg = data?.action === 'scheduled'
+        ? 'Usuario marcado para baja en 30 días.'
+        : data?.action === 'reverted'
+        ? 'Baja revertida correctamente.'
+        : 'Usuario eliminado permanentemente.';
+      toast({ title: 'Éxito', description: msg });
       setDeleteTarget(null);
+      setRevertTarget(null);
     },
     onError: (err: any) => {
-      toast({ title: 'Error al eliminar', description: err.message, variant: 'destructive' });
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
       setDeleteTarget(null);
+      setRevertTarget(null);
     },
   });
 
-  const filtered = users?.filter(u => {
+  const activeUsers = users?.filter(u => !u.deleted_at) || [];
+  const pendingDeletion = users?.filter(u => !!u.deleted_at) || [];
+
+  const filteredActive = activeUsers.filter(u => {
     const q = search.toLowerCase();
     return u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
   });
+
+  const filteredPending = pendingDeletion.filter(u => {
+    const q = search.toLowerCase();
+    return u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q);
+  });
+
+  const renderUserRow = (u: any, isPending: boolean) => {
+    const isSuperAdmin = u.roles.includes('super_admin');
+    const daysLeft = u.deletion_scheduled_at
+      ? differenceInDays(new Date(u.deletion_scheduled_at), new Date())
+      : null;
+
+    return (
+      <TableRow key={u.id}>
+        <TableCell className="font-medium">{u.full_name}</TableCell>
+        <TableCell className="text-muted-foreground">{u.email}</TableCell>
+        <TableCell>{u.business_name}</TableCell>
+        <TableCell>
+          <Badge variant="outline" className="text-xs">
+            {PLAN_LABELS[u.plan_type] || u.plan_type}
+          </Badge>
+        </TableCell>
+        <TableCell>
+          <div className="flex flex-wrap gap-1">
+            {u.roles.map((r: AppRole) => (
+              <Badge key={r} variant={r === 'super_admin' ? 'default' : 'secondary'} className="text-xs">
+                {r === 'super_admin' && <Shield className="mr-1 h-3 w-3" />}
+                {ROLE_LABELS[r] || r}
+              </Badge>
+            ))}
+          </div>
+        </TableCell>
+        <TableCell className="text-right">
+          {isPending ? (
+            <div className="flex items-center justify-end gap-2">
+              <span className="text-xs text-muted-foreground">
+                {daysLeft !== null && daysLeft >= 0 ? `${daysLeft}d` : 'Vencido'}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-green-600 hover:text-green-700"
+                disabled={deleteMutation.isPending}
+                onClick={() => setRevertTarget({ id: u.user_id, name: u.full_name })}
+              >
+                <RotateCcw className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-destructive hover:text-destructive"
+                disabled={isSuperAdmin || deleteMutation.isPending}
+                onClick={() => setDeleteTarget({ id: u.user_id, name: u.full_name, action: 'hard' })}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-destructive hover:text-destructive"
+              disabled={isSuperAdmin || deleteMutation.isPending}
+              onClick={() => setDeleteTarget({ id: u.user_id, name: u.full_name, action: 'schedule' })}
+            >
+              <UserX className="h-4 w-4" />
+            </Button>
+          )}
+        </TableCell>
+      </TableRow>
+    );
+  };
 
   return (
     <AppLayout title="Gestión de Usuarios">
@@ -112,90 +200,134 @@ const AdminUsers = () => {
           </div>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
-              Usuarios ({filtered?.length || 0})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ? (
-              <div className="flex items-center justify-center py-8">
-                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              </div>
-            ) : filtered && filtered.length > 0 ? (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Negocio</TableHead>
-                      <TableHead>Roles</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filtered.map((u) => {
-                      const isSuperAdmin = u.roles.includes('super_admin');
-                      return (
-                        <TableRow key={u.id}>
-                          <TableCell className="font-medium">{u.full_name}</TableCell>
-                          <TableCell className="text-muted-foreground">{u.email}</TableCell>
-                          <TableCell>{u.business_name}</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {u.roles.map(r => (
-                                <Badge key={r} variant={r === 'super_admin' ? 'default' : 'secondary'} className="text-xs">
-                                  {r === 'super_admin' && <Shield className="mr-1 h-3 w-3" />}
-                                  {ROLE_LABELS[r] || r}
-                                </Badge>
-                              ))}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="text-destructive hover:text-destructive"
-                              disabled={isSuperAdmin || deleteMutation.isPending}
-                              onClick={() => setDeleteTarget({ id: u.user_id, name: u.full_name })}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            ) : (
-              <div className="py-8 text-center">
-                <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                <p className="mt-4 text-muted-foreground">No se encontraron usuarios</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : (
+          <Tabs defaultValue="active">
+            <TabsList>
+              <TabsTrigger value="active" className="gap-1.5">
+                <Users className="h-3.5 w-3.5" /> Activos ({activeUsers.length})
+              </TabsTrigger>
+              <TabsTrigger value="pending" className="gap-1.5">
+                <Clock className="h-3.5 w-3.5" /> Pendientes de baja ({pendingDeletion.length})
+              </TabsTrigger>
+            </TabsList>
 
+            <TabsContent value="active">
+              <Card>
+                <CardContent className="p-0">
+                  {filteredActive.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nombre</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Negocio</TableHead>
+                            <TableHead>Plan</TableHead>
+                            <TableHead>Roles</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredActive.map(u => renderUserRow(u, false))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center">
+                      <Users className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                      <p className="mt-4 text-muted-foreground">No se encontraron usuarios</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="pending">
+              <Card>
+                <CardContent className="p-0">
+                  {filteredPending.length > 0 ? (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nombre</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Negocio</TableHead>
+                            <TableHead>Plan</TableHead>
+                            <TableHead>Roles</TableHead>
+                            <TableHead className="text-right">Acciones</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {filteredPending.map(u => renderUserRow(u, true))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center">
+                      <Clock className="mx-auto h-12 w-12 text-muted-foreground/50" />
+                      <p className="mt-4 text-muted-foreground">No hay usuarios pendientes de baja</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+        )}
+
+        {/* Schedule/Hard Delete Dialog */}
         <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+              <AlertDialogTitle>
+                {deleteTarget?.action === 'schedule' ? '¿Dar de baja al usuario?' : '¿Eliminar permanentemente?'}
+              </AlertDialogTitle>
               <AlertDialogDescription>
-                Estás a punto de eliminar a <strong>{deleteTarget?.name}</strong>. Se borrarán su perfil, roles y cuenta de autenticación. Esta acción no se puede deshacer. El usuario podrá registrarse de nuevo con el mismo email.
+                {deleteTarget?.action === 'schedule'
+                  ? <>La cuenta de <strong>{deleteTarget?.name}</strong> quedará inactiva durante 30 días. Los datos se conservan y la baja puede revertirse antes del vencimiento.</>
+                  : <>Se eliminará permanentemente a <strong>{deleteTarget?.name}</strong>. Se borrarán su perfil, roles y cuenta de autenticación. Esta acción no se puede deshacer.</>
+                }
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}
+                onClick={() => deleteTarget && deleteMutation.mutate({
+                  userId: deleteTarget.id,
+                  action: deleteTarget.action === 'schedule' ? 'schedule_deletion' : 'hard_delete',
+                })}
                 disabled={deleteMutation.isPending}
               >
-                {deleteMutation.isPending ? 'Eliminando...' : 'Eliminar'}
+                {deleteMutation.isPending ? 'Procesando...' : deleteTarget?.action === 'schedule' ? 'Dar de baja' : 'Eliminar'}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Revert Dialog */}
+        <AlertDialog open={!!revertTarget} onOpenChange={() => setRevertTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Revertir baja?</AlertDialogTitle>
+              <AlertDialogDescription>
+                La cuenta de <strong>{revertTarget?.name}</strong> volverá a estar activa y se cancelará la eliminación programada.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => revertTarget && deleteMutation.mutate({
+                  userId: revertTarget.id,
+                  action: 'revert_deletion',
+                })}
+                disabled={deleteMutation.isPending}
+              >
+                {deleteMutation.isPending ? 'Procesando...' : 'Revertir'}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

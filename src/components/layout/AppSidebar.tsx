@@ -1,6 +1,7 @@
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { useBranches } from '@/hooks/useBranches';
+import { useSubscription } from '@/hooks/useSubscription';
 import {
   Sidebar,
   SidebarContent,
@@ -25,6 +26,7 @@ import {
   LogOut,
   CreditCard,
   Download,
+  PlusCircle,
 } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
@@ -33,8 +35,10 @@ import { Separator } from '@/components/ui/separator';
 
 const AppSidebar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const { profile, isSuperAdmin, signOut } = useAuth();
   const { data: branches = [] } = useBranches();
+  const { planType } = useSubscription();
   const { isInstalled } = usePWAInstall();
 
   const activeBranch = branches.find(b => b.id === profile?.branch_id);
@@ -105,6 +109,21 @@ const AppSidebar = () => {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => navigate(planType === 'free' ? '/plans' : '/plans')}
+                >
+                  <PlusCircle className="h-4 w-4" />
+                  <span className="text-sm">Añadir Negocio</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Menú</SidebarGroupLabel>
