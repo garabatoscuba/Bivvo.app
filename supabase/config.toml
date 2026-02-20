@@ -2,3 +2,6 @@ project_id = "znmzhfdsgdxwwmlvkwpd"
 
 [functions.delete-user]
 verify_jwt = false
+
+[functions.create-business]
+verify_jwt = false
