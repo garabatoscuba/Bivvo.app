@@ -16,7 +16,6 @@ import POS from "./pages/POS";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import Employees from "./pages/Employees";
-import Branches from "./pages/Branches";
 import Sales from "./pages/Sales";
 import Settings from "./pages/Settings";
 import Plans from "./pages/Plans";
@@ -63,7 +62,6 @@ const App = () => {
                 <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
                 
                 <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
-                <Route path="/branches" element={<ProtectedRoute><Branches /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
                 <Route path="/store-settings" element={<ProtectedRoute><StoreSettings /></ProtectedRoute>} />

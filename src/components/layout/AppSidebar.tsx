@@ -14,12 +14,14 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger,
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
   LayoutDashboard, Package, ShoppingCart, Receipt, Users, Settings,
   Building2, Shield, LogOut, CreditCard, Download, Store,
   ChevronDown, Dumbbell, Check, Settings2, Sun, Moon, ShoppingBag,
+  Plus, MapPin, Pencil,
 } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
@@ -34,7 +36,7 @@ import { useToast } from '@/hooks/use-toast';
 const AppSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, isSuperAdmin, signOut } = useAuth();
+  const { profile, isSuperAdmin, signOut, switchBranch } = useAuth();
   const { data: branches = [] } = useBranches();
   const { planType } = useSubscription();
   const { isInstalled } = usePWAInstall();
@@ -48,19 +50,41 @@ const AppSidebar = () => {
   const [editBizId, setEditBizId] = useState('');
   const [editBizName, setEditBizName] = useState('');
 
+  // Branch dialog state
+  const [branchDialogOpen, setBranchDialogOpen] = useState(false);
+  const [editingBranch, setEditingBranch] = useState<{ id: string; name: string; address: string | null; phone: string | null } | null>(null);
+  const [branchBizId, setBranchBizId] = useState('');
+  const [branchName, setBranchName] = useState('');
+  const [branchAddress, setBranchAddress] = useState('');
+  const [branchPhone, setBranchPhone] = useState('');
+
   const activeBranch = branches.find(b => b.id === profile?.branch_id);
 
-  // Fetch user's businesses
+  // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
-    queryKey: ['user-businesses', profile?.user_id],
+    queryKey: ['user-businesses-with-branches', profile?.user_id],
     queryFn: async () => {
       if (!profile?.id) return [];
-      const { data } = await supabase
+      const { data: bizList } = await supabase
         .from('businesses')
         .select('id, name')
         .eq('owner_id', profile.id)
         .order('created_at');
-      return data || [];
+      if (!bizList) return [];
+
+      // Fetch branches for all businesses
+      const bizIds = bizList.map(b => b.id);
+      const { data: allBranches } = await supabase
+        .from('branches')
+        .select('id, name, business_id, is_main, address, phone')
+        .in('business_id', bizIds)
+        .order('is_main', { ascending: false })
+        .order('name');
+
+      return bizList.map(biz => ({
+        ...biz,
+        branches: (allBranches || []).filter(br => br.business_id === biz.id),
+      }));
     },
     enabled: !!profile?.id,
   });
@@ -75,7 +99,7 @@ const AppSidebar = () => {
       return data.business;
     },
     onSuccess: (biz) => {
-      queryClient.invalidateQueries({ queryKey: ['user-businesses'] });
+      queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
       queryClient.invalidateQueries({ queryKey: ['branches'] });
       toast({ title: 'Negocio creado', description: `${biz.name} está listo.` });
       setNewBizOpen(false);
@@ -93,7 +117,7 @@ const AppSidebar = () => {
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-businesses'] });
+      queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
       toast({ title: 'Negocio actualizado' });
       setEditBizOpen(false);
     },
@@ -102,8 +126,42 @@ const AppSidebar = () => {
     },
   });
 
+  const branchMutation = useMutation({
+    mutationFn: async () => {
+      if (editingBranch) {
+        const { error } = await supabase
+          .from('branches')
+          .update({
+            name: branchName.trim(),
+            address: branchAddress.trim() || null,
+            phone: branchPhone.trim() || null,
+          })
+          .eq('id', editingBranch.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('branches')
+          .insert({
+            business_id: branchBizId,
+            name: branchName.trim(),
+            address: branchAddress.trim() || null,
+            phone: branchPhone.trim() || null,
+          });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
+      queryClient.invalidateQueries({ queryKey: ['branches'] });
+      toast({ title: editingBranch ? 'Sucursal actualizada' : 'Sucursal creada' });
+      setBranchDialogOpen(false);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
   const switchBusiness = async (bizId: string) => {
-    // Find the main branch of the selected business
     const { data: bizBranches } = await supabase
       .from('branches')
       .select('id')
@@ -116,6 +174,16 @@ const AppSidebar = () => {
       .update({ business_id: bizId, branch_id: mainBranchId })
       .eq('user_id', profile!.user_id);
     window.location.reload();
+  };
+
+  const handleSelectBranch = async (branchId: string) => {
+    try {
+      await switchBranch(branchId);
+      queryClient.invalidateQueries();
+      toast({ title: 'Sucursal activa cambiada' });
+    } catch {
+      toast({ title: 'Error al cambiar de sucursal', variant: 'destructive' });
+    }
   };
 
   const handleAddBusiness = (type: 'store' | 'gym') => {
@@ -133,6 +201,23 @@ const AppSidebar = () => {
     setEditBizOpen(true);
   };
 
+  const openCreateBranch = (bizId: string) => {
+    setEditingBranch(null);
+    setBranchBizId(bizId);
+    setBranchName('');
+    setBranchAddress('');
+    setBranchPhone('');
+    setBranchDialogOpen(true);
+  };
+
+  const openEditBranch = (branch: { id: string; name: string; address: string | null; phone: string | null }) => {
+    setEditingBranch(branch);
+    setBranchName(branch.name);
+    setBranchAddress(branch.address || '');
+    setBranchPhone(branch.phone || '');
+    setBranchDialogOpen(true);
+  };
+
   const superAdminItems = [
     { title: 'Panel Admin', url: '/admin', icon: Shield },
     { title: 'Usuarios', url: '/admin/users', icon: Users },
@@ -145,7 +230,6 @@ const AppSidebar = () => {
     { title: 'Ventas', url: '/sales', icon: Receipt },
     { title: 'Mi Tienda', url: '/store-settings', icon: ShoppingBag },
     { title: 'Empleados', url: '/employees', icon: Users },
-    { title: 'Sucursales', url: '/branches', icon: Building2 },
     { title: 'Configuración', url: '/settings', icon: Settings },
     { title: 'Planes', url: '/plans', icon: CreditCard },
   ];
@@ -195,7 +279,7 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-        {/* Negocios dropdown */}
+        {/* Negocios dropdown with branches */}
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -210,37 +294,106 @@ const AppSidebar = () => {
                       <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                     </SidebarMenuButton>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-64">
+                  <DropdownMenuContent align="start" className="w-72 max-h-[70vh] overflow-y-auto">
                     {userBusinesses.length > 0 ? (
                       userBusinesses.map((biz) => {
-                        const isSelected = profile?.business_id === biz.id;
+                        const isSelectedBiz = profile?.business_id === biz.id;
                         return (
-                          <DropdownMenuItem
-                            key={biz.id}
-                            className="gap-2 justify-between"
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              if (!isSelected) switchBusiness(biz.id);
-                            }}
-                          >
-                            <div className="flex items-center gap-2 min-w-0">
-                              {isSelected ? (
-                                <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                              ) : (
-                                <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                              )}
-                              <span className={`truncate ${isSelected ? 'font-medium' : ''}`}>{biz.name}</span>
-                            </div>
-                            <button
-                              className="shrink-0 p-0.5 rounded hover:bg-muted"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                openEditBiz(biz);
+                          <div key={biz.id}>
+                            {/* Business header row */}
+                            <DropdownMenuItem
+                              className="gap-2 justify-between"
+                              onSelect={(e) => {
+                                e.preventDefault();
+                                if (!isSelectedBiz) switchBusiness(biz.id);
                               }}
                             >
-                              <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-                            </button>
-                          </DropdownMenuItem>
+                              <div className="flex items-center gap-2 min-w-0">
+                                {isSelectedBiz ? (
+                                  <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                                ) : (
+                                  <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                )}
+                                <span className={`truncate text-sm ${isSelectedBiz ? 'font-semibold' : ''}`}>
+                                  {biz.name}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <button
+                                  className="p-1 rounded hover:bg-muted"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openCreateBranch(biz.id);
+                                  }}
+                                  title="Nueva sucursal"
+                                >
+                                  <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                                </button>
+                                <button
+                                  className="p-1 rounded hover:bg-muted"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditBiz(biz);
+                                  }}
+                                  title="Editar negocio"
+                                >
+                                  <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                </button>
+                              </div>
+                            </DropdownMenuItem>
+
+                            {/* Branches under this business */}
+                            {biz.branches.length > 0 && (
+                              <div className="ml-4 border-l border-border/50 pl-2 my-0.5">
+                                {biz.branches.map((branch) => {
+                                  const isBranchActive = profile?.branch_id === branch.id && isSelectedBiz;
+                                  return (
+                                    <DropdownMenuItem
+                                      key={branch.id}
+                                      className="gap-2 justify-between py-1.5 text-xs"
+                                      onSelect={(e) => {
+                                        e.preventDefault();
+                                        if (!isSelectedBiz) {
+                                          // Switch business first, then branch
+                                          switchBusiness(biz.id);
+                                        } else if (!isBranchActive) {
+                                          handleSelectBranch(branch.id);
+                                        }
+                                      }}
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        {isBranchActive ? (
+                                          <Check className="h-3 w-3 text-primary shrink-0" />
+                                        ) : (
+                                          <MapPin className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+                                        )}
+                                        <span className={`truncate ${isBranchActive ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+                                          {branch.name}
+                                        </span>
+                                        {branch.is_main && (
+                                          <span className="text-[9px] text-muted-foreground/50 uppercase tracking-wider shrink-0">
+                                            principal
+                                          </span>
+                                        )}
+                                      </div>
+                                      <button
+                                        className="p-0.5 rounded hover:bg-muted shrink-0"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          openEditBranch(branch);
+                                        }}
+                                        title="Editar sucursal"
+                                      >
+                                        <Pencil className="h-3 w-3 text-muted-foreground/60" />
+                                      </button>
+                                    </DropdownMenuItem>
+                                  );
+                                })}
+                              </div>
+                            )}
+
+                            <DropdownMenuSeparator className="my-1" />
+                          </div>
                         );
                       })
                     ) : (
@@ -248,7 +401,6 @@ const AppSidebar = () => {
                         Sin negocios
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuSeparator />
                     <DropdownMenuItem className="gap-2" onSelect={() => handleAddBusiness('store')}>
                       <Store className="h-3.5 w-3.5" />
                       <span>Nueva Tienda</span>
@@ -329,7 +481,7 @@ const AppSidebar = () => {
             <p className="truncate text-[11px] text-muted-foreground">{profile?.email}</p>
             {activeBranch && (
               <p className="truncate text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                <Building2 className="h-2.5 w-2.5 shrink-0" />
+                <MapPin className="h-2.5 w-2.5 shrink-0" />
                 {activeBranch.name}
               </p>
             )}
@@ -394,6 +546,54 @@ const AppSidebar = () => {
               disabled={!editBizName.trim() || updateBizMutation.isPending}
             >
               {updateBizMutation.isPending ? 'Guardando...' : 'Guardar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Branch Create/Edit Dialog */}
+      <Dialog open={branchDialogOpen} onOpenChange={setBranchDialogOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{editingBranch ? 'Editar Sucursal' : 'Nueva Sucursal'}</DialogTitle>
+            <DialogDescription>
+              {editingBranch ? 'Actualiza los datos de la sucursal.' : 'Agrega una nueva sucursal a este negocio.'}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <Label className="text-sm">Nombre *</Label>
+              <Input
+                placeholder="Ej: Sucursal Centro"
+                value={branchName}
+                onChange={(e) => setBranchName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Dirección</Label>
+              <Input
+                placeholder="Ej: Av. Principal #123"
+                value={branchAddress}
+                onChange={(e) => setBranchAddress(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Teléfono</Label>
+              <Input
+                placeholder="Ej: 555-1234"
+                value={branchPhone}
+                onChange={(e) => setBranchPhone(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBranchDialogOpen(false)}>Cancelar</Button>
+            <Button
+              size="sm"
+              onClick={() => branchMutation.mutate()}
+              disabled={!branchName.trim() || branchMutation.isPending}
+            >
+              {branchMutation.isPending ? 'Guardando...' : editingBranch ? 'Guardar' : 'Crear'}
             </Button>
           </DialogFooter>
         </DialogContent>
