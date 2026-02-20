@@ -8,6 +8,7 @@ import { CategoryForm } from '@/components/inventory/CategoryForm';
 import { useProducts, useCategories, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -59,6 +60,7 @@ const colorDotMap: Record<string, string> = {
 
 const Inventory = () => {
   const { profile, isOwner, isManager } = useAuth();
+  const { planType } = useSubscription();
   const { products, isLoading: productsLoading, deleteProduct } = useProducts();
   const { categories, isLoading: categoriesLoading, deleteCategory } = useCategories();
   const { data: branches } = useBranches();
@@ -112,6 +114,13 @@ const Inventory = () => {
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
 
   const canManage = isOwner || isManager;
+
+  // Plan limits
+  const FREE_PRODUCT_LIMIT = 5;
+  const FREE_CATEGORY_LIMIT = 2;
+  const isFree = planType === 'free';
+  const canCreateProduct = !isFree || products.length < FREE_PRODUCT_LIMIT;
+  const canCreateCategory = !isFree || categories.length < FREE_CATEGORY_LIMIT;
 
   // Stock maps
   const stockMap = new Map<string, number>();
@@ -382,6 +391,10 @@ const Inventory = () => {
                   className="inline-flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (!canCreateProduct) {
+                      toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos. Mejora tu plan para agregar más.`, variant: 'destructive' });
+                      return;
+                    }
                     setEditingProduct(null);
                     setProductFormOpen(true);
                   }}
@@ -398,6 +411,10 @@ const Inventory = () => {
                   className="inline-flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (!canCreateCategory) {
+                      toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_CATEGORY_LIMIT} categorías. Mejora tu plan para agregar más.`, variant: 'destructive' });
+                      return;
+                    }
                     setEditingCategory(null);
                     setCategoryFormOpen(true);
                   }}
@@ -474,7 +491,13 @@ const Inventory = () => {
                   {search ? 'No se encontraron resultados' : 'Comienza agregando tu primer producto'}
                 </p>
                 {canManage && !search && (
-                  <Button className="mt-4" onClick={() => setProductFormOpen(true)}>
+                  <Button className="mt-4" onClick={() => {
+                    if (!canCreateProduct) {
+                      toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos.`, variant: 'destructive' });
+                      return;
+                    }
+                    setProductFormOpen(true);
+                  }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Agregar Producto
                   </Button>
@@ -537,7 +560,14 @@ const Inventory = () => {
                 <h3 className="font-semibold">No hay categorías</h3>
                 <p className="text-sm text-muted-foreground mt-1">Crea tu primera categoría</p>
                 {canManage && (
-                  <Button className="mt-4" onClick={() => { setEditingCategory(null); setCategoryFormOpen(true); }}>
+                  <Button className="mt-4" onClick={() => {
+                    if (!canCreateCategory) {
+                      toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_CATEGORY_LIMIT} categorías.`, variant: 'destructive' });
+                      return;
+                    }
+                    setEditingCategory(null);
+                    setCategoryFormOpen(true);
+                  }}>
                     <Plus className="mr-2 h-4 w-4" />
                     Nueva Categoría
                   </Button>
