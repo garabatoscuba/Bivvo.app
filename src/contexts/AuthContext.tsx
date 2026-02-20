@@ -62,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error fetching profile:', error);
         return null;
       }
+      // Profile might not exist yet (e.g. deleted user re-registering)
       return data as Profile | null;
     } catch (err) {
       console.error('Exception fetching profile:', err);
