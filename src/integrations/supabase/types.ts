@@ -703,6 +703,44 @@ export type Database = {
           },
         ]
       }
+      store_settings: {
+        Row: {
+          branch_id: string
+          created_at: string
+          has_delivery: boolean
+          id: string
+          is_active: boolean
+          schedule: Json
+          updated_at: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          has_delivery?: boolean
+          id?: string
+          is_active?: boolean
+          schedule?: Json
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          has_delivery?: boolean
+          id?: string
+          is_active?: boolean
+          schedule?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_settings_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: true
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
