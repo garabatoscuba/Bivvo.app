@@ -29,6 +29,15 @@ const Auth = () => {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  // Show message from redirected auth issues
+  useEffect(() => {
+    const msg = sessionStorage.getItem('auth_message');
+    if (msg) {
+      sessionStorage.removeItem('auth_message');
+      toast({ title: 'Aviso', description: msg, variant: 'destructive' });
+    }
+  }, []);
+
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && user) {
