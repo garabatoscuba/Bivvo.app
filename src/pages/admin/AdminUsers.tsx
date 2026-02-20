@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -12,13 +13,18 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Users, Search, Loader2, Trash2, Shield, RotateCcw, Clock, UserX } from 'lucide-react';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import { Users, Search, Loader2, Trash2, Shield, RotateCcw, Clock, UserX, Pencil, Save } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
-import { format, differenceInDays } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { differenceInDays } from 'date-fns';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -42,6 +48,11 @@ const AdminUsers = () => {
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; action: 'schedule' | 'hard' } | null>(null);
   const [revertTarget, setRevertTarget] = useState<{ id: string; name: string } | null>(null);
+  const [editTarget, setEditTarget] = useState<any | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPlan, setEditPlan] = useState('');
+  const [editRole, setEditRole] = useState('');
+  const [editSaving, setEditSaving] = useState(false);
 
   const { data: users, isLoading } = useQuery({
     queryKey: ['admin-users'],
@@ -105,6 +116,50 @@ const AdminUsers = () => {
     },
   });
 
+  const openEditDialog = (u: any) => {
+    setEditTarget(u);
+    setEditName(u.full_name);
+    setEditPlan(u.plan_type);
+    setEditRole(u.roles[0] || 'owner');
+  };
+
+  const handleEditSave = async () => {
+    if (!editTarget) return;
+    setEditSaving(true);
+    try {
+      // Update profile
+      const { error: profileErr } = await supabase
+        .from('profiles')
+        .update({ full_name: editName, plan_type: editPlan })
+        .eq('user_id', editTarget.user_id);
+      if (profileErr) throw profileErr;
+
+      // Update role: delete existing non-super_admin roles, insert new one
+      const currentRoles: AppRole[] = editTarget.roles;
+      const nonSuperRoles = currentRoles.filter((r: AppRole) => r !== 'super_admin');
+      if (nonSuperRoles.length > 0) {
+        await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', editTarget.user_id)
+          .in('role', nonSuperRoles);
+      }
+      if (editRole !== 'super_admin') {
+        await supabase
+          .from('user_roles')
+          .insert({ user_id: editTarget.user_id, role: editRole as AppRole });
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      toast({ title: 'Usuario actualizado' });
+      setEditTarget(null);
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setEditSaving(false);
+    }
+  };
+
   const activeUsers = users?.filter(u => !u.deleted_at) || [];
   const pendingDeletion = users?.filter(u => !!u.deleted_at) || [];
 
@@ -145,41 +200,53 @@ const AdminUsers = () => {
           </div>
         </TableCell>
         <TableCell className="text-right">
-          {isPending ? (
-            <div className="flex items-center justify-end gap-2">
-              <span className="text-xs text-muted-foreground">
-                {daysLeft !== null && daysLeft >= 0 ? `${daysLeft}d` : 'Vencido'}
-              </span>
+          <div className="flex items-center justify-end gap-1">
+            {!isPending && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="text-green-600 hover:text-green-700"
-                disabled={deleteMutation.isPending}
-                onClick={() => setRevertTarget({ id: u.user_id, name: u.full_name })}
+                onClick={() => openEditDialog(u)}
+                title="Editar usuario"
               >
-                <RotateCcw className="h-4 w-4" />
+                <Pencil className="h-4 w-4" />
               </Button>
+            )}
+            {isPending ? (
+              <>
+                <span className="text-xs text-muted-foreground mr-1">
+                  {daysLeft !== null && daysLeft >= 0 ? `${daysLeft}d` : 'Vencido'}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-green-600 hover:text-green-700"
+                  disabled={deleteMutation.isPending}
+                  onClick={() => setRevertTarget({ id: u.user_id, name: u.full_name })}
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-destructive hover:text-destructive"
+                  disabled={isSuperAdmin || deleteMutation.isPending}
+                  onClick={() => setDeleteTarget({ id: u.user_id, name: u.full_name, action: 'hard' })}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
               <Button
                 variant="ghost"
                 size="sm"
                 className="text-destructive hover:text-destructive"
                 disabled={isSuperAdmin || deleteMutation.isPending}
-                onClick={() => setDeleteTarget({ id: u.user_id, name: u.full_name, action: 'hard' })}
+                onClick={() => setDeleteTarget({ id: u.user_id, name: u.full_name, action: 'schedule' })}
               >
-                <Trash2 className="h-4 w-4" />
+                <UserX className="h-4 w-4" />
               </Button>
-            </div>
-          ) : (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-destructive hover:text-destructive"
-              disabled={isSuperAdmin || deleteMutation.isPending}
-              onClick={() => setDeleteTarget({ id: u.user_id, name: u.full_name, action: 'schedule' })}
-            >
-              <UserX className="h-4 w-4" />
-            </Button>
-          )}
+            )}
+          </div>
         </TableCell>
       </TableRow>
     );
@@ -288,8 +355,8 @@ const AdminUsers = () => {
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {deleteTarget?.action === 'schedule'
-                  ? <>La cuenta de <strong>{deleteTarget?.name}</strong> quedará inactiva durante 30 días. Los datos se conservan y la baja puede revertirse antes del vencimiento.</>
-                  : <>Se eliminará permanentemente a <strong>{deleteTarget?.name}</strong>. Se borrarán su perfil, roles y cuenta de autenticación. Esta acción no se puede deshacer.</>
+                  ? <>La cuenta de <strong>{deleteTarget?.name}</strong> quedará inactiva durante 30 días.</>
+                  : <>Se eliminará permanentemente a <strong>{deleteTarget?.name}</strong>. Esta acción no se puede deshacer.</>
                 }
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -315,7 +382,7 @@ const AdminUsers = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>¿Revertir baja?</AlertDialogTitle>
               <AlertDialogDescription>
-                La cuenta de <strong>{revertTarget?.name}</strong> volverá a estar activa y se cancelará la eliminación programada.
+                La cuenta de <strong>{revertTarget?.name}</strong> volverá a estar activa.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -332,6 +399,52 @@ const AdminUsers = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Edit User Dialog */}
+        <Dialog open={!!editTarget} onOpenChange={() => setEditTarget(null)}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle>Editar Usuario</DialogTitle>
+              <DialogDescription>{editTarget?.email}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Nombre completo</Label>
+                <Input value={editName} onChange={e => setEditName(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Plan</Label>
+                <Select value={editPlan} onValueChange={setEditPlan}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="free">Gratuito</SelectItem>
+                    <SelectItem value="basic">Básico</SelectItem>
+                    <SelectItem value="professional">Profesional</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Rol principal</Label>
+                <Select value={editRole} onValueChange={setEditRole}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="owner">Dueño</SelectItem>
+                    <SelectItem value="manager">Gerente</SelectItem>
+                    <SelectItem value="seller">Vendedor</SelectItem>
+                    <SelectItem value="accountant">Contable</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => setEditTarget(null)}>Cancelar</Button>
+              <Button size="sm" onClick={handleEditSave} disabled={editSaving} className="gap-1.5">
+                {editSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                Guardar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );

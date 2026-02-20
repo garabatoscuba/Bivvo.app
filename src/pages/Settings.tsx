@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useTheme } from 'next-themes';
-import { Sun, Moon, Monitor, User, Palette, Building2, Shield, Loader2, Save, Eye, EyeOff } from 'lucide-react';
+import { User, Shield, Loader2, Save, Eye, EyeOff } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -12,21 +11,15 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 const Settings = () => {
-  const { profile, user, isOwner, isManager } = useAuth();
+  const { profile, user } = useAuth();
 
   return (
     <AppLayout title="Configuración">
       <div className="mx-auto max-w-3xl space-y-6">
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="profile" className="gap-1.5 text-xs sm:text-sm">
               <User className="h-4 w-4" /> Perfil
-            </TabsTrigger>
-            <TabsTrigger value="appearance" className="gap-1.5 text-xs sm:text-sm">
-              <Palette className="h-4 w-4" /> Apariencia
-            </TabsTrigger>
-            <TabsTrigger value="business" className="gap-1.5 text-xs sm:text-sm">
-              <Building2 className="h-4 w-4" /> Negocio
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-1.5 text-xs sm:text-sm">
               <Shield className="h-4 w-4" /> Seguridad
@@ -35,12 +28,6 @@ const Settings = () => {
 
           <TabsContent value="profile">
             <ProfileSection profile={profile} userId={user?.id} />
-          </TabsContent>
-          <TabsContent value="appearance">
-            <AppearanceSection />
-          </TabsContent>
-          <TabsContent value="business">
-            <BusinessSection profile={profile} canEdit={isOwner || isManager} />
           </TabsContent>
           <TabsContent value="security">
             <SecuritySection />
@@ -97,145 +84,6 @@ function ProfileSection({ profile, userId }: { profile: any; userId?: string }) 
         <div className="space-y-2">
           <Label htmlFor="phone">Teléfono</Label>
           <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+591 ..." />
-        </div>
-        <Button onClick={handleSave} disabled={saving} className="gap-2">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Guardar cambios
-        </Button>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ── Appearance Section ──
-function AppearanceSection() {
-  const { theme, setTheme } = useTheme();
-
-  const options = [
-    { value: 'light', label: 'Claro', icon: Sun, description: 'Interfaz con fondo claro' },
-    { value: 'dark', label: 'Oscuro', icon: Moon, description: 'Interfaz con fondo oscuro' },
-    { value: 'system', label: 'Sistema', icon: Monitor, description: 'Sigue la preferencia del sistema' },
-  ];
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Apariencia</CardTitle>
-        <CardDescription>Personaliza el aspecto visual de la aplicación.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-3 sm:grid-cols-3">
-          {options.map(opt => {
-            const Icon = opt.icon;
-            const active = theme === opt.value;
-            return (
-              <button
-                key={opt.value}
-                onClick={() => setTheme(opt.value)}
-                className={`flex flex-col items-center gap-2 rounded-md border-2 p-4 transition-colors ${
-                  active
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-muted-foreground/30'
-                }`}
-              >
-                <Icon className={`h-6 w-6 ${active ? 'text-primary' : 'text-muted-foreground'}`} />
-                <span className={`text-sm font-medium ${active ? 'text-foreground' : 'text-muted-foreground'}`}>
-                  {opt.label}
-                </span>
-                <span className="text-xs text-muted-foreground text-center">{opt.description}</span>
-              </button>
-            );
-          })}
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-// ── Business Section ──
-function BusinessSection({ profile, canEdit }: { profile: any; canEdit: boolean }) {
-  const [businessName, setBusinessName] = useState('');
-  const [logoUrl, setLogoUrl] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (profile?.business_id) {
-      supabase
-        .from('businesses')
-        .select('name, logo_url')
-        .eq('id', profile.business_id)
-        .single()
-        .then(({ data }) => {
-          if (data) {
-            setBusinessName(data.name);
-            setLogoUrl(data.logo_url);
-          }
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
-  }, [profile?.business_id]);
-
-  const handleSave = async () => {
-    if (!profile?.business_id || !canEdit) return;
-    setSaving(true);
-    const { error } = await supabase
-      .from('businesses')
-      .update({ name: businessName })
-      .eq('id', profile.business_id);
-    setSaving(false);
-    if (error) {
-      toast.error('Error al guardar');
-    } else {
-      toast.success('Negocio actualizado');
-    }
-  };
-
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!canEdit) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Negocio</CardTitle>
-          <CardDescription>Solo los dueños o gerentes pueden editar esta sección.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label>Nombre del negocio</Label>
-            <Input value={businessName} disabled className="opacity-60" />
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Negocio</CardTitle>
-        <CardDescription>Configuración de tu negocio.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {logoUrl && (
-          <div className="flex items-center gap-4">
-            <img src={logoUrl} alt="Logo" className="h-16 w-16 rounded-md border object-cover" />
-            <span className="text-sm text-muted-foreground">Logo actual</span>
-          </div>
-        )}
-        <div className="space-y-2">
-          <Label htmlFor="businessName">Nombre del negocio</Label>
-          <Input id="businessName" value={businessName} onChange={e => setBusinessName(e.target.value)} />
         </div>
         <Button onClick={handleSave} disabled={saving} className="gap-2">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
