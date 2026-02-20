@@ -68,6 +68,7 @@ export type Database = {
           is_main: boolean
           name: string
           phone: string | null
+          slug: string | null
           updated_at: string
         }
         Insert: {
@@ -78,6 +79,7 @@ export type Database = {
           is_main?: boolean
           name: string
           phone?: string | null
+          slug?: string | null
           updated_at?: string
         }
         Update: {
@@ -88,6 +90,7 @@ export type Database = {
           is_main?: boolean
           name?: string
           phone?: string | null
+          slug?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -107,6 +110,7 @@ export type Database = {
           logo_url: string | null
           name: string
           owner_id: string | null
+          slug: string | null
           updated_at: string
         }
         Insert: {
@@ -115,6 +119,7 @@ export type Database = {
           logo_url?: string | null
           name: string
           owner_id?: string | null
+          slug?: string | null
           updated_at?: string
         }
         Update: {
@@ -123,6 +128,7 @@ export type Database = {
           logo_url?: string | null
           name?: string
           owner_id?: string | null
+          slug?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -766,6 +772,7 @@ export type Database = {
     Functions: {
       generate_product_code: { Args: { _business_id: string }; Returns: string }
       generate_sale_number: { Args: { _branch_id: string }; Returns: string }
+      generate_slug: { Args: { input: string }; Returns: string }
       get_branch_business_id: { Args: { _branch_id: string }; Returns: string }
       get_user_business_id: { Args: { _user_id: string }; Returns: string }
       get_user_profile_id: { Args: { _user_id: string }; Returns: string }

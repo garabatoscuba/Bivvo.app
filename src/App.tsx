@@ -23,6 +23,7 @@ import Plans from "./pages/Plans";
 import NotFound from "./pages/NotFound";
 import Install from "./pages/Install";
 import StoreSettings from "./pages/StoreSettings";
+import PublicStorefront from "./pages/PublicStorefront";
 
 
 const queryClient = new QueryClient();
@@ -70,6 +71,7 @@ const App = () => {
                 <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsers /></ProtectedRoute>} />
                 <Route path="/install" element={<Install />} />
+                <Route path="/tienda/:bizSlug/:branchSlug" element={<PublicStorefront />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
               

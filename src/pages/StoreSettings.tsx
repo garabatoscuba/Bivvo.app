@@ -1,13 +1,18 @@
 import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useStoreSettings, type WeekSchedule, type DaySchedule } from '@/hooks/useStoreSettings';
+import { useAuth } from '@/contexts/AuthContext';
+import { useBranches } from '@/hooks/useBranches';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Store, Truck, Clock, Save, Loader2 } from 'lucide-react';
+import { Store, Truck, Clock, Save, Loader2, ExternalLink, Copy } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const DAY_LABELS: Record<string, string> = {
   monday: 'Lunes',
@@ -23,6 +28,28 @@ const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'
 
 const StoreSettingsPage = () => {
   const { settings, isLoading, defaultSchedule, save, isSaving } = useStoreSettings();
+  const { profile } = useAuth();
+  const { data: branches = [] } = useBranches();
+  const { toast: toastFn } = useToast();
+
+  const activeBranch = branches.find(b => b.id === profile?.branch_id);
+
+  const { data: business } = useQuery({
+    queryKey: ['my-business-slug', profile?.business_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('businesses')
+        .select('slug')
+        .eq('id', profile!.business_id!)
+        .single();
+      return data;
+    },
+    enabled: !!profile?.business_id,
+  });
+
+  const storeUrl = business?.slug && activeBranch?.slug
+    ? `${window.location.origin}/tienda/${business.slug}/${activeBranch.slug}`
+    : null;
 
   const [isActive, setIsActive] = useState(false);
   const [hasDelivery, setHasDelivery] = useState(false);
@@ -63,6 +90,36 @@ const StoreSettingsPage = () => {
           </div>
         ) : (
           <div className="grid gap-6 max-w-2xl">
+            {/* Store URL */}
+            {storeUrl && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <ExternalLink className="h-4 w-4" /> Enlace de tu tienda
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-2">
+                    <Input readOnly value={storeUrl} className="text-sm font-mono" />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        navigator.clipboard.writeText(storeUrl);
+                        toastFn({ title: 'Enlace copiado' });
+                      }}
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" asChild>
+                      <a href={storeUrl} target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
             {/* General toggles */}
             <Card>
               <CardHeader>
