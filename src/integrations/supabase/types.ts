@@ -481,10 +481,16 @@ export type Database = {
           branch_id: string | null
           business_id: string | null
           created_at: string
+          deleted_at: string | null
+          deletion_scheduled_at: string | null
           email: string
           full_name: string
           id: string
           phone: string | null
+          plan_type: string
+          subscription_ends_at: string | null
+          subscription_status: string
+          trial_ends_at: string | null
           updated_at: string
           user_id: string
         }
@@ -493,10 +499,16 @@ export type Database = {
           branch_id?: string | null
           business_id?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deletion_scheduled_at?: string | null
           email: string
           full_name: string
           id?: string
           phone?: string | null
+          plan_type?: string
+          subscription_ends_at?: string | null
+          subscription_status?: string
+          trial_ends_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -505,10 +517,16 @@ export type Database = {
           branch_id?: string | null
           business_id?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deletion_scheduled_at?: string | null
           email?: string
           full_name?: string
           id?: string
           phone?: string | null
+          plan_type?: string
+          subscription_ends_at?: string | null
+          subscription_status?: string
+          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
         }

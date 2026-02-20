@@ -4,7 +4,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Check, Crown, MessageCircle, CalendarDays, Building2, DollarSign, Star } from 'lucide-react';
 import { useSubscription, PlanType } from '@/hooks/useSubscription';
-import { useBranches } from '@/hooks/useBranches';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -18,19 +17,15 @@ const PLAN_LABELS: Record<PlanType, string> = {
 };
 
 const Plans = () => {
-  const { status, daysLeft, planType, trialEndsAt, subscriptionEndsAt } = useSubscription();
-  const { data: branches = [] } = useBranches();
+  const { status, daysLeft, planType, trialEndsAt, subscriptionEndsAt, totalBranches, totalMonthly } = useSubscription();
 
-  const branchCount = Math.max(1, branches.length);
-  const pricePerBranch = planType === 'professional' ? 20 : planType === 'basic' ? 10 : 0;
-  const totalMonthly = pricePerBranch * branchCount;
   const expirationDate = subscriptionEndsAt || trialEndsAt;
 
   const freePlanFeatures = [
     'Inventario limitado (5 productos)',
     'Punto de Venta (POS) completo',
     'Gráficas de desempeño',
-    '1 Sucursal',
+    'Sin negocio requerido',
     'Sin límite de tiempo',
   ];
 
@@ -77,7 +72,7 @@ const Plans = () => {
                 {status === 'blocked' ? (
                   <p className="mt-1 text-lg font-semibold text-destructive">Expirado</p>
                 ) : planType === 'free' ? (
-                  <p className="mt-1 text-lg font-semibold text-success">Activo</p>
+                  <p className="mt-1 text-lg font-semibold text-green-600">Activo</p>
                 ) : (
                   <div className="mt-1">
                     <p className="text-lg font-semibold">{daysLeft} día{daysLeft !== 1 ? 's' : ''}</p>
@@ -92,9 +87,9 @@ const Plans = () => {
 
               <div className="rounded-lg border bg-card p-4">
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Building2 className="h-3 w-3" /> Sucursales
+                  <Building2 className="h-3 w-3" /> Sucursales totales
                 </p>
-                <p className="mt-1 text-lg font-semibold">{branches.length}</p>
+                <p className="mt-1 text-lg font-semibold">{totalBranches}</p>
               </div>
 
               <div className="rounded-lg border bg-card p-4">
@@ -104,8 +99,10 @@ const Plans = () => {
                 <p className="mt-1 text-lg font-semibold">
                   {planType === 'free' ? '$0' : `$${totalMonthly}`}
                 </p>
-                {planType !== 'free' && branchCount > 1 && (
-                  <p className="text-xs text-muted-foreground">${pricePerBranch} × {branchCount} sucursales</p>
+                {planType !== 'free' && totalBranches > 1 && (
+                  <p className="text-xs text-muted-foreground">
+                    ${planType === 'professional' ? 20 : 10} × {totalBranches} sucursales
+                  </p>
                 )}
               </div>
             </div>
@@ -113,7 +110,7 @@ const Plans = () => {
             {(status === 'blocked' || status === 'expiring') && planType !== 'free' && (
               <div className="mt-4 flex justify-center">
                 <Button asChild className="gap-2">
-                  <a href={WHATSAPP_URL(`Hola, quiero renovar mi plan ${PLAN_LABELS[planType]} de GestorPro. Tengo ${branchCount} sucursal(es). Total: $${totalMonthly}/mes`)} target="_blank" rel="noopener noreferrer">
+                  <a href={WHATSAPP_URL(`Hola, quiero renovar mi plan ${PLAN_LABELS[planType]} de GestorPro. Tengo ${totalBranches} sucursal(es). Total: $${totalMonthly}/mes`)} target="_blank" rel="noopener noreferrer">
                     <MessageCircle className="h-4 w-4" /> Renovar por WhatsApp
                   </a>
                 </Button>
@@ -136,7 +133,7 @@ const Plans = () => {
               <ul className="mt-4 space-y-2">
                 {freePlanFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-success shrink-0" />
+                    <Check className="h-4 w-4 text-green-600 shrink-0" />
                     {f}
                   </li>
                 ))}
@@ -166,7 +163,7 @@ const Plans = () => {
               <ul className="mt-4 space-y-2">
                 {basicFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-success shrink-0" />
+                    <Check className="h-4 w-4 text-green-600 shrink-0" />
                     {f}
                   </li>
                 ))}
@@ -200,7 +197,7 @@ const Plans = () => {
               <ul className="mt-4 space-y-2">
                 {professionalFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-success shrink-0" />
+                    <Check className="h-4 w-4 text-green-600 shrink-0" />
                     {f}
                   </li>
                 ))}

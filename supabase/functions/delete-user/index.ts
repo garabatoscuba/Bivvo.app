@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Verify the caller is a super_admin
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "No autorizado" }), {
@@ -24,7 +23,6 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // Client with caller's token to verify identity
     const supabaseAuth = createClient(supabaseUrl, Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!, {
       global: { headers: { Authorization: authHeader } },
     });
@@ -37,7 +35,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Admin client with service role
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -57,7 +54,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { user_id } = await req.json();
+    const { user_id, action } = await req.json();
     if (!user_id) {
       return new Response(JSON.stringify({ error: "user_id es requerido" }), {
         status: 400,
@@ -65,7 +62,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Prevent self-deletion
     if (user_id === caller.id) {
       return new Response(JSON.stringify({ error: "No puedes eliminarte a ti mismo" }), {
         status: 400,
@@ -73,19 +69,51 @@ Deno.serve(async (req) => {
       });
     }
 
+    // SOFT DELETE: schedule deletion in 30 days
+    if (action === 'schedule_deletion') {
+      const deletionDate = new Date();
+      deletionDate.setDate(deletionDate.getDate() + 30);
+      
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          deleted_at: new Date().toISOString(),
+          deletion_scheduled_at: deletionDate.toISOString(),
+        })
+        .eq("user_id", user_id);
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true, action: 'scheduled' }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // REVERT: cancel pending deletion
+    if (action === 'revert_deletion') {
+      const { error } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          deleted_at: null,
+          deletion_scheduled_at: null,
+        })
+        .eq("user_id", user_id);
+
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true, action: 'reverted' }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // HARD DELETE: permanent removal (used after 30 days or forced)
     // 1. Delete user_roles
     await supabaseAdmin.from("user_roles").delete().eq("user_id", user_id);
 
-    // 2. Delete profile (get business_id first for potential cleanup)
-    const { data: profile } = await supabaseAdmin
-      .from("profiles")
-      .select("id, business_id")
-      .eq("user_id", user_id)
-      .maybeSingle();
-
-    if (profile) {
-      await supabaseAdmin.from("profiles").delete().eq("user_id", user_id);
-    }
+    // 2. Delete profile
+    await supabaseAdmin.from("profiles").delete().eq("user_id", user_id);
 
     // 3. Delete the auth user
     const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(user_id);
@@ -96,7 +124,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    return new Response(JSON.stringify({ success: true }), {
+    return new Response(JSON.stringify({ success: true, action: 'deleted' }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
