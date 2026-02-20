@@ -400,6 +400,60 @@ export type Database = {
           },
         ]
       }
+      plan_requests: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          custom_end_date: string | null
+          discount_percent: number
+          id: string
+          months: number
+          plan_type: string
+          price_per_branch: number
+          status: string
+          total_amount: number
+          total_branches: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          custom_end_date?: string | null
+          discount_percent?: number
+          id?: string
+          months: number
+          plan_type: string
+          price_per_branch: number
+          status?: string
+          total_amount: number
+          total_branches?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          custom_end_date?: string | null
+          discount_percent?: number
+          id?: string
+          months?: number
+          plan_type?: string
+          price_per_branch?: number
+          status?: string
+          total_amount?: number
+          total_branches?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           barcode: string | null

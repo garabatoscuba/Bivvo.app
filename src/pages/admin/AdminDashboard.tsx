@@ -22,7 +22,7 @@ import {
 import {
   Store, Plus, CheckCircle, XCircle, Clock, Ban, Search, Loader2, Building2,
   Settings, Users, Package, ShoppingCart, TrendingUp, DollarSign, Crown,
-  AlertTriangle, BarChart3, Activity, Trash2,
+  AlertTriangle, BarChart3, Activity, Trash2, FileText, Check, X,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -63,7 +63,7 @@ const AdminDashboard = () => {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [newBusiness, setNewBusiness] = useState({
     name: '',
-    plan_type: 'trial' as string,
+    plan_type: 'free' as string,
     subscription_status: 'pending' as SubscriptionStatus,
     max_branches: 1,
     subscription_ends_at: '',
@@ -73,12 +73,13 @@ const AdminDashboard = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-all-data'],
     queryFn: async () => {
-      const [businesses, profiles, products, sales, branches] = await Promise.all([
+      const [businesses, profiles, products, sales, branches, planRequests] = await Promise.all([
         supabase.from('businesses').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, full_name, email, business_id'),
         supabase.from('products').select('id, business_id'),
         supabase.from('sales').select('id, total, created_at, status, branch_id'),
         supabase.from('branches').select('id, business_id'),
+        supabase.from('plan_requests').select('*').order('created_at', { ascending: false }),
       ]);
 
       const biz = businesses.data || [];
@@ -86,6 +87,7 @@ const AdminDashboard = () => {
       const allProducts = products.data || [];
       const allSales = sales.data || [];
       const allBranches = branches.data || [];
+      const allPlanRequests = planRequests.data || [];
       const completedSales = allSales.filter(s => s.status === 'completed');
       const totalRevenue = completedSales.reduce((sum, s) => sum + Number(s.total), 0);
 
@@ -139,6 +141,14 @@ const AdminDashboard = () => {
         return days >= 0 && days <= 7;
       });
 
+      const profileByUserId = new Map(allProfiles.map(p => [p.id, p]));
+      const enrichedRequests = allPlanRequests.map((r: any) => {
+        const prof = allProfiles.find(p => (p as any).user_id === r.user_id);
+        return { ...r, user_name: prof?.full_name || 'Desconocido', user_email: prof?.email || '' };
+      });
+
+      const pendingRequests = enrichedRequests.filter((r: any) => r.status === 'pending');
+
       return {
         businesses: enriched,
         totalBusinesses: biz.length,
@@ -150,13 +160,15 @@ const AdminDashboard = () => {
         statusCounts,
         monthlyData,
         expiringSoon,
+        planRequests: enrichedRequests,
+        pendingRequests,
       };
     },
   });
 
   const defaultNewBusiness = {
     name: '',
-    plan_type: 'trial' as string,
+    plan_type: 'free' as string,
     subscription_status: 'pending' as SubscriptionStatus,
     max_branches: 1,
     subscription_ends_at: '',
@@ -232,6 +244,46 @@ const AdminDashboard = () => {
     },
   });
 
+  const approveMutation = useMutation({
+    mutationFn: async ({ requestId, action, customEndDate }: { requestId: string; action: 'approved' | 'rejected'; customEndDate?: string }) => {
+      const request = data?.planRequests?.find((r: any) => r.id === requestId);
+      if (!request) throw new Error('Solicitud no encontrada');
+
+      const updates: any = { status: action, approved_at: new Date().toISOString() };
+      if (customEndDate) updates.custom_end_date = customEndDate;
+
+      const { error: reqError } = await supabase
+        .from('plan_requests')
+        .update(updates)
+        .eq('id', requestId);
+      if (reqError) throw reqError;
+
+      if (action === 'approved') {
+        const endDate = customEndDate
+          ? new Date(customEndDate)
+          : new Date(Date.now() + (request as any).months * 30 * 24 * 60 * 60 * 1000);
+
+        const { error: profError } = await supabase
+          .from('profiles')
+          .update({
+            plan_type: (request as any).plan_type,
+            subscription_status: 'active',
+            subscription_ends_at: endDate.toISOString(),
+            trial_ends_at: null,
+          })
+          .eq('user_id', (request as any).user_id);
+        if (profError) throw profError;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
+      toast({ title: 'Solicitud procesada' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
   const openManage = (b: any) => {
     setManageData({
       id: b.id,
@@ -265,8 +317,11 @@ const AdminDashboard = () => {
 
   const getPlanLabel = (plan: string | null) => {
     if (plan === 'mvp') return 'Profesional';
+    if (plan === 'professional') return 'Profesional';
+    if (plan === 'basic') return 'Básico';
+    if (plan === 'free') return 'Gratuito';
     if (plan === 'trial') return 'Prueba';
-    return plan || 'Prueba';
+    return plan || 'Gratuito';
   };
 
   const pieData = [
@@ -307,6 +362,12 @@ const AdminDashboard = () => {
               </TabsTrigger>
               <TabsTrigger value="stats" className="gap-1.5 text-xs">
                 <BarChart3 className="h-3.5 w-3.5" /> Estadísticas
+              </TabsTrigger>
+              <TabsTrigger value="requests" className="gap-1.5 text-xs">
+                <FileText className="h-3.5 w-3.5" /> Solicitudes
+                {(data?.pendingRequests?.length || 0) > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{data?.pendingRequests?.length}</Badge>
+                )}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -654,6 +715,96 @@ const AdminDashboard = () => {
               </Card>
             </div>
           </TabsContent>
+
+          {/* === PLAN REQUESTS === */}
+          <TabsContent value="requests" className="space-y-4 mt-0">
+            <Card className="border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Solicitudes de Plan</CardTitle>
+                <CardDescription className="text-xs">Solicitudes enviadas por usuarios</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                {data?.planRequests && data.planRequests.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="text-[11px] uppercase tracking-wide">Usuario</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Plan</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Meses</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Sucursales</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Total</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Estado</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Fecha</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data.planRequests.map((r: any) => (
+                          <TableRow key={r.id}>
+                            <TableCell>
+                              <p className="text-sm font-medium">{r.user_name}</p>
+                              <p className="text-[11px] text-muted-foreground">{r.user_email}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[11px]">
+                                {r.plan_type === 'professional' ? 'Profesional' : 'Básico'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">{r.months}</TableCell>
+                            <TableCell className="text-sm">{r.total_branches}</TableCell>
+                            <TableCell className="text-sm font-medium">${Number(r.total_amount).toFixed(2)}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={r.status === 'approved' ? 'default' : r.status === 'rejected' ? 'destructive' : 'secondary'}
+                                className="text-[11px]"
+                              >
+                                {r.status === 'approved' ? 'Aprobada' : r.status === 'rejected' ? 'Rechazada' : 'Pendiente'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {format(new Date(r.created_at), "d MMM yy", { locale: es })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {r.status === 'pending' && (
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                    onClick={() => approveMutation.mutate({ requestId: r.id, action: 'approved' })}
+                                    disabled={approveMutation.isPending}
+                                    title="Aprobar"
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                    onClick={() => approveMutation.mutate({ requestId: r.id, action: 'rejected' })}
+                                    disabled={approveMutation.isPending}
+                                    title="Rechazar"
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center">
+                    <FileText className="mx-auto h-10 w-10 text-muted-foreground/30" />
+                    <p className="mt-3 text-sm text-muted-foreground">No hay solicitudes</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
 
@@ -680,8 +831,9 @@ const AdminDashboard = () => {
                 <Select value={newBusiness.plan_type} onValueChange={(v) => setNewBusiness(prev => ({ ...prev, plan_type: v }))}>
                   <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="trial">Prueba</SelectItem>
-                    <SelectItem value="mvp">Profesional</SelectItem>
+                    <SelectItem value="free">Gratuito</SelectItem>
+                    <SelectItem value="basic">Básico</SelectItem>
+                    <SelectItem value="professional">Profesional</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -748,8 +900,9 @@ const AdminDashboard = () => {
                   <Select value={manageData.plan_type} onValueChange={(v) => setManageData(prev => prev ? { ...prev, plan_type: v } : null)}>
                     <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="trial">Prueba</SelectItem>
-                      <SelectItem value="mvp">Profesional</SelectItem>
+                      <SelectItem value="free">Gratuito</SelectItem>
+                      <SelectItem value="basic">Básico</SelectItem>
+                      <SelectItem value="professional">Profesional</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

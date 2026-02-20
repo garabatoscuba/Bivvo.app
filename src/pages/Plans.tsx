@@ -1,11 +1,22 @@
+import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, MessageCircle, CalendarDays, Building2, DollarSign, Star } from 'lucide-react';
+import { Check, Crown, MessageCircle, CalendarDays, Building2, DollarSign, Star, Send, Loader2 } from 'lucide-react';
 import { useSubscription, PlanType } from '@/hooks/useSubscription';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { useMutation } from '@tanstack/react-query';
 
 const WHATSAPP_NUMBER = '5352514878';
 const WHATSAPP_URL = (msg: string) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
@@ -16,10 +27,65 @@ const PLAN_LABELS: Record<PlanType, string> = {
   professional: 'Profesional',
 };
 
+const PRICE_PER_BRANCH: Record<PlanType, number> = {
+  free: 0,
+  basic: 10,
+  professional: 20,
+};
+
+const DURATION_OPTIONS = [
+  { value: '1', label: '1 mes', discount: 0 },
+  { value: '3', label: '3 meses', discount: 0 },
+  { value: '6', label: '6 meses', discount: 0 },
+  { value: '12', label: '12 meses (anual)', discount: 10 },
+];
+
 const Plans = () => {
   const { status, daysLeft, planType, trialEndsAt, subscriptionEndsAt, totalBranches, totalMonthly } = useSubscription();
+  const { user } = useAuth();
+  const { toast } = useToast();
+
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'professional'>('basic');
+  const [selectedMonths, setSelectedMonths] = useState('1');
 
   const expirationDate = subscriptionEndsAt || trialEndsAt;
+
+  const months = parseInt(selectedMonths);
+  const durationOpt = DURATION_OPTIONS.find(d => d.value === selectedMonths)!;
+  const pricePerBranch = PRICE_PER_BRANCH[selectedPlan];
+  const branchCount = Math.max(1, totalBranches);
+  const subtotal = pricePerBranch * branchCount * months;
+  const discountAmount = subtotal * (durationOpt.discount / 100);
+  const requestTotal = subtotal - discountAmount;
+
+  const requestMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from('plan_requests').insert({
+        user_id: user!.id,
+        plan_type: selectedPlan,
+        months,
+        price_per_branch: pricePerBranch,
+        total_branches: branchCount,
+        discount_percent: durationOpt.discount,
+        total_amount: requestTotal,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: 'Solicitud enviada', description: 'Un administrador revisará tu solicitud pronto.' });
+      setRequestOpen(false);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const openRequest = (plan: 'basic' | 'professional') => {
+    setSelectedPlan(plan);
+    setSelectedMonths('1');
+    setRequestOpen(true);
+  };
 
   const freePlanFeatures = [
     'Inventario limitado (5 productos)',
@@ -101,7 +167,7 @@ const Plans = () => {
                 </p>
                 {planType !== 'free' && totalBranches > 1 && (
                   <p className="text-xs text-muted-foreground">
-                    ${planType === 'professional' ? 20 : 10} × {totalBranches} sucursales
+                    ${PRICE_PER_BRANCH[planType]} × {totalBranches} sucursales
                   </p>
                 )}
               </div>
@@ -109,10 +175,8 @@ const Plans = () => {
 
             {(status === 'blocked' || status === 'expiring') && planType !== 'free' && (
               <div className="mt-4 flex justify-center">
-                <Button asChild className="gap-2">
-                  <a href={WHATSAPP_URL(`Hola, quiero renovar mi plan ${PLAN_LABELS[planType]} de GestorPro. Tengo ${totalBranches} sucursal(es). Total: $${totalMonthly}/mes`)} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="h-4 w-4" /> Renovar por WhatsApp
-                  </a>
+                <Button className="gap-2" onClick={() => openRequest(planType === 'basic' || planType === 'professional' ? planType : 'basic')}>
+                  <Send className="h-4 w-4" /> Renovar plan
                 </Button>
               </div>
             )}
@@ -173,10 +237,8 @@ const Plans = () => {
               {planType === 'basic' && status !== 'blocked' ? (
                 <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
               ) : (
-                <Button asChild className="w-full gap-2">
-                  <a href={WHATSAPP_URL('Hola, quiero activar el Plan Básico de GestorPro')} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="h-4 w-4" /> Activar por WhatsApp
-                  </a>
+                <Button className="w-full gap-2" onClick={() => openRequest('basic')}>
+                  <Send className="h-4 w-4" /> Solicitar plan
                 </Button>
               )}
             </CardFooter>
@@ -207,10 +269,8 @@ const Plans = () => {
               {planType === 'professional' && status !== 'blocked' ? (
                 <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
               ) : (
-                <Button asChild variant="outline" className="w-full gap-2">
-                  <a href={WHATSAPP_URL('Hola, quiero activar el Plan Profesional de GestorPro')} target="_blank" rel="noopener noreferrer">
-                    <MessageCircle className="h-4 w-4" /> Activar por WhatsApp
-                  </a>
+                <Button variant="outline" className="w-full gap-2" onClick={() => openRequest('professional')}>
+                  <Send className="h-4 w-4" /> Solicitar plan
                 </Button>
               )}
             </CardFooter>
@@ -231,6 +291,84 @@ const Plans = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Plan Request Dialog */}
+      <Dialog open={requestOpen} onOpenChange={setRequestOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Solicitar Plan {selectedPlan === 'basic' ? 'Básico' : 'Profesional'}</DialogTitle>
+            <DialogDescription>Elige la duración y revisa el total antes de enviar.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Plan</label>
+              <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as 'basic' | 'professional')}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="basic">Básico ($10/mes/sucursal)</SelectItem>
+                  <SelectItem value="professional">Profesional ($20/mes/sucursal)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium">Duración</label>
+              <Select value={selectedMonths} onValueChange={setSelectedMonths}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {DURATION_OPTIONS.map(d => (
+                    <SelectItem key={d.value} value={d.value}>
+                      {d.label}{d.discount > 0 ? ` — ${d.discount}% descuento` : ''}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span>Precio por sucursal</span>
+                <span>${pricePerBranch}/mes</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Sucursales</span>
+                <span>{branchCount}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span>Meses</span>
+                <span>{months}</span>
+              </div>
+              {durationOpt.discount > 0 && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span>Subtotal</span>
+                    <span>${subtotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Descuento ({durationOpt.discount}%)</span>
+                    <span>-${discountAmount.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between text-base font-bold border-t pt-2">
+                <span>Total a pagar</span>
+                <span>${requestTotal.toFixed(2)} USD</span>
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRequestOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => requestMutation.mutate()}
+              disabled={requestMutation.isPending}
+              className="gap-2"
+            >
+              {requestMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              Enviar solicitud
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };
