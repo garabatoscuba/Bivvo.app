@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
@@ -67,27 +67,31 @@ const Dashboard = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
+  const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('today');
+  const [newPlanPopup, setNewPlanPopup] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [newBizName, setNewBizName] = useState('');
   const [renaming, setRenaming] = useState(false);
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
 
-  // Show rename dialog when user upgrades from free and business is still default name
+  // Show new-business popup when user has an active paid plan
   useEffect(() => {
     const checkBizName = async () => {
       if (!profile?.business_id || planType === 'free') return;
+      // Only show if subscription is truly active (not trial, not blocked)
+      if (status === 'blocked') return;
       const { data } = await supabase
         .from('businesses')
         .select('name')
         .eq('id', profile.business_id)
         .single();
       if (data?.name === 'Negocio de prueba') {
-        setRenameOpen(true);
+        setNewPlanPopup(true);
       }
     };
     checkBizName();
-  }, [profile?.business_id, planType]);
+  }, [profile?.business_id, planType, status]);
 
   const handleRename = async () => {
     if (!newBizName.trim() || !profile?.business_id) return;
@@ -370,13 +374,50 @@ const Dashboard = () => {
         </Card>
       </div>
 
+      {/* New Plan — Create Business Popup */}
+      <Dialog open={newPlanPopup} onOpenChange={setNewPlanPopup}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>🎉 ¡Tu plan está activo!</DialogTitle>
+            <DialogDescription>
+              Ahora tienes acceso a todas las funciones. Te recomendamos crear un nuevo negocio desde el menú lateral para empezar con tu configuración real.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
+            <DialogButton
+              className="w-full"
+              onClick={() => {
+                setNewPlanPopup(false);
+                // Navigate to settings or open sidebar business menu
+                navigate('/settings');
+              }}
+            >
+              Crear nuevo negocio
+            </DialogButton>
+            <DialogButton
+              variant="outline"
+              className="w-full"
+              onClick={() => {
+                setNewPlanPopup(false);
+                setRenameOpen(true);
+              }}
+            >
+              Solo renombrar el actual
+            </DialogButton>
+            <DialogButton variant="ghost" className="w-full" onClick={() => setNewPlanPopup(false)}>
+              Después
+            </DialogButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Rename Business Dialog */}
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>¡Felicidades por tu nuevo plan!</DialogTitle>
+            <DialogTitle>Renombrar negocio</DialogTitle>
             <DialogDescription>
-              Tu negocio se llama "Negocio de prueba". ¿Quieres darle un nombre real?
+              Dale un nombre real a tu negocio de prueba.
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
@@ -388,7 +429,7 @@ const Dashboard = () => {
           </div>
           <DialogFooter>
             <DialogButton variant="outline" size="sm" onClick={() => setRenameOpen(false)}>
-              Después
+              Cancelar
             </DialogButton>
             <DialogButton
               size="sm"
