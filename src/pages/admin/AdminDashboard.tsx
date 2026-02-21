@@ -20,7 +20,10 @@ import {
   Store, Plus, Search, Loader2, Building2,
   Settings, Users, Package, ShoppingCart, DollarSign,
   BarChart3, Activity, Trash2, FileText, Check, X,
+  Pencil, Power, MapPin, Phone,
 } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -35,16 +38,21 @@ const AdminDashboard = () => {
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [newBizName, setNewBizName] = useState('');
+  const [editBiz, setEditBiz] = useState<any>(null);
+  const [editName, setEditName] = useState('');
+  const [editType, setEditType] = useState('');
+  const [editBranches, setEditBranches] = useState<any[]>([]);
+  const [deleteBranchTarget, setDeleteBranchTarget] = useState<{ id: string; name: string } | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-all-data'],
     queryFn: async () => {
       const [businesses, profiles, products, sales, branches, planRequests, businessRequests] = await Promise.all([
-        supabase.from('businesses').select('*').order('created_at', { ascending: false }),
+        supabase.from('businesses').select('*, is_active').order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, full_name, email, business_id, user_id, plan_type, subscription_status'),
         supabase.from('products').select('id, business_id'),
         supabase.from('sales').select('id, total, created_at, status, branch_id'),
-        supabase.from('branches').select('id, business_id'),
+        supabase.from('branches').select('id, business_id, name, is_main, address, phone'),
         supabase.from('plan_requests').select('*').order('created_at', { ascending: false }),
         supabase.from('business_requests').select('*').order('created_at', { ascending: false }),
       ]);
@@ -207,6 +215,51 @@ const AdminDashboard = () => {
     },
   });
 
+  const openEditBiz = async (biz: any) => {
+    setEditBiz(biz);
+    setEditName(biz.name);
+    setEditType(biz.business_type || 'store');
+    const { data: branchData } = await supabase
+      .from('branches')
+      .select('*')
+      .eq('business_id', biz.id)
+      .order('is_main', { ascending: false })
+      .order('name');
+    setEditBranches(branchData || []);
+  };
+
+  const updateBizMutation = useMutation({
+    mutationFn: async ({ id, name, business_type, is_active }: { id: string; name: string; business_type: string; is_active: boolean }) => {
+      const { error } = await supabase.from('businesses').update({ name, business_type, is_active } as any).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
+      toast({ title: 'Negocio actualizado' });
+      setEditBiz(null);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteBranchMutation = useMutation({
+    mutationFn: async (branchId: string) => {
+      const { error } = await supabase.from('branches').delete().eq('id', branchId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
+      setEditBranches(prev => prev.filter(b => b.id !== deleteBranchTarget?.id));
+      toast({ title: 'Sucursal eliminada' });
+      setDeleteBranchTarget(null);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      setDeleteBranchTarget(null);
+    },
+  });
+
   const getPlanLabel = (plan: string | null) => {
     if (plan === 'professional') return 'Profesional';
     if (plan === 'basic') return 'Básico';
@@ -252,13 +305,13 @@ const AdminDashboard = () => {
                 <BarChart3 className="h-3.5 w-3.5" /> Estadísticas
               </TabsTrigger>
               <TabsTrigger value="requests" className="gap-1.5 text-xs">
-                <FileText className="h-3.5 w-3.5" /> Planes
+                <FileText className="h-3.5 w-3.5" /> Solicitudes Planes
                 {(data?.pendingRequests?.length || 0) > 0 && (
                   <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{data?.pendingRequests?.length}</Badge>
                 )}
               </TabsTrigger>
               <TabsTrigger value="biz-requests" className="gap-1.5 text-xs">
-                <Building2 className="h-3.5 w-3.5" /> Negocios/Suc.
+                <Building2 className="h-3.5 w-3.5" /> Solicitudes Negocios
                 {(data?.pendingBizRequests?.length || 0) > 0 && (
                   <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{data?.pendingBizRequests?.length}</Badge>
                 )}
@@ -356,6 +409,7 @@ const AdminDashboard = () => {
                           <TableHead className="text-[11px] uppercase tracking-wide">Negocio</TableHead>
                           <TableHead className="text-[11px] uppercase tracking-wide">Dueño</TableHead>
                           <TableHead className="text-[11px] uppercase tracking-wide">Plan (usuario)</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide text-center">Estado</TableHead>
                           <TableHead className="text-[11px] uppercase tracking-wide text-center">Suc.</TableHead>
                           <TableHead className="text-[11px] uppercase tracking-wide text-center">Prod.</TableHead>
                           <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
@@ -377,16 +431,30 @@ const AdminDashboard = () => {
                             <TableCell>
                               <Badge variant="outline" className="text-[11px]">{getPlanLabel(b.owner_plan)}</Badge>
                             </TableCell>
+                            <TableCell className="text-center">
+                              <Badge variant={b.is_active !== false ? 'default' : 'secondary'} className="text-[11px]">
+                                {b.is_active !== false ? 'Activo' : 'Inactivo'}
+                              </Badge>
+                            </TableCell>
                             <TableCell className="text-center text-sm">{b.branch_count}</TableCell>
                             <TableCell className="text-center text-sm">{b.product_count}</TableCell>
                             <TableCell className="text-right">
-                              <Button
-                                variant="ghost" size="icon"
-                                className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                onClick={() => setDeleteTarget({ id: b.id, name: b.name })}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost" size="icon"
+                                  className="h-7 w-7"
+                                  onClick={() => openEditBiz(b)}
+                                >
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button
+                                  variant="ghost" size="icon"
+                                  className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeleteTarget({ id: b.id, name: b.name })}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -625,6 +693,107 @@ const AdminDashboard = () => {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={() => deleteTarget && deleteMutation.mutate(deleteTarget.id)}>Eliminar</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Edit Business Dialog */}
+        <Dialog open={!!editBiz} onOpenChange={(open) => !open && setEditBiz(null)}>
+          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Settings className="h-4 w-4" /> Editar Negocio
+              </DialogTitle>
+              <DialogDescription>Modifica los datos, estado y sucursales del negocio.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-5">
+              <div className="space-y-2">
+                <Label>Nombre</Label>
+                <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Tipo de negocio</Label>
+                <Input value={editType} onChange={(e) => setEditType(e.target.value)} placeholder="store, restaurant, etc." />
+              </div>
+
+              <div className="flex items-center justify-between rounded-lg border border-border p-3">
+                <div>
+                  <p className="text-sm font-medium">Estado del negocio</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    {editBiz?.is_active !== false ? 'El negocio está activo' : 'El negocio está desactivado'}
+                  </p>
+                </div>
+                <Switch
+                  checked={editBiz?.is_active !== false}
+                  onCheckedChange={(checked) => setEditBiz((prev: any) => prev ? { ...prev, is_active: checked } : null)}
+                />
+              </div>
+
+              {/* Branches */}
+              <div className="space-y-2">
+                <Label>Sucursales ({editBranches.length})</Label>
+                <div className="space-y-2 max-h-48 overflow-y-auto">
+                  {editBranches.map((br) => (
+                    <div key={br.id} className="flex items-center justify-between rounded-md border border-border p-2.5">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="text-sm font-medium truncate">{br.name}</span>
+                          {br.is_main && <Badge variant="secondary" className="text-[10px] ml-1">Principal</Badge>}
+                        </div>
+                        {br.address && (
+                          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
+                            <MapPin className="h-3 w-3" /> {br.address}
+                          </p>
+                        )}
+                      </div>
+                      {!br.is_main && (
+                        <Button
+                          variant="ghost" size="icon"
+                          className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
+                          onClick={() => setDeleteBranchTarget({ id: br.id, name: br.name })}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                  {editBranches.length === 0 && (
+                    <p className="text-sm text-muted-foreground py-2 text-center">Sin sucursales</p>
+                  )}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditBiz(null)}>Cancelar</Button>
+              <Button
+                onClick={() => editBiz && updateBizMutation.mutate({
+                  id: editBiz.id,
+                  name: editName.trim(),
+                  business_type: editType.trim(),
+                  is_active: editBiz.is_active !== false,
+                })}
+                disabled={!editName.trim() || updateBizMutation.isPending}
+              >
+                {updateBizMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Delete Branch Confirmation */}
+        <AlertDialog open={!!deleteBranchTarget} onOpenChange={() => setDeleteBranchTarget(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar sucursal "{deleteBranchTarget?.name}"?</AlertDialogTitle>
+              <AlertDialogDescription>Se eliminarán todos los datos asociados a esta sucursal (stock, ventas, movimientos).</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => deleteBranchTarget && deleteBranchMutation.mutate(deleteBranchTarget.id)}>
+                Eliminar
+              </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
