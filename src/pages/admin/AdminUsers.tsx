@@ -199,6 +199,14 @@ const AdminUsers = () => {
             ))}
           </div>
         </TableCell>
+        <TableCell>
+          {(() => {
+            if (u.plan_type === 'free' || !u.trial_ends_at) return <span className="text-xs text-muted-foreground">—</span>;
+            const trialDays = differenceInDays(new Date(u.trial_ends_at), new Date());
+            if (trialDays < 0) return <Badge variant="destructive" className="text-xs gap-1"><Clock className="h-3 w-3" />Vencida</Badge>;
+            return <Badge variant="secondary" className="text-xs gap-1"><Clock className="h-3 w-3" />{trialDays}d restantes</Badge>;
+          })()}
+        </TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end gap-1">
             {!isPending && (
@@ -294,6 +302,7 @@ const AdminUsers = () => {
                             <TableHead>Email</TableHead>
                             <TableHead>Negocio</TableHead>
                             <TableHead>Plan</TableHead>
+                            <TableHead>Prueba</TableHead>
                             <TableHead>Roles</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
                           </TableRow>
@@ -325,6 +334,7 @@ const AdminUsers = () => {
                             <TableHead>Email</TableHead>
                             <TableHead>Negocio</TableHead>
                             <TableHead>Plan</TableHead>
+                            <TableHead>Prueba</TableHead>
                             <TableHead>Roles</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
                           </TableRow>
