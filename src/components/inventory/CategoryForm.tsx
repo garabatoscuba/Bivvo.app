@@ -86,24 +86,28 @@ export const CategoryForm = ({ open, onOpenChange, category }: CategoryFormProps
     }
     const businessId = profile.business_id;
 
-    if (category) {
-      await updateCategory.mutateAsync({
-        id: category.id,
-        name: data.name,
-        color: data.color,
-        description: data.description || null,
-      });
-    } else {
-      await createCategory.mutateAsync({
-        name: data.name,
-        color: data.color,
-        business_id: businessId,
-        description: data.description || null,
-      });
-    }
+    try {
+      if (category) {
+        await updateCategory.mutateAsync({
+          id: category.id,
+          name: data.name,
+          color: data.color,
+          description: data.description || null,
+        });
+      } else {
+        await createCategory.mutateAsync({
+          name: data.name,
+          color: data.color,
+          business_id: businessId,
+          description: data.description || null,
+        });
+      }
 
-    onOpenChange(false);
-    form.reset();
+      onOpenChange(false);
+      form.reset();
+    } catch {
+      // Error already handled by mutation's onError
+    }
   };
 
   const isLoading = createCategory.isPending || updateCategory.isPending;

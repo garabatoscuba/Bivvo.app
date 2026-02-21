@@ -102,7 +102,7 @@ export const useProducts = () => {
 
   return {
     products: productsQuery.data || [],
-    isLoading: productsQuery.isLoading,
+    isLoading: productsQuery.isLoading && !productsQuery.data,
     error: productsQuery.error,
     createProduct,
     updateProduct,
@@ -188,7 +188,7 @@ export const useCategories = () => {
 
   return {
     categories: categoriesQuery.data || [],
-    isLoading: categoriesQuery.isLoading,
+    isLoading: categoriesQuery.isLoading && !categoriesQuery.data,
     createCategory,
     updateCategory,
     deleteCategory,
