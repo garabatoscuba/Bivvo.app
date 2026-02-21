@@ -185,11 +185,6 @@ const AdminUsers = () => {
         <TableCell className="text-muted-foreground">{u.email}</TableCell>
         <TableCell>{u.business_name}</TableCell>
         <TableCell>
-          <Badge variant="outline" className="text-xs">
-            {PLAN_LABELS[u.plan_type] || u.plan_type}
-          </Badge>
-        </TableCell>
-        <TableCell>
           <div className="flex flex-wrap gap-1">
             {u.roles.map((r: AppRole) => (
               <Badge key={r} variant={r === 'super_admin' ? 'default' : 'secondary'} className="text-xs">
@@ -198,6 +193,11 @@ const AdminUsers = () => {
               </Badge>
             ))}
           </div>
+        </TableCell>
+        <TableCell>
+          <Badge variant="outline" className="text-xs">
+            {PLAN_LABELS[u.plan_type] || u.plan_type}
+          </Badge>
         </TableCell>
         <TableCell>
           {(() => {
@@ -301,9 +301,9 @@ const AdminUsers = () => {
                             <TableHead>Nombre</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Negocio</TableHead>
+                            <TableHead>Roles</TableHead>
                             <TableHead>Plan</TableHead>
                             <TableHead>Prueba</TableHead>
-                            <TableHead>Roles</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -333,9 +333,9 @@ const AdminUsers = () => {
                             <TableHead>Nombre</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>Negocio</TableHead>
+                            <TableHead>Roles</TableHead>
                             <TableHead>Plan</TableHead>
                             <TableHead>Prueba</TableHead>
-                            <TableHead>Roles</TableHead>
                             <TableHead className="text-right">Acciones</TableHead>
                           </TableRow>
                         </TableHeader>
