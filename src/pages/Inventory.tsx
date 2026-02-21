@@ -711,10 +711,10 @@ const Inventory = () => {
               {canManage && (
                 <div className="space-y-2">
                   {!showTransfer ? (
-                    <div className="flex gap-2">
+                    <div className="flex flex-col gap-2">
                       <Button 
                         variant="outline" 
-                        className="flex-1"
+                        className="w-full justify-start"
                         onClick={() => {
                           const prod = selectedProduct;
                           setStockEntryProduct(prod);
@@ -729,7 +729,7 @@ const Inventory = () => {
                       {selectedWarehouseStock > 0 && (
                         <Button 
                           variant="outline" 
-                          className="flex-1"
+                          className="w-full justify-start"
                           onClick={() => { setShowTransfer(true); setTransferQty(1); }}
                         >
                           <TrendingUp className="mr-2 h-4 w-4" />
@@ -739,7 +739,7 @@ const Inventory = () => {
                       {selectedWarehouseStock > 0 && (
                         <Button 
                           variant="outline" 
-                          className="flex-1"
+                          className="w-full justify-start"
                           onClick={() => {
                             setOutflowProduct(selectedProduct);
                             setSelectedProduct(null);
