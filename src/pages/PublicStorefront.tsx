@@ -168,8 +168,7 @@ const PublicStorefront = () => {
             <StorefrontAffiliateForm
               branchId={data.branch.id}
               accent={accent}
-              apiBase={API_BASE}
-              apiKey={API_KEY}
+              portalPath={`/tienda/${bizSlug}/${branchSlug}`}
             />
             <StorefrontSchedule schedule={data.settings.schedule} />
             <StorefrontAbout

@@ -58,7 +58,7 @@ const ChangeIndicator = ({ value }: {value: number;}) => {
 };
 
 const Dashboard = () => {
-  const { profile, roles } = useAuth();
+  const { profile, roles, isAffiliated } = useAuth();
   const { products } = useProducts();
   const { data: branches } = useBranches();
   const currentBranch = profile?.branch_id || branches?.[0]?.id;
@@ -142,6 +142,40 @@ const Dashboard = () => {
   const barChartConfig = {
     quantity: { label: 'Cantidad', color: 'hsl(var(--chart-2))' }
   };
+
+  // Affiliated users see a special welcome screen
+  if (isAffiliated) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4 space-y-6">
+          <div className="space-y-2">
+            <h1 className="text-2xl font-bold text-foreground">
+              ¡Hola, {profile?.full_name?.split(' ')[0]}!
+            </h1>
+            <p className="text-muted-foreground max-w-md">
+              Actualmente eres cliente afiliado. Puedes acumular puntos en las tiendas donde te has registrado.
+            </p>
+          </div>
+          <Card className="max-w-sm w-full">
+            <CardHeader className="text-center">
+              <CardTitle className="text-lg">¿Tienes un negocio?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Gestiona tu inventario, ventas, empleados y más desde un solo lugar con GestorPro.
+              </p>
+              <Link to="/plans">
+                <DialogButton className="w-full">
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Crear mi negocio
+                </DialogButton>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
