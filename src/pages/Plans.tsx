@@ -9,9 +9,6 @@ import { useSubscription, PlanType } from '@/hooks/useSubscription';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
@@ -378,28 +375,32 @@ const Plans = () => {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Plan</label>
-              <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as 'basic' | 'professional')}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent position="popper" className="z-[200]">
-                  <SelectItem value="basic">Básico ($10/mes/sucursal)</SelectItem>
-                  <SelectItem value="professional">Profesional ($20/mes/sucursal)</SelectItem>
-                </SelectContent>
-              </Select>
+              <label htmlFor="plan-select" className="text-sm font-medium">Plan</label>
+              <select
+                id="plan-select"
+                value={selectedPlan}
+                onChange={(e) => setSelectedPlan(e.target.value as 'basic' | 'professional')}
+                className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                <option value="basic">Básico ($10/mes/sucursal)</option>
+                <option value="professional">Profesional ($20/mes/sucursal)</option>
+              </select>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Duración</label>
-              <Select value={selectedMonths} onValueChange={setSelectedMonths}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent position="popper" className="z-[200]">
-                  {DURATION_OPTIONS.map(d => (
-                    <SelectItem key={d.value} value={d.value}>
-                      {d.label}{d.discount > 0 ? ` — ${d.discount}% descuento` : ''}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <label htmlFor="duration-select" className="text-sm font-medium">Duración</label>
+              <select
+                id="duration-select"
+                value={selectedMonths}
+                onChange={(e) => setSelectedMonths(e.target.value)}
+                className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              >
+                {DURATION_OPTIONS.map(d => (
+                  <option key={d.value} value={d.value}>
+                    {d.label}{d.discount > 0 ? ` — ${d.discount}% descuento` : ''}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
