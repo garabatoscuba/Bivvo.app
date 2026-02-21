@@ -39,8 +39,8 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
 
   const isTransparent = activeTab === 'home' && !scrolled && !mobileMenuOpen;
 
-  // On home tab, offset navbar below the delivery bar
-  const navTop = activeTab === 'home' && hasDelivery ? '38px' : '0px';
+  // When at top (not scrolled), navbar sits below delivery bar; once scrolled, navbar goes to top:0
+  const navTop = (activeTab === 'home' && hasDelivery && !scrolled) ? '38px' : '0px';
 
   return (
     <>
