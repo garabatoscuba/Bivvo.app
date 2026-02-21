@@ -230,7 +230,7 @@ const AppSidebar = () => {
     { title: 'Inventario', url: '/inventory', icon: Package },
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
     { title: 'Ventas', url: '/sales', icon: Receipt },
-    { title: 'Mi Tienda', url: '/store-settings', icon: ShoppingBag },
+    { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
     { title: 'Empleados', url: '/employees', icon: Users },
     { title: 'Configuración', url: '/settings', icon: Settings },
     { title: 'Planes', url: '/plans', icon: CreditCard },

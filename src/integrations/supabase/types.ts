@@ -14,6 +14,88 @@ export type Database = {
   }
   public: {
     Tables: {
+      affiliates: {
+        Row: {
+          branch_id: string
+          created_at: string
+          email: string | null
+          id: string
+          name: string | null
+          phone: string | null
+          points: number
+          updated_at: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          points?: number
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string | null
+          phone?: string | null
+          points?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliates_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      announcements: {
+        Row: {
+          badge_text: string | null
+          branch_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          badge_text?: string | null
+          branch_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          badge_text?: string | null
+          branch_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branch_stock: {
         Row: {
           branch_id: string
@@ -591,6 +673,51 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviews: {
+        Row: {
+          affiliate_id: string
+          branch_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          is_visible: boolean
+          rating: number
+        }
+        Insert: {
+          affiliate_id: string
+          branch_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          rating: number
+        }
+        Update: {
+          affiliate_id?: string
+          branch_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          is_visible?: boolean
+          rating?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_affiliate_id_fkey"
+            columns: ["affiliate_id"]
+            isOneToOne: false
+            referencedRelation: "affiliates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
             referencedColumns: ["id"]
           },
         ]

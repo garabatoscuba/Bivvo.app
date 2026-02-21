@@ -13,6 +13,106 @@ serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    // Handle affiliate registration
+    if (req.method === "POST") {
+      const body = await req.json();
+      const { action } = body;
+
+      if (action === "register_affiliate") {
+        const { branch_id, name, phone, email } = body;
+        if (!branch_id) {
+          return new Response(JSON.stringify({ error: "branch_id requerido" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // Calculate points: 10 per field filled
+        let points = 0;
+        if (name?.trim()) points += 10;
+        if (phone?.trim()) points += 10;
+        if (email?.trim()) points += 10;
+
+        const { data, error } = await supabase
+          .from("affiliates")
+          .insert({
+            branch_id,
+            name: name?.trim() || null,
+            phone: phone?.trim() || null,
+            email: email?.trim() || null,
+            points,
+          })
+          .select("id, points")
+          .single();
+
+        if (error) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(JSON.stringify({ success: true, affiliate: data }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      if (action === "submit_review") {
+        const { branch_id, affiliate_id, rating, comment } = body;
+        if (!branch_id || !affiliate_id || !rating) {
+          return new Response(JSON.stringify({ error: "Datos incompletos" }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Verify affiliate exists and belongs to this branch
+        const { data: affiliate } = await supabase
+          .from("affiliates")
+          .select("id")
+          .eq("id", affiliate_id)
+          .eq("branch_id", branch_id)
+          .single();
+
+        if (!affiliate) {
+          return new Response(JSON.stringify({ error: "Afiliado no encontrado" }), {
+            status: 404,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { error } = await supabase
+          .from("reviews")
+          .insert({
+            branch_id,
+            affiliate_id,
+            rating: Math.min(5, Math.max(1, rating)),
+            comment: comment?.trim() || null,
+          });
+
+        if (error) {
+          return new Response(JSON.stringify({ error: error.message }), {
+            status: 400,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(JSON.stringify({ error: "Acción no válida" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // GET: Fetch storefront data
     const bizSlug = url.searchParams.get("biz");
     const branchSlug = url.searchParams.get("branch");
 
@@ -22,11 +122,6 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
 
     // Fetch business
     const { data: business, error: bizErr } = await supabase
@@ -71,14 +166,13 @@ serve(async (req) => {
       });
     }
 
-    // Fetch products for sale with stock > 0 in this branch
+    // Fetch products
     const { data: stockItems } = await supabase
       .from("branch_stock")
       .select("quantity, product:products(id, name, description, sale_price, image_url, code, category:categories(name, color))")
       .eq("branch_id", branch.id)
       .gt("quantity", 0);
 
-    // Filter only for_sale products
     const products = (stockItems || [])
       .filter((s: any) => s.product && s.product.status !== "discontinued" && s.product.status !== "warehouse")
       .map((s: any) => ({
@@ -93,10 +187,28 @@ serve(async (req) => {
         stock: s.quantity,
       }));
 
+    // Fetch visible reviews with affiliate name
+    const { data: reviews } = await supabase
+      .from("reviews")
+      .select("id, rating, comment, created_at, is_visible, affiliate:affiliates(name)")
+      .eq("branch_id", branch.id)
+      .eq("is_visible", true)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    // Fetch active announcements
+    const { data: announcements } = await supabase
+      .from("announcements")
+      .select("id, title, description, badge_text")
+      .eq("branch_id", branch.id)
+      .eq("is_active", true)
+      .order("created_at", { ascending: false })
+      .limit(10);
+
     return new Response(
       JSON.stringify({
         business: { name: business.name, logo_url: business.logo_url },
-        branch: { name: branch.name, address: branch.address, phone: branch.phone },
+        branch: { id: branch.id, name: branch.name, address: branch.address, phone: branch.phone },
         settings: {
           has_delivery: settings.has_delivery,
           schedule: settings.schedule,
@@ -108,6 +220,14 @@ serve(async (req) => {
           social_twitter: settings.social_twitter,
         },
         products,
+        reviews: (reviews || []).map((r: any) => ({
+          id: r.id,
+          rating: r.rating,
+          comment: r.comment,
+          created_at: r.created_at,
+          author: r.affiliate?.name || 'Anónimo',
+        })),
+        announcements: announcements || [],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
