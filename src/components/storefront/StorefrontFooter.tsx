@@ -1,11 +1,18 @@
 import { Link } from 'react-router-dom';
 
-const StorefrontFooter = () => (
+interface Props {
+  businessName: string;
+}
+
+const StorefrontFooter = ({ businessName }: Props) => (
   <footer className="border-t border-border mt-auto">
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 text-center">
+    <div className="max-w-5xl mx-auto px-6 sm:px-10 py-10 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <span className="text-xs text-muted-foreground/50">
+        © {new Date().getFullYear()} {businessName}
+      </span>
       <Link
         to="/"
-        className="text-[11px] text-muted-foreground/40 hover:text-muted-foreground transition-colors"
+        className="text-[11px] text-muted-foreground/30 hover:text-muted-foreground transition-colors"
       >
         Powered by GestorPro
       </Link>

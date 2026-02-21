@@ -107,7 +107,7 @@ const PublicStorefront = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -115,8 +115,8 @@ const PublicStorefront = () => {
   if (error || !data) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-6 text-center">
-        <AlertCircle className="h-10 w-10 text-muted-foreground/40" />
-        <p className="text-muted-foreground text-base max-w-xs">{error || 'Tienda no encontrada'}</p>
+        <AlertCircle className="h-10 w-10 text-muted-foreground/30" />
+        <p className="text-muted-foreground text-sm max-w-xs">{error || 'Tienda no encontrada'}</p>
       </div>
     );
   }
@@ -124,7 +124,6 @@ const PublicStorefront = () => {
   const open = isOpenNow(data.settings.schedule);
   const accent = data.settings.accent_color || '#18181b';
 
-  // Filter products by search
   const filteredProducts = search.trim()
     ? data.products.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -137,23 +136,35 @@ const PublicStorefront = () => {
     <div className="min-h-screen bg-background flex flex-col" style={{ '--accent': accent } as React.CSSProperties}>
       <StorefrontHeader data={data} isOpen={open} accent={accent} />
 
-      <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        {/* Search bar */}
-        <div className="mb-8 max-w-md">
-          <StorefrontSearch value={search} onChange={setSearch} />
-        </div>
-
-        {/* Announcements */}
+      <main className="flex-1">
+        {/* Announcements — full width band */}
         {data.announcements.length > 0 && (
-          <div className="mb-10">
-            <StorefrontAnnouncements announcements={data.announcements} accent={accent} />
-          </div>
+          <section className="border-b border-border">
+            <div className="max-w-5xl mx-auto px-6 sm:px-10 py-10">
+              <StorefrontAnnouncements announcements={data.announcements} accent={accent} />
+            </div>
+          </section>
         )}
 
-        <div className="grid gap-12 lg:grid-cols-[1fr_280px]">
-          {/* Main content */}
-          <div className="space-y-12">
-            <StorefrontCatalog products={filteredProducts} accent={accent} />
+        {/* Catalog section */}
+        <section className="max-w-5xl mx-auto px-6 sm:px-10 py-14 sm:py-20">
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
+            <h2
+              className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
+              style={{ fontFamily: 'var(--font-serif)' }}
+            >
+              Productos
+            </h2>
+            <div className="w-full sm:w-72">
+              <StorefrontSearch value={search} onChange={setSearch} />
+            </div>
+          </div>
+          <StorefrontCatalog products={filteredProducts} accent={accent} />
+        </section>
+
+        {/* Reviews section — full width band */}
+        <section className="border-t border-border bg-card/50">
+          <div className="max-w-5xl mx-auto px-6 sm:px-10 py-14 sm:py-20">
             <StorefrontReviews
               reviews={data.reviews}
               branchId={data.branch.id}
@@ -162,27 +173,37 @@ const PublicStorefront = () => {
               apiKey={API_KEY}
             />
           </div>
+        </section>
 
-          {/* Sidebar */}
-          <aside className="space-y-6">
-            <StorefrontAffiliateForm
-              branchId={data.branch.id}
-              accent={accent}
-              portalPath={`/tienda/${bizSlug}/${branchSlug}`}
-            />
-            <StorefrontSchedule schedule={data.settings.schedule} />
-            <StorefrontAbout
-              aboutText={data.settings.about_text}
-              socialInstagram={data.settings.social_instagram}
-              socialFacebook={data.settings.social_facebook}
-              socialTiktok={data.settings.social_tiktok}
-              socialTwitter={data.settings.social_twitter}
-            />
-          </aside>
-        </div>
+        {/* Info grid — schedule, loyalty, about */}
+        <section className="border-t border-border">
+          <div className="max-w-5xl mx-auto px-6 sm:px-10 py-14 sm:py-20">
+            <div className="grid gap-12 sm:gap-16 md:grid-cols-3">
+              <div>
+                <StorefrontSchedule schedule={data.settings.schedule} />
+              </div>
+              <div>
+                <StorefrontAffiliateForm
+                  branchId={data.branch.id}
+                  accent={accent}
+                  portalPath={`/tienda/${bizSlug}/${branchSlug}`}
+                />
+              </div>
+              <div>
+                <StorefrontAbout
+                  aboutText={data.settings.about_text}
+                  socialInstagram={data.settings.social_instagram}
+                  socialFacebook={data.settings.social_facebook}
+                  socialTiktok={data.settings.social_tiktok}
+                  socialTwitter={data.settings.social_twitter}
+                />
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
 
-      <StorefrontFooter />
+      <StorefrontFooter businessName={data.business.name} />
     </div>
   );
 };
