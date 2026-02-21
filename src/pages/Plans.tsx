@@ -238,7 +238,12 @@ const Plans = () => {
           </Card>
 
           {/* Basic */}
-          <Card className="flex flex-col border-primary relative">
+          <Card className={`flex flex-col relative overflow-hidden ${planType === 'basic' && status !== 'blocked' ? 'border-primary' : 'border-primary'}`}>
+            {status === 'trial' && planType === 'basic' && (
+              <div className="absolute top-0 right-0 bg-info text-info-foreground text-[10px] font-bold px-3 py-0.5 rotate-0 rounded-bl-lg z-10">
+                🕐 PRUEBA
+              </div>
+            )}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
               <Badge className="gap-1"><Star className="h-3 w-3" /> Popular</Badge>
             </div>
@@ -283,7 +288,12 @@ const Plans = () => {
           </Card>
 
           {/* Professional */}
-          <Card className="flex flex-col relative">
+          <Card className="flex flex-col relative overflow-hidden">
+            {status === 'trial' && planType === 'professional' && (
+              <div className="absolute top-0 right-0 bg-info text-info-foreground text-[10px] font-bold px-3 py-0.5 rounded-bl-lg z-10">
+                🕐 PRUEBA
+              </div>
+            )}
             <div className="absolute -top-3 left-1/2 -translate-x-1/2">
               <Badge variant="secondary" className="gap-1"><Crown className="h-3 w-3" /> Pro</Badge>
             </div>

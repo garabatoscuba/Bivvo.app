@@ -72,7 +72,18 @@ const Dashboard = () => {
   const [newPlanPopup, setNewPlanPopup] = useState(false);
   const [newBizName, setNewBizName] = useState('');
   const [creatingBiz, setCreatingBiz] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
+
+  // Show welcome dialog for first-time users
+  useEffect(() => {
+    if (!profile?.user_id) return;
+    const key = `welcome_shown_${profile.user_id}`;
+    if (!localStorage.getItem(key)) {
+      setShowWelcome(true);
+      localStorage.setItem(key, 'true');
+    }
+  }, [profile?.user_id]);
 
   // Show popup reactively when plan changes from free to paid/trial
   useEffect(() => {
@@ -400,6 +411,37 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Welcome Dialog for first-time users */}
+      <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl">🎉 ¡Bienvenido a GestorPro!</DialogTitle>
+            <DialogDescription className="text-base pt-2">
+              Tu herramienta todo-en-uno para gestionar tu negocio de forma simple y eficiente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="rounded-lg border bg-muted/50 p-3 space-y-2">
+              <p className="text-sm font-medium">Primeros pasos:</p>
+              <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
+                <li>📦 Agrega tus productos desde <strong>Inventario</strong></li>
+                <li>🛒 Realiza tu primera venta en el <strong>Punto de Venta</strong></li>
+                <li>📊 Consulta tus métricas en el <strong>Dashboard</strong></li>
+                <li>⚙️ Personaliza tu negocio en <strong>Ajustes</strong></li>
+              </ol>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Empiezas con un plan gratuito. Puedes probar planes superiores por 7 días sin compromiso desde la sección de <strong>Planes</strong>.
+            </p>
+          </div>
+          <DialogFooter>
+            <DialogButton className="w-full" onClick={() => setShowWelcome(false)}>
+              ¡Empezar!
+            </DialogButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* New Plan — Create Business Popup */}
       <Dialog open={newPlanPopup} onOpenChange={setNewPlanPopup}>
