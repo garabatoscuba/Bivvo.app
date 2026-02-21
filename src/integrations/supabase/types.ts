@@ -55,6 +55,48 @@ export type Database = {
           },
         ]
       }
+      affiliations: {
+        Row: {
+          branch_id: string
+          business_id: string
+          id: string
+          joined_at: string
+          points: number
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          business_id: string
+          id?: string
+          joined_at?: string
+          points?: number
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          business_id?: string
+          id?: string
+          joined_at?: string
+          points?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "affiliations_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "affiliations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           badge_text: string | null
@@ -682,6 +724,7 @@ export type Database = {
           trial_ends_at: string | null
           updated_at: string
           user_id: string
+          user_type: string
         }
         Insert: {
           avatar_url?: string | null
@@ -700,6 +743,7 @@ export type Database = {
           trial_ends_at?: string | null
           updated_at?: string
           user_id: string
+          user_type?: string
         }
         Update: {
           avatar_url?: string | null
@@ -718,6 +762,7 @@ export type Database = {
           trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
+          user_type?: string
         }
         Relationships: [
           {
@@ -997,7 +1042,13 @@ export type Database = {
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "super_admin" | "owner" | "manager" | "seller" | "accountant"
+      app_role:
+        | "super_admin"
+        | "owner"
+        | "manager"
+        | "seller"
+        | "accountant"
+        | "affiliated"
       inventory_movement_type:
         | "purchase"
         | "sale"
@@ -1137,7 +1188,14 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["super_admin", "owner", "manager", "seller", "accountant"],
+      app_role: [
+        "super_admin",
+        "owner",
+        "manager",
+        "seller",
+        "accountant",
+        "affiliated",
+      ],
       inventory_movement_type: [
         "purchase",
         "sale",
