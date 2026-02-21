@@ -20,15 +20,15 @@ const StorefrontCatalogView = ({ products, accent }: Props) => {
     : products;
 
   return (
-    <section className="max-w-6xl mx-auto px-6 sm:px-10 py-10 sm:py-16">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
+    <section className="max-w-6xl mx-auto px-4 sm:px-10 py-10 sm:py-16">
+      <div className="flex flex-col items-center gap-4 mb-10">
         <h1
-          className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground"
-          style={{ fontFamily: 'var(--font-serif)' }}
+          className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center"
+          style={{ fontFamily: 'var(--font-heading)' }}
         >
-          Products
+          Catálogo
         </h1>
-        <div className="w-full sm:w-72">
+        <div className="w-full max-w-sm">
           <StorefrontSearch value={search} onChange={setSearch} />
         </div>
       </div>

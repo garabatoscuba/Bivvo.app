@@ -1,4 +1,4 @@
-import { Store, Truck, ArrowRight } from 'lucide-react';
+import { Truck } from 'lucide-react';
 import type { StorefrontData } from '@/pages/PublicStorefront';
 import StorefrontReviewForm from '@/components/storefront/StorefrontReviewForm';
 
@@ -9,7 +9,11 @@ interface Props {
   onGoToCatalog: () => void;
 }
 
-const StorefrontHome = ({ data, accent, portalPath, onGoToCatalog }: Props) => {
+const StorefrontHome = ({ data, accent, portalPath }: Props) => {
+  const heroTitle = data.settings.hero_title || data.business.name;
+  const heroSubtitle = data.settings.hero_subtitle || data.branch.name;
+  const heroImage = data.settings.hero_image_url;
+
   return (
     <>
       {/* Delivery banner */}
@@ -24,47 +28,60 @@ const StorefrontHome = ({ data, accent, portalPath, onGoToCatalog }: Props) => {
       )}
 
       {/* Hero */}
-      <section className="relative bg-card overflow-hidden">
-        <div className="max-w-5xl mx-auto px-6 sm:px-10 py-20 sm:py-32 text-center">
-          <h1
-            className="text-4xl sm:text-6xl font-bold tracking-tight text-foreground leading-[1.1]"
-            style={{ fontFamily: 'var(--font-serif)' }}
-          >
-            {data.business.name}
-          </h1>
-          <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
-            {data.branch.name}
-          </p>
-          <button
-            onClick={onGoToCatalog}
-            className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
-          >
-            Ver catálogo <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
-        <div
-          className="absolute inset-0 opacity-[0.04] pointer-events-none"
-          style={{ background: `radial-gradient(ellipse at 50% 0%, ${accent}, transparent 70%)` }}
-        />
+      <section className="relative overflow-hidden">
+        {heroImage ? (
+          <>
+            <div className="relative min-h-[50vh] sm:min-h-[65vh] flex items-center justify-center">
+              <img
+                src={heroImage}
+                alt={heroTitle}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-black/40" />
+              <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 py-20 sm:py-32 text-center">
+                <h1
+                  className="text-4xl sm:text-6xl font-bold tracking-tight text-white leading-[1.1]"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  {heroTitle}
+                </h1>
+                <p className="mt-4 text-base sm:text-lg text-white/80 max-w-lg mx-auto leading-relaxed">
+                  {heroSubtitle}
+                </p>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="relative bg-card">
+            <div className="max-w-5xl mx-auto px-6 sm:px-10 py-20 sm:py-32 text-center">
+              <h1
+                className="text-4xl sm:text-6xl font-bold tracking-tight text-foreground leading-[1.1]"
+                style={{ fontFamily: 'var(--font-heading)' }}
+              >
+                {heroTitle}
+              </h1>
+              <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
+                {heroSubtitle}
+              </p>
+            </div>
+            <div
+              className="absolute inset-0 opacity-[0.04] pointer-events-none"
+              style={{ background: `radial-gradient(ellipse at 50% 0%, ${accent}, transparent 70%)` }}
+            />
+          </div>
+        )}
       </section>
 
-      {/* About — two text blocks, editorial style */}
+      {/* About — editorial text block */}
       {data.settings.about_text && (
         <section className="border-t border-border">
           <div className="max-w-3xl mx-auto px-6 sm:px-10 py-20 sm:py-28 text-center">
             <p
               className="text-xl sm:text-3xl font-bold tracking-tight text-foreground leading-snug"
-              style={{ fontFamily: 'var(--font-serif)' }}
+              style={{ fontFamily: 'var(--font-heading)' }}
             >
               {data.settings.about_text}
             </p>
-            <button
-              onClick={onGoToCatalog}
-              className="mt-8 text-sm font-medium hover:opacity-70 transition-opacity"
-              style={{ color: accent }}
-            >
-              Ver productos →
-            </button>
           </div>
         </section>
       )}

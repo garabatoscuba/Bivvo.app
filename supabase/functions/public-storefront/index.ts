@@ -18,7 +18,7 @@ serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
-    // Handle affiliate registration
+    // Handle POST actions
     if (req.method === "POST") {
       const body = await req.json();
       const { action } = body;
@@ -27,11 +27,9 @@ serve(async (req) => {
         const { branch_id, name, phone, email } = body;
         if (!branch_id) {
           return new Response(JSON.stringify({ error: "branch_id requerido" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        // Calculate points: 10 per field filled
         let points = 0;
         if (name?.trim()) points += 10;
         if (phone?.trim()) points += 10;
@@ -39,23 +37,15 @@ serve(async (req) => {
 
         const { data, error } = await supabase
           .from("affiliates")
-          .insert({
-            branch_id,
-            name: name?.trim() || null,
-            phone: phone?.trim() || null,
-            email: email?.trim() || null,
-            points,
-          })
+          .insert({ branch_id, name: name?.trim() || null, phone: phone?.trim() || null, email: email?.trim() || null, points })
           .select("id, points")
           .single();
 
         if (error) {
           return new Response(JSON.stringify({ error: error.message }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
         return new Response(JSON.stringify({ success: true, affiliate: data }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
@@ -65,50 +55,31 @@ serve(async (req) => {
         const { branch_id, affiliate_id, rating, comment } = body;
         if (!branch_id || !affiliate_id || !rating) {
           return new Response(JSON.stringify({ error: "Datos incompletos" }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
-        // Verify affiliate exists and belongs to this branch
         const { data: affiliate } = await supabase
-          .from("affiliates")
-          .select("id")
-          .eq("id", affiliate_id)
-          .eq("branch_id", branch_id)
-          .single();
-
+          .from("affiliates").select("id").eq("id", affiliate_id).eq("branch_id", branch_id).single();
         if (!affiliate) {
           return new Response(JSON.stringify({ error: "Afiliado no encontrado" }), {
-            status: 404,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
-        const { error } = await supabase
-          .from("reviews")
-          .insert({
-            branch_id,
-            affiliate_id,
-            rating: Math.min(5, Math.max(1, rating)),
-            comment: comment?.trim() || null,
-          });
-
+        const { error } = await supabase.from("reviews").insert({
+          branch_id, affiliate_id, rating: Math.min(5, Math.max(1, rating)), comment: comment?.trim() || null,
+        });
         if (error) {
           return new Response(JSON.stringify({ error: error.message }), {
-            status: 400,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-
         return new Response(JSON.stringify({ success: true }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
 
       return new Response(JSON.stringify({ error: "Acción no válida" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -118,55 +89,38 @@ serve(async (req) => {
 
     if (!bizSlug || !branchSlug) {
       return new Response(JSON.stringify({ error: "Missing biz or branch slug" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch business
     const { data: business, error: bizErr } = await supabase
-      .from("businesses")
-      .select("id, name, slug, logo_url")
-      .eq("slug", bizSlug)
-      .single();
-
+      .from("businesses").select("id, name, slug, logo_url").eq("slug", bizSlug).single();
     if (bizErr || !business) {
       return new Response(JSON.stringify({ error: "Negocio no encontrado" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch branch
     const { data: branch, error: branchErr } = await supabase
-      .from("branches")
-      .select("id, name, slug, address, phone")
-      .eq("business_id", business.id)
-      .eq("slug", branchSlug)
-      .single();
-
+      .from("branches").select("id, name, slug, address, phone").eq("business_id", business.id).eq("slug", branchSlug).single();
     if (branchErr || !branch) {
       return new Response(JSON.stringify({ error: "Sucursal no encontrada" }), {
-        status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch store settings
     const { data: settings } = await supabase
       .from("store_settings")
-      .select("is_active, has_delivery, schedule, accent_color, about_text, social_instagram, social_facebook, social_tiktok, social_twitter")
+      .select("is_active, has_delivery, schedule, accent_color, about_text, hero_image_url, hero_title, hero_subtitle, font_heading, font_body, social_instagram, social_facebook, social_tiktok, social_twitter")
       .eq("branch_id", branch.id)
       .maybeSingle();
 
     if (!settings?.is_active) {
       return new Response(JSON.stringify({ error: "Tienda no disponible" }), {
-        status: 403,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Fetch products
     const { data: stockItems } = await supabase
       .from("branch_stock")
       .select("quantity, product:products(id, name, description, sale_price, image_url, code, category:categories(name, color))")
@@ -176,34 +130,22 @@ serve(async (req) => {
     const products = (stockItems || [])
       .filter((s: any) => s.product && s.product.status !== "discontinued" && s.product.status !== "warehouse")
       .map((s: any) => ({
-        id: s.product.id,
-        name: s.product.name,
-        description: s.product.description,
-        price: s.product.sale_price,
-        image_url: s.product.image_url,
-        code: s.product.code,
-        category: s.product.category?.name || null,
-        category_color: s.product.category?.color || null,
-        stock: s.quantity,
+        id: s.product.id, name: s.product.name, description: s.product.description,
+        price: s.product.sale_price, image_url: s.product.image_url, code: s.product.code,
+        category: s.product.category?.name || null, category_color: s.product.category?.color || null, stock: s.quantity,
       }));
 
-    // Fetch visible reviews with affiliate name
     const { data: reviews } = await supabase
       .from("reviews")
       .select("id, rating, comment, created_at, is_visible, affiliate:affiliates(name)")
-      .eq("branch_id", branch.id)
-      .eq("is_visible", true)
-      .order("created_at", { ascending: false })
-      .limit(50);
+      .eq("branch_id", branch.id).eq("is_visible", true)
+      .order("created_at", { ascending: false }).limit(50);
 
-    // Fetch active announcements
     const { data: announcements } = await supabase
       .from("announcements")
       .select("id, title, description, badge_text")
-      .eq("branch_id", branch.id)
-      .eq("is_active", true)
-      .order("created_at", { ascending: false })
-      .limit(10);
+      .eq("branch_id", branch.id).eq("is_active", true)
+      .order("created_at", { ascending: false }).limit(10);
 
     return new Response(
       JSON.stringify({
@@ -214,6 +156,11 @@ serve(async (req) => {
           schedule: settings.schedule,
           accent_color: settings.accent_color,
           about_text: settings.about_text,
+          hero_image_url: settings.hero_image_url || null,
+          hero_title: settings.hero_title || null,
+          hero_subtitle: settings.hero_subtitle || null,
+          font_heading: settings.font_heading || 'Lora',
+          font_body: settings.font_body || 'Work Sans',
           social_instagram: settings.social_instagram,
           social_facebook: settings.social_facebook,
           social_tiktok: settings.social_tiktok,
@@ -221,10 +168,7 @@ serve(async (req) => {
         },
         products,
         reviews: (reviews || []).map((r: any) => ({
-          id: r.id,
-          rating: r.rating,
-          comment: r.comment,
-          created_at: r.created_at,
+          id: r.id, rating: r.rating, comment: r.comment, created_at: r.created_at,
           author: r.affiliate?.name || 'Anónimo',
         })),
         announcements: announcements || [],
@@ -233,8 +177,7 @@ serve(async (req) => {
     );
   } catch (err) {
     return new Response(JSON.stringify({ error: err.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
 });

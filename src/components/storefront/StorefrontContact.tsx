@@ -9,12 +9,12 @@ interface Props {
 }
 
 const StorefrontContact = ({ data, accent }: Props) => (
-  <section className="max-w-3xl mx-auto px-6 sm:px-10 py-14 sm:py-20">
+  <section className="max-w-3xl mx-auto px-4 sm:px-10 py-14 sm:py-20">
     <h1
-      className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-12"
-      style={{ fontFamily: 'var(--font-serif)' }}
+      className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-12 text-center"
+      style={{ fontFamily: 'var(--font-heading)' }}
     >
-      Contact
+      Contacto
     </h1>
 
     <div className="grid gap-12 md:grid-cols-2">
