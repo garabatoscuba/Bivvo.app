@@ -11,7 +11,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { Store, Truck, Clock, Save, Loader2, ExternalLink, Copy } from 'lucide-react';
+import { Textarea } from '@/components/ui/textarea';
+import { Store, Truck, Clock, Save, Loader2, ExternalLink, Copy, Palette, Info, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const DAY_LABELS: Record<string, string> = {
@@ -54,12 +55,24 @@ const StoreSettingsPage = () => {
   const [isActive, setIsActive] = useState(false);
   const [hasDelivery, setHasDelivery] = useState(false);
   const [schedule, setSchedule] = useState<WeekSchedule>(defaultSchedule);
+  const [accentColor, setAccentColor] = useState('#18181b');
+  const [aboutText, setAboutText] = useState('');
+  const [socialInstagram, setSocialInstagram] = useState('');
+  const [socialFacebook, setSocialFacebook] = useState('');
+  const [socialTiktok, setSocialTiktok] = useState('');
+  const [socialTwitter, setSocialTwitter] = useState('');
 
   useEffect(() => {
     if (settings) {
       setIsActive(settings.is_active);
       setHasDelivery(settings.has_delivery);
       setSchedule(settings.schedule);
+      setAccentColor(settings.accent_color || '#18181b');
+      setAboutText(settings.about_text || '');
+      setSocialInstagram(settings.social_instagram || '');
+      setSocialFacebook(settings.social_facebook || '');
+      setSocialTiktok(settings.social_tiktok || '');
+      setSocialTwitter(settings.social_twitter || '');
     }
   }, [settings]);
 
@@ -71,7 +84,17 @@ const StoreSettingsPage = () => {
   };
 
   const handleSave = () => {
-    save({ is_active: isActive, has_delivery: hasDelivery, schedule });
+    save({
+      is_active: isActive,
+      has_delivery: hasDelivery,
+      schedule,
+      accent_color: accentColor,
+      about_text: aboutText || null,
+      social_instagram: socialInstagram || null,
+      social_facebook: socialFacebook || null,
+      social_tiktok: socialTiktok || null,
+      social_twitter: socialTwitter || null,
+    });
   };
 
   return (
@@ -192,6 +215,81 @@ const StoreSettingsPage = () => {
                     </div>
                   );
                 })}
+              </CardContent>
+            </Card>
+
+            {/* Branding */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Palette className="h-4 w-4" /> Apariencia
+                </CardTitle>
+                <CardDescription>Personaliza el color de tu portal público.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <Label className="text-sm font-medium">Color de acento</Label>
+                  <input
+                    type="color"
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className="h-8 w-12 rounded border border-input cursor-pointer"
+                  />
+                  <Input
+                    value={accentColor}
+                    onChange={(e) => setAccentColor(e.target.value)}
+                    className="w-28 h-8 text-sm font-mono"
+                    maxLength={7}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* About us */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Info className="h-4 w-4" /> Sobre nosotros
+                </CardTitle>
+                <CardDescription>Texto que aparecerá en tu portal público.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Textarea
+                  value={aboutText}
+                  onChange={(e) => setAboutText(e.target.value)}
+                  placeholder="Cuéntale a tus clientes sobre tu negocio..."
+                  rows={4}
+                  maxLength={500}
+                />
+                <p className="text-xs text-muted-foreground mt-1.5">{aboutText.length}/500</p>
+              </CardContent>
+            </Card>
+
+            {/* Social links */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Globe className="h-4 w-4" /> Redes sociales
+                </CardTitle>
+                <CardDescription>Añade los enlaces de tus redes para mostrarlos en el portal.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div>
+                  <Label className="text-xs text-muted-foreground">Instagram</Label>
+                  <Input value={socialInstagram} onChange={(e) => setSocialInstagram(e.target.value)} placeholder="https://instagram.com/tu-negocio" className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">Facebook</Label>
+                  <Input value={socialFacebook} onChange={(e) => setSocialFacebook(e.target.value)} placeholder="https://facebook.com/tu-negocio" className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">TikTok</Label>
+                  <Input value={socialTiktok} onChange={(e) => setSocialTiktok(e.target.value)} placeholder="https://tiktok.com/@tu-negocio" className="h-8 text-sm" />
+                </div>
+                <div>
+                  <Label className="text-xs text-muted-foreground">X / Twitter</Label>
+                  <Input value={socialTwitter} onChange={(e) => setSocialTwitter(e.target.value)} placeholder="https://x.com/tu-negocio" className="h-8 text-sm" />
+                </div>
               </CardContent>
             </Card>
 

@@ -714,30 +714,48 @@ export type Database = {
       }
       store_settings: {
         Row: {
+          about_text: string | null
+          accent_color: string
           branch_id: string
           created_at: string
           has_delivery: boolean
           id: string
           is_active: boolean
           schedule: Json
+          social_facebook: string | null
+          social_instagram: string | null
+          social_tiktok: string | null
+          social_twitter: string | null
           updated_at: string
         }
         Insert: {
+          about_text?: string | null
+          accent_color?: string
           branch_id: string
           created_at?: string
           has_delivery?: boolean
           id?: string
           is_active?: boolean
           schedule?: Json
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_tiktok?: string | null
+          social_twitter?: string | null
           updated_at?: string
         }
         Update: {
+          about_text?: string | null
+          accent_color?: string
           branch_id?: string
           created_at?: string
           has_delivery?: boolean
           id?: string
           is_active?: boolean
           schedule?: Json
+          social_facebook?: string | null
+          social_instagram?: string | null
+          social_tiktok?: string | null
+          social_twitter?: string | null
           updated_at?: string
         }
         Relationships: [

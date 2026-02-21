@@ -25,6 +25,12 @@ export interface StoreSettings {
   is_active: boolean;
   has_delivery: boolean;
   schedule: WeekSchedule;
+  accent_color: string;
+  about_text: string | null;
+  social_instagram: string | null;
+  social_facebook: string | null;
+  social_tiktok: string | null;
+  social_twitter: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -62,7 +68,17 @@ export const useStoreSettings = () => {
   });
 
   const upsertMutation = useMutation({
-    mutationFn: async (updates: { is_active?: boolean; has_delivery?: boolean; schedule?: WeekSchedule }) => {
+    mutationFn: async (updates: {
+      is_active?: boolean;
+      has_delivery?: boolean;
+      schedule?: WeekSchedule;
+      accent_color?: string;
+      about_text?: string | null;
+      social_instagram?: string | null;
+      social_facebook?: string | null;
+      social_tiktok?: string | null;
+      social_twitter?: string | null;
+    }) => {
       if (!branchId) throw new Error('No branch');
       const payload: any = { ...updates };
       if (updates.schedule) payload.schedule = JSON.parse(JSON.stringify(updates.schedule));

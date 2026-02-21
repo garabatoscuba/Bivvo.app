@@ -60,7 +60,7 @@ serve(async (req) => {
     // Fetch store settings
     const { data: settings } = await supabase
       .from("store_settings")
-      .select("is_active, has_delivery, schedule")
+      .select("is_active, has_delivery, schedule, accent_color, about_text, social_instagram, social_facebook, social_tiktok, social_twitter")
       .eq("branch_id", branch.id)
       .maybeSingle();
 
@@ -97,7 +97,16 @@ serve(async (req) => {
       JSON.stringify({
         business: { name: business.name, logo_url: business.logo_url },
         branch: { name: branch.name, address: branch.address, phone: branch.phone },
-        settings: { has_delivery: settings.has_delivery, schedule: settings.schedule },
+        settings: {
+          has_delivery: settings.has_delivery,
+          schedule: settings.schedule,
+          accent_color: settings.accent_color,
+          about_text: settings.about_text,
+          social_instagram: settings.social_instagram,
+          social_facebook: settings.social_facebook,
+          social_tiktok: settings.social_tiktok,
+          social_twitter: settings.social_twitter,
+        },
         products,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
