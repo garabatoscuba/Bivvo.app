@@ -34,6 +34,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
   manager: 'Gerente',
   seller: 'Vendedor',
   accountant: 'Contable',
+  affiliated: 'Afiliado',
 };
 
 const PLAN_LABELS: Record<string, string> = {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,6 +43,13 @@ const Auth = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && user) {
+      // Check if affiliated user should go back to storefront
+      const affiliateRedirect = sessionStorage.getItem('affiliate_redirect');
+      if (affiliateRedirect) {
+        sessionStorage.removeItem('affiliate_redirect');
+        navigate(affiliateRedirect);
+        return;
+      }
       navigate('/');
     }
   }, [user, authLoading, navigate]);
@@ -84,7 +92,14 @@ const Auth = () => {
         title: '¡Bienvenido!',
         description: 'Has iniciado sesión correctamente.'
       });
-      navigate('/');
+      // Redirect handled by the useEffect above (checks affiliate_redirect)
+      const affiliateRedirect = sessionStorage.getItem('affiliate_redirect');
+      if (affiliateRedirect) {
+        sessionStorage.removeItem('affiliate_redirect');
+        navigate(affiliateRedirect);
+      } else {
+        navigate('/');
+      }
     }
   };
 
