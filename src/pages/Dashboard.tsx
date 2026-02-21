@@ -71,6 +71,7 @@ const Dashboard = () => {
   const [period, setPeriod] = useState<Period>('today');
   const [newPlanPopup, setNewPlanPopup] = useState(false);
   const [newBizName, setNewBizName] = useState('');
+  const [newBizType, setNewBizType] = useState('store');
   const [creatingBiz, setCreatingBiz] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
@@ -108,7 +109,7 @@ const Dashboard = () => {
     try {
       // Create new business via edge function
       const { data, error } = await supabase.functions.invoke('create-business', {
-        body: { name: newBizName.trim() },
+        body: { name: newBizName.trim(), business_type: newBizType },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -449,16 +450,32 @@ const Dashboard = () => {
           <DialogHeader>
             <DialogTitle>🎉 ¡Tu plan está activo!</DialogTitle>
             <DialogDescription>
-              Escribe el nombre de tu negocio real. El negocio de prueba se eliminará automáticamente si está vacío.
+              Configura tu negocio real. El negocio de prueba se eliminará automáticamente si está vacío.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-2">
-            <Input
-              placeholder="Ej: Mi Tienda, Ferretería López..."
-              value={newBizName}
-              onChange={(e) => setNewBizName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateAndReplace()}
-            />
+          <div className="space-y-3 py-2">
+            <div className="space-y-1.5">
+              <label htmlFor="biz-name" className="text-sm font-medium">Nombre del negocio</label>
+              <Input
+                id="biz-name"
+                placeholder="Ej: Mi Tienda, Ferretería López..."
+                value={newBizName}
+                onChange={(e) => setNewBizName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleCreateAndReplace()}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <label htmlFor="biz-type" className="text-sm font-medium">Tipo de negocio</label>
+              <select
+                id="biz-type"
+                value={newBizType}
+                onChange={(e) => setNewBizType(e.target.value)}
+                className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="store">🏪 Tienda</option>
+                <option value="gym" disabled>🏋️ Gym (próximamente)</option>
+              </select>
+            </div>
           </div>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             <DialogButton

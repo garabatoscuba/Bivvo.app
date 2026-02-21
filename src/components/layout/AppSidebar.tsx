@@ -46,6 +46,7 @@ const AppSidebar = () => {
 
   const [newBizOpen, setNewBizOpen] = useState(false);
   const [bizName, setBizName] = useState('');
+  const [bizType, setBizType] = useState('store');
   const [editBizOpen, setEditBizOpen] = useState(false);
   const [editBizId, setEditBizId] = useState('');
   const [editBizName, setEditBizName] = useState('');
@@ -90,9 +91,9 @@ const AppSidebar = () => {
   });
 
   const createBizMutation = useMutation({
-    mutationFn: async (name: string) => {
+    mutationFn: async ({ name, business_type }: { name: string; business_type: string }) => {
       const { data, error } = await supabase.functions.invoke('create-business', {
-        body: { name },
+        body: { name, business_type },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -104,6 +105,7 @@ const AppSidebar = () => {
       toast({ title: 'Negocio creado', description: `${biz.name} está listo.` });
       setNewBizOpen(false);
       setBizName('');
+      setBizType('store');
       window.location.reload();
     },
     onError: (err: any) => {
@@ -496,7 +498,7 @@ const AppSidebar = () => {
       <Dialog open={newBizOpen} onOpenChange={setNewBizOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>Nueva Tienda</DialogTitle>
+            <DialogTitle>Nuevo Negocio</DialogTitle>
             <DialogDescription>Se creará con una sucursal principal.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -508,12 +510,23 @@ const AppSidebar = () => {
                 onChange={(e) => setBizName(e.target.value)}
               />
             </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Tipo de negocio</Label>
+              <select
+                value={bizType}
+                onChange={(e) => setBizType(e.target.value)}
+                className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <option value="store">🏪 Tienda</option>
+                <option value="gym" disabled>🏋️ Gym (próximamente)</option>
+              </select>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setNewBizOpen(false)}>Cancelar</Button>
             <Button
               size="sm"
-              onClick={() => createBizMutation.mutate(bizName)}
+              onClick={() => createBizMutation.mutate({ name: bizName, business_type: bizType })}
               disabled={!bizName.trim() || createBizMutation.isPending}
             >
               {createBizMutation.isPending ? 'Creando...' : 'Crear'}

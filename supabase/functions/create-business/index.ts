@@ -38,13 +38,15 @@ Deno.serve(async (req) => {
 
     const userId = claims.claims.sub as string;
 
-    const { name } = await req.json();
+    const { name, business_type } = await req.json();
     if (!name || typeof name !== "string" || !name.trim()) {
       return new Response(JSON.stringify({ error: "Name is required" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const validTypes = ["store", "gym"];
+    const bizType = validTypes.includes(business_type) ? business_type : "store";
 
     // Use service_role to bypass RLS
     const admin = createClient(
@@ -69,7 +71,7 @@ Deno.serve(async (req) => {
     // 2. Create business
     const { data: biz, error: bizErr } = await admin
       .from("businesses")
-      .insert({ name: name.trim(), owner_id: profile.id })
+      .insert({ name: name.trim(), owner_id: profile.id, business_type: bizType })
       .select()
       .single();
 
