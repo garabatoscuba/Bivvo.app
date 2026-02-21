@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -49,18 +50,20 @@ const Plans = () => {
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'professional'>('basic');
   const [selectedMonths, setSelectedMonths] = useState('1');
 
+  // React Router search params for reactive updates
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // Auto-open purchase dialog when coming from banner with ?buy=true
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('buy') === 'true') {
+    if (searchParams.get('buy') === 'true') {
       const plan = planType === 'professional' ? 'professional' : 'basic';
       setSelectedPlan(plan);
       setSelectedMonths('1');
       setRequestOpen(true);
-      // Clean up URL
-      window.history.replaceState({}, '', '/plans');
+      // Clean up URL without full reload
+      setSearchParams({}, { replace: true });
     }
-  }, [planType]);
+  }, [searchParams, planType, setSearchParams]);
 
   const expirationDate = subscriptionEndsAt || trialEndsAt;
 
@@ -378,7 +381,7 @@ const Plans = () => {
               <label className="text-sm font-medium">Plan</label>
               <Select value={selectedPlan} onValueChange={(v) => setSelectedPlan(v as 'basic' | 'professional')}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[200]">
                   <SelectItem value="basic">Básico ($10/mes/sucursal)</SelectItem>
                   <SelectItem value="professional">Profesional ($20/mes/sucursal)</SelectItem>
                 </SelectContent>
@@ -389,7 +392,7 @@ const Plans = () => {
               <label className="text-sm font-medium">Duración</label>
               <Select value={selectedMonths} onValueChange={setSelectedMonths}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="z-[200]">
                   {DURATION_OPTIONS.map(d => (
                     <SelectItem key={d.value} value={d.value}>
                       {d.label}{d.discount > 0 ? ` — ${d.discount}% descuento` : ''}
