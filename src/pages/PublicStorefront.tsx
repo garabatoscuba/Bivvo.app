@@ -168,7 +168,7 @@ const PublicStorefront = () => {
         portalPath={portalPath}
       />
 
-      <main className="flex-1" style={{ fontFamily: fontBody }}>
+      <main className="flex-1" style={{ fontFamily: fontBody, paddingTop: activeTab !== 'home' ? '56px' : 0 }}>
         {activeTab === 'home' && (
           <StorefrontHome
             data={data}
