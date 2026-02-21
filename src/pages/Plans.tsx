@@ -76,7 +76,8 @@ const Plans = () => {
     },
     onSuccess: () => {
       toast({ title: 'Prueba activada', description: 'Tienes 7 días para probar todas las funciones.' });
-      window.location.reload();
+      // Navigate to dashboard — the popup will show reactively
+      window.location.href = '/';
     },
     onError: (err: any) => {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });

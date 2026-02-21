@@ -63,24 +63,22 @@ const Dashboard = () => {
   const { data: branches } = useBranches();
   const currentBranch = profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
-  const { planType } = useSubscription();
+  const { planType, status: subStatus } = useSubscription();
   const queryClient = useQueryClient();
   const { toast } = useToast();
 
   const navigate = useNavigate();
   const [period, setPeriod] = useState<Period>('today');
   const [newPlanPopup, setNewPlanPopup] = useState(false);
-  const [renameOpen, setRenameOpen] = useState(false);
   const [newBizName, setNewBizName] = useState('');
-  const [renaming, setRenaming] = useState(false);
+  const [creatingBiz, setCreatingBiz] = useState(false);
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
 
-  // Show new-business popup when user has an active paid plan
+  // Show popup reactively when plan changes from free to paid/trial
   useEffect(() => {
     const checkBizName = async () => {
       if (!profile?.business_id || planType === 'free') return;
-      // Only show if subscription is truly active (not trial, not blocked)
-      if (status === 'blocked') return;
+      if (subStatus === 'blocked') return;
       const { data } = await supabase
         .from('businesses')
         .select('name')
@@ -91,22 +89,51 @@ const Dashboard = () => {
       }
     };
     checkBizName();
-  }, [profile?.business_id, planType, status]);
+  }, [profile?.business_id, planType, subStatus]);
 
-  const handleRename = async () => {
+  const handleCreateAndReplace = async () => {
     if (!newBizName.trim() || !profile?.business_id) return;
-    setRenaming(true);
-    const { error } = await supabase
-      .from('businesses')
-      .update({ name: newBizName.trim() })
-      .eq('id', profile.business_id);
-    setRenaming(false);
-    if (error) {
-      toast({ title: 'Error', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: 'Negocio renombrado' });
-      queryClient.invalidateQueries({ queryKey: ['user-businesses'] });
-      setRenameOpen(false);
+    setCreatingBiz(true);
+    try {
+      // Create new business via edge function
+      const { data, error } = await supabase.functions.invoke('create-business', {
+        body: { name: newBizName.trim() },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      // Delete the old trial business if it's empty (no products, no sales)
+      const oldBizId = profile.business_id;
+      const { count: productCount } = await supabase
+        .from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', oldBizId);
+      const trialBizBranches = await supabase
+        .from('branches')
+        .select('id')
+        .eq('business_id', oldBizId);
+      const branchIds = trialBizBranches.data?.map(b => b.id) || [];
+      let saleCount = 0;
+      if (branchIds.length > 0) {
+        const { count } = await supabase
+          .from('sales')
+          .select('id', { count: 'exact', head: true })
+          .in('branch_id', branchIds);
+        saleCount = count || 0;
+      }
+
+      if ((productCount || 0) === 0 && saleCount === 0) {
+        await supabase.from('businesses').delete().eq('id', oldBizId);
+      }
+
+      toast({ title: '¡Negocio creado!', description: `${newBizName.trim()} está listo.` });
+      setNewPlanPopup(false);
+      queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
+      window.location.reload();
+    } catch (err: any) {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    } finally {
+      setCreatingBiz(false);
     }
   };
 
@@ -380,44 +407,7 @@ const Dashboard = () => {
           <DialogHeader>
             <DialogTitle>🎉 ¡Tu plan está activo!</DialogTitle>
             <DialogDescription>
-              Ahora tienes acceso a todas las funciones. Te recomendamos crear un nuevo negocio desde el menú lateral para empezar con tu configuración real.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <DialogButton
-              className="w-full"
-              onClick={() => {
-                setNewPlanPopup(false);
-                // Navigate to settings or open sidebar business menu
-                navigate('/settings');
-              }}
-            >
-              Crear nuevo negocio
-            </DialogButton>
-            <DialogButton
-              variant="outline"
-              className="w-full"
-              onClick={() => {
-                setNewPlanPopup(false);
-                setRenameOpen(true);
-              }}
-            >
-              Solo renombrar el actual
-            </DialogButton>
-            <DialogButton variant="ghost" className="w-full" onClick={() => setNewPlanPopup(false)}>
-              Después
-            </DialogButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Rename Business Dialog */}
-      <Dialog open={renameOpen} onOpenChange={setRenameOpen}>
-        <DialogContent className="sm:max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Renombrar negocio</DialogTitle>
-            <DialogDescription>
-              Dale un nombre real a tu negocio de prueba.
+              Escribe el nombre de tu negocio real. El negocio de prueba se eliminará automáticamente si está vacío.
             </DialogDescription>
           </DialogHeader>
           <div className="py-2">
@@ -425,18 +415,19 @@ const Dashboard = () => {
               placeholder="Ej: Mi Tienda, Ferretería López..."
               value={newBizName}
               onChange={(e) => setNewBizName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateAndReplace()}
             />
           </div>
-          <DialogFooter>
-            <DialogButton variant="outline" size="sm" onClick={() => setRenameOpen(false)}>
-              Cancelar
-            </DialogButton>
+          <DialogFooter className="flex-col gap-2 sm:flex-col">
             <DialogButton
-              size="sm"
-              onClick={handleRename}
-              disabled={!newBizName.trim() || renaming}
+              className="w-full"
+              onClick={handleCreateAndReplace}
+              disabled={!newBizName.trim() || creatingBiz}
             >
-              {renaming ? 'Guardando...' : 'Renombrar'}
+              {creatingBiz ? 'Creando...' : 'Crear negocio'}
+            </DialogButton>
+            <DialogButton variant="ghost" className="w-full" onClick={() => setNewPlanPopup(false)}>
+              Después
             </DialogButton>
           </DialogFooter>
         </DialogContent>
