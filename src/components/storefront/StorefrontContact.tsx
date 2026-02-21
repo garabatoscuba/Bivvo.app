@@ -49,7 +49,7 @@ const StorefrontContact = ({ data, accent }: Props) => {
   };
 
   return (
-    <section className="max-w-3xl mx-auto px-4 sm:px-10 py-14 sm:py-20">
+    <section className="max-w-4xl mx-auto px-4 sm:px-10 py-14 sm:py-20">
       <h1
         className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-12 text-center"
         style={{ fontFamily: 'var(--font-heading)' }}
@@ -57,105 +57,92 @@ const StorefrontContact = ({ data, accent }: Props) => {
         Contacto
       </h1>
 
-      <div className="grid gap-12 md:grid-cols-2">
+      {/* Info & Socials — top row */}
+      <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-12 text-sm text-muted-foreground">
+        {data.branch.address && (
+          <span className="flex items-center gap-1.5">
+            <MapPin className="h-3.5 w-3.5 shrink-0" /> {data.branch.address}
+          </span>
+        )}
+        {data.branch.phone && (
+          <span className="flex items-center gap-1.5">
+            <Phone className="h-3.5 w-3.5 shrink-0" /> {data.branch.phone}
+          </span>
+        )}
+      </div>
+
+      {/* Socials */}
+      <div className="flex justify-center mb-14">
+        <StorefrontAbout
+          aboutText={null}
+          socialInstagram={data.settings.social_instagram}
+          socialFacebook={data.settings.social_facebook}
+          socialTiktok={data.settings.social_tiktok}
+          socialTwitter={data.settings.social_twitter}
+        />
+      </div>
+
+      {/* Schedule + Contact form side by side */}
+      <div className={`grid gap-10 ${contactEmail ? 'md:grid-cols-2' : 'max-w-md mx-auto'}`}>
         {/* Schedule */}
         <div>
           <StorefrontSchedule schedule={data.settings.schedule} />
         </div>
 
-        {/* Info & Socials */}
-        <div className="space-y-8">
-          {/* Address & Phone */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.15em] mb-4">
-              Información
+        {/* Contact form */}
+        {contactEmail && (
+          <div>
+            <h3
+              className="text-xs font-semibold text-muted-foreground uppercase tracking-[0.15em] mb-4"
+            >
+              Envíanos un mensaje
             </h3>
-            {data.branch.address && (
-              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                <MapPin className="h-3.5 w-3.5 shrink-0" /> {data.branch.address}
-              </p>
-            )}
-            {data.branch.phone && (
-              <p className="text-sm text-muted-foreground flex items-center gap-2">
-                <Phone className="h-3.5 w-3.5 shrink-0" /> {data.branch.phone}
-              </p>
-            )}
-          </div>
 
-          {/* Socials */}
-          <StorefrontAbout
-            aboutText={null}
-            socialInstagram={data.settings.social_instagram}
-            socialFacebook={data.settings.social_facebook}
-            socialTiktok={data.settings.social_tiktok}
-            socialTwitter={data.settings.social_twitter}
-          />
-        </div>
-      </div>
-
-      {/* Contact form */}
-      {contactEmail && (
-        <div className="mt-16 max-w-md mx-auto">
-          <h3
-            className="text-lg font-bold tracking-tight text-foreground mb-6 text-center"
-            style={{ fontFamily: 'var(--font-heading)' }}
-          >
-            Envíanos un mensaje
-          </h3>
-
-          {sent ? (
-            <div className="rounded-2xl border border-border p-8 text-center space-y-2 bg-card">
-              <CheckCircle className="h-8 w-8 mx-auto" style={{ color: accent }} />
-              <p className="text-sm font-medium text-foreground">¡Mensaje enviado!</p>
-              <p className="text-xs text-muted-foreground">Te responderemos lo antes posible.</p>
-            </div>
-          ) : (
-            <div className="rounded-2xl border border-border p-6 space-y-4 bg-card">
-              <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Nombre</label>
+            {sent ? (
+              <div className="rounded-xl border border-border p-8 text-center space-y-2">
+                <CheckCircle className="h-8 w-8 mx-auto" style={{ color: accent }} />
+                <p className="text-sm font-medium text-foreground">¡Mensaje enviado!</p>
+                <p className="text-xs text-muted-foreground">Te responderemos lo antes posible.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Tu nombre"
+                  placeholder="Nombre"
                   maxLength={100}
-                  className="w-full h-10 px-4 rounded-full border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
+                  className="w-full h-10 px-4 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
                 />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="tu@email.com"
+                  placeholder="Email"
                   maxLength={255}
-                  className="w-full h-10 px-4 rounded-full border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
+                  className="w-full h-10 px-4 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30"
                 />
-              </div>
-              <div>
-                <label className="text-xs text-muted-foreground mb-1.5 block">Mensaje</label>
                 <textarea
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
-                  placeholder="¿En qué podemos ayudarte?"
+                  placeholder="Tu mensaje..."
                   rows={4}
                   maxLength={1000}
-                  className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 resize-none"
+                  className="w-full px-4 py-3 rounded-lg border border-border bg-background text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-ring/30 resize-none"
                 />
+                {error && <p className="text-xs text-destructive">{error}</p>}
+                <button
+                  onClick={handleSend}
+                  disabled={sending || !name.trim() || !email.trim() || !message.trim()}
+                  className="w-full flex items-center justify-center gap-2 rounded-lg py-2.5 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
+                  style={{ backgroundColor: accent }}
+                >
+                  {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Enviar</>}
+                </button>
               </div>
-              {error && <p className="text-xs text-destructive">{error}</p>}
-              <button
-                onClick={handleSend}
-                disabled={sending || !name.trim() || !email.trim() || !message.trim()}
-                className="w-full flex items-center justify-center gap-2 rounded-full py-3 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
-                style={{ backgroundColor: accent }}
-              >
-                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <><Send className="h-3.5 w-3.5" /> Enviar mensaje</>}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
+      </div>
     </section>
   );
 };

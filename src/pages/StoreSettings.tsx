@@ -45,18 +45,60 @@ const StoreSettingsPage = () => {
   const { toast: toastFn } = useToast();
   const queryClient = useQueryClient();
   const heroInputRef = useRef<HTMLInputElement>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   const activeBranch = branches.find(b => b.id === profile?.branch_id);
   const branchId = profile?.branch_id;
 
   const { data: business } = useQuery({
-    queryKey: ['my-business-slug', profile?.business_id],
+    queryKey: ['my-business-details', profile?.business_id],
     queryFn: async () => {
-      const { data } = await supabase.from('businesses').select('slug').eq('id', profile!.business_id!).single();
+      const { data } = await supabase.from('businesses').select('slug, name, logo_url').eq('id', profile!.business_id!).single();
       return data;
     },
     enabled: !!profile?.business_id,
   });
+
+  const [logoUrl, setLogoUrl] = useState('');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+
+  useEffect(() => {
+    if (business?.logo_url) setLogoUrl(business.logo_url);
+  }, [business]);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !profile?.business_id) return;
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toastFn({ title: 'Formato no válido', description: 'Solo JPG, PNG o WebP', variant: 'destructive' });
+      return;
+    }
+    if (file.size > MAX_HERO_SIZE) {
+      toastFn({ title: 'Imagen muy pesada', description: 'Máximo 500 KB', variant: 'destructive' });
+      return;
+    }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `logo-${profile.business_id}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from('product-images')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+      const newUrl = urlData.publicUrl;
+      await supabase.from('businesses').update({ logo_url: newUrl }).eq('id', profile.business_id!);
+      setLogoUrl(newUrl);
+      queryClient.invalidateQueries({ queryKey: ['my-business-details', profile.business_id] });
+      toastFn({ title: 'Logo actualizado' });
+    } catch (err: any) {
+      toastFn({ title: 'Error al subir', description: err.message, variant: 'destructive' });
+    } finally {
+      setUploadingLogo(false);
+      if (logoInputRef.current) logoInputRef.current.value = '';
+    }
+  };
 
   const storeUrl = business?.slug && activeBranch?.slug
     ? `${window.location.origin}/tienda/${business.slug}/${activeBranch.slug}`
@@ -283,6 +325,42 @@ const StoreSettingsPage = () => {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Logo del negocio */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Logo del negocio</CardTitle>
+                  <CardDescription>Se mostrará en la barra de navegación de tu portal. Máx. 500 KB. Formatos: JPG, PNG, WebP. Recomendado: 256×256 px (cuadrado).</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    {logoUrl ? (
+                      <div className="relative">
+                        <img src={logoUrl} alt="Logo" className="h-16 w-16 rounded-xl object-cover border border-border" />
+                        <Button variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6" onClick={async () => {
+                          await supabase.from('businesses').update({ logo_url: null }).eq('id', profile!.business_id!);
+                          setLogoUrl('');
+                          queryClient.invalidateQueries({ queryKey: ['my-business-details', profile?.business_id] });
+                          toastFn({ title: 'Logo eliminado' });
+                        }}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="h-16 w-16 rounded-xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground">
+                        <Store className="h-6 w-6" />
+                      </div>
+                    )}
+                    <div>
+                      <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoUpload} className="hidden" />
+                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}>
+                        {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                        {logoUrl ? 'Cambiar logo' : 'Subir logo'}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
               <Card>
                 <CardHeader>
