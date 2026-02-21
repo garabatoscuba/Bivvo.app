@@ -13,6 +13,7 @@ interface POSCartProps {
   onClearCart: () => void;
   discount: number;
   onDiscountChange: (discount: number) => void;
+  stockMap: Map<string, number>;
 }
 
 export const POSCart = ({
@@ -22,6 +23,7 @@ export const POSCart = ({
   onClearCart,
   discount,
   onDiscountChange,
+  stockMap,
 }: POSCartProps) => {
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
   const total = subtotal - discount;
@@ -95,6 +97,7 @@ export const POSCart = ({
                       size="icon"
                       className="h-7 w-7"
                       onClick={() => onUpdateQuantity(item.product.id, item.quantity + 1)}
+                      disabled={item.quantity >= (stockMap.get(item.product.id) || 0)}
                     >
                       <Plus className="h-3 w-3" />
                     </Button>

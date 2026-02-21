@@ -10,9 +10,10 @@ interface ProductCardProps {
   stock?: number;
   onClick?: () => void;
   compact?: boolean;
+  disabled?: boolean;
 }
 
-export const ProductCard = ({ product, stock = 0, onClick, compact = false }: ProductCardProps) => {
+export const ProductCard = ({ product, stock = 0, onClick, compact = false, disabled = false }: ProductCardProps) => {
   const isLowStock = stock <= product.min_stock && stock > 0;
   const isOutOfStock = stock <= 0;
 
@@ -20,10 +21,11 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false }: Pr
     return (
       <Card
         className={cn(
-          "cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
-          isOutOfStock && "opacity-50"
+          "transition-all",
+          disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
+          isOutOfStock && !disabled && "opacity-50"
         )}
-        onClick={onClick}>
+        onClick={disabled ? undefined : onClick}>
 
         <CardContent className="p-2.5">
           <div className="flex items-center gap-3">
