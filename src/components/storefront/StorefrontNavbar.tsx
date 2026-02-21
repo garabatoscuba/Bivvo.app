@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Store, Search, Sun, Moon, Megaphone, User, Menu, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import type { StorefrontData, StorefrontTab } from '@/pages/PublicStorefront';
@@ -20,6 +20,13 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showMembership, setShowMembership] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const tabs: { key: StorefrontTab; label: string }[] = [
     { key: 'home', label: 'Home' },
@@ -29,9 +36,17 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
 
   const hasAnnouncements = data.announcements.length > 0;
 
+  const isTransparent = activeTab === 'home' && !scrolled && !mobileMenuOpen;
+
   return (
     <>
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-out"
+        style={isTransparent
+          ? { backgroundColor: 'transparent', borderBottom: 'none' }
+          : { backgroundColor: 'rgba(0,0,0,0.92)', boxShadow: '0 1px 8px rgba(0,0,0,0.15)' }
+        }
+      >
         <div className="flex items-center justify-between px-4 sm:px-10 py-3 sm:py-4">
           {/* Left — Logo + name (clickable → home) */}
           <button
@@ -42,7 +57,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
               <img
                 src={data.business.logo_url}
                 alt={data.business.name}
-                className="h-7 w-7 rounded-lg object-cover"
+                className="h-7 w-7 rounded-lg object-cover brightness-0 invert"
               />
             ) : (
               <div
@@ -52,7 +67,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
                 <Store className="h-3.5 w-3.5 text-white" />
               </div>
             )}
-            <span className="text-sm font-bold tracking-tight text-foreground hidden sm:inline">
+            <span className="text-sm font-bold tracking-tight text-white hidden sm:inline">
               {data.business.name}
             </span>
           </button>
@@ -65,8 +80,8 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
                 onClick={() => onTabChange(t.key)}
                 className={`text-sm transition-colors ${
                   activeTab === t.key
-                    ? 'text-foreground font-medium'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'text-white font-medium'
+                    : 'text-white/60 hover:text-white'
                 }`}
               >
                 {t.label}
@@ -80,7 +95,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
             {hasAnnouncements && (
               <button
                 onClick={() => setShowAnnouncements(true)}
-                className="relative h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="relative h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
                 aria-label="Anuncios"
               >
                 <Megaphone className="h-4 w-4" />
@@ -94,7 +109,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
             {/* Membership */}
             <button
               onClick={() => setShowMembership(true)}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+               className="h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
               aria-label="Membresía"
             >
               <User className="h-4 w-4" />
@@ -103,27 +118,27 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
             {/* Search */}
             <button
               onClick={() => { if (activeTab !== 'catalog') onTabChange('catalog'); }}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+               className="h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
               aria-label="Buscar"
             >
               <Search className="h-4 w-4" />
             </button>
 
             {/* Divider */}
-            <div className="hidden sm:block h-4 w-px bg-border mx-1" />
+            <div className="hidden sm:block h-4 w-px bg-white/20 mx-1" />
 
             {/* Open / Closed */}
             <span
               className="hidden sm:inline text-[11px] font-medium px-2.5 py-1 rounded-full"
-              style={isOpen ? { backgroundColor: `${accent}18`, color: accent } : {}}
+              style={isOpen ? { backgroundColor: 'rgba(255,255,255,0.15)', color: 'white' } : {}}
             >
-              {isOpen ? 'Abierto' : <span className="text-muted-foreground">Cerrado</span>}
+              {isOpen ? 'Abierto' : <span className="text-white/50">Cerrado</span>}
             </span>
 
             {/* Theme toggle */}
             <button
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              className="hidden sm:flex h-8 w-8 rounded-full items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              className="hidden sm:flex h-8 w-8 rounded-full items-center justify-center text-white/70 hover:text-white transition-colors"
               aria-label="Cambiar tema"
             >
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -132,7 +147,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
             {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="sm:hidden h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              className="sm:hidden h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
               aria-label="Menú"
             >
               {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
@@ -142,30 +157,30 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
 
         {/* Mobile menu */}
         {mobileMenuOpen && (
-          <div className="sm:hidden border-t border-border px-4 py-3 space-y-1 bg-background">
+          <div className="sm:hidden px-4 py-3 space-y-1 bg-black/95">
             {tabs.map(t => (
               <button
                 key={t.key}
                 onClick={() => { onTabChange(t.key); setMobileMenuOpen(false); }}
                 className={`block w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
                   activeTab === t.key
-                    ? 'text-foreground font-medium bg-muted/30'
-                    : 'text-muted-foreground'
+                    ? 'text-white font-medium bg-white/10'
+                    : 'text-white/60'
                 }`}
               >
                 {t.label}
               </button>
             ))}
             <div className="flex items-center justify-between px-3 pt-2">
-              <span
+               <span
                 className="text-[11px] font-medium px-2.5 py-1 rounded-full"
-                style={isOpen ? { backgroundColor: `${accent}18`, color: accent } : {}}
+                style={isOpen ? { backgroundColor: 'rgba(255,255,255,0.15)', color: 'white' } : {}}
               >
-                {isOpen ? 'Abierto' : <span className="text-muted-foreground">Cerrado</span>}
+                {isOpen ? 'Abierto' : <span className="text-white/50">Cerrado</span>}
               </span>
               <button
                 onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                className="h-8 w-8 rounded-full flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                className="h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
               >
                 {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
               </button>
