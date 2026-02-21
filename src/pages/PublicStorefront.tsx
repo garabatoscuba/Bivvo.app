@@ -1,15 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Loader2, AlertCircle } from 'lucide-react';
-import StorefrontHeader from '@/components/storefront/StorefrontHeader';
-import StorefrontCatalog from '@/components/storefront/StorefrontCatalog';
-import StorefrontSchedule from '@/components/storefront/StorefrontSchedule';
-import StorefrontAbout from '@/components/storefront/StorefrontAbout';
+import StorefrontNavbar from '@/components/storefront/StorefrontNavbar';
+import StorefrontHome from '@/components/storefront/StorefrontHome';
+import StorefrontCatalogView from '@/components/storefront/StorefrontCatalogView';
+import StorefrontContact from '@/components/storefront/StorefrontContact';
 import StorefrontFooter from '@/components/storefront/StorefrontFooter';
-import StorefrontSearch from '@/components/storefront/StorefrontSearch';
-import StorefrontAffiliateForm from '@/components/storefront/StorefrontAffiliateForm';
-import StorefrontReviews from '@/components/storefront/StorefrontReviews';
-import StorefrontAnnouncements from '@/components/storefront/StorefrontAnnouncements';
 
 export interface StorefrontProduct {
   id: string;
@@ -73,12 +69,14 @@ function isOpenNow(schedule: StorefrontData['settings']['schedule']): boolean {
 const API_BASE = import.meta.env.VITE_SUPABASE_URL;
 const API_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+export type StorefrontTab = 'home' | 'catalog' | 'contact';
+
 const PublicStorefront = () => {
   const { bizSlug, branchSlug } = useParams<{ bizSlug: string; branchSlug: string }>();
   const [data, setData] = useState<StorefrontData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [activeTab, setActiveTab] = useState<StorefrontTab>('home');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -123,84 +121,34 @@ const PublicStorefront = () => {
 
   const open = isOpenNow(data.settings.schedule);
   const accent = data.settings.accent_color || '#18181b';
-
-  const filteredProducts = search.trim()
-    ? data.products.filter(p =>
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        (p.description && p.description.toLowerCase().includes(search.toLowerCase())) ||
-        (p.category && p.category.toLowerCase().includes(search.toLowerCase()))
-      )
-    : data.products;
+  const portalPath = `/tienda/${bizSlug}/${branchSlug}`;
 
   return (
     <div className="min-h-screen bg-background flex flex-col" style={{ '--accent': accent } as React.CSSProperties}>
-      <StorefrontHeader data={data} isOpen={open} accent={accent} />
+      <StorefrontNavbar
+        data={data}
+        isOpen={open}
+        accent={accent}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        portalPath={portalPath}
+      />
 
       <main className="flex-1">
-        {/* Announcements — full width band */}
-        {data.announcements.length > 0 && (
-          <section className="border-b border-border">
-            <div className="max-w-5xl mx-auto px-6 sm:px-10 py-10">
-              <StorefrontAnnouncements announcements={data.announcements} accent={accent} />
-            </div>
-          </section>
+        {activeTab === 'home' && (
+          <StorefrontHome
+            data={data}
+            accent={accent}
+            portalPath={portalPath}
+            onGoToCatalog={() => setActiveTab('catalog')}
+          />
         )}
-
-        {/* Catalog section */}
-        <section className="max-w-5xl mx-auto px-6 sm:px-10 py-14 sm:py-20">
-          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-10">
-            <h2
-              className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
-              style={{ fontFamily: 'var(--font-serif)' }}
-            >
-              Productos
-            </h2>
-            <div className="w-full sm:w-72">
-              <StorefrontSearch value={search} onChange={setSearch} />
-            </div>
-          </div>
-          <StorefrontCatalog products={filteredProducts} accent={accent} />
-        </section>
-
-        {/* Reviews section — full width band */}
-        <section className="border-t border-border bg-card/50">
-          <div className="max-w-5xl mx-auto px-6 sm:px-10 py-14 sm:py-20">
-            <StorefrontReviews
-              reviews={data.reviews}
-              branchId={data.branch.id}
-              accent={accent}
-              apiBase={API_BASE}
-              apiKey={API_KEY}
-            />
-          </div>
-        </section>
-
-        {/* Info grid — schedule, loyalty, about */}
-        <section className="border-t border-border">
-          <div className="max-w-5xl mx-auto px-6 sm:px-10 py-14 sm:py-20">
-            <div className="grid gap-12 sm:gap-16 md:grid-cols-3">
-              <div>
-                <StorefrontSchedule schedule={data.settings.schedule} />
-              </div>
-              <div>
-                <StorefrontAffiliateForm
-                  branchId={data.branch.id}
-                  accent={accent}
-                  portalPath={`/tienda/${bizSlug}/${branchSlug}`}
-                />
-              </div>
-              <div>
-                <StorefrontAbout
-                  aboutText={data.settings.about_text}
-                  socialInstagram={data.settings.social_instagram}
-                  socialFacebook={data.settings.social_facebook}
-                  socialTiktok={data.settings.social_tiktok}
-                  socialTwitter={data.settings.social_twitter}
-                />
-              </div>
-            </div>
-          </div>
-        </section>
+        {activeTab === 'catalog' && (
+          <StorefrontCatalogView products={data.products} accent={accent} />
+        )}
+        {activeTab === 'contact' && (
+          <StorefrontContact data={data} accent={accent} />
+        )}
       </main>
 
       <StorefrontFooter businessName={data.business.name} />
