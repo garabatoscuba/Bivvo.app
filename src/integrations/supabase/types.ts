@@ -105,6 +105,7 @@ export type Database = {
       }
       businesses: {
         Row: {
+          business_type: string
           created_at: string
           id: string
           logo_url: string | null
@@ -114,6 +115,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_type?: string
           created_at?: string
           id?: string
           logo_url?: string | null
@@ -123,6 +125,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_type?: string
           created_at?: string
           id?: string
           logo_url?: string | null
