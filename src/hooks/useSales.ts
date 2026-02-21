@@ -269,25 +269,25 @@ export const useSales = (branchId?: string | null) => {
 
   // Mutation: cancel sale
   const cancelSale = useMutation({
-    mutationFn: async (saleId: string) => {
+    mutationFn: async ({ saleId, reason }: { saleId: string; reason: string }) => {
       if (isOnline) {
         const { error } = await supabase
           .from('sales')
-          .update({ status: 'cancelled' as const })
+          .update({ status: 'cancelled' as const, cancellation_reason: reason } as any)
           .eq('id', saleId);
         if (error) throw error;
       } else {
-        // Update locally and queue
         const sales = await getAllFromStore<any>('sales');
         const sale = sales.find(s => s.id === saleId);
         if (sale) {
           sale.status = 'cancelled';
+          sale.cancellation_reason = reason;
           await putInStore('sales', sale);
         }
         await addPendingOperation({
           table: 'sales',
           operation: 'update',
-          data: { id: saleId, status: 'cancelled' },
+          data: { id: saleId, status: 'cancelled', cancellation_reason: reason },
         });
       }
     },
