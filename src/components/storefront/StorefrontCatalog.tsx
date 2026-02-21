@@ -17,81 +17,76 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-foreground">Productos</h2>
-        <span className="text-xs text-muted-foreground">{filtered.length} items</span>
-      </div>
-
-      {/* Category filters */}
+      {/* Category filters — minimal pill style */}
       {categories.length > 1 && (
-        <div className="flex gap-2 mb-6 overflow-x-auto pb-1 scrollbar-none">
+        <div className="flex gap-2 mb-10 overflow-x-auto pb-1 scrollbar-hide">
           <button
             onClick={() => setActiveCategory(null)}
-            className="shrink-0 text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors"
-            style={!activeCategory
-              ? { backgroundColor: accent, color: 'white' }
-              : {}
-            }
+            className={`shrink-0 text-xs font-medium px-4 py-2 rounded-full border transition-colors ${
+              !activeCategory
+                ? 'border-foreground bg-foreground text-background'
+                : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
+            }`}
           >
-            {!activeCategory ? 'Todos' : <span className="text-muted-foreground bg-muted/50 px-3.5 py-1.5 rounded-full">Todos</span>}
+            Todos
           </button>
           {categories.map(cat => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
-              className="shrink-0 text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors"
-              style={activeCategory === cat
-                ? { backgroundColor: accent, color: 'white' }
-                : {}
-              }
+              className={`shrink-0 text-xs font-medium px-4 py-2 rounded-full border transition-colors ${
+                activeCategory === cat
+                  ? 'border-foreground bg-foreground text-background'
+                  : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
+              }`}
             >
-              {activeCategory === cat ? cat : <span className="text-muted-foreground">{cat}</span>}
+              {cat}
             </button>
           ))}
         </div>
       )}
 
       {filtered.length === 0 ? (
-        <div className="text-center py-20 text-muted-foreground/50">
+        <div className="text-center py-24 text-muted-foreground/40">
           <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
           <p className="text-sm">No hay productos disponibles.</p>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map(product => (
             <div
               key={product.id}
-              className="group flex gap-4 p-3 rounded-xl border border-border hover:border-border/80 transition-all hover:shadow-sm bg-card"
+              className="group bg-card rounded-2xl border border-border overflow-hidden hover:shadow-md transition-all duration-300"
             >
               {product.image_url ? (
-                <img
-                  src={product.image_url}
-                  alt={product.name}
-                  className="h-24 w-24 rounded-lg object-cover shrink-0"
-                  loading="lazy"
-                />
+                <div className="aspect-[4/3] overflow-hidden bg-muted/10">
+                  <img
+                    src={product.image_url}
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                    loading="lazy"
+                  />
+                </div>
               ) : (
-                <div className="h-24 w-24 rounded-lg bg-muted/20 flex items-center justify-center shrink-0">
-                  <ShoppingBag className="h-6 w-6 text-muted-foreground/30" />
+                <div className="aspect-[4/3] bg-muted/10 flex items-center justify-center">
+                  <ShoppingBag className="h-8 w-8 text-muted-foreground/20" />
                 </div>
               )}
-              <div className="flex flex-col justify-between flex-1 min-w-0 py-0.5">
-                <div>
-                  {product.category && (
-                    <span className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">
-                      {product.category}
-                    </span>
-                  )}
-                  <h3 className="text-sm font-medium text-foreground leading-snug truncate">
-                    {product.name}
-                  </h3>
-                  {product.description && (
-                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
-                      {product.description}
-                    </p>
-                  )}
-                </div>
-                <p className="text-sm font-semibold text-foreground">
+              <div className="p-5 space-y-2">
+                {product.category && (
+                  <span className="text-[10px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
+                    {product.category}
+                  </span>
+                )}
+                <h3 className="text-sm font-semibold text-foreground leading-snug">
+                  {product.name}
+                </h3>
+                {product.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                    {product.description}
+                  </p>
+                )}
+                <p className="text-base font-bold text-foreground pt-1">
                   Bs {Number(product.price).toFixed(2)}
                 </p>
               </div>
