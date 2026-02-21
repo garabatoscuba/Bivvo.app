@@ -19,7 +19,7 @@ const SubscriptionBanner = () => {
       <div className="flex items-center gap-2 bg-info px-4 py-2 text-sm text-info-foreground">
         <Clock className="h-4 w-4 shrink-0" />
         <span>Te quedan <strong>{daysLeft}</strong> días de prueba del plan {planType === 'professional' ? 'Profesional' : 'Básico'}.</span>
-        <Link to="/plans" className="ml-auto shrink-0">
+        <Link to="/plans?buy=true" className="ml-auto shrink-0">
           <Button size="sm" variant="secondary" className="gap-1.5 h-7 text-xs">
             <ShoppingCart className="h-3 w-3" /> Comprar plan
           </Button>

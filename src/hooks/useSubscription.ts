@@ -1,7 +1,6 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { differenceInDays } from 'date-fns';
 
 export type PlanType = 'free' | 'basic' | 'professional';
 export type SubscriptionState = 'active' | 'trial' | 'expiring' | 'blocked';
@@ -26,7 +25,6 @@ export const useSubscription = (): SubscriptionInfo => {
     queryKey: ['user-total-branches', profile?.user_id],
     queryFn: async () => {
       if (!profile?.user_id) return 0;
-      // Get all businesses where user's profile.id is the owner
       const { data: businesses } = await supabase
         .from('businesses')
         .select('id')
@@ -42,6 +40,18 @@ export const useSubscription = (): SubscriptionInfo => {
     enabled: !!profile?.user_id,
   });
 
+  // Get server time to prevent client-side date manipulation
+  const { data: serverNow, isLoading: serverTimeLoading } = useQuery({
+    queryKey: ['server-time'],
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_server_now');
+      if (error) throw error;
+      return new Date(data as string);
+    },
+    refetchInterval: 5 * 60 * 1000, // refresh every 5 min
+    staleTime: 60 * 1000, // 1 min stale time
+  });
+
   const defaults: SubscriptionInfo = {
     status: 'active',
     planType: 'free',
@@ -54,7 +64,7 @@ export const useSubscription = (): SubscriptionInfo => {
     loading: true,
   };
 
-  if (authLoading || branchLoading || !profile) return defaults;
+  if (authLoading || branchLoading || serverTimeLoading || !profile || !serverNow) return defaults;
 
   const plan = (profile.plan_type || 'free') as PlanType;
   const pricePerBranch = plan === 'professional' ? 20 : plan === 'basic' ? 10 : 0;
@@ -84,11 +94,18 @@ export const useSubscription = (): SubscriptionInfo => {
     return { ...base, status: 'active', planType: 'free', daysLeft: null, isBlocked: false };
   }
 
-  const now = new Date();
+  // Use server time instead of client time
+  const now = serverNow;
+
+  // Helper: difference in days
+  const diffDays = (target: Date, from: Date) => {
+    const diff = target.getTime() - from.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  };
 
   // Active paid subscription
   if (profile.subscription_status === 'active' && profile.subscription_ends_at) {
-    const days = differenceInDays(new Date(profile.subscription_ends_at), now);
+    const days = diffDays(new Date(profile.subscription_ends_at), now);
     if (days < 0) {
       return { ...base, status: 'blocked', planType: plan, daysLeft: 0, isBlocked: true };
     }
@@ -105,7 +122,7 @@ export const useSubscription = (): SubscriptionInfo => {
 
   // Trial period
   if (profile.trial_ends_at) {
-    const days = differenceInDays(new Date(profile.trial_ends_at), now);
+    const days = diffDays(new Date(profile.trial_ends_at), now);
     if (days < 0) {
       return { ...base, status: 'blocked', planType: plan, daysLeft: 0, isBlocked: true };
     }
