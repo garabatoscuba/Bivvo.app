@@ -78,6 +78,37 @@ serve(async (req) => {
         });
       }
 
+      if (action === "send_contact") {
+        const { branch_id, name, email, message } = body;
+        if (!branch_id || !name?.trim() || !email?.trim() || !message?.trim()) {
+          return new Response(JSON.stringify({ error: "Datos incompletos" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const { data: storeSettings } = await supabase
+          .from("store_settings").select("contact_email").eq("branch_id", branch_id).maybeSingle();
+        if (!storeSettings?.contact_email) {
+          return new Response(JSON.stringify({ error: "No hay correo de contacto configurado" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        // Store as a notification for the business owner
+        const { data: branch } = await supabase
+          .from("branches").select("business_id").eq("id", branch_id).single();
+        if (branch) {
+          await supabase.from("notifications").insert({
+            business_id: branch.business_id,
+            branch_id,
+            type: "contact_message",
+            title: `Mensaje de ${name.trim()}`,
+            message: `${email.trim()}: ${message.trim().substring(0, 500)}`,
+          });
+        }
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       return new Response(JSON.stringify({ error: "Acción no válida" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -111,7 +142,7 @@ serve(async (req) => {
 
     const { data: settings } = await supabase
       .from("store_settings")
-      .select("is_active, has_delivery, schedule, accent_color, about_text, hero_image_url, hero_title, hero_subtitle, font_heading, font_body, social_instagram, social_facebook, social_tiktok, social_twitter")
+      .select("is_active, has_delivery, schedule, accent_color, about_text, hero_image_url, hero_title, hero_subtitle, font_heading, font_body, social_instagram, social_facebook, social_tiktok, social_twitter, contact_email")
       .eq("branch_id", branch.id)
       .maybeSingle();
 
@@ -165,6 +196,7 @@ serve(async (req) => {
           social_facebook: settings.social_facebook,
           social_tiktok: settings.social_tiktok,
           social_twitter: settings.social_twitter,
+          contact_email: settings.contact_email || null,
         },
         products,
         reviews: (reviews || []).map((r: any) => ({

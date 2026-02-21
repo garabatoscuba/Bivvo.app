@@ -951,6 +951,7 @@ export type Database = {
           about_text: string | null
           accent_color: string
           branch_id: string
+          contact_email: string | null
           created_at: string
           font_body: string | null
           font_heading: string | null
@@ -971,6 +972,7 @@ export type Database = {
           about_text?: string | null
           accent_color?: string
           branch_id: string
+          contact_email?: string | null
           created_at?: string
           font_body?: string | null
           font_heading?: string | null
@@ -991,6 +993,7 @@ export type Database = {
           about_text?: string | null
           accent_color?: string
           branch_id?: string
+          contact_email?: string | null
           created_at?: string
           font_body?: string | null
           font_heading?: string | null

@@ -50,6 +50,7 @@ export interface StorefrontData {
     social_facebook: string | null;
     social_tiktok: string | null;
     social_twitter: string | null;
+    contact_email: string | null;
     schedule: Record<string, { open: string | null; close: string | null; enabled: boolean }>;
   };
   products: StorefrontProduct[];

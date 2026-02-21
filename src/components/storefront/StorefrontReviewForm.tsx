@@ -55,13 +55,7 @@ const StorefrontReviewForm = ({ branchId, accent }: Props) => {
   if (!showForm) {
     return (
       <div className="text-center">
-        <h3
-          className="text-lg sm:text-xl font-bold tracking-tight text-foreground mb-2"
-          style={{ fontFamily: 'var(--font-serif)' }}
-        >
-          ¿Qué te pareció?
-        </h3>
-        <p className="text-sm text-muted-foreground mb-6">Comparte tu experiencia con otros clientes.</p>
+        <p className="text-xs text-muted-foreground mb-5">Háblanos de tus experiencias</p>
         <button
           onClick={() => setShowForm(true)}
           className="inline-flex items-center gap-2 text-sm font-medium px-5 py-2.5 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
@@ -110,7 +104,7 @@ const StorefrontReviewForm = ({ branchId, accent }: Props) => {
         <textarea
           value={comment}
           onChange={(e) => setComment(e.target.value)}
-          placeholder="¿Qué te pareció?"
+          placeholder="Háblanos de tus experiencias"
           rows={3}
           className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 resize-none"
         />
