@@ -1,123 +1,145 @@
-import { useState } from 'react';
-import { Gift, Loader2, CheckCircle, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Gift, Loader2, CheckCircle, Star, LogIn } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
 interface Props {
   branchId: string;
   accent: string;
-  apiBase: string;
-  apiKey: string;
+  portalPath: string; // current portal URL path e.g. /tienda/biz/branch
 }
 
-const StorefrontAffiliateForm = ({ branchId, accent, apiBase, apiKey }: Props) => {
-  const [open, setOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [earnedPoints, setEarnedPoints] = useState(0);
+const StorefrontAffiliateForm = ({ branchId, accent, portalPath }: Props) => {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<any>(null);
+  const [affiliationStatus, setAffiliationStatus] = useState<'none' | 'joined' | 'checking'>('checking');
+  const [joining, setJoining] = useState(false);
+  const [points, setPoints] = useState(0);
 
-  const filledCount = [name.trim(), phone.trim(), email.trim()].filter(Boolean).length;
+  // Check if user is logged in
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setUser(session?.user ?? null);
+      
+      if (session?.user) {
+        // Check if already affiliated to this branch
+        try {
+          const res = await supabase.functions.invoke('affiliate-join', {
+            body: { branch_id: branchId },
+          });
+          if (res.data?.success) {
+            setPoints(res.data.affiliation?.points || 10);
+            setAffiliationStatus('joined');
+          } else {
+            setAffiliationStatus('none');
+          }
+        } catch {
+          setAffiliationStatus('none');
+        }
+      } else {
+        setAffiliationStatus('none');
+      }
+      setLoading(false);
+    };
 
-  const handleSubmit = async () => {
-    if (filledCount === 0) return;
-    setLoading(true);
+    checkAuth();
+
+    // Listen for auth changes (user just logged in from redirect)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        setUser(session.user);
+        // Auto-affiliate on sign in
+        handleJoin(session.access_token);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [branchId]);
+
+  const handleJoin = async (token?: string) => {
+    setJoining(true);
     try {
-      const res = await fetch(`${apiBase}/functions/v1/public-storefront`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
-        body: JSON.stringify({ action: 'register_affiliate', branch_id: branchId, name, phone, email }),
+      const res = await supabase.functions.invoke('affiliate-join', {
+        body: { branch_id: branchId },
       });
-      const data = await res.json();
-      if (data.success) {
-        setEarnedPoints(data.affiliate.points);
-        setSuccess(true);
+      if (res.data?.success) {
+        setPoints(res.data.affiliation?.points || 10);
+        setAffiliationStatus('joined');
       }
     } catch {
-      // silent fail
+      // silent
     } finally {
-      setLoading(false);
+      setJoining(false);
     }
   };
 
-  if (success) {
+  const handleLoginRedirect = () => {
+    // Save return info before navigating to auth
+    sessionStorage.setItem('affiliate_redirect', portalPath);
+    sessionStorage.setItem('affiliate_branch_id', branchId);
+    navigate('/auth');
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-border p-6 text-center bg-card">
+        <Loader2 className="h-5 w-5 mx-auto animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Already affiliated
+  if (affiliationStatus === 'joined') {
     return (
       <div className="rounded-2xl border border-border p-6 text-center space-y-3 bg-card">
         <CheckCircle className="h-10 w-10 mx-auto" style={{ color: accent }} />
-        <p className="text-sm font-medium text-foreground">¡Te has unido exitosamente!</p>
-        <p className="text-xs text-muted-foreground">Ganaste <span className="font-semibold" style={{ color: accent }}>{earnedPoints} puntos</span> de bienvenida.</p>
+        <p className="text-sm font-medium text-foreground">¡Ya eres miembro!</p>
+        <p className="text-xs text-muted-foreground">
+          Tienes <span className="font-semibold" style={{ color: accent }}>{points} puntos</span> acumulados.
+        </p>
       </div>
     );
   }
 
-  if (!open) {
+  // Not logged in — show CTA to login/register
+  if (!user) {
     return (
-      <button
-        onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-medium text-white transition-all hover:opacity-90"
-        style={{ backgroundColor: accent }}
-      >
-        <Gift className="h-4 w-4" />
-        Únete y gana puntos
-      </button>
+      <div className="rounded-2xl border border-border p-5 space-y-4 bg-card">
+        <div className="text-center space-y-1">
+          <Gift className="h-8 w-8 mx-auto" style={{ color: accent }} />
+          <h3 className="text-sm font-semibold text-foreground">Programa de fidelización</h3>
+          <p className="text-xs text-muted-foreground">Únete para acumular puntos y obtener beneficios exclusivos.</p>
+        </div>
+        <button
+          onClick={handleLoginRedirect}
+          className="w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-medium text-white transition-all hover:opacity-90"
+          style={{ backgroundColor: accent }}
+        >
+          <LogIn className="h-4 w-4" />
+          Únete y gana puntos
+        </button>
+      </div>
     );
   }
 
+  // Logged in but not affiliated yet
   return (
     <div className="rounded-2xl border border-border p-5 space-y-4 bg-card">
       <div className="text-center space-y-1">
-        <h3 className="text-sm font-semibold text-foreground">Programa de fidelización</h3>
-        <p className="text-xs text-muted-foreground">Completa tus datos y gana puntos. Ningún campo es obligatorio.</p>
+        <Gift className="h-8 w-8 mx-auto" style={{ color: accent }} />
+        <h3 className="text-sm font-semibold text-foreground">¡Únete a esta tienda!</h3>
+        <p className="text-xs text-muted-foreground">Afíliate para acumular puntos con tus compras aquí.</p>
       </div>
-
-      <div className="space-y-3">
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-muted-foreground">Nombre</label>
-            {name.trim() && <span className="text-[10px] font-medium flex items-center gap-0.5" style={{ color: accent }}><Star className="h-2.5 w-2.5" /> +10 pts</span>}
-          </div>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Tu nombre"
-            className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-muted-foreground">Teléfono</label>
-            {phone.trim() && <span className="text-[10px] font-medium flex items-center gap-0.5" style={{ color: accent }}><Star className="h-2.5 w-2.5" /> +10 pts</span>}
-          </div>
-          <input
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Tu teléfono"
-            className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-        <div>
-          <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-muted-foreground">Email</label>
-            {email.trim() && <span className="text-[10px] font-medium flex items-center gap-0.5" style={{ color: accent }}><Star className="h-2.5 w-2.5" /> +10 pts</span>}
-          </div>
-          <input
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Tu email"
-            type="email"
-            className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-          />
-        </div>
-      </div>
-
       <button
-        onClick={handleSubmit}
-        disabled={loading || filledCount === 0}
-        className="w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
+        onClick={() => handleJoin()}
+        disabled={joining}
+        className="w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
         style={{ backgroundColor: accent }}
       >
-        {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
-        {filledCount > 0 ? `Unirme (+${filledCount * 10} pts)` : 'Completa al menos un campo'}
+        {joining ? <Loader2 className="h-4 w-4 animate-spin" /> : <Star className="h-4 w-4" />}
+        Afiliarme (+10 pts de bienvenida)
       </button>
     </div>
   );

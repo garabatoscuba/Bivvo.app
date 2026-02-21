@@ -40,14 +40,28 @@ const Auth = () => {
     }
   }, []);
 
+  const isAffiliateFlow = !!sessionStorage.getItem('affiliate_branch_id');
+
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && user) {
-      // Check if affiliated user should go back to storefront
       const affiliateRedirect = sessionStorage.getItem('affiliate_redirect');
-      if (affiliateRedirect) {
-        sessionStorage.removeItem('affiliate_redirect');
-        navigate(affiliateRedirect);
+      const affiliateBranchId = sessionStorage.getItem('affiliate_branch_id');
+
+      if (affiliateRedirect && affiliateBranchId) {
+        const doAffiliate = async () => {
+          try {
+            await supabase.functions.invoke('affiliate-join', {
+              body: { branch_id: affiliateBranchId },
+            });
+          } catch {
+            // silent
+          }
+          sessionStorage.removeItem('affiliate_redirect');
+          sessionStorage.removeItem('affiliate_branch_id');
+          navigate(affiliateRedirect);
+        };
+        doAffiliate();
         return;
       }
       navigate('/');
@@ -92,14 +106,7 @@ const Auth = () => {
         title: '¡Bienvenido!',
         description: 'Has iniciado sesión correctamente.'
       });
-      // Redirect handled by the useEffect above (checks affiliate_redirect)
-      const affiliateRedirect = sessionStorage.getItem('affiliate_redirect');
-      if (affiliateRedirect) {
-        sessionStorage.removeItem('affiliate_redirect');
-        navigate(affiliateRedirect);
-      } else {
-        navigate('/');
-      }
+      // Redirect is handled by the useEffect above
     }
   };
 

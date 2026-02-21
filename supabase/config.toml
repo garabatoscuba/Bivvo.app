@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.public-storefront]
 verify_jwt = false
+
+[functions.affiliate-join]
+verify_jwt = false
