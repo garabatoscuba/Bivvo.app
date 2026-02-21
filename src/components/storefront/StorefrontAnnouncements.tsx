@@ -17,7 +17,7 @@ const StorefrontAnnouncements = ({ announcements, accent }: Props) => {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-semibold text-neutral-900 flex items-center gap-2">
+      <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
         <Megaphone className="h-4 w-4" style={{ color: accent }} />
         Ofertas y anuncios
       </h2>
@@ -25,8 +25,8 @@ const StorefrontAnnouncements = ({ announcements, accent }: Props) => {
         {announcements.map(a => (
           <div
             key={a.id}
-            className="rounded-xl p-4 border-l-4"
-            style={{ borderColor: accent, backgroundColor: `${accent}08` }}
+            className="rounded-xl p-4 border-l-4 bg-card"
+            style={{ borderColor: accent }}
           >
             <div className="flex items-center gap-2 mb-1">
               {a.badge_text && (
@@ -37,10 +37,10 @@ const StorefrontAnnouncements = ({ announcements, accent }: Props) => {
                   {a.badge_text}
                 </span>
               )}
-              <h3 className="text-sm font-semibold text-neutral-900">{a.title}</h3>
+              <h3 className="text-sm font-semibold text-foreground">{a.title}</h3>
             </div>
             {a.description && (
-              <p className="text-xs text-neutral-500 leading-relaxed">{a.description}</p>
+              <p className="text-xs text-muted-foreground leading-relaxed">{a.description}</p>
             )}
           </div>
         ))}

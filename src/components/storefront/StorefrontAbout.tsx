@@ -12,7 +12,7 @@ const SocialIcon = ({ href, label, children }: { href: string; label: string; ch
     target="_blank"
     rel="noopener noreferrer"
     aria-label={label}
-    className="h-9 w-9 rounded-full bg-neutral-50 flex items-center justify-center text-neutral-400 hover:text-neutral-600 hover:bg-neutral-100 transition-colors"
+    className="h-9 w-9 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/30 transition-colors"
   >
     {children}
   </a>
@@ -26,16 +26,16 @@ const StorefrontAbout = ({ aboutText, socialInstagram, socialFacebook, socialTik
     <div>
       {aboutText && (
         <>
-          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
             Sobre nosotros
           </h3>
-          <p className="text-sm text-neutral-500 leading-relaxed">{aboutText}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed">{aboutText}</p>
         </>
       )}
 
       {hasSocials && (
         <div className={aboutText ? 'mt-5' : ''}>
-          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">
+          <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">
             Síguenos
           </h3>
           <div className="flex gap-2">
