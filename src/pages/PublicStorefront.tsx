@@ -6,6 +6,10 @@ import StorefrontCatalog from '@/components/storefront/StorefrontCatalog';
 import StorefrontSchedule from '@/components/storefront/StorefrontSchedule';
 import StorefrontAbout from '@/components/storefront/StorefrontAbout';
 import StorefrontFooter from '@/components/storefront/StorefrontFooter';
+import StorefrontSearch from '@/components/storefront/StorefrontSearch';
+import StorefrontAffiliateForm from '@/components/storefront/StorefrontAffiliateForm';
+import StorefrontReviews from '@/components/storefront/StorefrontReviews';
+import StorefrontAnnouncements from '@/components/storefront/StorefrontAnnouncements';
 
 export interface StorefrontProduct {
   id: string;
@@ -19,9 +23,24 @@ export interface StorefrontProduct {
   stock: number;
 }
 
+export interface StorefrontReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+  author: string;
+}
+
+export interface StorefrontAnnouncement {
+  id: string;
+  title: string;
+  description: string | null;
+  badge_text: string | null;
+}
+
 export interface StorefrontData {
   business: { name: string; logo_url: string | null };
-  branch: { name: string; address: string | null; phone: string | null };
+  branch: { id: string; name: string; address: string | null; phone: string | null };
   settings: {
     has_delivery: boolean;
     accent_color: string;
@@ -33,6 +52,8 @@ export interface StorefrontData {
     schedule: Record<string, { open: string | null; close: string | null; enabled: boolean }>;
   };
   products: StorefrontProduct[];
+  reviews: StorefrontReview[];
+  announcements: StorefrontAnnouncement[];
 }
 
 const DAY_MAP: Record<number, string> = {
@@ -49,18 +70,22 @@ function isOpenNow(schedule: StorefrontData['settings']['schedule']): boolean {
   return currentTime >= day.open && currentTime <= day.close;
 }
 
+const API_BASE = import.meta.env.VITE_SUPABASE_URL;
+const API_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
 const PublicStorefront = () => {
   const { bizSlug, branchSlug } = useParams<{ bizSlug: string; branchSlug: string }>();
   const [data, setData] = useState<StorefrontData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/public-storefront?biz=${bizSlug}&branch=${branchSlug}`,
-          { headers: { 'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+          `${API_BASE}/functions/v1/public-storefront?biz=${bizSlug}&branch=${branchSlug}`,
+          { headers: { 'apikey': API_KEY } }
         );
         const json = await response.json();
         if (!response.ok) {
@@ -99,14 +124,53 @@ const PublicStorefront = () => {
   const open = isOpenNow(data.settings.schedule);
   const accent = data.settings.accent_color || '#18181b';
 
+  // Filter products by search
+  const filteredProducts = search.trim()
+    ? data.products.filter(p =>
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        (p.description && p.description.toLowerCase().includes(search.toLowerCase())) ||
+        (p.category && p.category.toLowerCase().includes(search.toLowerCase()))
+      )
+    : data.products;
+
   return (
     <div className="min-h-screen bg-white flex flex-col" style={{ '--accent': accent } as React.CSSProperties}>
       <StorefrontHeader data={data} isOpen={open} accent={accent} />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
-        <div className="grid gap-12 lg:grid-cols-[1fr_260px]">
-          <StorefrontCatalog products={data.products} accent={accent} />
-          <aside className="space-y-8">
+        {/* Search bar */}
+        <div className="mb-8 max-w-md">
+          <StorefrontSearch value={search} onChange={setSearch} />
+        </div>
+
+        {/* Announcements */}
+        {data.announcements.length > 0 && (
+          <div className="mb-10">
+            <StorefrontAnnouncements announcements={data.announcements} accent={accent} />
+          </div>
+        )}
+
+        <div className="grid gap-12 lg:grid-cols-[1fr_280px]">
+          {/* Main content */}
+          <div className="space-y-12">
+            <StorefrontCatalog products={filteredProducts} accent={accent} />
+            <StorefrontReviews
+              reviews={data.reviews}
+              branchId={data.branch.id}
+              accent={accent}
+              apiBase={API_BASE}
+              apiKey={API_KEY}
+            />
+          </div>
+
+          {/* Sidebar */}
+          <aside className="space-y-6">
+            <StorefrontAffiliateForm
+              branchId={data.branch.id}
+              accent={accent}
+              apiBase={API_BASE}
+              apiKey={API_KEY}
+            />
             <StorefrontSchedule schedule={data.settings.schedule} />
             <StorefrontAbout
               aboutText={data.settings.about_text}
