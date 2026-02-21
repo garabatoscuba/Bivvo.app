@@ -15,8 +15,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Store, Truck, Clock, Save, Loader2, ExternalLink, Copy, Palette, Info, Globe,
-  Megaphone, Plus, Trash2, Star, Eye, EyeOff, MessageSquare,
+  Megaphone, Plus, Trash2, Star, Eye, EyeOff, MessageSquare, Users,
 } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 
 const DAY_LABELS: Record<string, string> = {
@@ -168,6 +169,20 @@ const StoreSettingsPage = () => {
     },
   });
 
+  // Affiliates
+  const { data: affiliates = [], isLoading: affiliatesLoading } = useQuery({
+    queryKey: ['affiliates-admin', branchId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('affiliates')
+        .select('id, name, phone, email, points, created_at')
+        .eq('branch_id', branchId!)
+        .order('created_at', { ascending: false });
+      return data || [];
+    },
+    enabled: !!branchId,
+  });
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -188,6 +203,7 @@ const StoreSettingsPage = () => {
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="announcements">Anuncios</TabsTrigger>
               <TabsTrigger value="reviews">Reseñas</TabsTrigger>
+              <TabsTrigger value="affiliates">Clientes</TabsTrigger>
             </TabsList>
 
             {/* GENERAL TAB */}
@@ -434,6 +450,50 @@ const StoreSettingsPage = () => {
                           </Button>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* AFFILIATES TAB */}
+            <TabsContent value="affiliates" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> Clientes afiliados</CardTitle>
+                  <CardDescription>Clientes que se han registrado a través de tu portal público.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {affiliatesLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground mx-auto" />
+                  ) : affiliates.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Aún no hay clientes afiliados.</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Nombre</TableHead>
+                            <TableHead>Teléfono</TableHead>
+                            <TableHead>Email</TableHead>
+                            <TableHead className="text-right">Puntos</TableHead>
+                            <TableHead>Fecha</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {affiliates.map((a: any) => (
+                            <TableRow key={a.id}>
+                              <TableCell className="font-medium">{a.name || <span className="text-muted-foreground italic">Sin nombre</span>}</TableCell>
+                              <TableCell>{a.phone || <span className="text-muted-foreground">—</span>}</TableCell>
+                              <TableCell>{a.email || <span className="text-muted-foreground">—</span>}</TableCell>
+                              <TableCell className="text-right font-semibold">{a.points}</TableCell>
+                              <TableCell className="text-muted-foreground text-xs">
+                                {new Date(a.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
                     </div>
                   )}
                 </CardContent>
