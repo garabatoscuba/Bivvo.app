@@ -53,8 +53,7 @@ const Plans = () => {
   // Auto-open purchase dialog when coming from banner with ?buy=true
   useEffect(() => {
     if (searchParams.get('buy') === 'true') {
-      const plan = planType === 'professional' ? 'professional' : 'basic';
-      setSelectedPlan(plan);
+      setSelectedPlan('basic');
       setSelectedMonths('1');
       setRequestOpen(true);
       // Clean up URL without full reload
@@ -316,7 +315,7 @@ const Plans = () => {
             </CardHeader>
             <CardContent className="flex-1">
               <p className="text-3xl font-bold">$20 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
-              <p className="text-sm text-muted-foreground">7 días gratis · Sin tarjeta</p>
+              <p className="text-sm text-muted-foreground">En construcción · Disponible pronto</p>
               <ul className="mt-4 space-y-2">
                 {professionalFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
@@ -330,22 +329,9 @@ const Plans = () => {
               {planType === 'professional' && status !== 'blocked' ? (
                 <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
               ) : (
-                <>
-                  <Button variant="outline" className="w-full gap-2" onClick={() => openRequest('professional')}>
-                    <Send className="h-4 w-4" /> Solicitar plan
-                  </Button>
-                  {planType === 'free' && (
-                    <Button
-                      variant="ghost"
-                      className="w-full gap-2"
-                      onClick={() => trialMutation.mutate('professional')}
-                      disabled={trialMutation.isPending}
-                    >
-                      {trialMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
-                      Probar 7 días gratis
-                    </Button>
-                  )}
-                </>
+                <Badge variant="secondary" className="w-full justify-center py-2 text-muted-foreground">
+                  🚧 Próximamente
+                </Badge>
               )}
             </CardFooter>
           </Card>
@@ -383,7 +369,6 @@ const Plans = () => {
                 className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="basic">Básico ($10/mes/sucursal)</option>
-                <option value="professional">Profesional ($20/mes/sucursal)</option>
               </select>
             </div>
 
