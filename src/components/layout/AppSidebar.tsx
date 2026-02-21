@@ -92,21 +92,20 @@ const AppSidebar = () => {
 
   const createBizMutation = useMutation({
     mutationFn: async ({ name, business_type }: { name: string; business_type: string }) => {
-      const { data, error } = await supabase.functions.invoke('create-business', {
-        body: { name, business_type },
+      const { error } = await supabase.from('business_requests').insert({
+        user_id: profile!.user_id,
+        request_type: 'business',
+        business_name: name,
+        business_type,
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data.business;
     },
-    onSuccess: (biz) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
-      queryClient.invalidateQueries({ queryKey: ['branches'] });
-      toast({ title: 'Negocio creado', description: `${biz.name} está listo.` });
+      toast({ title: 'Solicitud enviada', description: 'Tu solicitud de nuevo negocio está pendiente de aprobación por el administrador.' });
       setNewBizOpen(false);
       setBizName('');
       setBizType('store');
-      window.location.reload();
     },
     onError: (err: any) => {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -131,6 +130,7 @@ const AppSidebar = () => {
   const branchMutation = useMutation({
     mutationFn: async () => {
       if (editingBranch) {
+        // Editing existing branch - direct update (allowed)
         const { error } = await supabase
           .from('branches')
           .update({
@@ -141,21 +141,20 @@ const AppSidebar = () => {
           .eq('id', editingBranch.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('branches')
-          .insert({
-            business_id: branchBizId,
-            name: branchName.trim(),
-            address: branchAddress.trim() || null,
-            phone: branchPhone.trim() || null,
-          });
+        // Creating new branch - submit request for approval
+        const { error } = await supabase.from('business_requests').insert({
+          user_id: profile!.user_id,
+          request_type: 'branch',
+          branch_name: branchName.trim(),
+          branch_business_id: branchBizId,
+        });
         if (error) throw error;
       }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
       queryClient.invalidateQueries({ queryKey: ['branches'] });
-      toast({ title: editingBranch ? 'Sucursal actualizada' : 'Sucursal creada' });
+      toast({ title: editingBranch ? 'Sucursal actualizada' : 'Solicitud enviada', description: editingBranch ? undefined : 'Tu solicitud de nueva sucursal está pendiente de aprobación.' });
       setBranchDialogOpen(false);
     },
     onError: (err: any) => {
@@ -499,7 +498,7 @@ const AppSidebar = () => {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Nuevo Negocio</DialogTitle>
-            <DialogDescription>Se creará con una sucursal principal.</DialogDescription>
+            <DialogDescription>Se enviará una solicitud de aprobación al administrador.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
@@ -529,7 +528,7 @@ const AppSidebar = () => {
               onClick={() => createBizMutation.mutate({ name: bizName, business_type: bizType })}
               disabled={!bizName.trim() || createBizMutation.isPending}
             >
-              {createBizMutation.isPending ? 'Creando...' : 'Crear'}
+              {createBizMutation.isPending ? 'Enviando...' : 'Solicitar'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -570,7 +569,7 @@ const AppSidebar = () => {
           <DialogHeader>
             <DialogTitle>{editingBranch ? 'Editar Sucursal' : 'Nueva Sucursal'}</DialogTitle>
             <DialogDescription>
-              {editingBranch ? 'Actualiza los datos de la sucursal.' : 'Agrega una nueva sucursal a este negocio.'}
+              {editingBranch ? 'Actualiza los datos de la sucursal.' : 'Se enviará una solicitud de aprobación al administrador.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -606,7 +605,7 @@ const AppSidebar = () => {
               onClick={() => branchMutation.mutate()}
               disabled={!branchName.trim() || branchMutation.isPending}
             >
-              {branchMutation.isPending ? 'Guardando...' : editingBranch ? 'Guardar' : 'Crear'}
+              {branchMutation.isPending ? 'Guardando...' : editingBranch ? 'Guardar' : 'Solicitar'}
             </Button>
           </DialogFooter>
         </DialogContent>

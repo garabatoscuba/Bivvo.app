@@ -185,6 +185,62 @@ export type Database = {
           },
         ]
       }
+      business_requests: {
+        Row: {
+          admin_notes: string | null
+          approved_at: string | null
+          approved_by: string | null
+          branch_business_id: string | null
+          branch_name: string | null
+          business_name: string | null
+          business_type: string | null
+          created_at: string
+          id: string
+          request_type: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          branch_business_id?: string | null
+          branch_name?: string | null
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string
+          id?: string
+          request_type?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          branch_business_id?: string | null
+          branch_name?: string | null
+          business_name?: string | null
+          business_type?: string | null
+          created_at?: string
+          id?: string
+          request_type?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_requests_branch_business_id_fkey"
+            columns: ["branch_business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       businesses: {
         Row: {
           business_type: string

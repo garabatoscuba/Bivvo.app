@@ -1,4 +1,4 @@
-import { Bell, PackageX, ShoppingCart, ArrowRightLeft, Check, CheckCheck } from 'lucide-react';
+import { Bell, PackageX, ShoppingCart, ArrowRightLeft, Check, CheckCheck, Store, XCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -9,8 +9,10 @@ import { es } from 'date-fns/locale';
 const typeConfig: Record<string, { icon: typeof Bell; className: string }> = {
   low_stock: { icon: PackageX, className: 'text-destructive bg-destructive/10' },
   sale_cancelled: { icon: ShoppingCart, className: 'text-destructive bg-destructive/10' },
-  sale: { icon: ShoppingCart, className: 'text-success bg-success/10' },
+  sale: { icon: ShoppingCart, className: 'text-primary bg-primary/10' },
   inventory_movement: { icon: ArrowRightLeft, className: 'text-primary bg-primary/10' },
+  business_request_approved: { icon: Store, className: 'text-primary bg-primary/10' },
+  business_request_rejected: { icon: XCircle, className: 'text-destructive bg-destructive/10' },
 };
 
 function NotificationItem({ notif, onRead }: { notif: Notification; onRead: (id: string) => void }) {

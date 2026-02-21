@@ -39,13 +39,14 @@ const AdminDashboard = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-all-data'],
     queryFn: async () => {
-      const [businesses, profiles, products, sales, branches, planRequests] = await Promise.all([
+      const [businesses, profiles, products, sales, branches, planRequests, businessRequests] = await Promise.all([
         supabase.from('businesses').select('*').order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, full_name, email, business_id, user_id, plan_type, subscription_status'),
         supabase.from('products').select('id, business_id'),
         supabase.from('sales').select('id, total, created_at, status, branch_id'),
         supabase.from('branches').select('id, business_id'),
         supabase.from('plan_requests').select('*').order('created_at', { ascending: false }),
+        supabase.from('business_requests').select('*').order('created_at', { ascending: false }),
       ]);
 
       const biz = businesses.data || [];
@@ -54,6 +55,7 @@ const AdminDashboard = () => {
       const allSales = sales.data || [];
       const allBranches = branches.data || [];
       const allPlanRequests = planRequests.data || [];
+      const allBusinessRequests = businessRequests.data || [];
       const completedSales = allSales.filter(s => s.status === 'completed');
       const totalRevenue = completedSales.reduce((sum, s) => sum + Number(s.total), 0);
 
@@ -90,7 +92,13 @@ const AdminDashboard = () => {
         return { ...r, user_name: prof?.full_name || 'Desconocido', user_email: prof?.email || '' };
       });
 
+      const enrichedBizRequests = allBusinessRequests.map((r: any) => {
+        const prof = allProfiles.find(p => (p as any).user_id === r.user_id);
+        return { ...r, user_name: prof?.full_name || 'Desconocido', user_email: prof?.email || '' };
+      });
+
       const pendingRequests = enrichedRequests.filter((r: any) => r.status === 'pending');
+      const pendingBizRequests = enrichedBizRequests.filter((r: any) => r.status === 'pending');
 
       return {
         businesses: enriched,
@@ -103,6 +111,8 @@ const AdminDashboard = () => {
         monthlyData,
         planRequests: enrichedRequests,
         pendingRequests,
+        businessRequests: enrichedBizRequests,
+        pendingBizRequests,
       };
     },
   });
@@ -180,6 +190,23 @@ const AdminDashboard = () => {
     },
   });
 
+  const approveBizRequestMutation = useMutation({
+    mutationFn: async ({ requestId, action }: { requestId: string; action: 'approved' | 'rejected' }) => {
+      const { data, error } = await supabase.functions.invoke('approve-business-request', {
+        body: { request_id: requestId, action },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
+      toast({ title: 'Solicitud procesada' });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+    },
+  });
+
   const getPlanLabel = (plan: string | null) => {
     if (plan === 'professional') return 'Profesional';
     if (plan === 'basic') return 'Básico';
@@ -225,9 +252,15 @@ const AdminDashboard = () => {
                 <BarChart3 className="h-3.5 w-3.5" /> Estadísticas
               </TabsTrigger>
               <TabsTrigger value="requests" className="gap-1.5 text-xs">
-                <FileText className="h-3.5 w-3.5" /> Solicitudes
+                <FileText className="h-3.5 w-3.5" /> Planes
                 {(data?.pendingRequests?.length || 0) > 0 && (
                   <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{data?.pendingRequests?.length}</Badge>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="biz-requests" className="gap-1.5 text-xs">
+                <Building2 className="h-3.5 w-3.5" /> Negocios/Suc.
+                {(data?.pendingBizRequests?.length || 0) > 0 && (
+                  <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{data?.pendingBizRequests?.length}</Badge>
                 )}
               </TabsTrigger>
             </TabsList>
@@ -480,6 +513,85 @@ const AdminDashboard = () => {
                   </div>
                 ) : (
                   <div className="py-12 text-center text-sm text-muted-foreground">No hay solicitudes</div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* BUSINESS REQUESTS */}
+          <TabsContent value="biz-requests" className="space-y-4 mt-0">
+            <Card className="border-border/60">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium">Solicitudes de Negocios y Sucursales</CardTitle>
+                <CardDescription className="text-xs">Aprueba o rechaza las solicitudes de creación</CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                {data?.businessRequests && data.businessRequests.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent">
+                          <TableHead className="text-[11px] uppercase tracking-wide">Solicitante</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Tipo</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Nombre</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Estado</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide">Fecha</TableHead>
+                          <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {data.businessRequests.map((r: any) => (
+                          <TableRow key={r.id}>
+                            <TableCell>
+                              <p className="text-sm font-medium">{r.user_name}</p>
+                              <p className="text-[11px] text-muted-foreground">{r.user_email}</p>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="text-[11px]">
+                                {r.request_type === 'business' ? '🏪 Negocio' : '📍 Sucursal'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-sm">{r.business_name || r.branch_name}</TableCell>
+                            <TableCell>
+                              <Badge
+                                variant={r.status === 'approved' ? 'default' : r.status === 'rejected' ? 'destructive' : 'secondary'}
+                                className="text-[11px]"
+                              >
+                                {r.status === 'approved' ? 'Aprobado' : r.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-[11px] text-muted-foreground">
+                              {format(new Date(r.created_at), "d MMM yy", { locale: es })}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {r.status === 'pending' && (
+                                <div className="flex items-center justify-end gap-1">
+                                  <Button
+                                    variant="ghost" size="icon"
+                                    className="h-7 w-7 text-primary hover:bg-primary/10"
+                                    onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'approved' })}
+                                    disabled={approveBizRequestMutation.isPending}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost" size="icon"
+                                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                    onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'rejected' })}
+                                    disabled={approveBizRequestMutation.isPending}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="py-12 text-center text-sm text-muted-foreground">No hay solicitudes de negocios</div>
                 )}
               </CardContent>
             </Card>
