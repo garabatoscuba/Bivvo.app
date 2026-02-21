@@ -77,6 +77,7 @@ const StoreSettingsPage = () => {
   const [socialFacebook, setSocialFacebook] = useState('');
   const [socialTiktok, setSocialTiktok] = useState('');
   const [socialTwitter, setSocialTwitter] = useState('');
+  const [contactEmail, setContactEmail] = useState('');
   const [uploadingHero, setUploadingHero] = useState(false);
 
   useEffect(() => {
@@ -95,6 +96,7 @@ const StoreSettingsPage = () => {
       setSocialFacebook(settings.social_facebook || '');
       setSocialTiktok(settings.social_tiktok || '');
       setSocialTwitter(settings.social_twitter || '');
+      setContactEmail(settings.contact_email || '');
     }
   }, [settings]);
 
@@ -148,6 +150,7 @@ const StoreSettingsPage = () => {
       social_instagram: socialInstagram || null,
       social_facebook: socialFacebook || null, social_tiktok: socialTiktok || null,
       social_twitter: socialTwitter || null,
+      contact_email: contactEmail || null,
     });
   };
 
@@ -408,6 +411,20 @@ const StoreSettingsPage = () => {
                   <div>
                     <Label className="text-xs text-muted-foreground">X / Twitter</Label>
                     <Input value={socialTwitter} onChange={(e) => setSocialTwitter(e.target.value)} placeholder="https://x.com/tu-negocio" className="h-8 text-sm" />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Correo de contacto</CardTitle>
+                  <CardDescription>Los clientes podrán enviarte mensajes desde el portal. Se recibirán como notificaciones.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Email de contacto</Label>
+                    <Input value={contactEmail} onChange={(e) => setContactEmail(e.target.value)} placeholder="contacto@mi-negocio.com" className="h-8 text-sm" type="email" maxLength={255} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Si lo dejas vacío, el formulario de contacto no aparecerá en el portal.</p>
                   </div>
                 </CardContent>
               </Card>

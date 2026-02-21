@@ -36,6 +36,7 @@ export interface StoreSettings {
   social_facebook: string | null;
   social_tiktok: string | null;
   social_twitter: string | null;
+  contact_email: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -88,6 +89,7 @@ export const useStoreSettings = () => {
       social_facebook?: string | null;
       social_tiktok?: string | null;
       social_twitter?: string | null;
+      contact_email?: string | null;
     }) => {
       if (!branchId) throw new Error('No branch');
       const payload: any = { ...updates };
