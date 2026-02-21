@@ -27,6 +27,11 @@ export interface StoreSettings {
   schedule: WeekSchedule;
   accent_color: string;
   about_text: string | null;
+  hero_image_url: string | null;
+  hero_title: string | null;
+  hero_subtitle: string | null;
+  font_heading: string;
+  font_body: string;
   social_instagram: string | null;
   social_facebook: string | null;
   social_tiktok: string | null;
@@ -74,6 +79,11 @@ export const useStoreSettings = () => {
       schedule?: WeekSchedule;
       accent_color?: string;
       about_text?: string | null;
+      hero_image_url?: string | null;
+      hero_title?: string | null;
+      hero_subtitle?: string | null;
+      font_heading?: string;
+      font_body?: string;
       social_instagram?: string | null;
       social_facebook?: string | null;
       social_tiktok?: string | null;

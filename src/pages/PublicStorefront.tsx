@@ -41,6 +41,11 @@ export interface StorefrontData {
     has_delivery: boolean;
     accent_color: string;
     about_text: string | null;
+    hero_image_url: string | null;
+    hero_title: string | null;
+    hero_subtitle: string | null;
+    font_heading: string;
+    font_body: string;
     social_instagram: string | null;
     social_facebook: string | null;
     social_tiktok: string | null;
@@ -70,6 +75,24 @@ const API_BASE = import.meta.env.VITE_SUPABASE_URL;
 const API_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 export type StorefrontTab = 'home' | 'catalog' | 'contact';
+
+const FONT_MAP: Record<string, string> = {
+  'Lora': "'Lora', ui-serif, Georgia, serif",
+  'Merriweather': "'Merriweather', ui-serif, Georgia, serif",
+  'Libre Baskerville': "'Libre Baskerville', ui-serif, Georgia, serif",
+  'Libre Caslon Text': "'Libre Caslon Text', ui-serif, Georgia, serif",
+  'Work Sans': "'Work Sans', ui-sans-serif, system-ui, sans-serif",
+  'DM Sans': "'DM Sans', ui-sans-serif, system-ui, sans-serif",
+  'Inter': "'Inter', ui-sans-serif, system-ui, sans-serif",
+  'Poppins': "'Poppins', ui-sans-serif, system-ui, sans-serif",
+  'Open Sans': "'Open Sans', ui-sans-serif, system-ui, sans-serif",
+  'Roboto': "'Roboto', ui-sans-serif, system-ui, sans-serif",
+  'Space Mono': "'Space Mono', ui-monospace, monospace",
+  'JetBrains Mono': "'JetBrains Mono', ui-monospace, monospace",
+  'Inconsolata': "'Inconsolata', ui-monospace, monospace",
+  'Roboto Mono': "'Roboto Mono', ui-monospace, monospace",
+  'Source Code Pro': "'Source Code Pro', ui-monospace, monospace",
+};
 
 const PublicStorefront = () => {
   const { bizSlug, branchSlug } = useParams<{ bizSlug: string; branchSlug: string }>();
@@ -123,8 +146,18 @@ const PublicStorefront = () => {
   const accent = data.settings.accent_color || '#18181b';
   const portalPath = `/tienda/${bizSlug}/${branchSlug}`;
 
+  const fontHeading = FONT_MAP[data.settings.font_heading] || FONT_MAP['Lora'];
+  const fontBody = FONT_MAP[data.settings.font_body] || FONT_MAP['Work Sans'];
+
   return (
-    <div className="min-h-screen bg-background flex flex-col" style={{ '--accent': accent } as React.CSSProperties}>
+    <div
+      className="min-h-screen bg-background flex flex-col"
+      style={{
+        '--accent': accent,
+        '--font-heading': fontHeading,
+        '--font-body': fontBody,
+      } as React.CSSProperties}
+    >
       <StorefrontNavbar
         data={data}
         isOpen={open}
@@ -134,7 +167,7 @@ const PublicStorefront = () => {
         portalPath={portalPath}
       />
 
-      <main className="flex-1">
+      <main className="flex-1" style={{ fontFamily: fontBody }}>
         {activeTab === 'home' && (
           <StorefrontHome
             data={data}

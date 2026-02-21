@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useStoreSettings, type WeekSchedule, type DaySchedule } from '@/hooks/useStoreSettings';
 import { useAuth } from '@/contexts/AuthContext';
@@ -13,9 +13,10 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Store, Truck, Clock, Save, Loader2, ExternalLink, Copy, Palette, Info, Globe,
-  Megaphone, Plus, Trash2, Star, Eye, EyeOff, MessageSquare, Users,
+  Megaphone, Plus, Trash2, Star, Eye, EyeOff, MessageSquare, Users, ImageIcon, Type, Upload,
 } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
@@ -26,12 +27,24 @@ const DAY_LABELS: Record<string, string> = {
 };
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
 
+const HEADING_FONTS = [
+  'Lora', 'Merriweather', 'Libre Baskerville', 'Libre Caslon Text',
+  'Work Sans', 'DM Sans', 'Poppins', 'Inter',
+];
+const BODY_FONTS = [
+  'Work Sans', 'DM Sans', 'Inter', 'Poppins', 'Open Sans', 'Roboto',
+  'Lora', 'Merriweather',
+];
+
+const MAX_HERO_SIZE = 500 * 1024; // 500 KB
+
 const StoreSettingsPage = () => {
   const { settings, isLoading, defaultSchedule, save, isSaving } = useStoreSettings();
   const { profile } = useAuth();
   const { data: branches = [] } = useBranches();
   const { toast: toastFn } = useToast();
   const queryClient = useQueryClient();
+  const heroInputRef = useRef<HTMLInputElement>(null);
 
   const activeBranch = branches.find(b => b.id === profile?.branch_id);
   const branchId = profile?.branch_id;
@@ -55,10 +68,16 @@ const StoreSettingsPage = () => {
   const [schedule, setSchedule] = useState<WeekSchedule>(defaultSchedule);
   const [accentColor, setAccentColor] = useState('#18181b');
   const [aboutText, setAboutText] = useState('');
+  const [heroTitle, setHeroTitle] = useState('');
+  const [heroSubtitle, setHeroSubtitle] = useState('');
+  const [heroImageUrl, setHeroImageUrl] = useState('');
+  const [fontHeading, setFontHeading] = useState('Lora');
+  const [fontBody, setFontBody] = useState('Work Sans');
   const [socialInstagram, setSocialInstagram] = useState('');
   const [socialFacebook, setSocialFacebook] = useState('');
   const [socialTiktok, setSocialTiktok] = useState('');
   const [socialTwitter, setSocialTwitter] = useState('');
+  const [uploadingHero, setUploadingHero] = useState(false);
 
   useEffect(() => {
     if (settings) {
@@ -67,6 +86,11 @@ const StoreSettingsPage = () => {
       setSchedule(settings.schedule);
       setAccentColor(settings.accent_color || '#18181b');
       setAboutText(settings.about_text || '');
+      setHeroTitle(settings.hero_title || '');
+      setHeroSubtitle(settings.hero_subtitle || '');
+      setHeroImageUrl(settings.hero_image_url || '');
+      setFontHeading(settings.font_heading || 'Lora');
+      setFontBody(settings.font_body || 'Work Sans');
       setSocialInstagram(settings.social_instagram || '');
       setSocialFacebook(settings.social_facebook || '');
       setSocialTiktok(settings.social_tiktok || '');
@@ -78,10 +102,50 @@ const StoreSettingsPage = () => {
     setSchedule(prev => ({ ...prev, [day]: { ...prev[day as keyof WeekSchedule], [field]: value } }));
   };
 
+  const handleHeroUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !branchId) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toastFn({ title: 'Formato no válido', description: 'Solo JPG, PNG o WebP', variant: 'destructive' });
+      return;
+    }
+    if (file.size > MAX_HERO_SIZE) {
+      toastFn({ title: 'Imagen muy pesada', description: 'Máximo 500 KB', variant: 'destructive' });
+      return;
+    }
+
+    setUploadingHero(true);
+    try {
+      const ext = file.name.split('.').pop();
+      const path = `hero-${branchId}.${ext}`;
+      const { error: uploadErr } = await supabase.storage
+        .from('product-images')
+        .upload(path, file, { upsert: true, contentType: file.type });
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
+      setHeroImageUrl(urlData.publicUrl);
+      toastFn({ title: 'Imagen subida' });
+    } catch (err: any) {
+      toastFn({ title: 'Error al subir', description: err.message, variant: 'destructive' });
+    } finally {
+      setUploadingHero(false);
+      if (heroInputRef.current) heroInputRef.current.value = '';
+    }
+  };
+
   const handleSave = () => {
     save({
       is_active: isActive, has_delivery: hasDelivery, schedule, accent_color: accentColor,
-      about_text: aboutText || null, social_instagram: socialInstagram || null,
+      about_text: aboutText || null,
+      hero_title: heroTitle || null,
+      hero_subtitle: heroSubtitle || null,
+      hero_image_url: heroImageUrl || null,
+      font_heading: fontHeading,
+      font_body: fontBody,
+      social_instagram: socialInstagram || null,
       social_facebook: socialFacebook || null, social_tiktok: socialTiktok || null,
       social_twitter: socialTwitter || null,
     });
@@ -91,10 +155,7 @@ const StoreSettingsPage = () => {
   const { data: announcements = [], isLoading: announcementsLoading } = useQuery({
     queryKey: ['announcements', branchId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('announcements')
-        .select('*')
-        .eq('branch_id', branchId!)
+      const { data } = await supabase.from('announcements').select('*').eq('branch_id', branchId!)
         .order('created_at', { ascending: false });
       return data || [];
     },
@@ -108,18 +169,14 @@ const StoreSettingsPage = () => {
   const createAnnouncementMutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from('announcements').insert({
-        branch_id: branchId!,
-        title: newAnnTitle.trim(),
-        description: newAnnDesc.trim() || null,
-        badge_text: newAnnBadge.trim() || 'Oferta',
+        branch_id: branchId!, title: newAnnTitle.trim(),
+        description: newAnnDesc.trim() || null, badge_text: newAnnBadge.trim() || 'Oferta',
       } as any);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['announcements', branchId] });
-      setNewAnnTitle('');
-      setNewAnnDesc('');
-      setNewAnnBadge('Oferta');
+      setNewAnnTitle(''); setNewAnnDesc(''); setNewAnnBadge('Oferta');
       toastFn({ title: 'Anuncio creado' });
     },
     onError: (err: any) => toastFn({ title: 'Error', description: err.message, variant: 'destructive' }),
@@ -148,11 +205,9 @@ const StoreSettingsPage = () => {
   const { data: reviews = [], isLoading: reviewsLoading } = useQuery({
     queryKey: ['reviews-admin', branchId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('reviews')
+      const { data } = await supabase.from('reviews')
         .select('id, rating, comment, is_visible, created_at, affiliate:affiliates(name, email, phone)')
-        .eq('branch_id', branchId!)
-        .order('created_at', { ascending: false });
+        .eq('branch_id', branchId!).order('created_at', { ascending: false });
       return data || [];
     },
     enabled: !!branchId,
@@ -173,11 +228,9 @@ const StoreSettingsPage = () => {
   const { data: affiliates = [], isLoading: affiliatesLoading } = useQuery({
     queryKey: ['affiliates-admin', branchId],
     queryFn: async () => {
-      const { data } = await supabase
-        .from('affiliates')
+      const { data } = await supabase.from('affiliates')
         .select('id, name, phone, email, points, created_at')
-        .eq('branch_id', branchId!)
-        .order('created_at', { ascending: false });
+        .eq('branch_id', branchId!).order('created_at', { ascending: false });
       return data || [];
     },
     enabled: !!branchId,
@@ -198,9 +251,10 @@ const StoreSettingsPage = () => {
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <Tabs defaultValue="general" className="max-w-2xl">
-            <TabsList className="mb-6">
+          <Tabs defaultValue="general" className="w-full max-w-2xl">
+            <TabsList className="mb-6 flex-wrap h-auto gap-1">
               <TabsTrigger value="general">General</TabsTrigger>
+              <TabsTrigger value="appearance">Personalización</TabsTrigger>
               <TabsTrigger value="announcements">Anuncios</TabsTrigger>
               <TabsTrigger value="reviews">Reseñas</TabsTrigger>
               <TabsTrigger value="affiliates">Clientes</TabsTrigger>
@@ -251,6 +305,50 @@ const StoreSettingsPage = () => {
                 </CardContent>
               </Card>
 
+              {/* Hero content */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Hero del portal</CardTitle>
+                  <CardDescription>Imagen y textos principales que verán tus clientes al entrar.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Título principal</Label>
+                    <Input value={heroTitle} onChange={(e) => setHeroTitle(e.target.value)} placeholder={activeBranch ? `Ej: ${activeBranch.name}` : 'Nombre de tu negocio'} className="h-9 text-sm" maxLength={80} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Si lo dejas vacío, se usará el nombre del negocio.</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Subtítulo</Label>
+                    <Input value={heroSubtitle} onChange={(e) => setHeroSubtitle(e.target.value)} placeholder="Ej: Los mejores productos al mejor precio" className="h-9 text-sm" maxLength={120} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Si lo dejas vacío, se usará el nombre de la sucursal.</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-2 block">Imagen de hero</Label>
+                    <p className="text-[10px] text-muted-foreground mb-2">
+                      Resolución recomendada: <strong>1920×1080 px</strong> (16:9) o <strong>1920×800 px</strong> (panorámica). Máx. <strong>500 KB</strong>. Formatos: JPG, PNG, WebP.
+                    </p>
+                    {heroImageUrl && (
+                      <div className="relative mb-3 rounded-lg overflow-hidden border border-border">
+                        <img src={heroImageUrl} alt="Hero preview" className="w-full h-40 object-cover" />
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="absolute top-2 right-2 h-7 text-xs"
+                          onClick={() => setHeroImageUrl('')}
+                        >
+                          <Trash2 className="h-3 w-3 mr-1" /> Quitar
+                        </Button>
+                      </div>
+                    )}
+                    <input ref={heroInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleHeroUpload} className="hidden" />
+                    <Button variant="outline" size="sm" onClick={() => heroInputRef.current?.click()} disabled={uploadingHero}>
+                      {uploadingHero ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                      Subir imagen
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2"><Clock className="h-4 w-4" /> Horario de atención</CardTitle>
@@ -260,14 +358,14 @@ const StoreSettingsPage = () => {
                   {DAYS.map(day => {
                     const d = schedule[day];
                     return (
-                      <div key={day} className="flex items-center gap-3">
+                      <div key={day} className="flex items-center gap-2 sm:gap-3">
                         <Switch checked={d.enabled} onCheckedChange={(v) => updateDay(day, 'enabled', v)} className="shrink-0" />
-                        <span className={`w-24 text-sm ${d.enabled ? 'font-medium' : 'text-muted-foreground'}`}>{DAY_LABELS[day]}</span>
+                        <span className={`w-16 sm:w-24 text-xs sm:text-sm ${d.enabled ? 'font-medium' : 'text-muted-foreground'}`}>{DAY_LABELS[day]}</span>
                         {d.enabled ? (
-                          <div className="flex items-center gap-2 flex-1">
-                            <Input type="time" value={d.open || '08:00'} onChange={(e) => updateDay(day, 'open', e.target.value)} className="h-8 w-28 text-sm" />
+                          <div className="flex items-center gap-1.5 sm:gap-2 flex-1">
+                            <Input type="time" value={d.open || '08:00'} onChange={(e) => updateDay(day, 'open', e.target.value)} className="h-8 w-24 sm:w-28 text-xs sm:text-sm" />
                             <span className="text-xs text-muted-foreground">a</span>
-                            <Input type="time" value={d.close || '18:00'} onChange={(e) => updateDay(day, 'close', e.target.value)} className="h-8 w-28 text-sm" />
+                            <Input type="time" value={d.close || '18:00'} onChange={(e) => updateDay(day, 'close', e.target.value)} className="h-8 w-24 sm:w-28 text-xs sm:text-sm" />
                           </div>
                         ) : (
                           <span className="text-xs text-muted-foreground italic">Cerrado</span>
@@ -280,25 +378,11 @@ const StoreSettingsPage = () => {
 
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2"><Palette className="h-4 w-4" /> Apariencia</CardTitle>
-                  <CardDescription>Personaliza el color de tu portal público.</CardDescription>
+                  <CardTitle className="text-base flex items-center gap-2"><Info className="h-4 w-4" /> Texto editorial</CardTitle>
+                  <CardDescription>Texto destacado que aparecerá en el Home de tu portal.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <div className="flex items-center gap-3">
-                    <Label className="text-sm font-medium">Color de acento</Label>
-                    <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-8 w-12 rounded border border-input cursor-pointer" />
-                    <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="w-28 h-8 text-sm font-mono" maxLength={7} />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-base flex items-center gap-2"><Info className="h-4 w-4" /> Sobre nosotros</CardTitle>
-                  <CardDescription>Texto que aparecerá en tu portal público.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Textarea value={aboutText} onChange={(e) => setAboutText(e.target.value)} placeholder="Cuéntale a tus clientes sobre tu negocio..." rows={4} maxLength={500} />
+                  <Textarea value={aboutText} onChange={(e) => setAboutText(e.target.value)} placeholder="Escribe un mensaje llamativo para tus clientes..." rows={4} maxLength={500} />
                   <p className="text-xs text-muted-foreground mt-1.5">{aboutText.length}/500</p>
                 </CardContent>
               </Card>
@@ -331,6 +415,78 @@ const StoreSettingsPage = () => {
               <Button onClick={handleSave} disabled={isSaving} className="w-fit">
                 {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                 Guardar configuración
+              </Button>
+            </TabsContent>
+
+            {/* APPEARANCE TAB */}
+            <TabsContent value="appearance" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2"><Palette className="h-4 w-4" /> Color de acento</CardTitle>
+                  <CardDescription>El color principal que usará tu portal público.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-3">
+                    <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-8 w-12 rounded border border-input cursor-pointer" />
+                    <Input value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="w-28 h-8 text-sm font-mono" maxLength={7} />
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2"><Type className="h-4 w-4" /> Tipografía</CardTitle>
+                  <CardDescription>Elige las fuentes para títulos y texto general de tu portal.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Fuente de títulos</Label>
+                    <Select value={fontHeading} onValueChange={setFontHeading}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {HEADING_FONTS.map(f => (
+                          <SelectItem key={f} value={f}>
+                            <span style={{ fontFamily: `'${f}', serif` }}>{f}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">Se usa para el hero, secciones y catálogo.</p>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1.5 block">Fuente del cuerpo</Label>
+                    <Select value={fontBody} onValueChange={setFontBody}>
+                      <SelectTrigger className="h-9 text-sm">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {BODY_FONTS.map(f => (
+                          <SelectItem key={f} value={f}>
+                            <span style={{ fontFamily: `'${f}', sans-serif` }}>{f}</span>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <p className="text-[10px] text-muted-foreground mt-1">Se usa para párrafos, botones y navegación.</p>
+                  </div>
+                  <Separator />
+                  <div className="p-4 rounded-lg border border-border bg-card">
+                    <p className="text-xs text-muted-foreground mb-2">Vista previa</p>
+                    <h3 className="text-2xl font-bold tracking-tight" style={{ fontFamily: `'${fontHeading}', serif` }}>
+                      Título de ejemplo
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1" style={{ fontFamily: `'${fontBody}', sans-serif` }}>
+                      Este es un texto de ejemplo para ver cómo se ve la fuente del cuerpo en tu portal.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Button onClick={handleSave} disabled={isSaving} className="w-fit">
+                {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                Guardar personalización
               </Button>
             </TabsContent>
 
@@ -387,16 +543,8 @@ const StoreSettingsPage = () => {
                             {a.description && <p className="text-xs text-muted-foreground mt-0.5">{a.description}</p>}
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            <Switch
-                              checked={a.is_active}
-                              onCheckedChange={(v) => toggleAnnouncementMutation.mutate({ id: a.id, is_active: v })}
-                            />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onClick={() => deleteAnnouncementMutation.mutate(a.id)}
-                            >
+                            <Switch checked={a.is_active} onCheckedChange={(v) => toggleAnnouncementMutation.mutate({ id: a.id, is_active: v })} />
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteAnnouncementMutation.mutate(a.id)}>
                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </div>
@@ -413,7 +561,7 @@ const StoreSettingsPage = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2"><MessageSquare className="h-4 w-4" /> Reseñas de clientes</CardTitle>
-                  <CardDescription>Modera las reseñas que aparecen en tu portal. Ocultar una reseña no la elimina.</CardDescription>
+                  <CardDescription>Las reseñas son privadas. Solo tú y tu equipo pueden verlas.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {reviewsLoading ? (
@@ -440,11 +588,9 @@ const StoreSettingsPage = () => {
                             </p>
                           </div>
                           <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 shrink-0"
+                            variant="ghost" size="icon" className="h-8 w-8 shrink-0"
                             onClick={() => toggleReviewMutation.mutate({ id: r.id, is_visible: !r.is_visible })}
-                            title={r.is_visible ? 'Ocultar del portal' : 'Mostrar en portal'}
+                            title={r.is_visible ? 'Ocultar' : 'Mostrar'}
                           >
                             {r.is_visible ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
                           </Button>
@@ -469,26 +615,26 @@ const StoreSettingsPage = () => {
                   ) : affiliates.length === 0 ? (
                     <p className="text-sm text-muted-foreground text-center py-4">Aún no hay clientes afiliados.</p>
                   ) : (
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto -mx-6">
                       <Table>
                         <TableHeader>
                           <TableRow>
                             <TableHead>Nombre</TableHead>
-                            <TableHead>Teléfono</TableHead>
-                            <TableHead>Email</TableHead>
-                            <TableHead className="text-right">Puntos</TableHead>
-                            <TableHead>Fecha</TableHead>
+                            <TableHead className="hidden sm:table-cell">Teléfono</TableHead>
+                            <TableHead className="hidden sm:table-cell">Email</TableHead>
+                            <TableHead className="text-right">Pts</TableHead>
+                            <TableHead className="hidden sm:table-cell">Fecha</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
                           {affiliates.map((a: any) => (
                             <TableRow key={a.id}>
-                              <TableCell className="font-medium">{a.name || <span className="text-muted-foreground italic">Sin nombre</span>}</TableCell>
-                              <TableCell>{a.phone || <span className="text-muted-foreground">—</span>}</TableCell>
-                              <TableCell>{a.email || <span className="text-muted-foreground">—</span>}</TableCell>
-                              <TableCell className="text-right font-semibold">{a.points}</TableCell>
-                              <TableCell className="text-muted-foreground text-xs">
-                                {new Date(a.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
+                              <TableCell className="font-medium text-xs sm:text-sm">{a.name || <span className="text-muted-foreground italic">Sin nombre</span>}</TableCell>
+                              <TableCell className="hidden sm:table-cell text-xs">{a.phone || '—'}</TableCell>
+                              <TableCell className="hidden sm:table-cell text-xs">{a.email || '—'}</TableCell>
+                              <TableCell className="text-right font-semibold text-xs sm:text-sm">{a.points}</TableCell>
+                              <TableCell className="hidden sm:table-cell text-muted-foreground text-xs">
+                                {new Date(a.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short' })}
                               </TableCell>
                             </TableRow>
                           ))}

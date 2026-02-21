@@ -952,7 +952,12 @@ export type Database = {
           accent_color: string
           branch_id: string
           created_at: string
+          font_body: string | null
+          font_heading: string | null
           has_delivery: boolean
+          hero_image_url: string | null
+          hero_subtitle: string | null
+          hero_title: string | null
           id: string
           is_active: boolean
           schedule: Json
@@ -967,7 +972,12 @@ export type Database = {
           accent_color?: string
           branch_id: string
           created_at?: string
+          font_body?: string | null
+          font_heading?: string | null
           has_delivery?: boolean
+          hero_image_url?: string | null
+          hero_subtitle?: string | null
+          hero_title?: string | null
           id?: string
           is_active?: boolean
           schedule?: Json
@@ -982,7 +992,12 @@ export type Database = {
           accent_color?: string
           branch_id?: string
           created_at?: string
+          font_body?: string | null
+          font_heading?: string | null
           has_delivery?: boolean
+          hero_image_url?: string | null
+          hero_subtitle?: string | null
+          hero_title?: string | null
           id?: string
           is_active?: boolean
           schedule?: Json
