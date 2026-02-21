@@ -8,6 +8,7 @@ import { es } from 'date-fns/locale';
 
 const typeConfig: Record<string, { icon: typeof Bell; className: string }> = {
   low_stock: { icon: PackageX, className: 'text-destructive bg-destructive/10' },
+  sale_cancelled: { icon: ShoppingCart, className: 'text-destructive bg-destructive/10' },
   sale: { icon: ShoppingCart, className: 'text-success bg-success/10' },
   inventory_movement: { icon: ArrowRightLeft, className: 'text-primary bg-primary/10' },
 };

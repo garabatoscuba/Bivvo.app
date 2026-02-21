@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote } from 'lucide-react';
+import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSales } from '@/hooks/useSales';
@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import type { PaymentType, SaleStatus } from '@/types/database';
 
 const paymentLabels: Record<PaymentType, string> = {
@@ -61,6 +63,10 @@ const Sales = () => {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState('');
 
+  // Cancel dialog
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
+
   const selectedSale = useMemo(() => sales.find((s: any) => s.id === selectedSaleId), [sales, selectedSaleId]);
   const { data: saleItems = [], isLoading: isLoadingItems } = useSaleItems(selectedSaleId);
 
@@ -98,8 +104,14 @@ const Sales = () => {
   const canCancel = isOwner || isManager || isSuperAdmin;
 
   const handleCancel = () => {
-    if (!selectedSaleId) return;
-    cancelSale.mutate(selectedSaleId, { onSuccess: () => setSheetOpen(false) });
+    if (!selectedSaleId || !cancelReason.trim()) return;
+    cancelSale.mutate({ saleId: selectedSaleId, reason: cancelReason.trim() }, {
+      onSuccess: () => {
+        setSheetOpen(false);
+        setCancelDialogOpen(false);
+        setCancelReason('');
+      },
+    });
   };
 
   const handleRegisterPayment = () => {
@@ -422,16 +434,55 @@ const Sales = () => {
                   </Button>
                 )}
                 {canCancel && selectedSale.status !== 'cancelled' && (
-                  <Button variant="destructive" onClick={handleCancel} disabled={cancelSale.isPending}>
+                  <Button variant="destructive" onClick={() => { setCancelReason(''); setCancelDialogOpen(true); }}>
                     <X className="mr-2 h-4 w-4" />
                     Cancelar venta
                   </Button>
                 )}
               </div>
+
+              {/* Show cancellation reason if cancelled */}
+              {selectedSale.status === 'cancelled' && (selectedSale as any).cancellation_reason && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-1">
+                  <div className="flex items-center gap-2 text-destructive text-sm font-medium">
+                    <AlertTriangle className="h-4 w-4" />
+                    Motivo de cancelación
+                  </div>
+                  <p className="text-sm text-muted-foreground">{(selectedSale as any).cancellation_reason}</p>
+                </div>
+              )}
             </div>
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Cancel Reason Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Cancelar venta</DialogTitle>
+            <DialogDescription>
+              Explica el motivo de la cancelación. Los productos se devolverán al inventario automáticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="cancel-reason">Motivo de cancelación *</Label>
+            <Textarea
+              id="cancel-reason"
+              placeholder="Ej: Error en el cobro, cliente solicitó devolución..."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>Volver</Button>
+            <Button variant="destructive" onClick={handleCancel} disabled={!cancelReason.trim() || cancelSale.isPending}>
+              Confirmar cancelación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Payment Dialog */}
       <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
