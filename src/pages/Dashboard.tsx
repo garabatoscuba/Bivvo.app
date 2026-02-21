@@ -107,38 +107,15 @@ const Dashboard = () => {
     if (!newBizName.trim() || !profile?.business_id) return;
     setCreatingBiz(true);
     try {
-      // Create new business via edge function
-      const { data, error } = await supabase.functions.invoke('create-business', {
-        body: { name: newBizName.trim(), business_type: newBizType },
-      });
+      // Instead of creating a new business, rename the trial business
+      // This preserves all existing data (products, sales, categories, etc.)
+      const { error } = await supabase
+        .from('businesses')
+        .update({ name: newBizName.trim(), business_type: newBizType as any })
+        .eq('id', profile.business_id);
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
 
-      // Delete the old trial business if it's empty (no products, no sales)
-      const oldBizId = profile.business_id;
-      const { count: productCount } = await supabase
-        .from('products')
-        .select('id', { count: 'exact', head: true })
-        .eq('business_id', oldBizId);
-      const trialBizBranches = await supabase
-        .from('branches')
-        .select('id')
-        .eq('business_id', oldBizId);
-      const branchIds = trialBizBranches.data?.map(b => b.id) || [];
-      let saleCount = 0;
-      if (branchIds.length > 0) {
-        const { count } = await supabase
-          .from('sales')
-          .select('id', { count: 'exact', head: true })
-          .in('branch_id', branchIds);
-        saleCount = count || 0;
-      }
-
-      if ((productCount || 0) === 0 && saleCount === 0) {
-        await supabase.from('businesses').delete().eq('id', oldBizId);
-      }
-
-      toast({ title: '¡Negocio creado!', description: `${newBizName.trim()} está listo.` });
+      toast({ title: '¡Negocio actualizado!', description: `${newBizName.trim()} está listo con toda tu información.` });
       setNewPlanPopup(false);
       queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
       window.location.reload();
