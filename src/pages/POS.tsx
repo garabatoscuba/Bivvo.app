@@ -54,47 +54,69 @@ const POS = () => {
     return matchesSearch && matchesCategory;
   });
 
+  // Get quantity already in cart for a product
+  const getCartQuantity = useCallback((productId: string) => {
+    const item = cart.find((i) => i.product.id === productId);
+    return item ? item.quantity : 0;
+  }, [cart]);
+
+  // Available stock = real stock - cart quantity
+  const getAvailableStock = useCallback((productId: string) => {
+    const realStock = stockMap.get(productId) || 0;
+    const inCart = getCartQuantity(productId);
+    return realStock - inCart;
+  }, [stockMap, getCartQuantity]);
+
   // Cart functions
   const addToCart = useCallback((product: Product & {category: Category | null;}) => {
+    const realStock = stockMap.get(product.id) || 0;
+
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
+      const currentQty = existing ? existing.quantity : 0;
+
+      // Block if no stock available
+      if (currentQty >= realStock) return prev;
+
       if (existing) {
         return prev.map((item) =>
-        item.product.id === product.id ?
-        {
-          ...item,
-          quantity: item.quantity + 1,
-          total: (item.quantity + 1) * item.unitPrice - item.discount
-        } :
-        item
+          item.product.id === product.id ?
+          {
+            ...item,
+            quantity: item.quantity + 1,
+            total: (item.quantity + 1) * item.unitPrice - item.discount
+          } :
+          item
         );
       }
       return [
-      ...prev,
-      {
-        product,
-        quantity: 1,
-        unitPrice: Number(product.sale_price),
-        discount: 0,
-        total: Number(product.sale_price)
-      }];
-
+        ...prev,
+        {
+          product,
+          quantity: 1,
+          unitPrice: Number(product.sale_price),
+          discount: 0,
+          total: Number(product.sale_price)
+        }
+      ];
     });
-  }, []);
+  }, [stockMap]);
 
   const updateQuantity = useCallback((productId: string, quantity: number) => {
     if (quantity <= 0) {
       setCart((prev) => prev.filter((item) => item.product.id !== productId));
     } else {
+      const maxStock = stockMap.get(productId) || 0;
+      const clampedQty = Math.min(quantity, maxStock);
       setCart((prev) =>
-      prev.map((item) =>
-      item.product.id === productId ?
-      { ...item, quantity, total: quantity * item.unitPrice - item.discount } :
-      item
-      )
+        prev.map((item) =>
+          item.product.id === productId ?
+          { ...item, quantity: clampedQty, total: clampedQty * item.unitPrice - item.discount } :
+          item
+        )
       );
     }
-  }, []);
+  }, [stockMap]);
 
   const removeItem = useCallback((productId: string) => {
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
@@ -188,15 +210,18 @@ const POS = () => {
               </div> :
 
             <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-                {filteredProducts.map((product) =>
-              <ProductCard
-                key={product.id}
-                product={product}
-                stock={stockMap.get(product.id) || 0}
-                onClick={() => addToCart(product)}
-                compact />
-
-              )}
+                {filteredProducts.map((product) => {
+                  const available = getAvailableStock(product.id);
+                  return (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      stock={available}
+                      onClick={() => addToCart(product)}
+                      compact
+                      disabled={available <= 0} />
+                  );
+                })}
               </div>
             }
           </div>
@@ -210,7 +235,8 @@ const POS = () => {
             onRemoveItem={removeItem}
             onClearCart={clearCart}
             discount={discount}
-            onDiscountChange={setDiscount} />
+            onDiscountChange={setDiscount}
+            stockMap={stockMap} />
 
           
           {cart.length > 0 &&
@@ -248,7 +274,8 @@ const POS = () => {
                     onRemoveItem={removeItem}
                     onClearCart={clearCart}
                     discount={discount}
-                    onDiscountChange={setDiscount} />
+                    onDiscountChange={setDiscount}
+                    stockMap={stockMap} />
                 </div>
                 
                 {cart.length > 0 &&
