@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -48,6 +48,19 @@ const Plans = () => {
   const [requestOpen, setRequestOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'professional'>('basic');
   const [selectedMonths, setSelectedMonths] = useState('1');
+
+  // Auto-open purchase dialog when coming from banner with ?buy=true
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('buy') === 'true') {
+      const plan = planType === 'professional' ? 'professional' : 'basic';
+      setSelectedPlan(plan);
+      setSelectedMonths('1');
+      setRequestOpen(true);
+      // Clean up URL
+      window.history.replaceState({}, '', '/plans');
+    }
+  }, [planType]);
 
   const expirationDate = subscriptionEndsAt || trialEndsAt;
 
@@ -238,16 +251,16 @@ const Plans = () => {
           </Card>
 
           {/* Basic */}
-          <Card className={`flex flex-col relative overflow-hidden ${planType === 'basic' && status !== 'blocked' ? 'border-primary' : 'border-primary'}`}>
-            {status === 'trial' && planType === 'basic' && (
-              <div className="absolute top-0 right-0 bg-info text-info-foreground text-[10px] font-bold px-3 py-0.5 rotate-0 rounded-bl-lg z-10">
-                🕐 PRUEBA
-              </div>
-            )}
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <Card className={`flex flex-col relative ${planType === 'basic' && status !== 'blocked' ? 'border-primary' : 'border-primary'}`}>
+            <div className="flex items-center justify-between px-4 pt-3">
               <Badge className="gap-1"><Star className="h-3 w-3" /> Popular</Badge>
+              {status === 'trial' && planType === 'basic' && (
+                <Badge variant="secondary" className="gap-1 text-[10px]">
+                  <Clock className="h-3 w-3" /> PRUEBA
+                </Badge>
+              )}
             </div>
-            <CardHeader className="pt-8">
+            <CardHeader className="pt-2">
               <CardTitle className="text-lg">Plan Básico</CardTitle>
               <CardDescription>Inventario y clientes sin límites</CardDescription>
             </CardHeader>
@@ -288,16 +301,16 @@ const Plans = () => {
           </Card>
 
           {/* Professional */}
-          <Card className="flex flex-col relative overflow-hidden">
-            {status === 'trial' && planType === 'professional' && (
-              <div className="absolute top-0 right-0 bg-info text-info-foreground text-[10px] font-bold px-3 py-0.5 rounded-bl-lg z-10">
-                🕐 PRUEBA
-              </div>
-            )}
-            <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+          <Card className="flex flex-col relative">
+            <div className="flex items-center justify-between px-4 pt-3">
               <Badge variant="secondary" className="gap-1"><Crown className="h-3 w-3" /> Pro</Badge>
+              {status === 'trial' && planType === 'professional' && (
+                <Badge variant="secondary" className="gap-1 text-[10px]">
+                  <Clock className="h-3 w-3" /> PRUEBA
+                </Badge>
+              )}
             </div>
-            <CardHeader className="pt-8">
+            <CardHeader className="pt-2">
               <CardTitle className="text-lg">Plan Profesional</CardTitle>
               <CardDescription>Todo para escalar tu negocio</CardDescription>
             </CardHeader>
