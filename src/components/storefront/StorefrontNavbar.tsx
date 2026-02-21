@@ -12,9 +12,10 @@ interface Props {
   activeTab: StorefrontTab;
   onTabChange: (tab: StorefrontTab) => void;
   portalPath: string;
+  hasDelivery?: boolean;
 }
 
-const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portalPath }: Props) => {
+const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portalPath, hasDelivery }: Props) => {
   const { theme, setTheme } = useTheme();
   const isDark = theme === 'dark';
   const [showAnnouncements, setShowAnnouncements] = useState(false);
@@ -38,14 +39,20 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
 
   const isTransparent = activeTab === 'home' && !scrolled && !mobileMenuOpen;
 
+  // On home tab, offset navbar below the delivery bar
+  const navTop = activeTab === 'home' && hasDelivery ? '38px' : '0px';
+
   return (
     <>
       <nav
-        className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 ease-out"
-        style={isTransparent
-          ? { backgroundColor: 'transparent', borderBottom: 'none' }
-          : { backgroundColor: 'rgba(0,0,0,0.92)', boxShadow: '0 1px 8px rgba(0,0,0,0.15)' }
-        }
+        className="fixed left-0 right-0 z-50 transition-all duration-300 ease-out"
+        style={{
+          top: navTop,
+          ...(isTransparent
+            ? { backgroundColor: 'transparent', borderBottom: 'none' }
+            : { backgroundColor: 'rgba(0,0,0,0.92)', boxShadow: '0 1px 8px rgba(0,0,0,0.15)' }
+          ),
+        }}
       >
         <div className="flex items-center justify-between px-4 sm:px-10 py-3 sm:py-4">
           {/* Left — Logo + name (clickable → home) */}
