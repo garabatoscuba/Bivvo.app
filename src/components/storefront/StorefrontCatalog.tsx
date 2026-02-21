@@ -18,8 +18,8 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-lg font-semibold text-neutral-900">Productos</h2>
-        <span className="text-xs text-neutral-400">{filtered.length} items</span>
+        <h2 className="text-lg font-semibold text-foreground">Productos</h2>
+        <span className="text-xs text-muted-foreground">{filtered.length} items</span>
       </div>
 
       {/* Category filters */}
@@ -30,10 +30,10 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
             className="shrink-0 text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors"
             style={!activeCategory
               ? { backgroundColor: accent, color: 'white' }
-              : { backgroundColor: '#f5f5f5', color: '#737373' }
+              : {}
             }
           >
-            Todos
+            {!activeCategory ? 'Todos' : <span className="text-muted-foreground bg-muted/50 px-3.5 py-1.5 rounded-full">Todos</span>}
           </button>
           {categories.map(cat => (
             <button
@@ -42,17 +42,17 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
               className="shrink-0 text-xs font-medium px-3.5 py-1.5 rounded-full transition-colors"
               style={activeCategory === cat
                 ? { backgroundColor: accent, color: 'white' }
-                : { backgroundColor: '#f5f5f5', color: '#737373' }
+                : {}
               }
             >
-              {cat}
+              {activeCategory === cat ? cat : <span className="text-muted-foreground">{cat}</span>}
             </button>
           ))}
         </div>
       )}
 
       {filtered.length === 0 ? (
-        <div className="text-center py-20 text-neutral-300">
+        <div className="text-center py-20 text-muted-foreground/50">
           <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
           <p className="text-sm">No hay productos disponibles.</p>
         </div>
@@ -61,7 +61,7 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
           {filtered.map(product => (
             <div
               key={product.id}
-              className="group flex gap-4 p-3 rounded-xl border border-neutral-100 hover:border-neutral-200 transition-all hover:shadow-sm"
+              className="group flex gap-4 p-3 rounded-xl border border-border hover:border-border/80 transition-all hover:shadow-sm bg-card"
             >
               {product.image_url ? (
                 <img
@@ -71,27 +71,27 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
                   loading="lazy"
                 />
               ) : (
-                <div className="h-24 w-24 rounded-lg bg-neutral-50 flex items-center justify-center shrink-0">
-                  <ShoppingBag className="h-6 w-6 text-neutral-200" />
+                <div className="h-24 w-24 rounded-lg bg-muted/20 flex items-center justify-center shrink-0">
+                  <ShoppingBag className="h-6 w-6 text-muted-foreground/30" />
                 </div>
               )}
               <div className="flex flex-col justify-between flex-1 min-w-0 py-0.5">
                 <div>
                   {product.category && (
-                    <span className="text-[10px] uppercase tracking-widest font-medium text-neutral-400">
+                    <span className="text-[10px] uppercase tracking-widest font-medium text-muted-foreground">
                       {product.category}
                     </span>
                   )}
-                  <h3 className="text-sm font-medium text-neutral-900 leading-snug truncate">
+                  <h3 className="text-sm font-medium text-foreground leading-snug truncate">
                     {product.name}
                   </h3>
                   {product.description && (
-                    <p className="text-xs text-neutral-400 mt-0.5 line-clamp-2 leading-relaxed">
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
                       {product.description}
                     </p>
                   )}
                 </div>
-                <p className="text-sm font-semibold text-neutral-900">
+                <p className="text-sm font-semibold text-foreground">
                   Bs {Number(product.price).toFixed(2)}
                 </p>
               </div>

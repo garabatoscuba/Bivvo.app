@@ -42,10 +42,10 @@ const StorefrontAffiliateForm = ({ branchId, accent, apiBase, apiKey }: Props) =
 
   if (success) {
     return (
-      <div className="rounded-2xl border border-neutral-100 p-6 text-center space-y-3">
+      <div className="rounded-2xl border border-border p-6 text-center space-y-3 bg-card">
         <CheckCircle className="h-10 w-10 mx-auto" style={{ color: accent }} />
-        <p className="text-sm font-medium text-neutral-900">¡Te has unido exitosamente!</p>
-        <p className="text-xs text-neutral-500">Ganaste <span className="font-semibold" style={{ color: accent }}>{earnedPoints} puntos</span> de bienvenida.</p>
+        <p className="text-sm font-medium text-foreground">¡Te has unido exitosamente!</p>
+        <p className="text-xs text-muted-foreground">Ganaste <span className="font-semibold" style={{ color: accent }}>{earnedPoints} puntos</span> de bienvenida.</p>
       </div>
     );
   }
@@ -64,40 +64,40 @@ const StorefrontAffiliateForm = ({ branchId, accent, apiBase, apiKey }: Props) =
   }
 
   return (
-    <div className="rounded-2xl border border-neutral-100 p-5 space-y-4">
+    <div className="rounded-2xl border border-border p-5 space-y-4 bg-card">
       <div className="text-center space-y-1">
-        <h3 className="text-sm font-semibold text-neutral-900">Programa de fidelización</h3>
-        <p className="text-xs text-neutral-400">Completa tus datos y gana puntos. Ningún campo es obligatorio.</p>
+        <h3 className="text-sm font-semibold text-foreground">Programa de fidelización</h3>
+        <p className="text-xs text-muted-foreground">Completa tus datos y gana puntos. Ningún campo es obligatorio.</p>
       </div>
 
       <div className="space-y-3">
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-neutral-500">Nombre</label>
+            <label className="text-xs text-muted-foreground">Nombre</label>
             {name.trim() && <span className="text-[10px] font-medium flex items-center gap-0.5" style={{ color: accent }}><Star className="h-2.5 w-2.5" /> +10 pts</span>}
           </div>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Tu nombre"
-            className="w-full h-9 px-3 rounded-lg border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-200"
+            className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-neutral-500">Teléfono</label>
+            <label className="text-xs text-muted-foreground">Teléfono</label>
             {phone.trim() && <span className="text-[10px] font-medium flex items-center gap-0.5" style={{ color: accent }}><Star className="h-2.5 w-2.5" /> +10 pts</span>}
           </div>
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Tu teléfono"
-            className="w-full h-9 px-3 rounded-lg border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-200"
+            className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
         <div>
           <div className="flex items-center justify-between mb-1">
-            <label className="text-xs text-neutral-500">Email</label>
+            <label className="text-xs text-muted-foreground">Email</label>
             {email.trim() && <span className="text-[10px] font-medium flex items-center gap-0.5" style={{ color: accent }}><Star className="h-2.5 w-2.5" /> +10 pts</span>}
           </div>
           <input
@@ -105,7 +105,7 @@ const StorefrontAffiliateForm = ({ branchId, accent, apiBase, apiKey }: Props) =
             onChange={(e) => setEmail(e.target.value)}
             placeholder="Tu email"
             type="email"
-            className="w-full h-9 px-3 rounded-lg border border-neutral-200 text-sm focus:outline-none focus:ring-2 focus:ring-neutral-200"
+            className="w-full h-9 px-3 rounded-lg border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
       </div>

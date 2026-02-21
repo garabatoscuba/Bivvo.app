@@ -23,7 +23,7 @@ const StorefrontSchedule = ({ schedule }: Props) => {
 
   return (
     <div>
-      <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+      <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3 flex items-center gap-1.5">
         <Clock className="h-3.5 w-3.5" /> Horario
       </h3>
       <div className="space-y-1">
@@ -33,12 +33,12 @@ const StorefrontSchedule = ({ schedule }: Props) => {
           return (
             <div
               key={day}
-              className={`flex justify-between text-sm py-1.5 px-2.5 rounded-lg ${isToday ? 'bg-neutral-50 font-medium' : ''}`}
+              className={`flex justify-between text-sm py-1.5 px-2.5 rounded-lg ${isToday ? 'bg-card font-medium' : ''}`}
             >
-              <span className={d?.enabled ? 'text-neutral-600' : 'text-neutral-300'}>
+              <span className={d?.enabled ? 'text-foreground/70' : 'text-muted-foreground/40'}>
                 {DAY_LABELS[day]}
               </span>
-              <span className={d?.enabled ? 'text-neutral-900 tabular-nums' : 'text-neutral-300'}>
+              <span className={d?.enabled ? 'text-foreground tabular-nums' : 'text-muted-foreground/40'}>
                 {d?.enabled ? `${d.open} – ${d.close}` : '—'}
               </span>
             </div>

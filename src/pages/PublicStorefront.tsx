@@ -106,17 +106,17 @@ const PublicStorefront = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <Loader2 className="h-6 w-6 animate-spin text-neutral-300" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white gap-4 px-6 text-center">
-        <AlertCircle className="h-10 w-10 text-neutral-200" />
-        <p className="text-neutral-500 text-base max-w-xs">{error || 'Tienda no encontrada'}</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background gap-4 px-6 text-center">
+        <AlertCircle className="h-10 w-10 text-muted-foreground/40" />
+        <p className="text-muted-foreground text-base max-w-xs">{error || 'Tienda no encontrada'}</p>
       </div>
     );
   }
@@ -134,7 +134,7 @@ const PublicStorefront = () => {
     : data.products;
 
   return (
-    <div className="min-h-screen bg-white flex flex-col" style={{ '--accent': accent } as React.CSSProperties}>
+    <div className="min-h-screen bg-background flex flex-col" style={{ '--accent': accent } as React.CSSProperties}>
       <StorefrontHeader data={data} isOpen={open} accent={accent} />
 
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
