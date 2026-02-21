@@ -33,8 +33,11 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
     <>
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
         <div className="flex items-center justify-between px-4 sm:px-10 py-3 sm:py-4">
-          {/* Left — Logo + name */}
-          <div className="flex items-center gap-2.5 shrink-0">
+          {/* Left — Logo + name (clickable → home) */}
+          <button
+            onClick={() => onTabChange('home')}
+            className="flex items-center gap-2.5 shrink-0 hover:opacity-80 transition-opacity"
+          >
             {data.business.logo_url ? (
               <img
                 src={data.business.logo_url}
@@ -52,7 +55,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
             <span className="text-sm font-bold tracking-tight text-foreground hidden sm:inline">
               {data.business.name}
             </span>
-          </div>
+          </button>
 
           {/* Center — Tabs (desktop) */}
           <div className="hidden sm:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
