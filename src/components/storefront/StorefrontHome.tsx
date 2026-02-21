@@ -14,12 +14,16 @@ const StorefrontHome = ({ data, accent, portalPath }: Props) => {
   const heroSubtitle = data.settings.hero_subtitle || data.branch.name;
   const heroImage = data.settings.hero_image_url;
 
+  const hasDelivery = data.settings.has_delivery;
+  // Delivery bar height offset so hero starts below it
+  const deliveryBarHeight = hasDelivery ? '36px' : '0px';
+
   return (
     <>
-      {/* Delivery banner */}
-      {data.settings.has_delivery && (
+      {/* Delivery banner — fixed below navbar, outside hero */}
+      {hasDelivery && (
         <div
-          className="text-center text-xs tracking-widest uppercase py-2.5 font-medium"
+          className="fixed top-[48px] sm:top-[56px] left-0 right-0 z-40 text-center text-xs tracking-widest uppercase py-2 font-medium"
           style={{ backgroundColor: accent, color: 'white' }}
         >
           <Truck className="inline h-3.5 w-3.5 mr-1.5 -mt-0.5" />
@@ -27,10 +31,10 @@ const StorefrontHome = ({ data, accent, portalPath }: Props) => {
         </div>
       )}
 
-      {/* Hero — full viewport height */}
-      <section className="relative overflow-hidden">
+      {/* Hero — full viewport height minus delivery bar */}
+      <section className="relative overflow-hidden" style={{ paddingTop: deliveryBarHeight }}>
         {heroImage ? (
-          <div className="relative h-[100svh] flex items-center justify-center">
+          <div className="relative flex items-center justify-center" style={{ height: `calc(100svh - ${deliveryBarHeight})` }}>
             <img
               src={heroImage}
               alt={heroTitle}
@@ -50,7 +54,7 @@ const StorefrontHome = ({ data, accent, portalPath }: Props) => {
             </div>
           </div>
         ) : (
-          <div className="relative bg-card h-[100svh] flex items-center justify-center">
+          <div className="relative bg-card flex items-center justify-center" style={{ height: `calc(100svh - ${deliveryBarHeight})` }}>
             <div className="max-w-5xl mx-auto px-6 sm:px-10 text-center">
               <h1
                 className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-[1.1]"

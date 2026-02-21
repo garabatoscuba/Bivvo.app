@@ -57,7 +57,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
               <img
                 src={data.business.logo_url}
                 alt={data.business.name}
-                className="h-7 w-7 rounded-lg object-cover brightness-0 invert"
+                className="h-7 w-7 rounded-lg object-cover"
               />
             ) : (
               <div
