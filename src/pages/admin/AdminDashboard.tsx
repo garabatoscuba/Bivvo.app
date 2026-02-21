@@ -17,7 +17,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  Store, Plus, Search, Loader2, Building2,
+  Store, Search, Loader2, Building2,
   Settings, Users, Package, ShoppingCart, DollarSign,
   BarChart3, Activity, Trash2, FileText, Check, X,
   Pencil, Power, MapPin, Phone,
@@ -34,10 +34,8 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, A
 const AdminDashboard = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-  const [newBizName, setNewBizName] = useState('');
   const [editBiz, setEditBiz] = useState<any>(null);
   const [editName, setEditName] = useState('');
   const [editType, setEditType] = useState('');
@@ -125,25 +123,6 @@ const AdminDashboard = () => {
     },
   });
 
-  const createMutation = useMutation({
-    mutationFn: async (name: string) => {
-      const { data, error } = await supabase.functions.invoke('create-business', {
-        body: { name },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      return data.business;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
-      toast({ title: 'Negocio creado' });
-      setCreateOpen(false);
-      setNewBizName('');
-    },
-    onError: (err: any) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    },
-  });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -394,9 +373,6 @@ const AdminDashboard = () => {
                 <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input placeholder="Buscar negocio..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-9 text-sm" />
               </div>
-              <Button onClick={() => setCreateOpen(true)} size="sm" className="gap-1.5">
-                <Plus className="h-3.5 w-3.5" /> Nuevo Negocio
-              </Button>
             </div>
 
             <Card className="border-border/60">
@@ -665,23 +641,6 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Create Dialog */}
-        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-          <DialogContent>
-            <DialogHeader><DialogTitle>Nuevo Negocio</DialogTitle></DialogHeader>
-            <div className="space-y-2 py-4">
-              <Label>Nombre</Label>
-              <Input placeholder="Ej: Mi Tienda" value={newBizName} onChange={(e) => setNewBizName(e.target.value)} />
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancelar</Button>
-              <Button onClick={() => createMutation.mutate(newBizName)} disabled={!newBizName.trim() || createMutation.isPending}>
-                {createMutation.isPending ? 'Creando...' : 'Crear'}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {/* Delete Confirmation */}
         <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
