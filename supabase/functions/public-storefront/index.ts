@@ -109,6 +109,51 @@ serve(async (req) => {
         });
       }
 
+      if (action === "submit_order") {
+        const { branch_id, customer_name, customer_phone, delivery_address, notes, items, subtotal } = body;
+        if (!branch_id || !customer_name?.trim() || !customer_phone?.trim() || !items?.length) {
+          return new Response(JSON.stringify({ error: "Datos incompletos" }), {
+            status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data: branch } = await supabase
+          .from("branches").select("business_id, name").eq("id", branch_id).single();
+        if (!branch) {
+          return new Response(JSON.stringify({ error: "Sucursal no encontrada" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        // Build order detail text
+        const itemLines = items.map((i: any) => `• ${i.quantity}x ${i.product_name} — Bs ${Number(i.total).toFixed(2)}`).join("\n");
+        const deliveryLine = delivery_address ? `\n📍 Dirección: ${delivery_address}` : "\n🏪 Retiro en tienda";
+        const notesLine = notes ? `\n📝 Notas: ${notes}` : "";
+
+        const message = `Pedido de ${customer_name.trim()} (${customer_phone.trim()}):\n${itemLines}\n\n💰 Total: Bs ${Number(subtotal).toFixed(2)}${deliveryLine}${notesLine}`;
+
+        // Create notification for the business
+        await supabase.from("notifications").insert({
+          business_id: branch.business_id,
+          branch_id,
+          type: "storefront_order",
+          title: `Nuevo pedido de ${customer_name.trim()}`,
+          message: message.substring(0, 1000),
+          metadata: {
+            customer_name: customer_name.trim(),
+            customer_phone: customer_phone.trim(),
+            delivery_address: delivery_address || null,
+            notes: notes || null,
+            items,
+            subtotal,
+          },
+        });
+
+        return new Response(JSON.stringify({ success: true }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       return new Response(JSON.stringify({ error: "Acción no válida" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });

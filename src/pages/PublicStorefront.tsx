@@ -6,6 +6,7 @@ import StorefrontHome from '@/components/storefront/StorefrontHome';
 import StorefrontCatalogView from '@/components/storefront/StorefrontCatalogView';
 import StorefrontContact from '@/components/storefront/StorefrontContact';
 import StorefrontFooter from '@/components/storefront/StorefrontFooter';
+import { StorefrontCartProvider } from '@/contexts/StorefrontCartContext';
 
 export interface StorefrontProduct {
   id: string;
@@ -151,43 +152,45 @@ const PublicStorefront = () => {
   const fontBody = FONT_MAP[data.settings.font_body] || FONT_MAP['Work Sans'];
 
   return (
-    <div
-      className="min-h-screen bg-background flex flex-col"
-      style={{
-        '--accent': accent,
-        '--font-heading': fontHeading,
-        '--font-body': fontBody,
-      } as React.CSSProperties}
-    >
-      <StorefrontNavbar
-        data={data}
-        isOpen={open}
-        accent={accent}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        portalPath={portalPath}
-        hasDelivery={data.settings.has_delivery}
-      />
+    <StorefrontCartProvider>
+      <div
+        className="min-h-screen bg-background flex flex-col"
+        style={{
+          '--accent': accent,
+          '--font-heading': fontHeading,
+          '--font-body': fontBody,
+        } as React.CSSProperties}
+      >
+        <StorefrontNavbar
+          data={data}
+          isOpen={open}
+          accent={accent}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          portalPath={portalPath}
+          hasDelivery={data.settings.has_delivery}
+        />
 
-      <main className="flex-1" style={{ fontFamily: fontBody, paddingTop: activeTab !== 'home' ? '56px' : undefined }}>
-        {activeTab === 'home' && (
-          <StorefrontHome
-            data={data}
-            accent={accent}
-            portalPath={portalPath}
-            onGoToCatalog={() => setActiveTab('catalog')}
-          />
-        )}
-        {activeTab === 'catalog' && (
-          <StorefrontCatalogView products={data.products} accent={accent} />
-        )}
-        {activeTab === 'contact' && (
-          <StorefrontContact data={data} accent={accent} />
-        )}
-      </main>
+        <main className="flex-1" style={{ fontFamily: fontBody, paddingTop: activeTab !== 'home' ? '56px' : undefined }}>
+          {activeTab === 'home' && (
+            <StorefrontHome
+              data={data}
+              accent={accent}
+              portalPath={portalPath}
+              onGoToCatalog={() => setActiveTab('catalog')}
+            />
+          )}
+          {activeTab === 'catalog' && (
+            <StorefrontCatalogView products={data.products} accent={accent} />
+          )}
+          {activeTab === 'contact' && (
+            <StorefrontContact data={data} accent={accent} />
+          )}
+        </main>
 
-      <StorefrontFooter businessName={data.business.name} />
-    </div>
+        <StorefrontFooter businessName={data.business.name} />
+      </div>
+    </StorefrontCartProvider>
   );
 };
 
