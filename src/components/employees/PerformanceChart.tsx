@@ -230,6 +230,10 @@ export default function PerformanceChart({
 
       queryClient.invalidateQueries({ queryKey: ['evaluation', employeeId, monthKey] });
       queryClient.invalidateQueries({ queryKey: ['evaluation-history', employeeId] });
+      // Also invalidate employee's own dashboard queries
+      queryClient.invalidateQueries({ queryKey: ['my-evaluation'] });
+      queryClient.invalidateQueries({ queryKey: ['my-evaluation-history'] });
+      queryClient.invalidateQueries({ queryKey: ['my-latest-evaluation'] });
       toast.success('Evaluación guardada');
     } catch (err: any) {
       toast.error(err.message || 'Error al guardar');
@@ -340,7 +344,7 @@ export default function PerformanceChart({
           <Tabs defaultValue="chart" className="w-full">
             <TabsList className="grid w-full grid-cols-4 text-xs sm:text-sm">
               <TabsTrigger value="chart">Gráfica</TabsTrigger>
-              <TabsTrigger value="skills">Habilidades</TabsTrigger>
+              <TabsTrigger value="skills">Evaluaciones</TabsTrigger>
               <TabsTrigger value="history">Historial</TabsTrigger>
               <TabsTrigger value="development">Desarrollo</TabsTrigger>
             </TabsList>
