@@ -377,7 +377,7 @@ export default function PerformanceChart({
                   onValueChange={(v) => setCompareEmployeeId(v === 'none' ? null : v)}>
                   <SelectTrigger className="w-[160px] sm:w-[200px] text-xs sm:text-sm h-8">
                     <Users className="h-3.5 w-3.5 mr-1 flex-shrink-0" />
-                    <SelectValue placeholder="Comparar" />
+                    <SelectValue placeholder="Comparación" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Sin comparación</SelectItem>
@@ -391,17 +391,23 @@ export default function PerformanceChart({
                 </Badge>
               </div>
 
-              <div className="w-full h-[300px] sm:h-[400px]">
+              <div className="w-full h-[320px] sm:h-[420px]">
                 {chartType === 'radar' ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="60%">
+                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="45%">
                       <PolarGrid />
-                      <PolarAngleAxis dataKey="skill" tick={({ x, y, payload, ...rest }) => {
+                      <PolarAngleAxis dataKey="skill" tick={({ x, y, cx, cy, payload }) => {
                         const words = (payload.value as string).split(' ');
+                        const dx = x - cx;
+                        const dy = y - cy;
+                        const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                        const offsetX = x + (dx / len) * 16;
+                        const offsetY = y + (dy / len) * 16;
+                        const anchor = Math.abs(dx) < 5 ? 'middle' : dx > 0 ? 'start' : 'end';
                         return (
-                          <text {...rest} x={x} y={y} textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 11 }}>
+                          <text x={offsetX} y={offsetY} textAnchor={anchor} className="fill-muted-foreground" style={{ fontSize: 11 }}>
                             {words.map((w, i) => (
-                              <tspan key={i} x={x} dy={i === 0 ? 0 : 13}>{w}</tspan>
+                              <tspan key={i} x={offsetX} dy={i === 0 ? 0 : 13}>{w}</tspan>
                             ))}
                           </text>
                         );
@@ -419,20 +425,20 @@ export default function PerformanceChart({
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 10 }}
-                      barCategoryGap="25%">
+                      barCategoryGap="35%">
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 12 }} />
                       <YAxis type="category" dataKey="skill" tick={{ fontSize: 12 }} width={120} />
                       <Tooltip contentStyle={{ fontSize: 12 }} />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="score" name={employeeName} radius={[0, 4, 4, 0]} barSize={14}>
+                      <Bar dataKey="score" name={employeeName} radius={[0, 4, 4, 0]} barSize={12}>
                         {barData.map((entry, i) => (
                           <Cell key={i} fill={getBarColor(entry.score)} />
                         ))}
                       </Bar>
                       {compareEmployeeId && (
                         <Bar dataKey="compare" name="Comparación"
-                          fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={10} />
+                          fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={8} />
                       )}
                     </BarChart>
                   </ResponsiveContainer>

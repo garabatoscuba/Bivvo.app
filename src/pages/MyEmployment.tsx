@@ -560,9 +560,9 @@ const MyEmployment = () => {
                       </Button>
                       <Select value={compareEmployeeId || 'none'}
                         onValueChange={(v) => setCompareEmployeeId(v === 'none' ? null : v)}>
-                        <SelectTrigger className="w-[140px] text-xs h-7">
+                        <SelectTrigger className="w-[150px] text-xs h-7">
                           <Users className="h-3 w-3 mr-1 flex-shrink-0" />
-                          <SelectValue placeholder="Comparar" />
+                          <SelectValue placeholder="Comparación" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Sin comparación</SelectItem>
@@ -574,17 +574,24 @@ const MyEmployment = () => {
                       <Badge variant="secondary" className="text-[10px] ml-auto">Promedio: {myAvg.toFixed(1)}/10</Badge>
                     </div>
 
-                    <div className="w-full h-[280px] sm:h-[340px]">
+                    <div className="w-full h-[300px] sm:h-[360px]">
                       {chartType === 'radar' ? (
                         <ResponsiveContainer width="100%" height="100%">
-                          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="60%">
+                          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="45%">
                             <PolarGrid />
-                            <PolarAngleAxis dataKey="skill" tick={({ x, y, payload, ...rest }) => {
+                            <PolarAngleAxis dataKey="skill" tick={({ x, y, cx, cy, payload, ...rest }) => {
                               const words = (payload.value as string).split(' ');
+                              // Push labels outward from center
+                              const dx = x - cx;
+                              const dy = y - cy;
+                              const len = Math.sqrt(dx * dx + dy * dy) || 1;
+                              const offsetX = x + (dx / len) * 14;
+                              const offsetY = y + (dy / len) * 14;
+                              const anchor = Math.abs(dx) < 5 ? 'middle' : dx > 0 ? 'start' : 'end';
                               return (
-                                <text {...rest} x={x} y={y} textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>
+                                <text x={offsetX} y={offsetY} textAnchor={anchor} className="fill-muted-foreground" style={{ fontSize: 10 }}>
                                   {words.map((w, i) => (
-                                    <tspan key={i} x={x} dy={i === 0 ? 0 : 12}>{w}</tspan>
+                                    <tspan key={i} x={offsetX} dy={i === 0 ? 0 : 12}>{w}</tspan>
                                   ))}
                                 </text>
                               );
@@ -603,20 +610,20 @@ const MyEmployment = () => {
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={barData} layout="vertical" margin={{ left: 5, right: 10 }}
-                            barCategoryGap="20%">
+                            barCategoryGap="35%">
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11 }} />
                             <YAxis type="category" dataKey="skill" tick={{ fontSize: 11 }} width={110} />
                             <Tooltip contentStyle={{ fontSize: 11 }} />
                             <Legend wrapperStyle={{ fontSize: 11 }} />
-                            <Bar dataKey="score" name={myEmployeeRecord.full_name} radius={[0, 4, 4, 0]} barSize={14}>
+                            <Bar dataKey="score" name={myEmployeeRecord.full_name} radius={[0, 4, 4, 0]} barSize={12}>
                               {barData.map((entry, i) => (
                                 <Cell key={i} fill={getBarColor(entry.score)} />
                               ))}
                             </Bar>
                             {compareEmployeeId && (
                               <Bar dataKey="compare" name="Comparación"
-                                fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={10} />
+                                fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={8} />
                             )}
                           </BarChart>
                         </ResponsiveContainer>
