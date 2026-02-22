@@ -1351,6 +1351,16 @@ export type Database = {
       generate_sale_number: { Args: { _branch_id: string }; Returns: string }
       generate_slug: { Args: { input: string }; Returns: string }
       get_branch_business_id: { Args: { _branch_id: string }; Returns: string }
+      get_profiles_by_emails: {
+        Args: { emails: string[] }
+        Returns: {
+          branch_id: string
+          business_id: string
+          email: string
+          id: string
+          user_id: string
+        }[]
+      }
       get_server_now: { Args: never; Returns: string }
       get_user_business_id: { Args: { _user_id: string }; Returns: string }
       get_user_profile_id: { Args: { _user_id: string }; Returns: string }
