@@ -247,10 +247,26 @@ const Employees = () => {
     enabled: !!businessId,
   });
 
-  // Match employee to profile by email
+  // Fetch profiles matching HR employee emails (cross-business lookup for jornada matching)
+  const employeeEmails = hrEmployees.filter(e => e.email).map(e => e.email!.toLowerCase());
+  const { data: employeeProfiles = [] } = useQuery({
+    queryKey: ['employee-profiles-by-email', employeeEmails.sort().join(',')],
+    queryFn: async () => {
+      if (!employeeEmails.length) return [];
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, email, user_id, branch_id, business_id')
+        .in('email', employeeEmails);
+      if (error) { console.error('Error fetching employee profiles:', error); return []; }
+      return data || [];
+    },
+    enabled: employeeEmails.length > 0,
+  });
+
+  // Match employee to profile by email (cross-business)
   const getProfileForEmployee = (emp: Employee) => {
     if (!emp.email) return null;
-    return teamMembers.find(m => m.email.toLowerCase() === emp.email!.toLowerCase()) || null;
+    return employeeProfiles.find(p => p.email.toLowerCase() === emp.email!.toLowerCase()) || null;
   };
 
   // Get active jornada for an HR employee (via profile match)
