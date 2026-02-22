@@ -460,6 +460,137 @@ export type Database = {
           },
         ]
       }
+      daily_reports: {
+        Row: {
+          active_workers: number
+          branch_id: string
+          business_id: string
+          cash_counted: number
+          closed_at: string
+          commission_earning: number
+          copies_cash: number
+          copies_earning: number
+          copies_transfer: number
+          created_at: string
+          date: string
+          employee_id: string
+          id: string
+          jornada_id: string | null
+          money_to_deliver: number
+          sales_cash: number
+          sales_transfer: number
+          service_cash: number
+          service_earning: number
+          service_percent: number
+          service_transfer: number
+          tips: number
+          total_commissions: number
+          total_copies: number
+          total_expected_cash: number
+          total_salary: number
+          total_sales_day: number
+          total_services: number
+          total_transfers: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          active_workers?: number
+          branch_id: string
+          business_id: string
+          cash_counted?: number
+          closed_at?: string
+          commission_earning?: number
+          copies_cash?: number
+          copies_earning?: number
+          copies_transfer?: number
+          created_at?: string
+          date?: string
+          employee_id: string
+          id?: string
+          jornada_id?: string | null
+          money_to_deliver?: number
+          sales_cash?: number
+          sales_transfer?: number
+          service_cash?: number
+          service_earning?: number
+          service_percent?: number
+          service_transfer?: number
+          tips?: number
+          total_commissions?: number
+          total_copies?: number
+          total_expected_cash?: number
+          total_salary?: number
+          total_sales_day?: number
+          total_services?: number
+          total_transfers?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          active_workers?: number
+          branch_id?: string
+          business_id?: string
+          cash_counted?: number
+          closed_at?: string
+          commission_earning?: number
+          copies_cash?: number
+          copies_earning?: number
+          copies_transfer?: number
+          created_at?: string
+          date?: string
+          employee_id?: string
+          id?: string
+          jornada_id?: string | null
+          money_to_deliver?: number
+          sales_cash?: number
+          sales_transfer?: number
+          service_cash?: number
+          service_earning?: number
+          service_percent?: number
+          service_transfer?: number
+          tips?: number
+          total_commissions?: number
+          total_copies?: number
+          total_expected_cash?: number
+          total_salary?: number
+          total_sales_day?: number
+          total_services?: number
+          total_transfers?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_reports_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_reports_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_reports_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_reports_jornada_id_fkey"
+            columns: ["jornada_id"]
+            isOneToOne: false
+            referencedRelation: "jornadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_branch_assignments: {
         Row: {
           branch_id: string
