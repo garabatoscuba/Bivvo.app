@@ -31,7 +31,7 @@ import PerformanceChart from '@/components/employees/PerformanceChart';
 import CerrarJornadaGerenteModal from '@/components/employees/CerrarJornadaGerenteModal';
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
 import HistorialJornadasTab from '@/components/employees/HistorialJornadasTab';
-import OnboardingQRDialog from '@/components/employees/OnboardingQRDialog';
+import { Play, Square } from 'lucide-react';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -119,8 +119,8 @@ const Employees = () => {
   // Jornada gerente state
   const [jornadaCerrarTarget, setJornadaCerrarTarget] = useState<{ jornada: any; name: string } | null>(null);
 
-  // Onboarding QR state
-  const [onboardingQR, setOnboardingQR] = useState<{ token: string; name: string } | null>(null);
+  // Jornada start/stop loading
+  const [jornadaLoading, setJornadaLoading] = useState<string | null>(null);
 
   const businessId = profile?.business_id;
   const canManage = isOwner || isManager || isSuperAdmin;
@@ -185,11 +185,58 @@ const Employees = () => {
     return activeJornadas.find((j: any) => j.empleado_id === profileId);
   };
 
+  // Match employee to profile by email
+  const getProfileForEmployee = (emp: Employee) => {
+    if (!emp.email) return null;
+    return teamMembers.find(m => m.email.toLowerCase() === emp.email!.toLowerCase()) || null;
+  };
+
+  // Get active jornada for an HR employee (via profile match)
+  const getEmployeeJornada = (emp: Employee) => {
+    const prof = getProfileForEmployee(emp);
+    if (!prof) return null;
+    return getActiveJornada(prof.id);
+  };
+
   const getJornadaElapsed = (aperturaAt: string) => {
     const diffMs = Date.now() - new Date(aperturaAt).getTime();
     const m = Math.floor(diffMs / 60000);
     const h = Math.floor(m / 60);
     return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
+  };
+
+  const handleStartJornada = async (emp: Employee) => {
+    const prof = getProfileForEmployee(emp);
+    if (!prof) {
+      sonnerToast.error('Este empleado no tiene cuenta vinculada');
+      return;
+    }
+    const branchId = prof.branch_id || profile?.branch_id;
+    if (!branchId) {
+      sonnerToast.error('No se puede determinar la sucursal');
+      return;
+    }
+    setJornadaLoading(emp.id);
+    const { error } = await supabase.from('jornadas').insert({
+      empleado_id: prof.id,
+      sucursal_id: branchId,
+      metodo_apertura: 'manual_gerente',
+    });
+    setJornadaLoading(null);
+    if (error) {
+      sonnerToast.error(error.message);
+    } else {
+      sonnerToast.success(`Jornada iniciada para ${emp.full_name}`);
+      queryClient.invalidateQueries({ queryKey: ['jornadas-activas-business'] });
+      queryClient.invalidateQueries({ queryKey: ['equipo-activo'] });
+    }
+  };
+
+  const handleStopJornada = (emp: Employee) => {
+    const jornada = getEmployeeJornada(emp);
+    if (jornada) {
+      setJornadaCerrarTarget({ jornada, name: emp.full_name });
+    }
   };
 
   const { data: teamMembers = [], isLoading: loadingTeam } = useQuery({
@@ -298,21 +345,25 @@ const Employees = () => {
         if (error) throw error;
         employeeId = data.id;
 
-        // Generate onboarding token
-        const { data: tokenData, error: tokenError } = await supabase
-          .from('employee_onboarding_tokens')
-          .insert({
-            employee_id: employeeId,
-            business_id: businessId,
-            branch_id: profile?.branch_id || null,
-            position: form.position,
-            created_by: user!.id,
-          })
-          .select('token')
-          .single();
-
-        if (!tokenError && tokenData) {
-          setOnboardingQR({ token: tokenData.token, name: form.full_name.trim() });
+        // Auto-link: if email matches an existing profile, assign role + business
+        if (form.email.trim()) {
+          try {
+            const { data: linkResult } = await supabase.functions.invoke('employee-onboarding', {
+              body: {
+                email: form.email.trim(),
+                position: form.position,
+                business_id: businessId,
+                branch_id: profile?.branch_id || null,
+              },
+            });
+            if (linkResult?.linked) {
+              sonnerToast.success(`${form.full_name.trim()} vinculado al negocio automáticamente`);
+            } else if (linkResult?.reason) {
+              sonnerToast.info(linkResult.reason);
+            }
+          } catch (linkErr) {
+            console.error('Error auto-linking employee:', linkErr);
+          }
         }
 
         sonnerToast.success('Empleado registrado');
@@ -467,18 +518,32 @@ const Employees = () => {
                     <div className="space-y-2 md:hidden">
                       {hrEmployees.map((emp) => {
                         const empBranches = getEmployeeBranches(emp.id);
+                        const empJornada = getEmployeeJornada(emp);
+                        const empProfile = getProfileForEmployee(emp);
                         return (
                           <div key={emp.id} className="border rounded-lg p-3 space-y-1.5">
                             <div className="flex items-center justify-between">
                               <span className="font-medium text-sm">{emp.full_name}</span>
-                              <Badge variant="secondary" className="text-[10px]">
-                                {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
-                              </Badge>
+                              <div className="flex items-center gap-1">
+                                {empJornada && (
+                                  <Badge variant="outline" className="border-primary/30 text-primary text-[10px] gap-1">
+                                    <span className="relative flex h-1.5 w-1.5">
+                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+                                    </span>
+                                    {getJornadaElapsed(empJornada.apertura_at)}
+                                  </Badge>
+                                )}
+                                <Badge variant="secondary" className="text-[10px]">
+                                  {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
+                                </Badge>
+                              </div>
                             </div>
                             {emp.email && (
                               <div className="flex items-center gap-1 text-xs text-muted-foreground">
                                 <Mail className="h-3 w-3" />
                                 <span className="truncate">{emp.email}</span>
+                                {empProfile && <Badge variant="outline" className="text-[9px] px-1 py-0 ml-1 border-green-500/30 text-green-600">Vinculado</Badge>}
                               </div>
                             )}
                             {empBranches.length > 0 && (
@@ -499,6 +564,30 @@ const Employees = () => {
                             </div>
                             {canManage && (
                               <div className="flex justify-end gap-1 pt-1">
+                                {empProfile && (
+                                  empJornada ? (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-destructive"
+                                      onClick={() => handleStopJornada(emp)}
+                                      title="Detener jornada"
+                                    >
+                                      <Square className="h-3.5 w-3.5" />
+                                    </Button>
+                                  ) : (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-7 w-7 text-primary"
+                                      onClick={() => handleStartJornada(emp)}
+                                      disabled={jornadaLoading === emp.id}
+                                      title="Iniciar jornada"
+                                    >
+                                      {jornadaLoading === emp.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                                    </Button>
+                                  )
+                                )}
                                 <Button
                                   variant="ghost"
                                   size="icon"
@@ -530,6 +619,7 @@ const Employees = () => {
                             <TableHead>Nombre</TableHead>
                             <TableHead>Email</TableHead>
                             <TableHead>CI</TableHead>
+                            <TableHead>Jornada</TableHead>
                             <TableHead>Sucursales</TableHead>
                             <TableHead>Puesto</TableHead>
                             <TableHead>Alta</TableHead>
@@ -539,12 +629,34 @@ const Employees = () => {
                         <TableBody>
                           {hrEmployees.map((emp) => {
                             const empBranches = getEmployeeBranches(emp.id);
+                            const empJornada = getEmployeeJornada(emp);
+                            const empProfile = getProfileForEmployee(emp);
                             return (
                               <TableRow key={emp.id}>
                                 <TableCell className="font-medium">{emp.contract_number}</TableCell>
                                 <TableCell>{emp.full_name}</TableCell>
-                                <TableCell className="text-muted-foreground">{emp.email || '—'}</TableCell>
+                                <TableCell className="text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    {emp.email || '—'}
+                                    {empProfile && <Badge variant="outline" className="text-[9px] px-1 py-0 border-green-500/30 text-green-600">✓</Badge>}
+                                  </div>
+                                </TableCell>
                                 <TableCell>{emp.ci}</TableCell>
+                                <TableCell>
+                                  {empJornada ? (
+                                    <Badge variant="outline" className="border-primary/30 text-primary text-xs gap-1">
+                                      <span className="relative flex h-1.5 w-1.5">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+                                      </span>
+                                      {getJornadaElapsed(empJornada.apertura_at)}
+                                    </Badge>
+                                  ) : empProfile ? (
+                                    <span className="text-xs text-muted-foreground">Inactivo</span>
+                                  ) : (
+                                    <span className="text-xs text-muted-foreground">—</span>
+                                  )}
+                                </TableCell>
                                 <TableCell>
                                   <div className="flex flex-wrap gap-1">
                                     {empBranches.length > 0 ? empBranches.map(b => (
@@ -563,6 +675,30 @@ const Employees = () => {
                                 {canManage && (
                                   <TableCell className="text-right">
                                     <div className="flex justify-end gap-1">
+                                      {empProfile && (
+                                        empJornada ? (
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-destructive"
+                                            onClick={() => handleStopJornada(emp)}
+                                            title="Detener jornada"
+                                          >
+                                            <Square className="h-4 w-4" />
+                                          </Button>
+                                        ) : (
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="text-primary"
+                                            onClick={() => handleStartJornada(emp)}
+                                            disabled={jornadaLoading === emp.id}
+                                            title="Iniciar jornada"
+                                          >
+                                            {jornadaLoading === emp.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
+                                          </Button>
+                                        )
+                                      )}
                                       <Button
                                         variant="ghost"
                                         size="icon"
@@ -916,15 +1052,6 @@ const Employees = () => {
           />
         )}
 
-        {/* Onboarding QR Dialog */}
-        {onboardingQR && (
-          <OnboardingQRDialog
-            open={!!onboardingQR}
-            onOpenChange={(open) => { if (!open) setOnboardingQR(null); }}
-            token={onboardingQR.token}
-            employeeName={onboardingQR.name}
-          />
-        )}
       </div>
     </AppLayout>
   );
