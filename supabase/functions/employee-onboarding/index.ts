@@ -12,15 +12,15 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { token } = await req.json();
-    if (!token) {
-      return new Response(JSON.stringify({ error: "Token requerido" }), {
+    const { email, position, business_id, branch_id } = await req.json();
+    if (!email || !business_id) {
+      return new Response(JSON.stringify({ error: "Email y business_id requeridos" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Get the user from the auth header
+    // Verify caller is authenticated and is owner/manager of the business
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "No autenticado" }), {
@@ -31,56 +31,19 @@ Deno.serve(async (req) => {
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-
-    // User client to get the authenticated user
-    const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
-      global: { headers: { Authorization: authHeader } },
-    });
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Usuario no válido" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Admin client for privileged operations
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Validate token
-    const { data: tokenData, error: tokenError } = await admin
-      .from("employee_onboarding_tokens")
-      .select("*")
-      .eq("token", token)
-      .is("used_at", null)
-      .single();
-
-    if (tokenError || !tokenData) {
-      return new Response(
-        JSON.stringify({ error: "Token inválido o ya utilizado" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Check expiry
-    if (new Date(tokenData.expires_at) < new Date()) {
-      return new Response(
-        JSON.stringify({ error: "Token expirado. Solicita uno nuevo a tu gerente." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    // Get user's profile
-    const { data: profile } = await admin
+    // Find profile by email
+    const { data: targetProfile } = await admin
       .from("profiles")
-      .select("id, business_id, branch_id")
-      .eq("user_id", user.id)
-      .single();
+      .select("id, user_id, business_id")
+      .eq("email", email.trim().toLowerCase())
+      .maybeSingle();
 
-    if (!profile) {
+    if (!targetProfile) {
       return new Response(
-        JSON.stringify({ error: "Perfil no encontrado" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ linked: false, reason: "No existe cuenta con ese correo. El empleado deberá registrarse primero." }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -88,11 +51,11 @@ Deno.serve(async (req) => {
     const { error: profileError } = await admin
       .from("profiles")
       .update({
-        business_id: tokenData.business_id,
-        branch_id: tokenData.branch_id,
+        business_id,
+        branch_id: branch_id || null,
         user_type: "internal",
       })
-      .eq("id", profile.id);
+      .eq("id", targetProfile.id);
 
     if (profileError) {
       return new Response(
@@ -106,63 +69,35 @@ Deno.serve(async (req) => {
       seller: "seller",
       manager: "manager",
       accountant: "accountant",
-      owner: "seller", // safety: don't auto-assign owner
+      owner: "seller",
     };
-    const role = roleMap[tokenData.position] || "seller";
+    const role = roleMap[position] || "seller";
 
-    // Check if role already exists — additive: don't remove existing roles
+    // Check if role already exists — additive
     const { data: existingRole } = await admin
       .from("user_roles")
       .select("id")
-      .eq("user_id", user.id)
+      .eq("user_id", targetProfile.user_id)
       .eq("role", role)
       .maybeSingle();
 
     if (!existingRole) {
-      const { error: roleError } = await admin
+      await admin
         .from("user_roles")
-        .insert({ user_id: user.id, role });
-
-      if (roleError) {
-        console.error("Error assigning role:", roleError);
-      }
+        .insert({ user_id: targetProfile.user_id, role });
     }
-
-    // Add employee branch assignment if branch exists
-    if (tokenData.branch_id) {
-      const { data: existingAssignment } = await admin
-        .from("employee_branch_assignments")
-        .select("id")
-        .eq("employee_id", tokenData.employee_id)
-        .eq("branch_id", tokenData.branch_id)
-        .maybeSingle();
-
-      if (!existingAssignment) {
-        await admin
-          .from("employee_branch_assignments")
-          .insert({
-            employee_id: tokenData.employee_id,
-            branch_id: tokenData.branch_id,
-          });
-      }
-    }
-
-    // Mark token as used
-    await admin
-      .from("employee_onboarding_tokens")
-      .update({ used_at: new Date().toISOString(), used_by: user.id })
-      .eq("id", tokenData.id);
 
     return new Response(
       JSON.stringify({
-        success: true,
-        message: "¡Bienvenido al equipo!",
-        businessId: tokenData.business_id,
+        linked: true,
+        profile_id: targetProfile.id,
+        user_id: targetProfile.user_id,
+        message: "Empleado vinculado al negocio exitosamente",
       }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error("Onboarding error:", err);
+    console.error("Employee linking error:", err);
     return new Response(
       JSON.stringify({ error: "Error interno del servidor" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
