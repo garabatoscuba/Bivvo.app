@@ -29,7 +29,7 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false, disa
         )}
         onClick={disabled ? undefined : onClick}
       >
-        <CardContent className="p-3 pr-4">
+        <CardContent className="p-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
               {product.image_url ? (
