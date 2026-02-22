@@ -27,6 +27,7 @@ import {
   ArrowUpRight, ArrowDownRight, Minus } from
 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import PerformanceWidget from '@/components/dashboard/PerformanceWidget';
 
 const PERIOD_OPTIONS: {value: Period;label: string;icon: typeof Calendar;}[] = [
 { value: 'today', label: 'Hoy', icon: Calendar },
@@ -370,6 +371,9 @@ const Dashboard = () => {
             }
           </CardContent>
         </Card>
+
+        {/* Performance Widget */}
+        <PerformanceWidget />
 
         {/* Quick Actions */}
         <div className="grid grid-cols-3 gap-2 md:gap-4 md:grid-cols-3">
