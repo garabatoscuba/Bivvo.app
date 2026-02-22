@@ -291,7 +291,7 @@ const AppSidebar = () => {
                     <SidebarMenuButton className="justify-between">
                       <div className="flex items-center gap-2">
                         <Store className="h-4 w-4" />
-                        <span className="text-sm">Negocios</span>
+                        <span className="text-sm">Mis Negocios</span>
                       </div>
                       <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
                     </SidebarMenuButton>
@@ -420,7 +420,9 @@ const AppSidebar = () => {
         </SidebarGroup>
 
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Menú</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
+            {userBusinesses.find(b => b.id === profile?.business_id)?.name || ''} Menú
+          </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {businessItems.map((item) => (

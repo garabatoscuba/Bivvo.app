@@ -40,7 +40,7 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false, disa
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-start gap-1 mb-1">
-                <h4 className="font-medium text-xs leading-snug line-clamp-2 flex-1 break-words">{product.name}</h4>
+                <h4 className="font-medium text-xs leading-snug flex-1 break-words">{product.name}</h4>
                 {isLowStock &&
                 <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
                 }
