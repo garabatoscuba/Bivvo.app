@@ -842,6 +842,51 @@ export type Database = {
         }
         Relationships: []
       }
+      product_commissions: {
+        Row: {
+          business_id: string
+          commission_type: string
+          commission_value: number
+          created_at: string
+          id: string
+          product_id: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          commission_type?: string
+          commission_value?: number
+          created_at?: string
+          id?: string
+          product_id: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          commission_type?: string
+          commission_value?: number
+          created_at?: string
+          id?: string
+          product_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_commissions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_commissions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
@@ -1033,6 +1078,41 @@ export type Database = {
             columns: ["branch_id"]
             isOneToOne: false
             referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      salary_config: {
+        Row: {
+          business_id: string
+          conditions: Json
+          created_at: string
+          id: string
+          total_positions: number
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          conditions?: Json
+          created_at?: string
+          id?: string
+          total_positions?: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          conditions?: Json
+          created_at?: string
+          id?: string
+          total_positions?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_config_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
         ]
