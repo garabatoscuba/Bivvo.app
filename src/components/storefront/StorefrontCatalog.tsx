@@ -1,6 +1,11 @@
 import { useState } from 'react';
-import { ShoppingBag } from 'lucide-react';
+import { ShoppingBag, Plus, LayoutGrid, List } from 'lucide-react';
 import type { StorefrontProduct } from '@/pages/PublicStorefront';
+import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
+import StorefrontProductDetail from '@/components/storefront/StorefrontProductDetail';
+
+type ViewMode = 'grid' | 'list';
+type SortMode = 'default' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
 
 interface Props {
   products: StorefrontProduct[];
@@ -8,91 +13,243 @@ interface Props {
 }
 
 const StorefrontCatalog = ({ products, accent }: Props) => {
+  const { addItem, items } = useStorefrontCart();
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [sortMode, setSortMode] = useState<SortMode>('default');
+  const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null);
 
-  const filtered = activeCategory
+  let filtered = activeCategory
     ? products.filter(p => p.category === activeCategory)
     : products;
 
+  // Sort
+  filtered = [...filtered].sort((a, b) => {
+    switch (sortMode) {
+      case 'price-asc': return a.price - b.price;
+      case 'price-desc': return b.price - a.price;
+      case 'name-asc': return a.name.localeCompare(b.name);
+      case 'name-desc': return b.name.localeCompare(a.name);
+      default: return 0;
+    }
+  });
+
+  const getCartQty = (productId: string) => items.find(i => i.product.id === productId)?.quantity || 0;
+
   return (
     <div>
-      {/* Category filters — minimal pill style */}
-      {categories.length > 1 && (
-        <div className="flex gap-2 mb-10 overflow-x-auto pb-1 scrollbar-hide">
-          <button
-            onClick={() => setActiveCategory(null)}
-            className={`shrink-0 text-xs font-medium px-4 py-2 rounded-full border transition-colors ${
-              !activeCategory
-                ? 'border-foreground bg-foreground text-background'
-                : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
-            }`}
-          >
-            Todos
-          </button>
-          {categories.map(cat => (
+      {/* Toolbar: categories + sort + view toggle */}
+      <div className="flex flex-col gap-4 mb-8">
+        {/* Categories */}
+        {categories.length > 1 && (
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
             <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => setActiveCategory(null)}
               className={`shrink-0 text-xs font-medium px-4 py-2 rounded-full border transition-colors ${
-                activeCategory === cat
+                !activeCategory
                   ? 'border-foreground bg-foreground text-background'
                   : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
               }`}
             >
-              {cat}
+              Todos
             </button>
-          ))}
-        </div>
-      )}
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => setActiveCategory(cat)}
+                className={`shrink-0 text-xs font-medium px-4 py-2 rounded-full border transition-colors ${
+                  activeCategory === cat
+                    ? 'border-foreground bg-foreground text-background'
+                    : 'border-border text-muted-foreground hover:text-foreground hover:border-foreground/30'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
 
+        {/* Sort + View toggle + count */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <select
+              value={sortMode}
+              onChange={e => setSortMode(e.target.value as SortMode)}
+              className="h-9 px-3 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 cursor-pointer"
+            >
+              <option value="default">Ordenar</option>
+              <option value="price-asc">Precio: menor a mayor</option>
+              <option value="price-desc">Precio: mayor a menor</option>
+              <option value="name-asc">Nombre: A-Z</option>
+              <option value="name-desc">Nombre: Z-A</option>
+            </select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground hidden sm:inline">
+              {filtered.length} {filtered.length === 1 ? 'producto' : 'productos'}
+            </span>
+            <div className="flex border border-border rounded-lg overflow-hidden">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`h-8 w-8 flex items-center justify-center transition-colors ${
+                  viewMode === 'grid' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                }`}
+                aria-label="Vista cuadrícula"
+              >
+                <LayoutGrid className="h-3.5 w-3.5" />
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`h-8 w-8 flex items-center justify-center transition-colors ${
+                  viewMode === 'list' ? 'bg-foreground text-background' : 'text-muted-foreground hover:text-foreground'
+                }`}
+                aria-label="Vista lista"
+              >
+                <List className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Products */}
       {filtered.length === 0 ? (
         <div className="text-center py-24 text-muted-foreground/40">
           <ShoppingBag className="h-10 w-10 mx-auto mb-3 opacity-50" />
           <p className="text-sm">No hay productos disponibles.</p>
         </div>
+      ) : viewMode === 'grid' ? (
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+          {filtered.map(product => {
+            const cartQty = getCartQty(product.id);
+            return (
+              <div
+                key={product.id}
+                className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer"
+                onClick={() => setSelectedProduct(product)}
+              >
+                {product.image_url ? (
+                  <div className="aspect-square overflow-hidden bg-muted/10">
+                    <img
+                      src={product.image_url}
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                      loading="lazy"
+                    />
+                  </div>
+                ) : (
+                  <div className="aspect-square bg-muted/10 flex items-center justify-center">
+                    <ShoppingBag className="h-8 w-8 text-muted-foreground/15" />
+                  </div>
+                )}
+                <div className="p-3 sm:p-4 space-y-1">
+                  {product.category && (
+                    <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
+                      {product.category}
+                    </span>
+                  )}
+                  <h3 className="text-xs sm:text-sm font-semibold text-foreground leading-snug line-clamp-2">
+                    {product.name}
+                  </h3>
+                  <div className="flex items-center justify-between pt-1">
+                    <p className="text-sm font-bold text-foreground">
+                      Bs {Number(product.price).toFixed(2)}
+                    </p>
+                    {cartQty > 0 && (
+                      <span
+                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                        style={{ backgroundColor: accent }}
+                      >
+                        {cartQty}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {/* Quick add */}
+                {product.stock > cartQty && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); addItem(product); }}
+                    className="w-full py-2 flex items-center justify-center gap-1 text-xs font-medium border-t border-border text-muted-foreground hover:text-white hover:bg-foreground transition-all"
+                  >
+                    <Plus className="h-3 w-3" /> Agregar
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
       ) : (
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map(product => (
-            <div
-              key={product.id}
-              className="group bg-card rounded-2xl border border-border overflow-hidden hover:shadow-md transition-all duration-300"
-            >
-              {product.image_url ? (
-                <div className="aspect-[4/3] overflow-hidden bg-muted/10">
+        /* List view */
+        <div className="space-y-2">
+          {filtered.map(product => {
+            const cartQty = getCartQty(product.id);
+            return (
+              <div
+                key={product.id}
+                className="flex gap-3 p-3 rounded-xl border border-border bg-card hover:shadow-sm transition-all cursor-pointer"
+                onClick={() => setSelectedProduct(product)}
+              >
+                {product.image_url ? (
                   <img
                     src={product.image_url}
                     alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                    className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg object-cover shrink-0"
                     loading="lazy"
                   />
-                </div>
-              ) : (
-                <div className="aspect-[4/3] bg-muted/10 flex items-center justify-center">
-                  <ShoppingBag className="h-8 w-8 text-muted-foreground/20" />
-                </div>
-              )}
-              <div className="p-5 space-y-2">
-                {product.category && (
-                  <span className="text-[10px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
-                    {product.category}
-                  </span>
+                ) : (
+                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg bg-muted/10 flex items-center justify-center shrink-0">
+                    <ShoppingBag className="h-5 w-5 text-muted-foreground/15" />
+                  </div>
                 )}
-                <h3 className="text-sm font-semibold text-foreground leading-snug">
-                  {product.name}
-                </h3>
-                {product.description && (
-                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
-                    {product.description}
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  {product.category && (
+                    <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
+                      {product.category}
+                    </span>
+                  )}
+                  <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-1">
+                    {product.name}
+                  </h3>
+                  {product.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{product.description}</p>
+                  )}
+                  <p className="text-sm font-bold text-foreground mt-1">
+                    Bs {Number(product.price).toFixed(2)}
                   </p>
-                )}
-                <p className="text-base font-bold text-foreground pt-1">
-                  Bs {Number(product.price).toFixed(2)}
-                </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {cartQty > 0 && (
+                    <span
+                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                      style={{ backgroundColor: accent }}
+                    >
+                      {cartQty}
+                    </span>
+                  )}
+                  {product.stock > cartQty && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); addItem(product); }}
+                      className="h-8 w-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white hover:bg-foreground transition-all"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
+      )}
+
+      {/* Product detail modal */}
+      {selectedProduct && (
+        <StorefrontProductDetail
+          product={selectedProduct}
+          accent={accent}
+          onClose={() => setSelectedProduct(null)}
+        />
       )}
     </div>
   );

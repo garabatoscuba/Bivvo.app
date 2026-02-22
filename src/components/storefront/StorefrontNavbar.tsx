@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { Store, Search, Sun, Moon, Megaphone, User, Menu, X } from 'lucide-react';
+import { Store, Search, Sun, Moon, Megaphone, User, Menu, X, ShoppingBag } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import type { StorefrontData, StorefrontTab } from '@/pages/PublicStorefront';
 import StorefrontAnnouncementPopup from '@/components/storefront/StorefrontAnnouncementPopup';
 import StorefrontMembershipPopup from '@/components/storefront/StorefrontMembershipPopup';
+import StorefrontCartDrawer from '@/components/storefront/StorefrontCartDrawer';
+import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
 
 interface Props {
   data: StorefrontData;
@@ -20,8 +22,10 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
   const isDark = theme === 'dark';
   const [showAnnouncements, setShowAnnouncements] = useState(false);
   const [showMembership, setShowMembership] = useState(false);
+  const [showCart, setShowCart] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { totalItems } = useStorefrontCart();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 50);
@@ -36,10 +40,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
   ];
 
   const hasAnnouncements = data.announcements.length > 0;
-
   const isTransparent = activeTab === 'home' && !scrolled && !mobileMenuOpen;
-
-  // When at top (not scrolled), navbar sits below delivery bar; once scrolled, navbar goes to top:0
   const navTop = (activeTab === 'home' && hasDelivery && !scrolled) ? '38px' : '0px';
 
   return (
@@ -55,22 +56,15 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
         }}
       >
         <div className="flex items-center justify-between px-4 sm:px-10 py-3 sm:py-4">
-          {/* Left — Logo + name (clickable → home) */}
+          {/* Left — Logo + name */}
           <button
             onClick={() => onTabChange('home')}
             className="flex items-center gap-2.5 shrink-0 hover:opacity-80 transition-opacity"
           >
             {data.business.logo_url ? (
-              <img
-                src={data.business.logo_url}
-                alt={data.business.name}
-                className="h-7 w-7 rounded-lg object-cover"
-              />
+              <img src={data.business.logo_url} alt={data.business.name} className="h-7 w-7 rounded-lg object-cover" />
             ) : (
-              <div
-                className="h-7 w-7 rounded-lg flex items-center justify-center"
-                style={{ backgroundColor: accent }}
-              >
+              <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: accent }}>
                 <Store className="h-3.5 w-3.5 text-white" />
               </div>
             )}
@@ -86,9 +80,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
                 key={t.key}
                 onClick={() => onTabChange(t.key)}
                 className={`text-sm transition-colors ${
-                  activeTab === t.key
-                    ? 'text-white font-medium'
-                    : 'text-white/60 hover:text-white'
+                  activeTab === t.key ? 'text-white font-medium' : 'text-white/60 hover:text-white'
                 }`}
               >
                 {t.label}
@@ -98,7 +90,6 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
 
           {/* Right — Icons */}
           <div className="flex items-center gap-0.5 sm:gap-1">
-            {/* Announcements */}
             {hasAnnouncements && (
               <button
                 onClick={() => setShowAnnouncements(true)}
@@ -106,35 +97,45 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
                 aria-label="Anuncios"
               >
                 <Megaphone className="h-4 w-4" />
-                <span
-                  className="absolute top-1 right-1 h-2 w-2 rounded-full"
-                  style={{ backgroundColor: accent }}
-                />
+                <span className="absolute top-1 right-1 h-2 w-2 rounded-full" style={{ backgroundColor: accent }} />
               </button>
             )}
 
-            {/* Membership */}
             <button
               onClick={() => setShowMembership(true)}
-               className="h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
+              className="h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
               aria-label="Membresía"
             >
               <User className="h-4 w-4" />
             </button>
 
-            {/* Search */}
             <button
               onClick={() => { if (activeTab !== 'catalog') onTabChange('catalog'); }}
-               className="h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
+              className="h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
               aria-label="Buscar"
             >
               <Search className="h-4 w-4" />
             </button>
 
-            {/* Divider */}
+            {/* Cart icon */}
+            <button
+              onClick={() => setShowCart(true)}
+              className="relative h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
+              aria-label="Carrito"
+            >
+              <ShoppingBag className="h-4 w-4" />
+              {totalItems > 0 && (
+                <span
+                  className="absolute -top-0.5 -right-0.5 h-4 min-w-4 px-1 rounded-full text-[10px] font-bold text-white flex items-center justify-center"
+                  style={{ backgroundColor: accent }}
+                >
+                  {totalItems}
+                </span>
+              )}
+            </button>
+
             <div className="hidden sm:block h-4 w-px bg-white/20 mx-1" />
 
-            {/* Open / Closed */}
             <span
               className="hidden sm:inline text-[11px] font-medium px-2.5 py-1 rounded-full"
               style={isOpen ? { backgroundColor: 'rgba(255,255,255,0.15)', color: 'white' } : {}}
@@ -142,7 +143,6 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
               {isOpen ? 'Abierto' : <span className="text-white/50">Cerrado</span>}
             </span>
 
-            {/* Theme toggle */}
             <button
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
               className="hidden sm:flex h-8 w-8 rounded-full items-center justify-center text-white/70 hover:text-white transition-colors"
@@ -151,7 +151,6 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
               {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
 
-            {/* Mobile menu toggle */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="sm:hidden h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
@@ -170,16 +169,14 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
                 key={t.key}
                 onClick={() => { onTabChange(t.key); setMobileMenuOpen(false); }}
                 className={`block w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
-                  activeTab === t.key
-                    ? 'text-white font-medium bg-white/10'
-                    : 'text-white/60'
+                  activeTab === t.key ? 'text-white font-medium bg-white/10' : 'text-white/60'
                 }`}
               >
                 {t.label}
               </button>
             ))}
             <div className="flex items-center justify-between px-3 pt-2">
-               <span
+              <span
                 className="text-[11px] font-medium px-2.5 py-1 rounded-full"
                 style={isOpen ? { backgroundColor: 'rgba(255,255,255,0.15)', color: 'white' } : {}}
               >
@@ -196,24 +193,22 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
         )}
       </nav>
 
-      {/* Announcement popup */}
       {showAnnouncements && (
-        <StorefrontAnnouncementPopup
-          announcements={data.announcements}
-          accent={accent}
-          onClose={() => setShowAnnouncements(false)}
-        />
+        <StorefrontAnnouncementPopup announcements={data.announcements} accent={accent} onClose={() => setShowAnnouncements(false)} />
       )}
-
-      {/* Membership popup */}
       {showMembership && (
-        <StorefrontMembershipPopup
-          branchId={data.branch.id}
-          accent={accent}
-          portalPath={portalPath}
-          onClose={() => setShowMembership(false)}
-        />
+        <StorefrontMembershipPopup branchId={data.branch.id} accent={accent} portalPath={portalPath} onClose={() => setShowMembership(false)} />
       )}
+      <StorefrontCartDrawer
+        open={showCart}
+        onClose={() => setShowCart(false)}
+        accent={accent}
+        branchId={data.branch.id}
+        businessName={data.business.name}
+        branchName={data.branch.name}
+        hasDelivery={data.settings.has_delivery}
+        branchPhone={data.branch.phone}
+      />
     </>
   );
 };
