@@ -31,6 +31,19 @@ import { format, startOfMonth, subMonths, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 
+/** Parse 'YYYY-MM-DD' as local date (avoids UTC shift) */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Format a Date to 'YYYY-MM-DD' using local components */
+function formatLocalMonthKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}-01`;
+}
+
 type AppRole = Database['public']['Enums']['app_role'];
 
 const POSITION_OPTIONS = [
@@ -73,7 +86,7 @@ const MyEmployment = () => {
   const [evalSkills, setEvalSkills] = useState<Skill[]>([]);
 
   const businessId = profile?.business_id;
-  const monthKey = format(selectedMonth, 'yyyy-MM-dd');
+  const monthKey = formatLocalMonthKey(selectedMonth);
 
   // Find current user's employee record
   const { data: myEmployeeRecord = null } = useQuery({
@@ -187,6 +200,8 @@ const MyEmployment = () => {
       return data;
     },
     enabled: !!myEmployeeRecord?.id,
+    staleTime: 0,
+    refetchOnMount: 'always',
   });
 
   // Fetch evaluation history
@@ -245,7 +260,7 @@ const MyEmployment = () => {
       setEvalSkills(myEvaluation.skills as unknown as Skill[]);
       // Set selectedMonth to the evaluation's month
       if (myEvaluation.evaluation_month) {
-        setSelectedMonth(new Date(myEvaluation.evaluation_month));
+        setSelectedMonth(parseLocalDate(myEvaluation.evaluation_month));
       }
     }
     setEvalInitialized(true);
@@ -288,7 +303,7 @@ const MyEmployment = () => {
     const visible = hSkills.filter(s => !s.hidden);
     const avg = visible.length ? visible.reduce((sum, s) => sum + s.score, 0) / visible.length : 0;
     return {
-      month: format(new Date(h.evaluation_month), 'MMM yy', { locale: es }),
+      month: format(parseLocalDate(h.evaluation_month), 'MMM yy', { locale: es }),
       promedio: parseFloat(avg.toFixed(1)),
     };
   });
@@ -493,7 +508,7 @@ const MyEmployment = () => {
               {myEvaluation?.evaluation_month && (
                 <div className="flex items-center justify-center">
                   <span className="font-medium capitalize text-xs sm:text-sm text-muted-foreground">
-                    Última evaluación: {format(new Date(myEvaluation.evaluation_month), 'MMMM yyyy', { locale: es })}
+                    Última evaluación: {format(parseLocalDate(myEvaluation.evaluation_month), 'MMMM yyyy', { locale: es })}
                   </span>
                 </div>
               )}

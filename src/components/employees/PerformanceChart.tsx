@@ -27,6 +27,19 @@ import {
 import { format, startOfMonth, subMonths, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 
+/** Parse 'YYYY-MM-DD' as local date (avoids UTC shift) */
+function parseLocalDate(dateStr: string): Date {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** Format a Date to 'YYYY-MM-DD' using local components */
+function formatLocalMonthKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}-01`;
+}
+
 export interface Skill {
   category: string;
   name: string;
@@ -109,7 +122,7 @@ export default function PerformanceChart({
   const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
 
-  const monthKey = format(selectedMonth, 'yyyy-MM-dd');
+  const monthKey = formatLocalMonthKey(selectedMonth);
 
   // Fetch evaluation for selected month
   const { data: evaluation, isLoading } = useQuery({
@@ -277,7 +290,7 @@ export default function PerformanceChart({
     const visible = hSkills.filter(s => !s.hidden);
     const avg = visible.length ? visible.reduce((sum, s) => sum + s.score, 0) / visible.length : 0;
     return {
-      month: format(new Date(h.evaluation_month), 'MMM yy', { locale: es }),
+      month: format(parseLocalDate(h.evaluation_month), 'MMM yy', { locale: es }),
       promedio: parseFloat(avg.toFixed(1)),
     };
   });
