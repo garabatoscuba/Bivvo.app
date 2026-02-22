@@ -20,6 +20,14 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [showAffiliateMsg, setShowAffiliateMsg] = useState(false);
+
+  const handleRequireAffiliate = (e: React.MouseEvent, action: () => void) => {
+    e.stopPropagation();
+    // For now, show affiliate message — later can check actual affiliation
+    setShowAffiliateMsg(true);
+    setTimeout(() => setShowAffiliateMsg(false), 4000);
+  };
 
   const toggleFavorite = (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
@@ -50,6 +58,13 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
 
   return (
     <div>
+      {/* Affiliate message */}
+      {showAffiliateMsg && (
+        <div className="mb-6 p-4 rounded-xl border border-border bg-card text-center space-y-1 animate-in fade-in slide-in-from-top-2">
+          <p className="text-sm font-medium text-foreground">Debes estar afiliado para comprar y marcar favoritos</p>
+          <p className="text-xs text-muted-foreground">Ve al <span className="font-semibold">Home</span> y únete como miembro para acceder a todas las funciones.</p>
+        </div>
+      )}
       {/* Toolbar: categories + sort + view toggle */}
       <div className="flex flex-col gap-4 mb-8">
         {/* Categories */}
@@ -132,19 +147,19 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
           <p className="text-sm">No hay productos disponibles.</p>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
           {filtered.map(product => {
             const cartQty = getCartQty(product.id);
             const isFav = favorites.has(product.id);
             return (
               <div
                 key={product.id}
-                className="group bg-card rounded-lg border border-border overflow-hidden hover:shadow-sm transition-all duration-200 cursor-pointer"
+                className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-sm transition-all duration-200 cursor-pointer"
                 onClick={() => setSelectedProduct(product)}
               >
                 <div className="relative">
                   {product.image_url ? (
-                    <div className="aspect-[4/3] overflow-hidden bg-muted/10">
+                    <div className="aspect-square overflow-hidden bg-muted/10">
                       <img
                         src={product.image_url}
                         alt={product.name}
@@ -153,40 +168,34 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
                       />
                     </div>
                   ) : (
-                    <div className="aspect-[4/3] bg-muted/10 flex items-center justify-center">
-                      <ShoppingBag className="h-6 w-6 text-muted-foreground/15" />
+                    <div className="aspect-square bg-muted/10 flex items-center justify-center">
+                      <ShoppingBag className="h-8 w-8 text-muted-foreground/15" />
                     </div>
                   )}
                   {/* Favorite button */}
                   <button
-                    onClick={(e) => toggleFavorite(e, product.id)}
-                    className="absolute top-2 right-2 h-7 w-7 rounded-full bg-background/70 backdrop-blur flex items-center justify-center transition-colors hover:bg-background"
+                    onClick={(e) => handleRequireAffiliate(e, () => toggleFavorite(e, product.id))}
+                    className="absolute top-2.5 right-2.5 h-8 w-8 rounded-full bg-background/70 backdrop-blur flex items-center justify-center transition-colors hover:bg-background"
                   >
-                    <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
+                    <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
                   </button>
                 </div>
-                <div className="p-2.5 space-y-0.5">
-                  {product.category && (
-                    <span className="text-[8px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
-                      {product.category}
-                    </span>
-                  )}
-                  <h3 className="text-xs font-semibold text-foreground leading-snug line-clamp-1">
+                <div className="p-3 space-y-2">
+                  <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-2">
                     {product.name}
                   </h3>
-                  {/* Star rating placeholder */}
-                  <div className="flex items-center gap-0.5">
+                  <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map(i => (
-                      <Star key={i} className="h-2.5 w-2.5 text-muted-foreground/20" />
+                      <Star key={i} className="h-3.5 w-3.5 text-muted-foreground/20" />
                     ))}
                   </div>
-                  <div className="flex items-center justify-between pt-0.5">
-                    <p className="text-xs font-bold text-foreground">
-                      Bs {Number(product.price).toFixed(2)}
+                  <div className="flex items-center justify-between pt-1">
+                    <p className="text-sm font-bold text-foreground">
+                      {Number(product.price).toFixed(2)}
                     </p>
                     {cartQty > 0 && (
                       <span
-                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                        className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
                         style={{ backgroundColor: accent }}
                       >
                         {cartQty}
@@ -196,10 +205,10 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
                 </div>
                 {product.stock > cartQty && (
                   <button
-                    onClick={(e) => { e.stopPropagation(); addItem(product); }}
-                    className="w-full py-1.5 flex items-center justify-center gap-1 text-[11px] font-medium border-t border-border text-muted-foreground hover:text-white hover:bg-foreground transition-all"
+                    onClick={(e) => handleRequireAffiliate(e, () => addItem(product))}
+                    className="w-full py-2 flex items-center justify-center gap-1 text-xs font-medium border-t border-border text-muted-foreground hover:text-white hover:bg-foreground transition-all"
                   >
-                    <Plus className="h-3 w-3" /> Agregar
+                    <Plus className="h-3.5 w-3.5" /> Agregar
                   </button>
                 )}
               </div>
@@ -215,46 +224,41 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
             return (
               <div
                 key={product.id}
-                className="flex gap-3 p-3 rounded-lg border border-border bg-card hover:shadow-sm transition-all cursor-pointer"
+                className="flex gap-3 p-3 rounded-xl border border-border bg-card hover:shadow-sm transition-all cursor-pointer"
                 onClick={() => setSelectedProduct(product)}
               >
                 {product.image_url ? (
                   <img
                     src={product.image_url}
                     alt={product.name}
-                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg object-cover shrink-0"
+                    className="h-16 w-16 rounded-lg object-cover shrink-0"
                     loading="lazy"
                   />
                 ) : (
-                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg bg-muted/10 flex items-center justify-center shrink-0">
-                    <ShoppingBag className="h-4 w-4 text-muted-foreground/15" />
+                  <div className="h-16 w-16 rounded-lg bg-muted/10 flex items-center justify-center shrink-0">
+                    <ShoppingBag className="h-5 w-5 text-muted-foreground/15" />
                   </div>
                 )}
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  {product.category && (
-                    <span className="text-[8px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
-                      {product.category}
-                    </span>
-                  )}
+                <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
                   <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-1">
                     {product.name}
                   </h3>
-                  <div className="flex items-center gap-0.5 mt-0.5">
+                  <div className="flex items-center gap-1">
                     {[1, 2, 3, 4, 5].map(i => (
-                      <Star key={i} className="h-2.5 w-2.5 text-muted-foreground/20" />
+                      <Star key={i} className="h-3 w-3 text-muted-foreground/20" />
                     ))}
                   </div>
-                  <p className="text-sm font-bold text-foreground mt-0.5">
-                    Bs {Number(product.price).toFixed(2)}
+                  <p className="text-sm font-bold text-foreground">
+                    {Number(product.price).toFixed(2)}
                   </p>
                 </div>
-                <div className="flex flex-col items-center gap-1 shrink-0 justify-center">
-                  <button onClick={(e) => toggleFavorite(e, product.id)} className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
-                    <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground/40'}`} />
+                <div className="flex flex-col items-center gap-1.5 shrink-0 justify-center">
+                  <button onClick={(e) => handleRequireAffiliate(e, () => toggleFavorite(e, product.id))} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                    <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground/40'}`} />
                   </button>
                   {cartQty > 0 && (
                     <span
-                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                      className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
                       style={{ backgroundColor: accent }}
                     >
                       {cartQty}
@@ -262,10 +266,10 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
                   )}
                   {product.stock > cartQty && (
                     <button
-                      onClick={(e) => { e.stopPropagation(); addItem(product); }}
-                      className="h-7 w-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white hover:bg-foreground transition-all"
+                      onClick={(e) => handleRequireAffiliate(e, () => addItem(product))}
+                      className="h-8 w-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white hover:bg-foreground transition-all"
                     >
-                      <Plus className="h-3 w-3" />
+                      <Plus className="h-3.5 w-3.5" />
                     </button>
                   )}
                 </div>
