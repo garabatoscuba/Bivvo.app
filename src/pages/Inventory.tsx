@@ -8,6 +8,8 @@ import { CategoryForm } from '@/components/inventory/CategoryForm';
 import { useProducts, useCategories, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/contexts/AuthContext';
+import { useJornadaActiva } from '@/hooks/useJornadaActiva';
+import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -59,7 +61,8 @@ const colorDotMap: Record<string, string> = {
 };
 
 const Inventory = () => {
-  const { profile, isOwner, isManager } = useAuth();
+  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const { jornadaActiva, isLoading: jornadaLoading } = useJornadaActiva();
   const { planType } = useSubscription();
   const { products, isLoading: productsLoading, deleteProduct } = useProducts();
   const { categories, isLoading: categoriesLoading, deleteCategory } = useCategories();
@@ -348,6 +351,26 @@ const Inventory = () => {
   const selectedMargin = selectedProduct 
     ? ((Number(selectedProduct.sale_price) - Number(selectedProduct.cost_price)) / Number(selectedProduct.sale_price) * 100)
     : 0;
+
+  const isPrivileged = isOwner || isManager || isSuperAdmin;
+
+  if (!isPrivileged && jornadaLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!isPrivileged && !jornadaActiva) {
+    return (
+      <AppLayout>
+        <SinJornadaActiva />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

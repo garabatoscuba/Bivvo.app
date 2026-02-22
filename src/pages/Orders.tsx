@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { useNotifications, type Notification } from '@/hooks/useNotifications';
 import AppLayout from '@/components/layout/AppLayout';
-import { Package, Phone, MapPin, Clock, CheckCircle, XCircle, Eye, ChevronDown } from 'lucide-react';
+import { Package, Phone, MapPin, Clock, CheckCircle, XCircle, Eye, ChevronDown, Loader2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
+import { useJornadaActiva } from '@/hooks/useJornadaActiva';
+import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
 
 type OrderStatus = 'pending' | 'confirmed' | 'delivered' | 'cancelled';
 
@@ -19,6 +22,8 @@ const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: t
 const Orders = () => {
   const { notifications, markAsRead } = useNotifications();
   const { toast } = useToast();
+  const { isOwner, isManager, isSuperAdmin } = useAuth();
+  const { jornadaActiva, isLoading: jornadaLoading } = useJornadaActiva();
   const [filter, setFilter] = useState<'all' | OrderStatus>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -58,6 +63,26 @@ const Orders = () => {
     delivered: orders.filter(n => getOrderStatus(n) === 'delivered').length,
     cancelled: orders.filter(n => getOrderStatus(n) === 'cancelled').length,
   };
+
+  const isPrivileged = isOwner || isManager || isSuperAdmin;
+
+  if (!isPrivileged && jornadaLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!isPrivileged && !jornadaActiva) {
+    return (
+      <AppLayout>
+        <SinJornadaActiva />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import { useJornadaActiva } from '@/hooks/useJornadaActiva';
+import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +23,8 @@ import type { CartItem, Product, Category, PaymentType } from '@/types/database'
 import { cn } from '@/lib/utils';
 
 const POS = () => {
-  const { profile } = useAuth();
+  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const { jornadaActiva, isLoading: jornadaLoading } = useJornadaActiva();
   const { products, isLoading } = useProducts();
   const { categories } = useCategories();
   const { data: branches } = useBranches();
@@ -141,6 +144,26 @@ const POS = () => {
 
   const cartTotal = cart.reduce((sum, item) => sum + item.total, 0) - discount;
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  const isPrivileged = isOwner || isManager || isSuperAdmin;
+
+  if (!isPrivileged && jornadaLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!isPrivileged && !jornadaActiva) {
+    return (
+      <AppLayout>
+        <SinJornadaActiva />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

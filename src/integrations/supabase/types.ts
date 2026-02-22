@@ -613,6 +613,63 @@ export type Database = {
           },
         ]
       }
+      jornadas: {
+        Row: {
+          apertura_at: string
+          cierre_at: string | null
+          created_at: string
+          duracion_min: number | null
+          empleado_id: string
+          id: string
+          incidencia: boolean
+          metodo_apertura: string
+          metodo_cierre: string | null
+          notas: string | null
+          sucursal_id: string
+        }
+        Insert: {
+          apertura_at?: string
+          cierre_at?: string | null
+          created_at?: string
+          duracion_min?: number | null
+          empleado_id: string
+          id?: string
+          incidencia?: boolean
+          metodo_apertura: string
+          metodo_cierre?: string | null
+          notas?: string | null
+          sucursal_id: string
+        }
+        Update: {
+          apertura_at?: string
+          cierre_at?: string | null
+          created_at?: string
+          duracion_min?: number | null
+          empleado_id?: string
+          id?: string
+          incidencia?: boolean
+          metodo_apertura?: string
+          metodo_cierre?: string | null
+          notas?: string | null
+          sucursal_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jornadas_empleado_id_fkey"
+            columns: ["empleado_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jornadas_sucursal_id_fkey"
+            columns: ["sucursal_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           branch_id: string | null
