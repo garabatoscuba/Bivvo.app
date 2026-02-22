@@ -1,317 +1,104 @@
-import { useState, useCallback } from 'react';
-import AppLayout from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { ProductCard } from '@/components/inventory/ProductCard';
-import { CategoryBadge } from '@/components/inventory/CategoryBadge';
-import { POSCart } from '@/components/pos/POSCart';
-import { PaymentDialog } from '@/components/pos/PaymentDialog';
-import { useProducts, useCategories, useBranchStock } from '@/hooks/useProducts';
-import { useBranches } from '@/hooks/useBranches';
-import { useSales } from '@/hooks/useSales';
-import { useAuth } from '@/contexts/AuthContext';
-import { Search, ShoppingCart, Loader2 } from 'lucide-react';
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger } from
-'@/components/ui/sheet';
-import type { CartItem, Product, Category, PaymentType } from '@/types/database';
-import { cn } from '@/lib/utils';
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { CategoryBadge } from "./CategoryBadge";
+import { Package, AlertTriangle } from "lucide-react";
+import type { Product, Category } from "@/types/database";
+import { cn } from "@/lib/utils";
 
-const POS = () => {
-  const { profile } = useAuth();
-  const { products, isLoading } = useProducts();
-  const { categories } = useCategories();
-  const { data: branches } = useBranches();
-  const { createSale, isCreating } = useSales();
+interface ProductCardProps {
+  product: Product & { category: Category | null };
+  stock?: number;
+  onClick?: () => void;
+  compact?: boolean;
+  disabled?: boolean;
+}
 
-  const currentBranch = profile?.branch_id || branches?.[0]?.id;
-  const { data: branchStock } = useBranchStock(currentBranch);
+export const ProductCard = ({ product, stock = 0, onClick, compact = false, disabled = false }: ProductCardProps) => {
+  const isLowStock = stock <= product.min_stock && stock > 0;
+  const isOutOfStock = stock <= 0;
 
-  const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [discount, setDiscount] = useState(0);
-  const [paymentOpen, setPaymentOpen] = useState(false);
-  const [mobileCartOpen, setMobileCartOpen] = useState(false);
-
-  // Stock map
-  const stockMap = new Map<string, number>();
-  branchStock?.forEach((bs: any) => {
-    stockMap.set(bs.product_id, bs.quantity);
-  });
-
-  // Filtrar productos disponibles para venta
-  const availableProducts = products.filter((p) => {
-    if (p.status !== 'for_sale') return false;
-    const stock = stockMap.get(p.id) || 0;
-    return stock > 0;
-  });
-
-  const filteredProducts = availableProducts.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
-    product.code.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  // Get quantity already in cart for a product
-  const getCartQuantity = useCallback((productId: string) => {
-    const item = cart.find((i) => i.product.id === productId);
-    return item ? item.quantity : 0;
-  }, [cart]);
-
-  // Available stock = real stock - cart quantity
-  const getAvailableStock = useCallback((productId: string) => {
-    const realStock = stockMap.get(productId) || 0;
-    const inCart = getCartQuantity(productId);
-    return realStock - inCart;
-  }, [stockMap, getCartQuantity]);
-
-  // Cart functions
-  const addToCart = useCallback((product: Product & {category: Category | null;}) => {
-    const realStock = stockMap.get(product.id) || 0;
-
-    setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      const currentQty = existing ? existing.quantity : 0;
-
-      // Block if no stock available
-      if (currentQty >= realStock) return prev;
-
-      if (existing) {
-        return prev.map((item) =>
-          item.product.id === product.id ?
-          {
-            ...item,
-            quantity: item.quantity + 1,
-            total: (item.quantity + 1) * item.unitPrice - item.discount
-          } :
-          item
-        );
-      }
-      return [
-        ...prev,
-        {
-          product,
-          quantity: 1,
-          unitPrice: Number(product.sale_price),
-          discount: 0,
-          total: Number(product.sale_price)
-        }
-      ];
-    });
-  }, [stockMap]);
-
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      setCart((prev) => prev.filter((item) => item.product.id !== productId));
-    } else {
-      const maxStock = stockMap.get(productId) || 0;
-      const clampedQty = Math.min(quantity, maxStock);
-      setCart((prev) =>
-        prev.map((item) =>
-          item.product.id === productId ?
-          { ...item, quantity: clampedQty, total: clampedQty * item.unitPrice - item.discount } :
-          item
-        )
-      );
-    }
-  }, [stockMap]);
-
-  const removeItem = useCallback((productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId));
-  }, []);
-
-  const clearCart = useCallback(() => {
-    setCart([]);
-    setDiscount(0);
-  }, []);
-
-  const handlePayment = async (paymentType: PaymentType, amountPaid: number) => {
-    if (!currentBranch) return;
-
-    await createSale.mutateAsync({
-      branchId: currentBranch,
-      items: cart,
-      paymentType,
-      discount,
-      amountPaid
-    });
-
-    setPaymentOpen(false);
-    clearCart();
-  };
-
-  const cartTotal = cart.reduce((sum, item) => sum + item.total, 0) - discount;
-  const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  if (compact) {
+    return (
+      <Card
+        className={cn(
+          "transition-all overflow-hidden",
+          disabled
+            ? "opacity-40 cursor-not-allowed"
+            : "cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
+          isOutOfStock && !disabled && "opacity-50",
+        )}
+        onClick={disabled ? undefined : onClick}
+      >
+        <CardContent className="p-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
+              {product.image_url ? (
+                <img src={product.image_url} alt={product.name} className="h-full w-full rounded-lg object-cover" />
+              ) : (
+                <Package className="h-5 w-5 text-muted-foreground" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <h4 className="font-medium text-xs leading-snug truncate mb-1">{product.name}</h4>
+              <div className="flex items-center gap-2 mt-1">
+                <p className="text-sm font-bold text-primary shrink-0">${Number(product.sale_price).toFixed(2)}</p>
+                <Badge
+                  variant={isOutOfStock ? "secondary" : "outline"}
+                  className="text-[10px] px-1.5 py-0 h-5 shrink-0"
+                >
+                  {stock} disp.
+                </Badge>
+                {isLowStock && <AlertTriangle className="h-3.5 w-3.5 text-warning shrink-0" />}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <AppLayout>
-      <div className="flex h-[calc(100vh-6.5rem)] md:h-[calc(100vh-8rem)] gap-3 md:gap-4">
-        {/* Products Section */}
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Search & Categories */}
-          <div className="space-y-2 md:space-y-3 pb-3 md:pb-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar productos..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10" />
-
+    <Card
+      className={cn("cursor-pointer transition-all hover:shadow-md", isOutOfStock && "opacity-50")}
+      onClick={onClick}
+    >
+      <CardContent className="p-4">
+        <div className="aspect-square relative rounded-lg bg-muted mb-3 overflow-hidden">
+          {product.image_url ? (
+            <img src={product.image_url} alt={product.name} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full items-center justify-center">
+              <Package className="h-12 w-12 text-muted-foreground" />
             </div>
-
-            <div className="gap-2 overflow-x-auto pb-2 flex items-end justify-start my-0 py-[10px]">
-              <button
-                onClick={() => setSelectedCategory(null)}
-                className={cn("px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors border-b-2",
-
-                !selectedCategory ?
-                "bg-primary text-primary-foreground border-primary" :
-                "bg-muted text-muted-foreground hover:bg-accent border-transparent"
-                )}>
-
-                Todos
-              </button>
-              {categories.map((cat) => {
-                const isActive = selectedCategory === cat.id;
-                return (
-                  <button
-                    key={cat.id}
-                    onClick={() => setSelectedCategory(cat.id)}
-                    className={cn(
-                      "px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors",
-                      isActive ?
-                      "ring-2 ring-primary ring-offset-2 ring-offset-background" :
-                      "hover:opacity-80"
-                    )}
-                    style={{
-                      backgroundColor: `hsl(var(--category-${cat.color}))`,
-                      color: `hsl(var(--category-${cat.color}-foreground))`
-                    }}>
-
-                    {cat.name}
-                  </button>);
-
-              })}
+          )}
+          {isLowStock && (
+            <div className="absolute top-2 right-2">
+              <Badge variant="destructive" className="text-xs">
+                <AlertTriangle className="h-3 w-3 mr-1" />
+                Stock bajo
+              </Badge>
             </div>
-          </div>
-
-          {/* Products Grid */}
-          <div className="flex-1 overflow-auto border-4 border-transparent">
-            {isLoading ?
-            <div className="flex items-center justify-center h-full">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div> :
-            filteredProducts.length === 0 ?
-            <div className="flex flex-col items-center justify-center h-full text-center">
-                <p className="text-muted-foreground">No se encontraron productos</p>
-              </div> :
-
-            <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {filteredProducts.map((product) => {
-                  const available = getAvailableStock(product.id);
-                  return (
-                    <ProductCard
-                      key={product.id}
-                      product={product}
-                      stock={available}
-                      onClick={() => addToCart(product)}
-                      compact
-                      disabled={available <= 0} />
-                  );
-                })}
-              </div>
-            }
-          </div>
+          )}
+          {isOutOfStock && (
+            <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+              <Badge variant="secondary">Sin stock</Badge>
+            </div>
+          )}
         </div>
 
-        {/* Cart Section - Desktop */}
-        <Card className="hidden lg:flex w-80 flex-col overflow-hidden">
-          <POSCart
-            items={cart}
-            onUpdateQuantity={updateQuantity}
-            onRemoveItem={removeItem}
-            onClearCart={clearCart}
-            discount={discount}
-            onDiscountChange={setDiscount}
-            stockMap={stockMap} />
+        <div className="space-y-2">
+          {product.category && <CategoryBadge name={product.category.name} color={product.category.color} />}
 
-          
-          {cart.length > 0 &&
-          <div className="p-4 border-t">
-              <Button
-              className="w-full h-12 text-lg"
-              onClick={() => setPaymentOpen(true)}>
+          <h3 className="font-semibold text-sm line-clamp-2">{product.name}</h3>
 
-                Cobrar ${cartTotal.toFixed(2)}
-              </Button>
-            </div>
-          }
-        </Card>
+          <div className="flex items-center justify-between">
+            <span className="text-lg font-bold text-primary">${Number(product.sale_price).toFixed(2)}</span>
+            <span className="text-sm text-muted-foreground">Stock: {stock}</span>
+          </div>
 
-        {/* Mobile Cart Button */}
-        <div className="fixed bottom-4 left-4 right-4 lg:hidden">
-          <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
-            <SheetTrigger asChild>
-              <Button className="w-full h-14 text-lg relative">
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Ver Carrito (${cartTotal.toFixed(2)})
-                {cartItemsCount > 0 &&
-                <Badge className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center">
-                    {cartItemsCount}
-                  </Badge>
-                }
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="bottom" className="h-[80vh] p-0">
-              <div className="flex flex-col h-full overflow-hidden">
-                <div className="flex-1 min-h-0 overflow-hidden">
-                  <POSCart
-                    items={cart}
-                    onUpdateQuantity={updateQuantity}
-                    onRemoveItem={removeItem}
-                    onClearCart={clearCart}
-                    discount={discount}
-                    onDiscountChange={setDiscount}
-                    stockMap={stockMap} />
-                </div>
-                
-                {cart.length > 0 &&
-                <div className="p-4 border-t flex-shrink-0">
-                    <Button
-                    className="w-full h-12 text-lg"
-                    onClick={() => {
-                      setMobileCartOpen(false);
-                      setPaymentOpen(true);
-                    }}>
-
-                      Cobrar ${cartTotal.toFixed(2)}
-                    </Button>
-                  </div>
-                }
-              </div>
-            </SheetContent>
-          </Sheet>
+          <p className="text-xs text-muted-foreground">{product.code}</p>
         </div>
-      </div>
-
-      {/* Payment Dialog */}
-      <PaymentDialog
-        open={paymentOpen}
-        onOpenChange={setPaymentOpen}
-        items={cart}
-        discount={discount}
-        onConfirm={handlePayment}
-        isProcessing={isCreating} />
-
-    </AppLayout>);
-
+      </CardContent>
+    </Card>
+  );
 };
-
-export default POS;
