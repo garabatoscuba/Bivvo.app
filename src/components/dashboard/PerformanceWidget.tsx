@@ -13,12 +13,19 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Activity, AlertTriangle } from 'lucide-react';
 import { format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+/** Format a Date to 'YYYY-MM-DD' using local components */
+function formatLocalMonthKey(date: Date): string {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}-01`;
+}
 import { type Skill, getWeakPoints, getAvgScore } from '@/components/employees/PerformanceChart';
 
 export default function PerformanceWidget() {
   const { profile } = useAuth();
   const businessId = profile?.business_id;
-  const monthKey = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+  const monthKey = formatLocalMonthKey(new Date());
 
   // Fetch employees
   const { data: employees = [] } = useQuery({
