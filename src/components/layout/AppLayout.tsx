@@ -4,6 +4,7 @@ import AppSidebar from './AppSidebar';
 import AppHeader from './AppHeader';
 import SubscriptionBanner from './SubscriptionBanner';
 import InstallBanner from './InstallBanner';
+import AlertaInactividad from '@/components/employees/AlertaInactividad';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -22,6 +23,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
           <main className="flex-1 overflow-auto p-3 md:p-6 px-0 py-[5px] border-transparent border-none border-0">
             {children}
           </main>
+          <AlertaInactividad />
         </SidebarInset>
       </div>
     </SidebarProvider>);
