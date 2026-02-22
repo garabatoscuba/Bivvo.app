@@ -21,36 +21,38 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false, disa
     return (
       <Card
         className={cn(
-          "transition-all",
+          "transition-all overflow-hidden",
           disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
           isOutOfStock && !disabled && "opacity-50"
         )}
         onClick={disabled ? undefined : onClick}>
 
-        <CardContent className="p-2.5">
+        <CardContent className="p-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
               {product.image_url ?
               <img
                 src={product.image_url}
                 alt={product.name}
                 className="h-full w-full rounded-lg object-cover" /> :
-              <Package className="h-6 w-6 text-muted-foreground" />
+              <Package className="h-5 w-5 text-muted-foreground" />
               }
             </div>
-            <div className="flex-1 min-w-0 space-y-0.5">
-              <div className="flex items-start gap-1">
-                <h4 className="font-medium text-xs leading-tight line-clamp-2 flex-1">{product.name}</h4>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-1 mb-1">
+                <h4 className="font-medium text-xs leading-snug line-clamp-2 flex-1 break-words">{product.name}</h4>
                 {isLowStock &&
                 <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
                 }
               </div>
-              <p className="text-sm font-bold text-primary">
-                ${Number(product.sale_price).toFixed(2)}
-              </p>
-              <Badge variant={isOutOfStock ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 h-5">
-                {stock} disp.
-              </Badge>
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="text-sm font-bold text-primary truncate">
+                  ${Number(product.sale_price).toFixed(2)}
+                </p>
+                <Badge variant={isOutOfStock ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 h-5 flex-shrink-0">
+                  {stock} disp.
+                </Badge>
+              </div>
             </div>
           </div>
         </CardContent>
