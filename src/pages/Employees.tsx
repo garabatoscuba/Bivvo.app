@@ -82,6 +82,7 @@ interface EmployeeForm {
   position: string;
   start_date: string;
   assigned_branches: string[];
+  assigned_roles: AppRole[];
 }
 
 const emptyForm: EmployeeForm = {
@@ -95,6 +96,7 @@ const emptyForm: EmployeeForm = {
   position: 'seller',
   start_date: new Date().toISOString().split('T')[0],
   assigned_branches: [],
+  assigned_roles: ['seller'],
 };
 
 const Employees = () => {
@@ -405,7 +407,31 @@ const Employees = () => {
         if (assignError) throw assignError;
       }
 
+      // Sync roles to user_roles if the employee is linked to a profile
+      if (form.email.trim()) {
+        const linkedProfile = employeeProfiles.find(
+          p => p.email.toLowerCase() === form.email.trim().toLowerCase()
+        );
+        if (linkedProfile) {
+          // Remove existing assignable roles
+          for (const role of ASSIGNABLE_ROLES) {
+            await supabase.from('user_roles').delete()
+              .eq('user_id', linkedProfile.user_id)
+              .eq('role', role);
+          }
+          // Insert selected roles
+          if (form.assigned_roles.length > 0) {
+            const roleInserts = form.assigned_roles.map(role => ({
+              user_id: linkedProfile.user_id,
+              role,
+            }));
+            await supabase.from('user_roles').insert(roleInserts);
+          }
+        }
+      }
+
       queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['employee-branch-assignments'] });
       setEmployeeDialogOpen(false);
       setEditingEmployee(null);
@@ -433,10 +459,27 @@ const Employees = () => {
     setEmployeeDialogOpen(true);
   };
 
-  const openEditEmployee = (emp: Employee) => {
+  const openEditEmployee = async (emp: Employee) => {
     const empBranches = branchAssignments
       .filter(a => a.employee_id === emp.id)
       .map(a => a.branch_id);
+
+    // Load current roles from user_roles if linked
+    let currentRoles: AppRole[] = [emp.position as AppRole];
+    if (emp.email) {
+      const linkedProfile = employeeProfiles.find(
+        p => p.email.toLowerCase() === emp.email!.toLowerCase()
+      );
+      if (linkedProfile) {
+        const { data: roles } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', linkedProfile.user_id);
+        if (roles && roles.length > 0) {
+          currentRoles = roles.map(r => r.role).filter(r => ASSIGNABLE_ROLES.includes(r));
+        }
+      }
+    }
 
     setEditingEmployee(emp);
     setForm({
@@ -450,6 +493,7 @@ const Employees = () => {
       position: emp.position,
       start_date: emp.start_date,
       assigned_branches: empBranches,
+      assigned_roles: currentRoles,
     });
     setEmployeeDialogOpen(true);
   };
@@ -937,7 +981,7 @@ const Employees = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="position">Puesto de Trabajo *</Label>
+                  <Label htmlFor="position">Puesto Principal *</Label>
                   <Select value={form.position} onValueChange={(v) => updateField('position', v)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecciona puesto" />
@@ -953,6 +997,38 @@ const Employees = () => {
                   <Label htmlFor="start_date">Fecha de Alta *</Label>
                   <Input id="start_date" type="date" value={form.start_date} onChange={(e) => updateField('start_date', e.target.value)} />
                 </div>
+              </div>
+
+              {/* Multi-role assignment */}
+              <div className="space-y-2">
+                <Label>Roles del Sistema</Label>
+                <div className="grid grid-cols-2 gap-2 rounded-lg border p-3">
+                  {ASSIGNABLE_ROLES.map(role => {
+                    const config = ROLE_CONFIG[role];
+                    const Icon = config.icon;
+                    return (
+                      <div key={role} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`role-${role}`}
+                          checked={form.assigned_roles.includes(role)}
+                          onCheckedChange={(checked) => {
+                            setForm(prev => ({
+                              ...prev,
+                              assigned_roles: checked
+                                ? [...prev.assigned_roles, role]
+                                : prev.assigned_roles.filter(r => r !== role),
+                            }));
+                          }}
+                        />
+                        <Label htmlFor={`role-${role}`} className="text-sm font-normal cursor-pointer flex items-center gap-1.5">
+                          <Icon className="h-3.5 w-3.5" />
+                          {config.label}
+                        </Label>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">Los roles se asignarán cuando el empleado tenga cuenta vinculada.</p>
               </div>
 
               {/* Multi-branch assignment */}

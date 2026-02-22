@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import AppLayout from '@/components/layout/AppLayout';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
+import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -48,7 +49,7 @@ const POS = () => {
   const effectiveBusinessId = isEmployeeContext && employeeRecord ? employeeRecord.business_id : profile?.business_id;
   const effectiveBranchId = isEmployeeContext && employeeRecord ? (employeeRecord.branch_id || undefined) : undefined;
 
-  const { jornadaActiva, isLoading: jornadaLoading } = useJornadaActiva();
+  const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const { products, isLoading } = useProducts(isEmployeeContext ? effectiveBusinessId || undefined : undefined);
   const { categories } = useCategories(isEmployeeContext ? effectiveBusinessId || undefined : undefined);
   const { data: branches } = useBranches();
@@ -185,6 +186,14 @@ const POS = () => {
     return (
       <AppLayout>
         <SinJornadaActiva />
+      </AppLayout>
+    );
+  }
+
+  if (!isPrivileged && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+    return (
+      <AppLayout>
+        <SinJornadaAutorizada />
       </AppLayout>
     );
   }

@@ -9,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
+import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
 
 type OrderStatus = 'pending' | 'confirmed' | 'delivered' | 'cancelled';
 
@@ -23,7 +24,7 @@ const Orders = () => {
   const { notifications, markAsRead } = useNotifications();
   const { toast } = useToast();
   const { isOwner, isManager, isSuperAdmin } = useAuth();
-  const { jornadaActiva, isLoading: jornadaLoading } = useJornadaActiva();
+  const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const [filter, setFilter] = useState<'all' | OrderStatus>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -80,6 +81,14 @@ const Orders = () => {
     return (
       <AppLayout>
         <SinJornadaActiva />
+      </AppLayout>
+    );
+  }
+
+  if (!isPrivileged && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+    return (
+      <AppLayout>
+        <SinJornadaAutorizada />
       </AppLayout>
     );
   }

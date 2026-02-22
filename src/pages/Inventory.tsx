@@ -10,6 +10,7 @@ import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/contexts/AuthContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
+import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
 import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
@@ -62,7 +63,7 @@ const colorDotMap: Record<string, string> = {
 
 const Inventory = () => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
-  const { jornadaActiva, isLoading: jornadaLoading } = useJornadaActiva();
+  const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const { planType } = useSubscription();
   const { products, isLoading: productsLoading, deleteProduct } = useProducts();
   const { categories, isLoading: categoriesLoading, deleteCategory } = useCategories();
@@ -368,6 +369,14 @@ const Inventory = () => {
     return (
       <AppLayout>
         <SinJornadaActiva />
+      </AppLayout>
+    );
+  }
+
+  if (!isPrivileged && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+    return (
+      <AppLayout>
+        <SinJornadaAutorizada />
       </AppLayout>
     );
   }

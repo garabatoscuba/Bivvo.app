@@ -1,6 +1,9 @@
 import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
+import { useJornadaActiva } from '@/hooks/useJornadaActiva';
+import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
+import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -544,6 +547,7 @@ const ManagerServicesView = () => {
 // ─── Main component: route to correct view ───
 const Services = () => {
   const { isOwner, isManager, isSuperAdmin, profile } = useAuth();
+  const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
 
   // Detect if user is an employee of Vision Habana to show correct view
   const { data: employeeRecord } = useQuery({
@@ -561,10 +565,38 @@ const Services = () => {
   });
 
   const isVisionHabanaEmployee = employeeRecord?.business_id === VISION_HABANA_BIZ_ID;
+  const isPrivileged = isOwner || isManager || isSuperAdmin;
 
   // If user is an employee of Vision Habana, always show employee view with VH context
   // Otherwise, show manager view for their own business
   const showEmployeeView = isVisionHabanaEmployee;
+
+  // Jornada access control for non-privileged users
+  if (!isPrivileged && jornadaLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!isPrivileged && !jornadaActiva) {
+    return (
+      <AppLayout>
+        <SinJornadaActiva />
+      </AppLayout>
+    );
+  }
+
+  if (!isPrivileged && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+    return (
+      <AppLayout>
+        <SinJornadaAutorizada />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
