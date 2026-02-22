@@ -1036,6 +1036,99 @@ export type Database = {
           },
         ]
       }
+      service_categories: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_categories_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_entries: {
+        Row: {
+          amount: number
+          branch_id: string
+          business_id: string
+          category_id: string
+          created_at: string
+          description: string | null
+          id: string
+          payment_type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          branch_id: string
+          business_id: string
+          category_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          payment_type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          branch_id?: string
+          business_id?: string
+          category_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          payment_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_entries_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_entries_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_settings: {
         Row: {
           about_text: string | null

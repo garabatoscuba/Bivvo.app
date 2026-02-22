@@ -24,6 +24,8 @@ import Install from "./pages/Install";
 import StoreSettings from "./pages/StoreSettings";
 import PublicStorefront from "./pages/PublicStorefront";
 import Orders from "./pages/Orders";
+import Services from "./pages/Services";
+import Cobros from "./pages/Cobros";
 
 
 const queryClient = new QueryClient();
@@ -67,6 +69,8 @@ const App = () => {
                 <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
                 <Route path="/store-settings" element={<ProtectedRoute><StoreSettings /></ProtectedRoute>} />
                 <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+                <Route path="/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
+                <Route path="/cobros" element={<ProtectedRoute><Cobros /></ProtectedRoute>} />
                 <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsers /></ProtectedRoute>} />

@@ -21,7 +21,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Receipt, Users, Settings,
   Building2, Shield, LogOut, CreditCard, Download, Store,
   ChevronDown, Dumbbell, Check, Settings2, Sun, Moon, ShoppingBag,
-  Plus, MapPin, Pencil,
+  Plus, MapPin, Pencil, Wrench, DollarSign,
 } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
@@ -224,11 +224,16 @@ const AppSidebar = () => {
     { title: 'Usuarios', url: '/admin/users', icon: Users },
   ];
 
+  const VISION_HABANA_BIZ_ID = '03ab1b9d-c0ff-412c-9b78-c86d320dc41c';
+  const isVisionHabana = profile?.business_id === VISION_HABANA_BIZ_ID;
+
   const businessItems = [
     { title: 'Dashboard', url: '/', icon: LayoutDashboard },
     { title: 'Inventario', url: '/inventory', icon: Package },
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
+    ...(isVisionHabana ? [{ title: 'Servicios', url: '/services', icon: Wrench }] : []),
     { title: 'Ventas', url: '/sales', icon: Receipt },
+    ...(isVisionHabana ? [{ title: 'Cobros', url: '/cobros', icon: DollarSign }] : []),
     { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
     { title: 'Pedidos', url: '/orders', icon: Receipt },
     { title: 'Empleados', url: '/employees', icon: Users },
