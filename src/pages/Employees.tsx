@@ -25,14 +25,14 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
   Loader2, Pencil, Trash2, Activity, Mail, MapPin, StopCircle, Clock,
-  Briefcase, Play, Square,
+  Play, Square,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import PerformanceChart from '@/components/employees/PerformanceChart';
 import CerrarJornadaGerenteModal from '@/components/employees/CerrarJornadaGerenteModal';
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
 import HistorialJornadasTab from '@/components/employees/HistorialJornadasTab';
-import { useJornadaActiva } from '@/hooks/useJornadaActiva';
+
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -103,8 +103,8 @@ const Employees = () => {
   const queryClient = useQueryClient();
   const { data: branches = [] } = useBranches();
 
-  // Jornada activa del propio usuario (para Mi Empleo)
-  const { jornadaActiva, jornada: myJornada, isLoading: jornadaLoading2 } = useJornadaActiva();
+
+
 
   // Role management state
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
@@ -145,23 +145,6 @@ const Employees = () => {
     enabled: !!businessId,
   });
 
-  // Find current user's employee record — search across ALL businesses, not just current
-  const { data: myEmployeeRecord = null } = useQuery({
-    queryKey: ['my-employee-record', profile?.email],
-    queryFn: async () => {
-      if (!profile?.email) return null;
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('email', profile.email.toLowerCase())
-        .limit(1)
-        .maybeSingle();
-      if (error) { console.error('Error fetching my employee record:', error); return null; }
-      return data as Employee | null;
-    },
-    enabled: !!profile?.email,
-  });
-
   // Fetch branch assignments for all employees
   const { data: branchAssignments = [] } = useQuery({
     queryKey: ['employee-branch-assignments', businessId],
@@ -200,23 +183,6 @@ const Employees = () => {
     },
     enabled: !!businessId && canManage,
     refetchInterval: 60000,
-  });
-
-  // Fetch my jornada history
-  const { data: myJornadaHistory = [] } = useQuery({
-    queryKey: ['my-jornada-history', profile?.id],
-    queryFn: async () => {
-      if (!profile?.id) return [];
-      const { data, error } = await supabase
-        .from('jornadas')
-        .select('*')
-        .eq('empleado_id', profile.id)
-        .order('apertura_at', { ascending: false })
-        .limit(20);
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: !!profile?.id && !!myEmployeeRecord,
   });
 
   const getActiveJornada = (profileId: string) => {
@@ -526,9 +492,6 @@ const Employees = () => {
 
   // Determine which tabs to show
   const showMisEmpleados = canManage;
-  const showMiEmpleo = !!myEmployeeRecord;
-  // If canManage but no employees registered, default to mi-empleo (if available)
-  const defaultTab = showMiEmpleo && (!showMisEmpleados || hrEmployees.length === 0) ? 'mi-empleo' : 'mis-empleados';
 
   return (
     <AppLayout title="Empleados">
@@ -547,19 +510,13 @@ const Employees = () => {
           )}
         </div>
 
-        {/* Top-level tabs: Mis Empleados / Mi Empleo */}
-        <Tabs defaultValue={defaultTab} className="w-full">
+        {/* Tabs: Mis Empleados */}
+        <Tabs defaultValue="mis-empleados" className="w-full">
           <TabsList>
             {showMisEmpleados && (
               <TabsTrigger value="mis-empleados" className="gap-1.5">
                 <Users className="h-4 w-4" />
                 Mis Empleados
-              </TabsTrigger>
-            )}
-            {showMiEmpleo && (
-              <TabsTrigger value="mi-empleo" className="gap-1.5">
-                <Briefcase className="h-4 w-4" />
-                Mi Empleo
               </TabsTrigger>
             )}
           </TabsList>
@@ -932,342 +889,8 @@ const Employees = () => {
             </TabsContent>
           )}
 
-          {/* ============ MI EMPLEO (Employee view) ============ */}
-          {showMiEmpleo && (
-            <TabsContent value="mi-empleo" className="space-y-4 md:space-y-6 mt-4">
-              {/* Equipo activo - visible for managers/owners */}
-              {canManage && <EquipoActivoSection />}
 
-              {/* Employee info card - mobile optimized */}
-              <Card>
-                <CardHeader className="pb-2 md:pb-4">
-                  <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                    <Briefcase className="h-4 w-4" />
-                    Mi Información Laboral
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-2 md:gap-4">
-                    <div>
-                      <p className="text-[10px] md:text-xs text-muted-foreground">Nombre</p>
-                      <p className="text-sm font-medium truncate">{myEmployeeRecord.full_name}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] md:text-xs text-muted-foreground">Puesto</p>
-                      <Badge variant="secondary" className="text-[10px] md:text-xs">
-                        {POSITION_OPTIONS.find(p => p.value === myEmployeeRecord.position)?.label || myEmployeeRecord.position}
-                      </Badge>
-                    </div>
-                    <div>
-                      <p className="text-[10px] md:text-xs text-muted-foreground">No. de Contrato</p>
-                      <p className="text-xs md:text-sm">{myEmployeeRecord.contract_number}</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] md:text-xs text-muted-foreground">CI</p>
-                      <p className="text-xs md:text-sm">{myEmployeeRecord.ci}</p>
-                    </div>
-                    {myEmployeeRecord.email && (
-                      <div className="col-span-2 md:col-span-1">
-                        <p className="text-[10px] md:text-xs text-muted-foreground">Email</p>
-                        <p className="text-xs md:text-sm truncate">{myEmployeeRecord.email}</p>
-                      </div>
-                    )}
-                    <div>
-                      <p className="text-[10px] md:text-xs text-muted-foreground">Fecha de Alta</p>
-                      <p className="text-xs md:text-sm">{myEmployeeRecord.start_date}</p>
-                    </div>
-                    {myEmployeeRecord.address && (
-                      <div className="col-span-2">
-                        <p className="text-[10px] md:text-xs text-muted-foreground">Dirección</p>
-                        <p className="text-xs md:text-sm">{myEmployeeRecord.address}</p>
-                      </div>
-                    )}
-                  </div>
 
-                  {/* Sucursales asignadas */}
-                  {(() => {
-                    const myBranches = getEmployeeBranches(myEmployeeRecord.id);
-                    return myBranches.length > 0 ? (
-                      <div className="mt-3">
-                        <p className="text-[10px] md:text-xs text-muted-foreground mb-1">Sucursales Asignadas</p>
-                        <div className="flex flex-wrap gap-1">
-                          {myBranches.map(b => (
-                            <Badge key={b!.id} variant="outline" className="text-[10px] md:text-xs">{b!.name}</Badge>
-                          ))}
-                        </div>
-                      </div>
-                    ) : null;
-                  })()}
-                </CardContent>
-              </Card>
-
-              {/* Jornada status - compact for mobile */}
-              <Card>
-                <CardHeader className="pb-2 md:pb-4">
-                  <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                    <Clock className="h-4 w-4" />
-                    Estado de Jornada
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {jornadaActiva && myJornada ? (
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                      <Badge variant="outline" className="border-primary/30 text-primary gap-1.5 text-xs md:text-sm py-1 px-3">
-                        <span className="relative flex h-2 w-2">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                          <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                        </span>
-                        Jornada Activa · {getJornadaElapsed(myJornada.apertura_at)}
-                      </Badge>
-                      <p className="text-[10px] md:text-xs text-muted-foreground">
-                        Iniciada: {new Date(myJornada.apertura_at).toLocaleString('es')}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="text-xs md:text-sm text-muted-foreground">No tienes jornada activa actualmente.</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Historial de jornadas propias - mobile cards */}
-              <Card>
-                <CardHeader className="pb-2 md:pb-4">
-                  <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                    <Activity className="h-4 w-4" />
-                    Mi Actividad Reciente
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {myJornadaHistory.length > 0 ? (
-                    <>
-                      {/* Mobile cards */}
-                      <div className="space-y-2 md:hidden">
-                        {myJornadaHistory.map((j: any) => (
-                          <div key={j.id} className="border rounded-lg p-2.5 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs font-medium">
-                                {new Date(j.apertura_at).toLocaleDateString('es')}
-                              </span>
-                              {j.cierre_at ? (
-                                j.incidencia ? (
-                                  <Badge variant="destructive" className="text-[10px]">Incidencia</Badge>
-                                ) : (
-                                  <Badge variant="secondary" className="text-[10px]">Cerrada</Badge>
-                                )
-                              ) : (
-                                <Badge variant="outline" className="border-primary/30 text-primary text-[10px]">Activa</Badge>
-                              )}
-                            </div>
-                            <div className="grid grid-cols-3 gap-1 text-[10px] text-muted-foreground">
-                              <div>
-                                <span className="block text-muted-foreground/70">Entrada</span>
-                                {new Date(j.apertura_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
-                              </div>
-                              <div>
-                                <span className="block text-muted-foreground/70">Salida</span>
-                                {j.cierre_at ? new Date(j.cierre_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }) : '—'}
-                              </div>
-                              <div>
-                                <span className="block text-muted-foreground/70">Duración</span>
-                                {j.duracion_min
-                                  ? `${Math.floor(j.duracion_min / 60)}h ${j.duracion_min % 60}m`
-                                  : j.cierre_at ? '—' : getJornadaElapsed(j.apertura_at)}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Desktop table */}
-                      <div className="overflow-x-auto hidden md:block">
-                        <Table>
-                          <TableHeader>
-                            <TableRow>
-                              <TableHead>Fecha</TableHead>
-                              <TableHead>Entrada</TableHead>
-                              <TableHead>Salida</TableHead>
-                              <TableHead>Duración</TableHead>
-                              <TableHead>Método</TableHead>
-                              <TableHead>Estado</TableHead>
-                            </TableRow>
-                          </TableHeader>
-                          <TableBody>
-                            {myJornadaHistory.map((j: any) => (
-                              <TableRow key={j.id}>
-                                <TableCell className="text-sm">
-                                  {new Date(j.apertura_at).toLocaleDateString('es')}
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                  {new Date(j.apertura_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                  {j.cierre_at
-                                    ? new Date(j.cierre_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
-                                    : '—'}
-                                </TableCell>
-                                <TableCell className="text-sm">
-                                  {j.duracion_min
-                                    ? `${Math.floor(j.duracion_min / 60)}h ${j.duracion_min % 60}m`
-                                    : j.cierre_at
-                                      ? '—'
-                                      : getJornadaElapsed(j.apertura_at)}
-                                </TableCell>
-                                <TableCell>
-                                  <Badge variant="outline" className="text-[10px]">
-                                    {j.metodo_apertura === 'manual_gerente' ? 'Gerente' : j.metodo_apertura}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  {j.cierre_at ? (
-                                    j.incidencia ? (
-                                      <Badge variant="destructive" className="text-[10px]">Incidencia</Badge>
-                                    ) : (
-                                      <Badge variant="secondary" className="text-[10px]">Cerrada</Badge>
-                                    )
-                                  ) : (
-                                    <Badge variant="outline" className="border-primary/30 text-primary text-[10px]">Activa</Badge>
-                                  )}
-                                </TableCell>
-                              </TableRow>
-                            ))}
-                          </TableBody>
-                        </Table>
-                      </div>
-                    </>
-                  ) : (
-                    <p className="text-xs md:text-sm text-muted-foreground text-center py-4">No hay registros de jornadas aún.</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Manager/Owner: also show employee management in Mi Empleo */}
-              {canManage && hrEmployees.length > 0 && (
-                <Card>
-                  <CardHeader className="pb-2 md:pb-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2 text-sm md:text-base">
-                        <Users className="h-4 w-4" />
-                        Empleados ({hrEmployees.length})
-                      </CardTitle>
-                      <Button size="sm" variant="outline" onClick={openAddEmployee} className="h-7 text-xs">
-                        <UserPlus className="h-3 w-3 mr-1" />
-                        Agregar
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    {/* Mobile cards */}
-                    <div className="space-y-2 md:hidden">
-                      {hrEmployees.map((emp) => {
-                        const empJornada = getEmployeeJornada(emp);
-                        const empProfile = getProfileForEmployee(emp);
-                        return (
-                          <div key={emp.id} className="border rounded-lg p-2.5 space-y-1.5">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium text-xs">{emp.full_name}</span>
-                              <div className="flex items-center gap-1">
-                                {empJornada && (
-                                  <Badge variant="outline" className="border-primary/30 text-primary text-[10px] gap-1">
-                                    <span className="relative flex h-1.5 w-1.5">
-                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
-                                    </span>
-                                    {getJornadaElapsed(empJornada.apertura_at)}
-                                  </Badge>
-                                )}
-                                <Badge variant="secondary" className="text-[10px]">
-                                  {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
-                                </Badge>
-                              </div>
-                            </div>
-                            <div className="flex justify-end gap-1">
-                              {empProfile && (
-                                empJornada ? (
-                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => handleStopJornada(emp)} title="Detener jornada">
-                                    <Square className="h-3 w-3" />
-                                  </Button>
-                                ) : (
-                                  <Button variant="ghost" size="icon" className="h-6 w-6 text-primary" onClick={() => handleStartJornada(emp)} disabled={jornadaLoading === emp.id} title="Iniciar jornada">
-                                    {jornadaLoading === emp.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
-                                  </Button>
-                                )
-                              )}
-                              <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditEmployee(emp)}>
-                                <Pencil className="h-3 w-3" />
-                              </Button>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Desktop table */}
-                    <div className="overflow-x-auto hidden md:block">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Nombre</TableHead>
-                            <TableHead>Puesto</TableHead>
-                            <TableHead>Jornada</TableHead>
-                            <TableHead className="text-right">Acciones</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {hrEmployees.map((emp) => {
-                            const empJornada = getEmployeeJornada(emp);
-                            const empProfile = getProfileForEmployee(emp);
-                            return (
-                              <TableRow key={emp.id}>
-                                <TableCell className="font-medium">{emp.full_name}</TableCell>
-                                <TableCell>
-                                  <Badge variant="secondary">
-                                    {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
-                                  </Badge>
-                                </TableCell>
-                                <TableCell>
-                                  {empJornada ? (
-                                    <Badge variant="outline" className="border-primary/30 text-primary text-xs gap-1">
-                                      <span className="relative flex h-1.5 w-1.5">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
-                                      </span>
-                                      {getJornadaElapsed(empJornada.apertura_at)}
-                                    </Badge>
-                                  ) : empProfile ? (
-                                    <span className="text-xs text-muted-foreground">Inactivo</span>
-                                  ) : (
-                                    <span className="text-xs text-muted-foreground">—</span>
-                                  )}
-                                </TableCell>
-                                <TableCell className="text-right">
-                                  <div className="flex justify-end gap-1">
-                                    {empProfile && (
-                                      empJornada ? (
-                                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleStopJornada(emp)} title="Detener">
-                                          <Square className="h-4 w-4" />
-                                        </Button>
-                                      ) : (
-                                        <Button variant="ghost" size="icon" className="text-primary" onClick={() => handleStartJornada(emp)} disabled={jornadaLoading === emp.id} title="Iniciar">
-                                          {jornadaLoading === emp.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                                        </Button>
-                                      )
-                                    )}
-                                    <Button variant="ghost" size="icon" onClick={() => openEditEmployee(emp)}>
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-          )}
         </Tabs>
 
         {/* Add/Edit Employee Dialog */}

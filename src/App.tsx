@@ -28,6 +28,7 @@ import Services from "./pages/Services";
 import Cobros from "./pages/Cobros";
 import JornadaEntrada from "./pages/JornadaEntrada";
 import OnboardingEmpleado from "./pages/OnboardingEmpleado";
+import MyEmployment from "./pages/MyEmployment";
 
 
 const queryClient = new QueryClient();
@@ -67,6 +68,7 @@ const App = () => {
                 <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
                 
                 <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+                <Route path="/mi-empleo" element={<ProtectedRoute><MyEmployment /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
                 <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
                 <Route path="/store-settings" element={<ProtectedRoute><StoreSettings /></ProtectedRoute>} />
