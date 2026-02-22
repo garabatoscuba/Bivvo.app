@@ -247,16 +247,14 @@ const Employees = () => {
     enabled: !!businessId,
   });
 
-  // Fetch profiles matching HR employee emails (cross-business lookup for jornada matching)
+  // Fetch profiles matching HR employee emails (cross-business lookup via SECURITY DEFINER function)
   const employeeEmails = hrEmployees.filter(e => e.email).map(e => e.email!.toLowerCase());
   const { data: employeeProfiles = [] } = useQuery({
     queryKey: ['employee-profiles-by-email', employeeEmails.sort().join(',')],
     queryFn: async () => {
       if (!employeeEmails.length) return [];
       const { data, error } = await supabase
-        .from('profiles')
-        .select('id, email, user_id, branch_id, business_id')
-        .in('email', employeeEmails);
+        .rpc('get_profiles_by_emails', { emails: employeeEmails });
       if (error) { console.error('Error fetching employee profiles:', error); return []; }
       return data || [];
     },
