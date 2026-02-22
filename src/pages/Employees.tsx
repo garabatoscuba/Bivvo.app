@@ -23,10 +23,11 @@ import { toast as sonnerToast } from 'sonner';
 import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
-  Loader2, Pencil, Trash2, Activity, Mail, MapPin,
+  Loader2, Pencil, Trash2, Activity, Mail, MapPin, StopCircle, Clock,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import PerformanceChart from '@/components/employees/PerformanceChart';
+import CerrarJornadaGerenteModal from '@/components/employees/CerrarJornadaGerenteModal';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -111,6 +112,9 @@ const Employees = () => {
   // Performance chart state
   const [perfEmployee, setPerfEmployee] = useState<Employee | null>(null);
 
+  // Jornada gerente state
+  const [jornadaCerrarTarget, setJornadaCerrarTarget] = useState<{ jornada: any; name: string } | null>(null);
+
   const businessId = profile?.business_id;
   const canManage = isOwner || isManager || isSuperAdmin;
 
@@ -147,7 +151,41 @@ const Employees = () => {
     enabled: !!businessId && hrEmployees.length > 0,
   });
 
-  // Fetch auth-based team members
+  // Fetch active jornadas for all employees in this business
+  const { data: activeJornadas = [] } = useQuery({
+    queryKey: ['jornadas-activas-business', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      // Get all branches for this business
+      const { data: bizBranches } = await supabase
+        .from('branches')
+        .select('id')
+        .eq('business_id', businessId);
+      if (!bizBranches?.length) return [];
+      const branchIds = bizBranches.map(b => b.id);
+      const { data, error } = await supabase
+        .from('jornadas')
+        .select('*')
+        .in('sucursal_id', branchIds)
+        .is('cierre_at', null);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!businessId && canManage,
+    refetchInterval: 60000,
+  });
+
+  const getActiveJornada = (profileId: string) => {
+    return activeJornadas.find((j: any) => j.empleado_id === profileId);
+  };
+
+  const getJornadaElapsed = (aperturaAt: string) => {
+    const diffMs = Date.now() - new Date(aperturaAt).getTime();
+    const m = Math.floor(diffMs / 60000);
+    const h = Math.floor(m / 60);
+    return h > 0 ? `${h}h ${m % 60}m` : `${m}m`;
+  };
+
   const { data: teamMembers = [], isLoading: loadingTeam } = useQuery({
     queryKey: ['employees', businessId],
     queryFn: async () => {
@@ -548,13 +586,30 @@ const Employees = () => {
               <>
                 {/* Mobile cards */}
                 <div className="space-y-2 md:hidden">
-                  {teamMembers.map((emp) => (
+                  {teamMembers.map((emp) => {
+                    const jornada = getActiveJornada(emp.id);
+                    return (
                     <div key={emp.id} className="border rounded-lg p-3 space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-sm">{emp.full_name}</span>
-                        <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => openRoleDialog(emp)}>
-                          + Rol
-                        </Button>
+                        <div className="flex items-center gap-1">
+                          {jornada && (
+                            <button
+                              onClick={() => setJornadaCerrarTarget({ jornada, name: emp.full_name })}
+                              className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium"
+                            >
+                              <span className="relative flex h-1.5 w-1.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+                              </span>
+                              {getJornadaElapsed(jornada.apertura_at)}
+                              <StopCircle className="h-3 w-3" />
+                            </button>
+                          )}
+                          <Button variant="outline" size="sm" className="h-6 text-[10px] px-2" onClick={() => openRoleDialog(emp)}>
+                            + Rol
+                          </Button>
+                        </div>
                       </div>
                       <p className="text-xs text-muted-foreground truncate">{emp.email}</p>
                       <div className="flex flex-wrap gap-1">
@@ -579,7 +634,8 @@ const Employees = () => {
                         )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {/* Desktop table */}
@@ -589,15 +645,35 @@ const Employees = () => {
                       <TableRow>
                         <TableHead>Nombre</TableHead>
                         <TableHead>Email</TableHead>
+                        <TableHead>Jornada</TableHead>
                         <TableHead>Roles</TableHead>
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {teamMembers.map((emp) => (
+                      {teamMembers.map((emp) => {
+                        const jornada = getActiveJornada(emp.id);
+                        return (
                         <TableRow key={emp.id}>
                           <TableCell className="font-medium">{emp.full_name}</TableCell>
                           <TableCell className="text-muted-foreground">{emp.email}</TableCell>
+                          <TableCell>
+                            {jornada ? (
+                              <button
+                                onClick={() => setJornadaCerrarTarget({ jornada, name: emp.full_name })}
+                                className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium hover:bg-primary/20 transition-colors"
+                              >
+                                <span className="relative flex h-2 w-2">
+                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                                </span>
+                                {getJornadaElapsed(jornada.apertura_at)}
+                                <StopCircle className="h-3.5 w-3.5" />
+                              </button>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {emp.roles.map((role) => {
@@ -628,7 +704,8 @@ const Employees = () => {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -785,6 +862,16 @@ const Employees = () => {
             branchId={perfEmployee.branch_id}
             canEdit={canManage}
             onClose={() => setPerfEmployee(null)}
+          />
+        )}
+
+        {/* Cerrar Jornada por Gerente */}
+        {jornadaCerrarTarget && (
+          <CerrarJornadaGerenteModal
+            open={!!jornadaCerrarTarget}
+            onOpenChange={(open) => { if (!open) setJornadaCerrarTarget(null); }}
+            jornada={jornadaCerrarTarget.jornada}
+            employeeName={jornadaCerrarTarget.name}
           />
         )}
       </div>
