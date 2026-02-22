@@ -17,7 +17,17 @@ interface OnboardingQRDialogProps {
 const OnboardingQRDialog = ({ open, onOpenChange, token, employeeName }: OnboardingQRDialogProps) => {
   const qrRef = useRef<HTMLDivElement>(null);
 
-  const url = `${window.location.origin}/onboarding/empleado?token=${token}`;
+  // Use published URL so the QR works on external devices (preview URLs require Lovable auth)
+  const getPublicOrigin = () => {
+    const host = window.location.hostname;
+    if (host.includes('preview--')) {
+      // Published URL: use the app's published domain
+      return 'https://sync-sales-suite.lovable.app';
+    }
+    return window.location.origin;
+  };
+
+  const url = `${getPublicOrigin()}/onboarding/empleado?token=${token}`;
 
   const handleDownload = () => {
     const canvas = qrRef.current?.querySelector('canvas');
