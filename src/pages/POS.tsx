@@ -2,22 +2,20 @@ import { useState, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/inventory/ProductCard';
-import { CategoryBadge } from '@/components/inventory/CategoryBadge';
 import { POSCart } from '@/components/pos/POSCart';
 import { PaymentDialog } from '@/components/pos/PaymentDialog';
 import { useProducts, useCategories, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
 import { useSales } from '@/hooks/useSales';
 import { useAuth } from '@/contexts/AuthContext';
-import { Search, ShoppingCart, Loader2 } from 'lucide-react';
+import { Search, ShoppingCart, Loader2, Package } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
-  SheetTrigger } from
-'@/components/ui/sheet';
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import type { CartItem, Product, Category, PaymentType } from '@/types/database';
 import { cn } from '@/lib/utils';
 
@@ -51,7 +49,7 @@ const POS = () => {
 
   const filteredProducts = availableProducts.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
-    product.code.toLowerCase().includes(search.toLowerCase());
+      product.code.toLowerCase().includes(search.toLowerCase());
     const matchesCategory = !selectedCategory || product.category_id === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -67,7 +65,7 @@ const POS = () => {
     return realStock - inCart;
   }, [stockMap, getCartQuantity]);
 
-  const addToCart = useCallback((product: Product & {category: Category | null;}) => {
+  const addToCart = useCallback((product: Product & { category: Category | null }) => {
     const realStock = stockMap.get(product.id) || 0;
 
     setCart((prev) => {
@@ -78,13 +76,13 @@ const POS = () => {
 
       if (existing) {
         return prev.map((item) =>
-          item.product.id === product.id ?
-          {
-            ...item,
-            quantity: item.quantity + 1,
-            total: (item.quantity + 1) * item.unitPrice - item.discount
-          } :
-          item
+          item.product.id === product.id
+            ? {
+                ...item,
+                quantity: item.quantity + 1,
+                total: (item.quantity + 1) * item.unitPrice - item.discount,
+              }
+            : item
         );
       }
       return [
@@ -94,8 +92,8 @@ const POS = () => {
           quantity: 1,
           unitPrice: Number(product.sale_price),
           discount: 0,
-          total: Number(product.sale_price)
-        }
+          total: Number(product.sale_price),
+        },
       ];
     });
   }, [stockMap]);
@@ -108,9 +106,9 @@ const POS = () => {
       const clampedQty = Math.min(quantity, maxStock);
       setCart((prev) =>
         prev.map((item) =>
-          item.product.id === productId ?
-          { ...item, quantity: clampedQty, total: clampedQty * item.unitPrice - item.discount } :
-          item
+          item.product.id === productId
+            ? { ...item, quantity: clampedQty, total: clampedQty * item.unitPrice - item.discount }
+            : item
         )
       );
     }
@@ -133,7 +131,7 @@ const POS = () => {
       items: cart,
       paymentType,
       discount,
-      amountPaid
+      amountPaid,
     });
 
     setPaymentOpen(false);
@@ -156,17 +154,20 @@ const POS = () => {
                 placeholder="Buscar productos..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="pl-10" />
+                className="pl-10"
+              />
             </div>
 
             <div className="gap-2 overflow-x-auto pb-2 flex items-end justify-start my-0 py-[10px]">
               <button
                 onClick={() => setSelectedCategory(null)}
-                className={cn("px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors border-b-2",
-                !selectedCategory ?
-                "bg-primary text-primary-foreground border-primary" :
-                "bg-muted text-muted-foreground hover:bg-accent border-transparent"
-                )}>
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors border-b-2",
+                  !selectedCategory
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-muted text-muted-foreground hover:bg-accent border-transparent"
+                )}
+              >
                 Todos
               </button>
               {categories.map((cat) => {
@@ -177,11 +178,106 @@ const POS = () => {
                     onClick={() => setSelectedCategory(cat.id)}
                     className={cn(
                       "px-3 py-1.5 rounded-md text-sm font-medium flex-shrink-0 transition-colors",
-                      isActive ?
-                      "ring-2 ring-primary ring-offset-2 ring-offset-background" :
-                      "hover:opacity-80"
+                      isActive
+                        ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                        : "hover:opacity-80"
                     )}
                     style={{
                       backgroundColor: `hsl(var(--category-${cat.color}))`,
-                      color: `hsl(var(--category-${cat.color}-foreground))`
-                    }}>
+                      color: `hsl(var(--category-${cat.color}-foreground))`,
+                    }}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Product Grid */}
+          <div className="flex-1 overflow-y-auto">
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                <Package className="h-12 w-12 mb-2" />
+                <p>No se encontraron productos</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                {filteredProducts.map((product) => {
+                  const availableStock = getAvailableStock(product.id);
+                  return (
+                    <ProductCard
+                      key={product.id}
+                      product={product}
+                      stock={availableStock}
+                      onClick={() => addToCart(product)}
+                      compact
+                      disabled={availableStock <= 0}
+                    />
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop Cart */}
+        <div className="hidden md:flex w-80 lg:w-96 flex-col">
+          <POSCart
+            items={cart}
+            discount={discount}
+            onUpdateQuantity={updateQuantity}
+            onRemoveItem={removeItem}
+            onClearCart={clearCart}
+            onDiscountChange={setDiscount}
+            stockMap={stockMap}
+          />
+        </div>
+
+        {/* Mobile Cart Button */}
+        <div className="md:hidden fixed bottom-4 right-4 z-50">
+          <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
+            <SheetTrigger asChild>
+              <Button size="lg" className="rounded-full h-14 w-14 shadow-lg relative">
+                <ShoppingCart className="h-6 w-6" />
+                {cartItemsCount > 0 && (
+                  <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                    {cartItemsCount}
+                  </Badge>
+                )}
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="h-[85vh] p-0">
+              <div className="h-full overflow-hidden">
+                <POSCart
+                  items={cart}
+                  discount={discount}
+                  onUpdateQuantity={updateQuantity}
+                  onRemoveItem={removeItem}
+                  onClearCart={clearCart}
+                  onDiscountChange={setDiscount}
+                  stockMap={stockMap}
+                />
+              </div>
+            </SheetContent>
+          </Sheet>
+        </div>
+      </div>
+
+      <PaymentDialog
+        open={paymentOpen}
+        onOpenChange={setPaymentOpen}
+        items={cart}
+        discount={discount}
+        onConfirm={handlePayment}
+        isProcessing={isCreating}
+      />
+    </AppLayout>
+  );
+};
+
+export default POS;
