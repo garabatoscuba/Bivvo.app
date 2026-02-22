@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -82,7 +82,6 @@ const MyEmployment = () => {
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
   const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
-  const [evalInitialized, setEvalInitialized] = useState(false);
   const [evalSkills, setEvalSkills] = useState<Skill[]>([]);
 
   const businessId = profile?.business_id;
@@ -184,24 +183,22 @@ const MyEmployment = () => {
     enabled: !!profile?.id && !!myEmployeeRecord,
   });
 
-  // Fetch the LATEST performance evaluation (always show most recent)
+  // Fetch evaluation for selected month
   const { data: myEvaluation, isLoading: evalLoading } = useQuery({
-    queryKey: ['my-latest-evaluation', myEmployeeRecord?.id],
+    queryKey: ['my-evaluation', myEmployeeRecord?.id, monthKey],
     queryFn: async () => {
       if (!myEmployeeRecord?.id) return null;
       const { data, error } = await supabase
         .from('employee_evaluations')
         .select('skills, evaluation_month')
         .eq('employee_id', myEmployeeRecord.id)
-        .order('evaluation_month', { ascending: false })
-        .limit(1)
+        .eq('evaluation_month', monthKey)
         .maybeSingle();
       if (error) return null;
       return data;
     },
     enabled: !!myEmployeeRecord?.id,
     staleTime: 0,
-    refetchOnMount: 'always',
   });
 
   // Fetch evaluation history
@@ -219,6 +216,28 @@ const MyEmployment = () => {
     },
     enabled: !!myEmployeeRecord?.id,
   });
+
+  // Realtime subscription for evaluations
+  useEffect(() => {
+    if (!myEmployeeRecord?.id) return;
+    const channel = supabase
+      .channel('my-evaluations-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'employee_evaluations',
+          filter: `employee_id=eq.${myEmployeeRecord.id}`,
+        },
+        () => {
+          queryClient.invalidateQueries({ queryKey: ['my-evaluation', myEmployeeRecord.id] });
+          queryClient.invalidateQueries({ queryKey: ['my-evaluation-history', myEmployeeRecord.id] });
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [myEmployeeRecord?.id, queryClient]);
 
   // Fetch employees for comparison
   const { data: compareEmployees = [] } = useQuery({
@@ -254,20 +273,17 @@ const MyEmployment = () => {
     enabled: !!compareEmployeeId,
   });
 
-  // Initialize skills from latest evaluation
-  if (!evalInitialized && !evalLoading) {
+  // Sync skills state when evaluation data changes
+  useEffect(() => {
+    if (evalLoading) return;
     if (myEvaluation?.skills) {
       setEvalSkills(myEvaluation.skills as unknown as Skill[]);
-      // Set selectedMonth to the evaluation's month
-      if (myEvaluation.evaluation_month) {
-        setSelectedMonth(parseLocalDate(myEvaluation.evaluation_month));
-      }
+    } else {
+      setEvalSkills([]);
     }
-    setEvalInitialized(true);
-  }
+  }, [myEvaluation, evalLoading]);
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
-    setEvalInitialized(false);
     setSelectedMonth(prev => direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1));
   };
 
@@ -504,14 +520,19 @@ const MyEmployment = () => {
               </div>
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
-              {/* Latest evaluation month indicator */}
-              {myEvaluation?.evaluation_month && (
-                <div className="flex items-center justify-center">
-                  <span className="font-medium capitalize text-xs sm:text-sm text-muted-foreground">
-                    Última evaluación: {format(parseLocalDate(myEvaluation.evaluation_month), 'MMMM yyyy', { locale: es })}
-                  </span>
-                </div>
-              )}
+              {/* Month selector */}
+              <div className="flex items-center justify-between">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMonthChange('prev')}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="font-medium capitalize text-xs sm:text-sm">
+                  {format(selectedMonth, 'MMMM yyyy', { locale: es })}
+                </span>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMonthChange('next')}
+                  disabled={selectedMonth >= startOfMonth(new Date())}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
 
               {evalLoading ? (
                 <div className="flex justify-center py-8">
@@ -670,8 +691,8 @@ const MyEmployment = () => {
                             <Badge key={h.evaluation_month}
                               variant={h.evaluation_month === monthKey ? 'default' : 'outline'}
                               className="cursor-pointer capitalize text-[10px]"
-                              onClick={() => { setEvalInitialized(false); setSelectedMonth(new Date(h.evaluation_month)); }}>
-                              {format(new Date(h.evaluation_month), 'MMM yy', { locale: es })}
+                              onClick={() => { setSelectedMonth(parseLocalDate(h.evaluation_month)); }}>
+                              {format(parseLocalDate(h.evaluation_month), 'MMM yy', { locale: es })}
                             </Badge>
                           ))}
                         </div>
