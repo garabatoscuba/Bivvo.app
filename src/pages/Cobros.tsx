@@ -62,7 +62,10 @@ const Cobros = () => {
             />
           </TabsContent>
           <TabsContent value="calculadora">
-            <CashCalculator />
+            <CashCalculator
+              employeeBusinessId={employeeRecord!.business_id}
+              employeeBranchId={employeeRecord?.branch_id ?? profile?.branch_id ?? null}
+            />
           </TabsContent>
         </Tabs>
       </AppLayout>

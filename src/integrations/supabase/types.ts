@@ -409,6 +409,57 @@ export type Database = {
           },
         ]
       }
+      daily_copies: {
+        Row: {
+          branch_id: string
+          business_id: string
+          cash_amount: number
+          created_at: string
+          date: string
+          id: string
+          transfer_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          business_id: string
+          cash_amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          transfer_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          business_id?: string
+          cash_amount?: number
+          created_at?: string
+          date?: string
+          id?: string
+          transfer_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_copies_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "daily_copies_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_branch_assignments: {
         Row: {
           branch_id: string

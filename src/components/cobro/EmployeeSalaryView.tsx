@@ -1,12 +1,14 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, DollarSign, Users, Wrench, Package, Calendar, TrendingUp } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, DollarSign, Users, Wrench, Package, Calendar, TrendingUp, Copy, Save } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
@@ -18,16 +20,20 @@ interface Condition {
 
 const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employeeBusinessId: string; employeeBranchId: string | null }) => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const businessId = employeeBusinessId;
   const branchId = employeeBranchId;
 
-  // Date selection - default today
   const today = new Date();
-  const [selectedDate, setSelectedDate] = useState(today.toISOString().split('T')[0]);
-  
-  // Month filter for summary
+  const todayStr = today.toISOString().split('T')[0];
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+
   const now = new Date();
   const [filterMonth, setFilterMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+
+  // Copies input state
+  const [copiesCash, setCopiesCash] = useState('');
+  const [copiesTransfer, setCopiesTransfer] = useState('');
 
   // Fetch salary config
   const { data: salaryConfig, isLoading: loadingConfig } = useQuery({
@@ -58,7 +64,7 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
     enabled: !!businessId,
   });
 
-  // Fetch all jornadas for the selected month to calculate daily
+  // Fetch jornadas for the month
   const { data: monthJornadas = [], isLoading: loadingJornadas } = useQuery({
     queryKey: ['jornadas-month-salary', branchId, filterMonth],
     queryFn: async () => {
@@ -86,7 +92,7 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
       const endDate = new Date(year, month, 0, 23, 59, 59).toISOString();
       const { data, error } = await supabase
         .from('service_entries')
-        .select('id, amount, created_at, user_id')
+        .select('id, amount, created_at, user_id, payment_type')
         .eq('business_id', businessId!)
         .eq('branch_id', branchId!)
         .gte('created_at', startDate)
@@ -97,7 +103,83 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
     enabled: !!businessId && !!branchId,
   });
 
-  // Fetch sales + sale_items for commissions this month
+  // Fetch daily_copies for the month
+  const { data: monthCopies = [] } = useQuery({
+    queryKey: ['daily-copies-month', branchId, filterMonth],
+    queryFn: async () => {
+      const [year, month] = filterMonth.split('-').map(Number);
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      const lastDay = new Date(year, month, 0).getDate();
+      const endDate = `${year}-${String(month).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+      const { data, error } = await supabase
+        .from('daily_copies')
+        .select('*')
+        .eq('branch_id', branchId!)
+        .gte('date', startDate)
+        .lte('date', endDate);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!branchId,
+  });
+
+  // Fetch today's copies for input prefill
+  const { data: todayCopiesRecord } = useQuery({
+    queryKey: ['daily-copies-today', branchId, todayStr, profile?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('daily_copies')
+        .select('*')
+        .eq('branch_id', branchId!)
+        .eq('user_id', profile!.user_id)
+        .eq('date', todayStr)
+        .maybeSingle();
+      if (error) throw error;
+      if (data) {
+        setCopiesCash(String(data.cash_amount || ''));
+        setCopiesTransfer(String(data.transfer_amount || ''));
+      }
+      return data;
+    },
+    enabled: !!branchId && !!profile?.user_id,
+  });
+
+  // Save copies mutation
+  const saveCopies = useMutation({
+    mutationFn: async () => {
+      const cashVal = parseFloat(copiesCash) || 0;
+      const transferVal = parseFloat(copiesTransfer) || 0;
+      
+      if (todayCopiesRecord) {
+        const { error } = await supabase
+          .from('daily_copies')
+          .update({ cash_amount: cashVal, transfer_amount: transferVal })
+          .eq('id', todayCopiesRecord.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('daily_copies')
+          .insert({
+            business_id: businessId,
+            branch_id: branchId!,
+            user_id: profile!.user_id,
+            date: todayStr,
+            cash_amount: cashVal,
+            transfer_amount: transferVal,
+          });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success('Copias guardadas');
+      queryClient.invalidateQueries({ queryKey: ['daily-copies'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-copies-today'] });
+      queryClient.invalidateQueries({ queryKey: ['daily-copies-month'] });
+    },
+    onError: () => toast.error('Error al guardar'),
+  });
+
+  // Fetch sales + sale_items for commissions
   const { data: monthSales = [] } = useQuery({
     queryKey: ['sales-month-salary', branchId, filterMonth],
     queryFn: async () => {
@@ -106,7 +188,7 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
       const endDate = new Date(year, month, 0, 23, 59, 59).toISOString();
       const { data, error } = await supabase
         .from('sales')
-        .select('id, created_at, status')
+        .select('id, created_at, status, payment_type')
         .eq('branch_id', branchId!)
         .eq('status', 'completed')
         .gte('created_at', startDate)
@@ -124,7 +206,7 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
       const saleIds = monthSales.map((s: any) => s.id);
       const { data, error } = await supabase
         .from('sale_items')
-        .select('id, sale_id, product_id, quantity')
+        .select('id, sale_id, product_id, quantity, unit_price')
         .in('sale_id', saleIds);
       if (error) throw error;
       return data;
@@ -138,7 +220,15 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
     { positions: 1, service_percent: 30 },
   ];
 
-  // Calculate salary per day for the month
+  const commissionsMap = useMemo(() => {
+    const map = new Map<string, { type: string; value: number }>();
+    commissions.forEach((c: any) => {
+      map.set(c.product_id, { type: c.commission_type, value: Number(c.commission_value) });
+    });
+    return map;
+  }, [commissions]);
+
+  // Calculate salary per day
   const dailySalary = useMemo(() => {
     if (!profile?.id) return [];
 
@@ -148,59 +238,74 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
       date: string;
       activeWorkers: number;
       totalServices: number;
+      totalCopies: number;
       servicePercent: number;
       serviceEarning: number;
+      copiesEarning: number;
       totalCommissions: number;
       commissionEarning: number;
+      tips: number;
       total: number;
       wasWorking: boolean;
+      // For calculator breakdown
+      serviceCashTotal: number;
+      serviceTransferTotal: number;
+      salesCashTotal: number;
+      salesTransferTotal: number;
+      copiesCashTotal: number;
+      copiesTransferTotal: number;
     }> = [];
-
-    const commissionsMap = new Map<string, { type: string; value: number }>();
-    commissions.forEach((c: any) => {
-      commissionsMap.set(c.product_id, { type: c.commission_type, value: Number(c.commission_value) });
-    });
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      
-      // Count unique workers with jornada that day
+
       const dayJornadas = monthJornadas.filter((j: any) => {
         const jDate = new Date(j.apertura_at).toISOString().split('T')[0];
         return jDate === dateStr;
       });
       const uniqueWorkers = new Set(dayJornadas.map((j: any) => j.empleado_id));
       const activeWorkers = uniqueWorkers.size;
-
-      // Check if THIS employee was working
       const wasWorking = uniqueWorkers.has(profile.id);
+
       if (!wasWorking) {
-        results.push({ date: dateStr, activeWorkers: 0, totalServices: 0, servicePercent: 0, serviceEarning: 0, totalCommissions: 0, commissionEarning: 0, total: 0, wasWorking: false });
+        results.push({ date: dateStr, activeWorkers: 0, totalServices: 0, totalCopies: 0, servicePercent: 0, serviceEarning: 0, copiesEarning: 0, totalCommissions: 0, commissionEarning: 0, tips: 0, total: 0, wasWorking: false, serviceCashTotal: 0, serviceTransferTotal: 0, salesCashTotal: 0, salesTransferTotal: 0, copiesCashTotal: 0, copiesTransferTotal: 0 });
         continue;
       }
 
-      // Total services for that day (all employees collectively)
-      const dayServices = monthServices.filter((s: any) => {
-        const sDate = new Date(s.created_at).toISOString().split('T')[0];
-        return sDate === dateStr;
-      });
+      // Services
+      const dayServices = monthServices.filter((s: any) => new Date(s.created_at).toISOString().split('T')[0] === dateStr);
       const totalServices = dayServices.reduce((sum: number, s: any) => sum + Number(s.amount), 0);
+      const serviceCashTotal = dayServices.filter((s: any) => s.payment_type === 'cash').reduce((sum: number, s: any) => sum + Number(s.amount), 0);
+      const serviceTransferTotal = dayServices.filter((s: any) => s.payment_type === 'transfer').reduce((sum: number, s: any) => sum + Number(s.amount), 0);
 
-      // Find applicable condition
+      // Copies for this day (all employees collectively)
+      const dayCopies = monthCopies.filter((c: any) => c.date === dateStr);
+      const copiesCashTotal = dayCopies.reduce((sum: number, c: any) => sum + Number(c.cash_amount), 0);
+      const copiesTransferTotal = dayCopies.reduce((sum: number, c: any) => sum + Number(c.transfer_amount), 0);
+      const totalCopies = copiesCashTotal + copiesTransferTotal;
+
+      // Condition
       const condition = conditions
         .sort((a, b) => b.positions - a.positions)
         .find(c => c.positions <= activeWorkers) || conditions[conditions.length - 1];
-      
       const servicePercent = condition?.service_percent ?? 0;
-      const serviceEarning = (totalServices * servicePercent / 100) / activeWorkers;
 
-      // Calculate commissions for that day from sales
-      const daySales = monthSales.filter((s: any) => {
-        const sDate = new Date(s.created_at).toISOString().split('T')[0];
-        return sDate === dateStr;
-      });
+      const serviceEarning = (totalServices * servicePercent / 100) / activeWorkers;
+      const copiesEarning = (totalCopies * servicePercent / 100) / activeWorkers;
+
+      // Commissions from product sales
+      const daySales = monthSales.filter((s: any) => new Date(s.created_at).toISOString().split('T')[0] === dateStr);
       const daySaleIds = new Set(daySales.map((s: any) => s.id));
       const daySaleItems = monthSaleItems.filter((si: any) => daySaleIds.has(si.sale_id));
+      
+      const salesCashTotal = daySales.filter((s: any) => s.payment_type === 'cash').reduce((sum: number, s: any) => {
+        const items = monthSaleItems.filter((si: any) => si.sale_id === s.id);
+        return sum + items.reduce((t: number, si: any) => t + Number(si.unit_price) * si.quantity, 0);
+      }, 0);
+      const salesTransferTotal = daySales.filter((s: any) => s.payment_type === 'transfer').reduce((sum: number, s: any) => {
+        const items = monthSaleItems.filter((si: any) => si.sale_id === s.id);
+        return sum + items.reduce((t: number, si: any) => t + Number(si.unit_price) * si.quantity, 0);
+      }, 0);
 
       let totalCommissions = 0;
       daySaleItems.forEach((si: any) => {
@@ -209,40 +314,45 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
           if (comm.type === 'fixed') {
             totalCommissions += comm.value * si.quantity;
           } else {
-            // For percent, we'd need sale_price - we'll use the commission_value as % 
-            // This is approximate; in a real scenario we'd join with products
-            totalCommissions += comm.value * si.quantity; // simplified
+            totalCommissions += (Number(si.unit_price) * si.quantity * comm.value / 100);
           }
         }
       });
-
       const commissionEarning = totalCommissions / activeWorkers;
 
       results.push({
         date: dateStr,
         activeWorkers,
         totalServices,
+        totalCopies,
         servicePercent,
         serviceEarning,
+        copiesEarning,
         totalCommissions,
         commissionEarning,
-        total: serviceEarning + commissionEarning,
+        tips: 0, // Will be calculated from calculator
+        total: serviceEarning + copiesEarning + commissionEarning,
         wasWorking: true,
+        serviceCashTotal,
+        serviceTransferTotal,
+        salesCashTotal,
+        salesTransferTotal,
+        copiesCashTotal,
+        copiesTransferTotal,
       });
     }
 
     return results;
-  }, [monthJornadas, monthServices, monthSales, monthSaleItems, commissions, conditions, profile?.id, filterMonth]);
+  }, [monthJornadas, monthServices, monthSales, monthSaleItems, monthCopies, commissions, conditions, profile?.id, filterMonth, commissionsMap]);
 
   const workedDays = dailySalary.filter(d => d.wasWorking);
   const monthTotal = workedDays.reduce((sum, d) => sum + d.total, 0);
   const monthServiceTotal = workedDays.reduce((sum, d) => sum + d.serviceEarning, 0);
+  const monthCopiesTotal = workedDays.reduce((sum, d) => sum + d.copiesEarning, 0);
   const monthCommissionTotal = workedDays.reduce((sum, d) => sum + d.commissionEarning, 0);
 
-  // Today's detail
   const todayData = dailySalary.find(d => d.date === selectedDate);
 
-  // Generate month options
   const months = [];
   for (let i = 0; i < 6; i++) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -252,7 +362,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
   }
 
   const isLoading = loadingConfig || loadingJornadas;
-
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
   return (
@@ -260,7 +369,7 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div>
           <h1 className="text-xl md:text-2xl font-bold">Mi Cobro</h1>
-          <p className="text-sm text-muted-foreground">Tu salario basado en servicios y comisiones</p>
+          <p className="text-sm text-muted-foreground">Tu salario basado en servicios, copias y comisiones</p>
         </div>
         <Select value={filterMonth} onValueChange={setFilterMonth}>
           <SelectTrigger className="w-44">
@@ -274,6 +383,84 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
           </SelectContent>
         </Select>
       </div>
+
+      {/* Today's copies input */}
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Copy className="h-4 w-4" />
+            Copias de Hoy
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Efectivo</Label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="0.00"
+                value={copiesCash}
+                onChange={e => setCopiesCash(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Transferencias</Label>
+              <Input
+                type="number"
+                min={0}
+                placeholder="0.00"
+                value={copiesTransfer}
+                onChange={e => setCopiesTransfer(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-muted-foreground">
+              Total copias: <span className="font-bold text-foreground">${((parseFloat(copiesCash) || 0) + (parseFloat(copiesTransfer) || 0)).toFixed(2)}</span>
+            </span>
+            <Button size="sm" onClick={() => saveCopies.mutate()} disabled={saveCopies.isPending}>
+              {saveCopies.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
+              Guardar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Today's summary - primary focus */}
+      {todayData && todayData.wasWorking && selectedDate === todayStr && (
+        <Card className="border-primary">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">💰 Salario de Hoy</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Condición activa</span>
+              <Badge>{todayData.activeWorkers} puesto{todayData.activeWorkers > 1 ? 's' : ''} → {todayData.servicePercent}%</Badge>
+            </div>
+            <div className="border-t pt-2 space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Servicios ({todayData.servicePercent}% de ${todayData.totalServices.toFixed(2)} ÷ {todayData.activeWorkers})</span>
+                <span className="font-medium">${todayData.serviceEarning.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Copias ({todayData.servicePercent}% de ${todayData.totalCopies.toFixed(2)} ÷ {todayData.activeWorkers})</span>
+                <span className="font-medium">${todayData.copiesEarning.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Comisiones (${todayData.totalCommissions.toFixed(2)} ÷ {todayData.activeWorkers})</span>
+                <span className="font-medium">${todayData.commissionEarning.toFixed(2)}</span>
+              </div>
+            </div>
+            <div className="border-t pt-2 flex items-center justify-between">
+              <span className="text-sm font-bold">Total del día</span>
+              <span className="text-xl font-bold text-primary">${todayData.total.toFixed(2)}</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Month summary cards */}
       <div className="grid grid-cols-2 gap-3">
@@ -306,14 +493,21 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Wrench className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Por Servicios</span>
+              <span className="text-sm">Servicios</span>
             </div>
             <span className="text-sm font-bold">${monthServiceTotal.toFixed(2)}</span>
           </div>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
+              <Copy className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm">Copias</span>
+            </div>
+            <span className="text-sm font-bold">${monthCopiesTotal.toFixed(2)}</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
               <Package className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm">Por Comisiones</span>
+              <span className="text-sm">Comisiones</span>
             </div>
             <span className="text-sm font-bold">${monthCommissionTotal.toFixed(2)}</span>
           </div>
@@ -332,12 +526,7 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
         <CardContent className="space-y-3">
           <div>
             <Label className="text-xs text-muted-foreground">Selecciona un día</Label>
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
-              className="mt-1 w-full"
-            />
+            <Input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} className="mt-1 w-full" />
           </div>
 
           {todayData ? (
@@ -352,23 +541,31 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm">Condición aplicada</span>
-                  <Badge>{todayData.servicePercent}% servicios</Badge>
+                  <Badge>{todayData.servicePercent}% servicios/copias</Badge>
                 </div>
                 <div className="border-t pt-2 space-y-1">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Total servicios del día</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Servicios del día</span>
                     <span>${todayData.totalServices.toFixed(2)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Tu parte servicios ({todayData.servicePercent}% ÷ {todayData.activeWorkers})</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tu parte servicios</span>
                     <span className="font-medium">${todayData.serviceEarning.toFixed(2)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Copias del día</span>
+                    <span>${todayData.totalCopies.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tu parte copias</span>
+                    <span className="font-medium">${todayData.copiesEarning.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Comisiones del día</span>
                     <span>${todayData.totalCommissions.toFixed(2)}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Tu parte comisiones (÷ {todayData.activeWorkers})</span>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Tu parte comisiones</span>
                     <span className="font-medium">${todayData.commissionEarning.toFixed(2)}</span>
                   </div>
                 </div>
