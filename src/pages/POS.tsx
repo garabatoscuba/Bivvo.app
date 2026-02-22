@@ -251,8 +251,14 @@ const POS = () => {
         <div className="md:hidden fixed bottom-4 right-4 z-50">
           <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
             <SheetTrigger asChild>
-              <Button size="lg" className="rounded-full h-14 w-14 shadow-lg relative">
-                <ShoppingCart className="h-6 w-6" />
+              <Button size="lg" className={cn(
+                "rounded-full shadow-lg relative",
+                cartItemsCount > 0 ? "h-14 px-5 gap-2" : "h-14 w-14"
+              )}>
+                <ShoppingCart className="h-5 w-5" />
+                {cartItemsCount > 0 && (
+                  <span className="text-sm font-bold">${cartTotal.toFixed(2)}</span>
+                )}
                 {cartItemsCount > 0 && (
                   <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
                     {cartItemsCount}
