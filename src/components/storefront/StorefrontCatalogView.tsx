@@ -38,7 +38,7 @@ const StorefrontCatalogView = ({ products, accent, branchId }: Props) => {
 
       {/* Review section */}
       {branchId && (
-        <div className="mt-16 pt-10 border-t border-border">
+        <div className="mt-16 pt-10 border-t border-border flex flex-col items-center">
           <StorefrontReviewForm branchId={branchId} accent={accent} />
         </div>
       )}
