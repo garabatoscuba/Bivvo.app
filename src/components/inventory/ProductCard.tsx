@@ -28,7 +28,7 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false, disa
         onClick={disabled ? undefined : onClick}>
 
         <CardContent className="p-3">
-          <div className="flex items-center gap-3 overflow-hidden">
+          <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
               {product.image_url ?
               <img
@@ -38,19 +38,19 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false, disa
               <Package className="h-5 w-5 text-muted-foreground" />
               }
             </div>
-            <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-              <div className="flex items-center gap-1">
-                <h4 className="font-medium text-xs leading-tight whitespace-nowrap">{product.name}</h4>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start gap-1 mb-1">
+                <h4 className="font-medium text-xs leading-snug flex-1 break-words">{product.name}</h4>
                 {isLowStock &&
-                <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />
+                <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />
                 }
               </div>
               <div className="flex items-center gap-2">
-                <p className="text-sm font-bold text-primary whitespace-nowrap">
+                <p className="text-sm font-bold text-primary">
                   ${Number(product.sale_price).toFixed(2)}
                 </p>
                 <Badge variant={isOutOfStock ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 h-5 flex-shrink-0">
-                  {stock}
+                  {stock} disp.
                 </Badge>
               </div>
             </div>
