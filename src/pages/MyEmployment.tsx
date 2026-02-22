@@ -22,11 +22,14 @@ import CerrarJornadaGerenteModal from '@/components/employees/CerrarJornadaGeren
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
-  ResponsiveContainer, Tooltip,
+  ResponsiveContainer, Tooltip, BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  Legend, LineChart, Line, ReferenceLine, Cell,
 } from 'recharts';
 import { type Skill, getWeakPoints, getAvgScore } from '@/components/employees/PerformanceChart';
-import { format, startOfMonth } from 'date-fns';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format, startOfMonth, subMonths, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -63,9 +66,14 @@ const MyEmployment = () => {
 
   const [jornadaCerrarTarget, setJornadaCerrarTarget] = useState<{ jornada: any; name: string } | null>(null);
   const [jornadaLoading, setJornadaLoading] = useState<string | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
+  const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
+  const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
+  const [evalInitialized, setEvalInitialized] = useState(false);
+  const [evalSkills, setEvalSkills] = useState<Skill[]>([]);
 
   const businessId = profile?.business_id;
-  const monthKey = format(startOfMonth(new Date()), 'yyyy-MM-dd');
+  const monthKey = format(selectedMonth, 'yyyy-MM-dd');
 
   // Find current user's employee record
   const { data: myEmployeeRecord = null } = useQuery({
@@ -163,8 +171,8 @@ const MyEmployment = () => {
     enabled: !!profile?.id && !!myEmployeeRecord,
   });
 
-  // Fetch my performance evaluation
-  const { data: myEvaluation } = useQuery({
+  // Fetch my performance evaluation for selected month
+  const { data: myEvaluation, isLoading: evalLoading } = useQuery({
     queryKey: ['my-evaluation', myEmployeeRecord?.id, monthKey],
     queryFn: async () => {
       if (!myEmployeeRecord?.id) return null;
@@ -180,14 +188,128 @@ const MyEmployment = () => {
     enabled: !!myEmployeeRecord?.id,
   });
 
-  const mySkills = useMemo(() => {
-    if (!myEvaluation?.skills) return [];
-    return (myEvaluation.skills as unknown as Skill[]).filter(s => !s.hidden);
-  }, [myEvaluation]);
+  // Fetch evaluation history
+  const { data: evalHistory = [] } = useQuery({
+    queryKey: ['my-evaluation-history', myEmployeeRecord?.id],
+    queryFn: async () => {
+      if (!myEmployeeRecord?.id) return [];
+      const { data, error } = await supabase
+        .from('employee_evaluations')
+        .select('evaluation_month, skills')
+        .eq('employee_id', myEmployeeRecord.id)
+        .order('evaluation_month', { ascending: true });
+      if (error) return [];
+      return data;
+    },
+    enabled: !!myEmployeeRecord?.id,
+  });
 
-  const myAvg = useMemo(() => getAvgScore(mySkills), [mySkills]);
-  const myWeak = useMemo(() => getWeakPoints(mySkills), [mySkills]);
-  const radarData = mySkills.map(s => ({ skill: s.name, score: s.score, fullMark: 10 }));
+  // Fetch employees for comparison
+  const { data: compareEmployees = [] } = useQuery({
+    queryKey: ['compare-employees', businessId, myEmployeeRecord?.id],
+    queryFn: async () => {
+      if (!businessId || !myEmployeeRecord?.id) return [];
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, full_name')
+        .eq('business_id', businessId)
+        .neq('id', myEmployeeRecord.id)
+        .order('full_name');
+      if (error) return [];
+      return data;
+    },
+    enabled: !!businessId && !!myEmployeeRecord?.id,
+  });
+
+  // Fetch comparison evaluation
+  const { data: compareEvaluation } = useQuery({
+    queryKey: ['compare-evaluation', compareEmployeeId, monthKey],
+    queryFn: async () => {
+      if (!compareEmployeeId) return null;
+      const { data, error } = await supabase
+        .from('employee_evaluations')
+        .select('skills')
+        .eq('employee_id', compareEmployeeId)
+        .eq('evaluation_month', monthKey)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!compareEmployeeId,
+  });
+
+  // Initialize skills from evaluation
+  if (!evalInitialized && !evalLoading) {
+    if (myEvaluation?.skills) {
+      setEvalSkills(myEvaluation.skills as unknown as Skill[]);
+    }
+    setEvalInitialized(true);
+  }
+
+  const handleMonthChange = (direction: 'prev' | 'next') => {
+    setEvalInitialized(false);
+    setSelectedMonth(prev => direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1));
+  };
+
+  const mySkills = useMemo(() => {
+    return evalSkills.filter(s => !s.hidden);
+  }, [evalSkills]);
+
+  const myAvg = useMemo(() => getAvgScore(evalSkills), [evalSkills]);
+  const myWeak = useMemo(() => getWeakPoints(evalSkills), [evalSkills]);
+
+  const radarData = mySkills.map(s => {
+    const base: any = { skill: s.name, score: s.score, fullMark: 10 };
+    if (compareEvaluation?.skills) {
+      const cs = (compareEvaluation.skills as unknown as Skill[]);
+      const match = cs.find(c => c.name === s.name);
+      base.compare = match?.score ?? 0;
+    }
+    return base;
+  });
+
+  const barData = [...mySkills].sort((a, b) => a.score - b.score).map(s => {
+    const base: any = { skill: s.name, score: s.score };
+    if (compareEvaluation?.skills) {
+      const cs = (compareEvaluation.skills as unknown as Skill[]);
+      const match = cs.find(c => c.name === s.name);
+      base.compare = match?.score ?? 0;
+    }
+    return base;
+  });
+
+  const historyData = evalHistory.map(h => {
+    const hSkills = h.skills as unknown as Skill[];
+    const visible = hSkills.filter(s => !s.hidden);
+    const avg = visible.length ? visible.reduce((sum, s) => sum + s.score, 0) / visible.length : 0;
+    return {
+      month: format(new Date(h.evaluation_month), 'MMM yy', { locale: es }),
+      promedio: parseFloat(avg.toFixed(1)),
+    };
+  });
+
+  const yearlySkillData = useMemo(() => {
+    if (evalHistory.length < 2) return [];
+    const skillNames = new Set<string>();
+    evalHistory.forEach(h => {
+      (h.skills as unknown as Skill[]).forEach(s => { if (!s.hidden) skillNames.add(s.name); });
+    });
+    return Array.from(skillNames).map(name => {
+      const scores = evalHistory.map(h => {
+        const s = (h.skills as unknown as Skill[]).find(sk => sk.name === name);
+        return s?.score ?? 0;
+      });
+      const latest = scores[scores.length - 1];
+      const first = scores[0];
+      return { name, latest, first, change: latest - first };
+    }).sort((a, b) => a.change - b.change);
+  }, [evalHistory]);
+
+  const getBarColor = (score: number) => {
+    if (score <= 4) return 'hsl(var(--destructive))';
+    if (score <= 6) return 'hsl(var(--warning, 40 96% 50%))';
+    return 'hsl(var(--primary))';
+  };
 
   const getProfileForEmployee = (emp: Employee) => {
     if (!emp.email) return null;
@@ -350,51 +472,265 @@ const MyEmployment = () => {
             </Card>
           </div>
 
-          {/* Performance evaluation radar */}
-          {mySkills.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Activity className="h-4 w-4" />
-                    Mi Evaluación
-                  </CardTitle>
-                  <Badge variant="secondary" className="text-xs">{myAvg.toFixed(1)}/10</Badge>
-                </div>
-                <span className="text-[10px] text-muted-foreground capitalize">
-                  {format(startOfMonth(new Date()), 'MMMM yyyy', { locale: es })}
+          {/* Full Performance Evaluation */}
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  Mi Evaluación
+                </CardTitle>
+                <Badge variant="secondary" className="text-xs">{myAvg.toFixed(1)}/10</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0 space-y-3">
+              {/* Month selector */}
+              <div className="flex items-center justify-between">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMonthChange('prev')}>
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="font-medium capitalize text-xs sm:text-sm">
+                  {format(selectedMonth, 'MMMM yyyy', { locale: es })}
                 </span>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="w-full h-[200px] sm:h-[250px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="65%">
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="skill" tick={{ fontSize: 9 }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} />
-                      <Tooltip contentStyle={{ fontSize: 11 }} />
-                      <Radar dataKey="score" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
-                    </RadarChart>
-                  </ResponsiveContainer>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMonthChange('next')}
+                  disabled={selectedMonth >= startOfMonth(new Date())}>
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+
+              {evalLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
-                {myWeak.length > 0 && (
-                  <div className="mt-2 space-y-1">
-                    <p className="text-[10px] font-medium flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3 text-destructive" />
-                      Áreas a mejorar
-                    </p>
-                    <div className="flex flex-wrap gap-1">
-                      {myWeak.map(w => (
-                        <Badge key={w.name} variant="outline" className="text-[10px] border-destructive/50 text-destructive">
-                          {w.name}: {w.score}
-                        </Badge>
-                      ))}
+              ) : mySkills.length > 0 ? (
+                <Tabs defaultValue="chart" className="w-full">
+                  <TabsList className="grid w-full grid-cols-4 text-[10px] sm:text-xs">
+                    <TabsTrigger value="chart">Gráfica</TabsTrigger>
+                    <TabsTrigger value="skills">Habilidades</TabsTrigger>
+                    <TabsTrigger value="history">Historial</TabsTrigger>
+                    <TabsTrigger value="development">Desarrollo</TabsTrigger>
+                  </TabsList>
+
+                  {/* Chart tab */}
+                  <TabsContent value="chart" className="space-y-3 mt-3">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <Button variant={chartType === 'radar' ? 'default' : 'outline'} size="sm" className="h-7 text-xs"
+                          onClick={() => setChartType('radar')}>
+                          <Activity className="h-3.5 w-3.5 mr-1" /> Radar
+                        </Button>
+                        <Button variant={chartType === 'bar' ? 'default' : 'outline'} size="sm" className="h-7 text-xs"
+                          onClick={() => setChartType('bar')}>
+                          <BarChart3 className="h-3.5 w-3.5 mr-1" /> Barras
+                        </Button>
+                      </div>
+                      <Badge variant="secondary" className="text-[10px]">Promedio: {myAvg.toFixed(1)}/10</Badge>
                     </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
+
+                    {/* Comparison selector */}
+                    <div className="flex items-center gap-2">
+                      <Users className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                      <Select value={compareEmployeeId || 'none'}
+                        onValueChange={(v) => setCompareEmployeeId(v === 'none' ? null : v)}>
+                        <SelectTrigger className="w-full sm:w-[200px] text-xs h-8">
+                          <SelectValue placeholder="Comparar con..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Sin comparación</SelectItem>
+                          {compareEmployees.map(e => (
+                            <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="w-full h-[250px] sm:h-[320px]">
+                      {chartType === 'radar' ? (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="65%">
+                            <PolarGrid />
+                            <PolarAngleAxis dataKey="skill" tick={{ fontSize: 10 }} />
+                            <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fontSize: 9 }} />
+                            <Radar name={myEmployeeRecord.full_name} dataKey="score"
+                              stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
+                            {compareEmployeeId && (
+                              <Radar name="Comparación" dataKey="compare"
+                                stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} />
+                            )}
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                            <Tooltip contentStyle={{ fontSize: 11 }} />
+                          </RadarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                            <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11 }} />
+                            <YAxis type="category" dataKey="skill" tick={{ fontSize: 10 }} width={90} />
+                            <Tooltip contentStyle={{ fontSize: 11 }} />
+                            <Legend wrapperStyle={{ fontSize: 11 }} />
+                            <Bar dataKey="score" name={myEmployeeRecord.full_name} radius={[0, 4, 4, 0]} barSize={14}>
+                              {barData.map((entry, i) => (
+                                <Cell key={i} fill={getBarColor(entry.score)} />
+                              ))}
+                            </Bar>
+                            {compareEmployeeId && (
+                              <Bar dataKey="compare" name="Comparación"
+                                fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={10} />
+                            )}
+                          </BarChart>
+                        </ResponsiveContainer>
+                      )}
+                    </div>
+
+                    {/* Weak points */}
+                    {myWeak.length > 0 && (
+                      <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                        <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                          <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                          Puntos más débiles
+                        </h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {myWeak.map(wp => (
+                            <Badge key={wp.name} variant="outline" className="text-[10px] border-destructive/50 text-destructive">
+                              {wp.name}: {wp.score}/10
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* Skills tab (read-only for employee) */}
+                  <TabsContent value="skills" className="space-y-3 mt-3">
+                    {(() => {
+                      const categories = [...new Set(evalSkills.map(s => s.category))];
+                      return categories.map(cat => (
+                        <div key={cat} className="space-y-1.5">
+                          <h4 className="font-semibold text-xs flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-primary" />
+                            {cat}
+                          </h4>
+                          <div className="space-y-1">
+                            {evalSkills.filter(s => s.category === cat && !s.hidden).map((skill, idx) => (
+                              <div key={`${skill.name}-${idx}`} className="flex items-center justify-between p-2 rounded-lg border">
+                                <span className="text-xs font-medium">{skill.name}</span>
+                                <Badge variant={skill.score <= 4 ? 'destructive' : skill.score <= 6 ? 'secondary' : 'default'} className="text-[10px]">
+                                  {skill.score}/10
+                                </Badge>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </TabsContent>
+
+                  {/* History tab */}
+                  <TabsContent value="history" className="space-y-3 mt-3">
+                    {historyData.length > 1 ? (
+                      <div className="w-full h-[220px] sm:h-[280px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={historyData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                            <YAxis domain={[0, 10]} tick={{ fontSize: 11 }} />
+                            <Tooltip contentStyle={{ fontSize: 11 }} />
+                            <ReferenceLine y={5} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" label={{ value: 'Base', fontSize: 10 }} />
+                            <Line type="monotone" dataKey="promedio" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} name="Promedio" />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    ) : (
+                      <div className="py-6 text-center text-muted-foreground">
+                        <Activity className="mx-auto h-10 w-10 opacity-50 mb-2" />
+                        <p className="text-xs">Se necesitan al menos 2 meses para mostrar el historial.</p>
+                      </div>
+                    )}
+                    {evalHistory.length > 0 && (
+                      <div className="space-y-1">
+                        <h4 className="text-xs font-semibold">Meses evaluados</h4>
+                        <div className="flex flex-wrap gap-1.5">
+                          {evalHistory.map(h => (
+                            <Badge key={h.evaluation_month}
+                              variant={h.evaluation_month === monthKey ? 'default' : 'outline'}
+                              className="cursor-pointer capitalize text-[10px]"
+                              onClick={() => { setEvalInitialized(false); setSelectedMonth(new Date(h.evaluation_month)); }}>
+                              {format(new Date(h.evaluation_month), 'MMM yy', { locale: es })}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </TabsContent>
+
+                  {/* Development tab */}
+                  <TabsContent value="development" className="space-y-3 mt-3">
+                    {yearlySkillData.length > 0 ? (
+                      <>
+                        <div className="rounded-lg border bg-muted/30 p-3 space-y-1">
+                          <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                            <TrendingUp className="h-3.5 w-3.5 text-primary" />
+                            Desarrollo por habilidad
+                          </h4>
+                          <p className="text-[10px] text-muted-foreground">Cambio desde la primera evaluación hasta la más reciente</p>
+                        </div>
+                        <div className="w-full h-[260px] sm:h-[320px]">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={yearlySkillData} layout="vertical" margin={{ left: 10, right: 20 }}>
+                              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                              <XAxis type="number" tick={{ fontSize: 11 }} />
+                              <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
+                              <Tooltip contentStyle={{ fontSize: 11 }} formatter={(v: number) => [`${v > 0 ? '+' : ''}${v}`, 'Cambio']} />
+                              <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" />
+                              <Bar dataKey="change" radius={[0, 4, 4, 0]} barSize={12}>
+                                {yearlySkillData.map((entry, i) => (
+                                  <Cell key={i} fill={entry.change >= 0 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'} />
+                                ))}
+                              </Bar>
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </div>
+                        {/* Areas needing attention */}
+                        <div className="space-y-1.5">
+                          <h4 className="text-xs font-semibold flex items-center gap-1.5">
+                            <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                            Áreas que necesitan atención
+                          </h4>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {yearlySkillData.filter(s => s.change < 0 || s.latest <= 4).slice(0, 4).map(s => (
+                              <div key={s.name} className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 p-2">
+                                <span className="text-xs font-medium">{s.name}</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-[10px] text-muted-foreground">{s.first}→{s.latest}</span>
+                                  <Badge variant={s.change >= 0 ? 'secondary' : 'destructive'} className="text-[10px]">
+                                    {s.change > 0 ? '+' : ''}{s.change}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                            {yearlySkillData.filter(s => s.change < 0 || s.latest <= 4).length === 0 && (
+                              <p className="text-[10px] text-muted-foreground col-span-2">¡Excelente! No hay áreas críticas.</p>
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="py-6 text-center text-muted-foreground">
+                        <TrendingUp className="mx-auto h-10 w-10 opacity-50 mb-2" />
+                        <p className="text-xs">Se necesitan al menos 2 evaluaciones para mostrar el desarrollo.</p>
+                      </div>
+                    )}
+                  </TabsContent>
+                </Tabs>
+              ) : (
+                <div className="py-6 text-center text-muted-foreground">
+                  <Activity className="mx-auto h-10 w-10 opacity-50 mb-2" />
+                  <p className="text-xs">No hay evaluación para este mes.</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Equipo activo (only active members shown) */}
           <EquipoActivoSection onlyActive />
