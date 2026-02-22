@@ -145,10 +145,22 @@ const Employees = () => {
     enabled: !!businessId,
   });
 
-  // Find current user's employee record
-  const myEmployeeRecord = hrEmployees.find(
-    e => e.email && profile?.email && e.email.toLowerCase() === profile.email.toLowerCase()
-  );
+  // Find current user's employee record — search across ALL businesses, not just current
+  const { data: myEmployeeRecord = null } = useQuery({
+    queryKey: ['my-employee-record', profile?.email],
+    queryFn: async () => {
+      if (!profile?.email) return null;
+      const { data, error } = await supabase
+        .from('employees')
+        .select('*')
+        .eq('email', profile.email.toLowerCase())
+        .limit(1)
+        .maybeSingle();
+      if (error) { console.error('Error fetching my employee record:', error); return null; }
+      return data as Employee | null;
+    },
+    enabled: !!profile?.email,
+  });
 
   // Fetch branch assignments for all employees
   const { data: branchAssignments = [] } = useQuery({
