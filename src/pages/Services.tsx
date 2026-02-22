@@ -36,12 +36,12 @@ const paymentLabels: Record<string, string> = {
 };
 
 // ─── Employee-facing view: quick service registration ───
-const EmployeeServicesView = () => {
-  const { profile, user } = useAuth();
+const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employeeBusinessId: string; employeeBranchId: string | null }) => {
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const businessId = profile?.business_id;
-  const branchId = profile?.branch_id;
+  const businessId = employeeBusinessId;
+  const branchId = employeeBranchId;
 
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
@@ -543,12 +543,39 @@ const ManagerServicesView = () => {
 
 // ─── Main component: route to correct view ───
 const Services = () => {
-  const { isOwner, isManager, isSuperAdmin } = useAuth();
-  const isManagerView = isOwner || isManager || isSuperAdmin;
+  const { isOwner, isManager, isSuperAdmin, profile } = useAuth();
+
+  // Detect if user is an employee of Vision Habana to show correct view
+  const { data: employeeRecord } = useQuery({
+    queryKey: ['employee-record-for-services', profile?.email],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id, business_id, branch_id')
+        .eq('email', profile!.email)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profile?.email,
+  });
+
+  const isVisionHabanaEmployee = employeeRecord?.business_id === VISION_HABANA_BIZ_ID;
+
+  // If user is an employee of Vision Habana, always show employee view with VH context
+  // Otherwise, show manager view for their own business
+  const showEmployeeView = isVisionHabanaEmployee;
 
   return (
     <AppLayout>
-      {isManagerView ? <ManagerServicesView /> : <EmployeeServicesView />}
+      {showEmployeeView ? (
+        <EmployeeServicesView
+          employeeBusinessId={employeeRecord!.business_id}
+          employeeBranchId={employeeRecord?.branch_id ?? profile?.branch_id ?? null}
+        />
+      ) : (
+        <ManagerServicesView />
+      )}
     </AppLayout>
   );
 };
