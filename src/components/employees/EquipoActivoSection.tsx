@@ -11,12 +11,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Users, Play, Loader2 } from 'lucide-react';
 
-interface TeamMemberWithJornada {
+interface EmployeeWithJornada {
   id: string;
   full_name: string;
-  email: string;
-  avatar_url: string | null;
+  email: string | null;
   branch_id: string | null;
+  position: string;
+  profileId: string | null;
   jornada: any | null;
 }
 
@@ -52,33 +53,61 @@ const EquipoActivoSection = () => {
   const [iniciarDialog, setIniciarDialog] = useState<{ profileId: string; name: string; branchId: string | null } | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Fetch profiles + active jornadas
+  // Fetch HR employees + match profiles + active jornadas
   const { data: members = [], isLoading } = useQuery({
     queryKey: ['equipo-activo', businessId],
     queryFn: async () => {
       if (!businessId) return [];
-      const { data: profiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, email, avatar_url, branch_id')
-        .eq('business_id', businessId);
-      if (!profiles?.length) return [];
 
+      // 1. Get all HR employees for this business
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('id, full_name, email, branch_id, position')
+        .eq('business_id', businessId);
+      if (!employees?.length) return [];
+
+      // 2. Get profiles by email using SECURITY DEFINER function
+      const emails = employees.filter(e => e.email).map(e => e.email!.toLowerCase());
+      let profileMap: Record<string, { id: string; branch_id: string | null }> = {};
+      if (emails.length > 0) {
+        const { data: profiles } = await supabase.rpc('get_profiles_by_emails', { emails });
+        if (profiles) {
+          for (const p of profiles) {
+            profileMap[p.email.toLowerCase()] = { id: p.id, branch_id: p.branch_id };
+          }
+        }
+      }
+
+      // 3. Get active jornadas for business branches
       const { data: branches } = await supabase
         .from('branches')
         .select('id')
         .eq('business_id', businessId);
       const branchIds = branches?.map(b => b.id) || [];
 
-      const { data: jornadas } = await supabase
-        .from('jornadas')
-        .select('*')
-        .in('sucursal_id', branchIds)
-        .is('cierre_at', null);
+      let jornadas: any[] = [];
+      if (branchIds.length > 0) {
+        const { data } = await supabase
+          .from('jornadas')
+          .select('*')
+          .in('sucursal_id', branchIds)
+          .is('cierre_at', null);
+        jornadas = data || [];
+      }
 
-      return profiles.map(p => ({
-        ...p,
-        jornada: jornadas?.find(j => j.empleado_id === p.id) || null,
-      })) as TeamMemberWithJornada[];
+      // 4. Combine
+      return employees.map(emp => {
+        const prof = emp.email ? profileMap[emp.email.toLowerCase()] : null;
+        return {
+          id: emp.id,
+          full_name: emp.full_name,
+          email: emp.email,
+          branch_id: emp.branch_id,
+          position: emp.position,
+          profileId: prof?.id || null,
+          jornada: prof ? jornadas.find(j => j.empleado_id === prof.id) || null : null,
+        } as EmployeeWithJornada;
+      });
     },
     enabled: !!businessId,
   });
@@ -149,7 +178,7 @@ const EquipoActivoSection = () => {
         </CardHeader>
         <CardContent>
           {members.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No hay miembros del equipo</p>
+            <p className="text-sm text-muted-foreground text-center py-4">No hay empleados registrados</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
               {[...activos, ...inactivos].map(m => (
@@ -170,15 +199,17 @@ const EquipoActivoSection = () => {
                   ) : (
                     <div className="flex items-center justify-between">
                       <Badge variant="outline" className="text-[10px] text-muted-foreground">Sin jornada</Badge>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => setIniciarDialog({ profileId: m.id, name: m.full_name, branchId: m.branch_id })}
-                        title="Iniciar jornada"
-                      >
-                        <Play className="h-3 w-3" />
-                      </Button>
+                      {m.profileId && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setIniciarDialog({ profileId: m.profileId!, name: m.full_name, branchId: m.branch_id })}
+                          title="Iniciar jornada"
+                        >
+                          <Play className="h-3 w-3" />
+                        </Button>
+                      )}
                     </div>
                   )}
                 </div>
