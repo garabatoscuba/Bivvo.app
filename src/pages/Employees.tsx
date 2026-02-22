@@ -14,16 +14,19 @@ import {
 } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
+import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
-  Loader2, Pencil, Trash2,
+  Loader2, Pencil, Trash2, Activity, Mail, MapPin,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
+import PerformanceChart from '@/components/employees/PerformanceChart';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -53,6 +56,7 @@ interface Employee {
   full_name: string;
   age: number | null;
   ci: string;
+  email: string | null;
   license_number: string | null;
   address: string | null;
   position: string;
@@ -66,10 +70,12 @@ interface EmployeeForm {
   full_name: string;
   age: string;
   ci: string;
+  email: string;
   license_number: string;
   address: string;
   position: string;
   start_date: string;
+  assigned_branches: string[];
 }
 
 const emptyForm: EmployeeForm = {
@@ -77,16 +83,19 @@ const emptyForm: EmployeeForm = {
   full_name: '',
   age: '',
   ci: '',
+  email: '',
   license_number: '',
   address: '',
   position: 'seller',
   start_date: new Date().toISOString().split('T')[0],
+  assigned_branches: [],
 };
 
 const Employees = () => {
-  const { profile, isSuperAdmin, isOwner, isManager } = useAuth();
+  const { profile, user, isSuperAdmin, isOwner, isManager } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: branches = [] } = useBranches();
 
   // Role management state
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
@@ -98,6 +107,9 @@ const Employees = () => {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [form, setForm] = useState<EmployeeForm>(emptyForm);
   const [saving, setSaving] = useState(false);
+
+  // Performance chart state
+  const [perfEmployee, setPerfEmployee] = useState<Employee | null>(null);
 
   const businessId = profile?.business_id;
   const canManage = isOwner || isManager || isSuperAdmin;
@@ -118,7 +130,24 @@ const Employees = () => {
     enabled: !!businessId,
   });
 
-  // Fetch auth-based team members (existing logic)
+  // Fetch branch assignments for all employees
+  const { data: branchAssignments = [] } = useQuery({
+    queryKey: ['employee-branch-assignments', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const employeeIds = hrEmployees.map(e => e.id);
+      if (!employeeIds.length) return [];
+      const { data, error } = await supabase
+        .from('employee_branch_assignments')
+        .select('*')
+        .in('employee_id', employeeIds);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!businessId && hrEmployees.length > 0,
+  });
+
+  // Fetch auth-based team members
   const { data: teamMembers = [], isLoading: loadingTeam } = useQuery({
     queryKey: ['employees', businessId],
     queryFn: async () => {
@@ -143,7 +172,7 @@ const Employees = () => {
     enabled: !!businessId,
   });
 
-  // Role mutations (existing)
+  // Role mutations
   const addRoleMutation = useMutation({
     mutationFn: async ({ userId, role }: { userId: string; role: AppRole }) => {
       const { error } = await supabase.from('user_roles').insert({ user_id: userId, role });
@@ -184,6 +213,8 @@ const Employees = () => {
 
     setSaving(true);
     try {
+      let employeeId: string;
+
       if (editingEmployee) {
         const { error } = await supabase
           .from('employees')
@@ -192,6 +223,7 @@ const Employees = () => {
             full_name: form.full_name.trim(),
             age: form.age ? parseInt(form.age) : null,
             ci: form.ci.trim(),
+            email: form.email.trim() || null,
             license_number: form.license_number.trim() || null,
             address: form.address.trim() || null,
             position: form.position,
@@ -199,9 +231,10 @@ const Employees = () => {
           })
           .eq('id', editingEmployee.id);
         if (error) throw error;
+        employeeId = editingEmployee.id;
         sonnerToast.success('Empleado actualizado');
       } else {
-        const { error } = await supabase
+        const { data, error } = await supabase
           .from('employees')
           .insert({
             business_id: businessId,
@@ -210,15 +243,40 @@ const Employees = () => {
             full_name: form.full_name.trim(),
             age: form.age ? parseInt(form.age) : null,
             ci: form.ci.trim(),
+            email: form.email.trim() || null,
             license_number: form.license_number.trim() || null,
             address: form.address.trim() || null,
             position: form.position,
             start_date: form.start_date,
-          });
+          })
+          .select('id')
+          .single();
         if (error) throw error;
+        employeeId = data.id;
         sonnerToast.success('Empleado registrado');
       }
+
+      // Save branch assignments
+      // Delete existing
+      await supabase
+        .from('employee_branch_assignments')
+        .delete()
+        .eq('employee_id', employeeId);
+
+      // Insert new
+      if (form.assigned_branches.length > 0) {
+        const assignments = form.assigned_branches.map(branchId => ({
+          employee_id: employeeId,
+          branch_id: branchId,
+        }));
+        const { error: assignError } = await supabase
+          .from('employee_branch_assignments')
+          .insert(assignments);
+        if (assignError) throw assignError;
+      }
+
       queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-branch-assignments'] });
       setEmployeeDialogOpen(false);
       setEditingEmployee(null);
       setForm(emptyForm);
@@ -246,16 +304,22 @@ const Employees = () => {
   };
 
   const openEditEmployee = (emp: Employee) => {
+    const empBranches = branchAssignments
+      .filter(a => a.employee_id === emp.id)
+      .map(a => a.branch_id);
+
     setEditingEmployee(emp);
     setForm({
       contract_number: emp.contract_number,
       full_name: emp.full_name,
       age: emp.age?.toString() || '',
       ci: emp.ci,
+      email: emp.email || '',
       license_number: emp.license_number || '',
       address: emp.address || '',
       position: emp.position,
       start_date: emp.start_date,
+      assigned_branches: empBranches,
     });
     setEmployeeDialogOpen(true);
   };
@@ -280,6 +344,22 @@ const Employees = () => {
     setForm(prev => ({ ...prev, [field]: value }));
   };
 
+  const toggleBranch = (branchId: string) => {
+    setForm(prev => ({
+      ...prev,
+      assigned_branches: prev.assigned_branches.includes(branchId)
+        ? prev.assigned_branches.filter(b => b !== branchId)
+        : [...prev.assigned_branches, branchId],
+    }));
+  };
+
+  const getEmployeeBranches = (empId: string) => {
+    return branchAssignments
+      .filter(a => a.employee_id === empId)
+      .map(a => branches.find(b => b.id === a.branch_id))
+      .filter(Boolean);
+  };
+
   return (
     <AppLayout title="Empleados">
       <div className="space-y-6">
@@ -297,7 +377,7 @@ const Employees = () => {
           )}
         </div>
 
-        {/* HR Employees Table */}
+        {/* HR Employees */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -314,32 +394,60 @@ const Employees = () => {
               <>
                 {/* Mobile cards */}
                 <div className="space-y-2 md:hidden">
-                  {hrEmployees.map((emp) => (
-                    <div key={emp.id} className="border rounded-lg p-3 space-y-1.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium text-sm">{emp.full_name}</span>
-                        <Badge variant="secondary" className="text-[10px]">
-                          {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
-                        </Badge>
-                      </div>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
-                        <span>CI: {emp.ci}</span>
-                        <span>Contrato: {emp.contract_number}</span>
-                        {emp.age && <span>Edad: {emp.age}</span>}
-                        <span>Alta: {emp.start_date}</span>
-                      </div>
-                      {canManage && (
-                        <div className="flex justify-end gap-1 pt-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEmployee(emp)}>
-                            <Pencil className="h-3.5 w-3.5" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteEmployee(emp.id)}>
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+                  {hrEmployees.map((emp) => {
+                    const empBranches = getEmployeeBranches(emp.id);
+                    return (
+                      <div key={emp.id} className="border rounded-lg p-3 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium text-sm">{emp.full_name}</span>
+                          <Badge variant="secondary" className="text-[10px]">
+                            {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
+                          </Badge>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        {emp.email && (
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Mail className="h-3 w-3" />
+                            <span className="truncate">{emp.email}</span>
+                          </div>
+                        )}
+                        {empBranches.length > 0 && (
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            {empBranches.map(b => (
+                              <Badge key={b!.id} variant="outline" className="text-[10px] px-1.5 py-0">
+                                {b!.name}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+                          <span>CI: {emp.ci}</span>
+                          <span>Contrato: {emp.contract_number}</span>
+                          {emp.age && <span>Edad: {emp.age}</span>}
+                          <span>Alta: {emp.start_date}</span>
+                        </div>
+                        {canManage && (
+                          <div className="flex justify-end gap-1 pt-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => setPerfEmployee(emp)}
+                              title="Evaluación de desempeño"
+                            >
+                              <Activity className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEmployee(emp)}>
+                              <Pencil className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteEmployee(emp.id)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
 
                 {/* Desktop table */}
@@ -349,44 +457,61 @@ const Employees = () => {
                       <TableRow>
                         <TableHead>No. Contrato</TableHead>
                         <TableHead>Nombre</TableHead>
-                        <TableHead>Edad</TableHead>
+                        <TableHead>Email</TableHead>
                         <TableHead>CI</TableHead>
-                        <TableHead>No. Licencia</TableHead>
-                        <TableHead>Dirección</TableHead>
+                        <TableHead>Sucursales</TableHead>
                         <TableHead>Puesto</TableHead>
                         <TableHead>Alta</TableHead>
                         {canManage && <TableHead className="text-right">Acciones</TableHead>}
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {hrEmployees.map((emp) => (
-                        <TableRow key={emp.id}>
-                          <TableCell className="font-medium">{emp.contract_number}</TableCell>
-                          <TableCell>{emp.full_name}</TableCell>
-                          <TableCell>{emp.age ?? '—'}</TableCell>
-                          <TableCell>{emp.ci}</TableCell>
-                          <TableCell>{emp.license_number || '—'}</TableCell>
-                          <TableCell className="max-w-[200px] truncate">{emp.address || '—'}</TableCell>
-                          <TableCell>
-                            <Badge variant="secondary">
-                              {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>{emp.start_date}</TableCell>
-                          {canManage && (
-                            <TableCell className="text-right">
-                              <div className="flex justify-end gap-1">
-                                <Button variant="ghost" size="icon" onClick={() => openEditEmployee(emp)}>
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => handleDeleteEmployee(emp.id)}>
-                                  <Trash2 className="h-4 w-4 text-destructive" />
-                                </Button>
+                      {hrEmployees.map((emp) => {
+                        const empBranches = getEmployeeBranches(emp.id);
+                        return (
+                          <TableRow key={emp.id}>
+                            <TableCell className="font-medium">{emp.contract_number}</TableCell>
+                            <TableCell>{emp.full_name}</TableCell>
+                            <TableCell className="text-muted-foreground">{emp.email || '—'}</TableCell>
+                            <TableCell>{emp.ci}</TableCell>
+                            <TableCell>
+                              <div className="flex flex-wrap gap-1">
+                                {empBranches.length > 0 ? empBranches.map(b => (
+                                  <Badge key={b!.id} variant="outline" className="text-xs">
+                                    {b!.name}
+                                  </Badge>
+                                )) : '—'}
                               </div>
                             </TableCell>
-                          )}
-                        </TableRow>
-                      ))}
+                            <TableCell>
+                              <Badge variant="secondary">
+                                {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{emp.start_date}</TableCell>
+                            {canManage && (
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setPerfEmployee(emp)}
+                                    title="Evaluación"
+                                  >
+                                    <Activity className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => openEditEmployee(emp)}>
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => handleDeleteEmployee(emp.id)}>
+                                    <Trash2 className="h-4 w-4 text-destructive" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>
@@ -519,7 +644,7 @@ const Employees = () => {
 
         {/* Add/Edit Employee Dialog */}
         <Dialog open={employeeDialogOpen} onOpenChange={setEmployeeDialogOpen}>
-          <DialogContent className="max-w-lg">
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingEmployee ? 'Editar Empleado' : 'Agregar Empleado'}</DialogTitle>
               <DialogDescription>
@@ -540,6 +665,10 @@ const Employees = () => {
               <div className="space-y-2">
                 <Label htmlFor="full_name">Nombre y Apellidos *</Label>
                 <Input id="full_name" value={form.full_name} onChange={(e) => updateField('full_name', e.target.value)} placeholder="Nombre completo" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Correo Electrónico</Label>
+                <Input id="email" type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} placeholder="empleado@correo.com" />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -574,6 +703,29 @@ const Employees = () => {
                   <Input id="start_date" type="date" value={form.start_date} onChange={(e) => updateField('start_date', e.target.value)} />
                 </div>
               </div>
+
+              {/* Multi-branch assignment */}
+              {branches.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Sucursales Asignadas</Label>
+                  <div className="grid grid-cols-2 gap-2 rounded-lg border p-3">
+                    {branches.map(branch => (
+                      <div key={branch.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`branch-${branch.id}`}
+                          checked={form.assigned_branches.includes(branch.id)}
+                          onCheckedChange={() => toggleBranch(branch.id)}
+                        />
+                        <Label htmlFor={`branch-${branch.id}`} className="text-sm font-normal cursor-pointer">
+                          {branch.name}
+                          {branch.is_main && <span className="text-muted-foreground text-xs ml-1">(Principal)</span>}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">El empleado podrá trabajar en las sucursales seleccionadas.</p>
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEmployeeDialogOpen(false)}>Cancelar</Button>
@@ -622,6 +774,19 @@ const Employees = () => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Performance Chart Dialog */}
+        {perfEmployee && businessId && (
+          <PerformanceChart
+            employeeId={perfEmployee.id}
+            employeeName={perfEmployee.full_name}
+            position={perfEmployee.position}
+            businessId={businessId}
+            branchId={perfEmployee.branch_id}
+            canEdit={canManage}
+            onClose={() => setPerfEmployee(null)}
+          />
+        )}
       </div>
     </AppLayout>
   );
