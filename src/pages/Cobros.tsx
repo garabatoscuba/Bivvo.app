@@ -5,10 +5,82 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, DollarSign, TrendingUp, Calendar } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Loader2, DollarSign, TrendingUp, Calendar, Calculator } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
+
+const BILL_DENOMINATIONS = [5, 10, 20, 50, 100, 200, 500, 1000];
+
+const CashCalculator = () => {
+  const [bills, setBills] = useState<Record<number, number>>(
+    Object.fromEntries(BILL_DENOMINATIONS.map(d => [d, 0]))
+  );
+  const [transfers, setTransfers] = useState(0);
+
+  const handleBillChange = (denom: number, qty: number) => {
+    setBills(prev => ({ ...prev, [denom]: isNaN(qty) ? 0 : qty }));
+  };
+
+  const totalCash = BILL_DENOMINATIONS.reduce((sum, d) => sum + d * (bills[d] || 0), 0);
+  const grandTotal = totalCash + transfers;
+
+  return (
+    <Card>
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base flex items-center gap-2">
+          <Calculator className="h-4 w-4" />
+          Calculadora de Efectivo
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <div className="grid grid-cols-3 gap-1 text-xs font-medium text-muted-foreground border-b pb-1.5">
+          <span>Billete</span>
+          <span className="text-center">Cantidad</span>
+          <span className="text-right">Total</span>
+        </div>
+        {BILL_DENOMINATIONS.map(denom => (
+          <div key={denom} className="grid grid-cols-3 gap-1 items-center">
+            <span className="text-sm font-medium">${denom}</span>
+            <Input
+              type="number"
+              min={0}
+              value={bills[denom] || ''}
+              onChange={e => handleBillChange(denom, parseInt(e.target.value))}
+              className="h-8 text-center text-sm"
+              placeholder="0"
+            />
+            <span className="text-sm font-bold text-right">${(denom * (bills[denom] || 0)).toLocaleString()}</span>
+          </div>
+        ))}
+        <div className="border-t pt-2 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold">Total Efectivo</span>
+            <span className="text-lg font-bold text-primary">${totalCash.toLocaleString()}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-1 items-center">
+            <span className="text-sm font-medium">Transferencias</span>
+            <Input
+              type="number"
+              min={0}
+              value={transfers || ''}
+              onChange={e => setTransfers(isNaN(parseInt(e.target.value)) ? 0 : parseInt(e.target.value))}
+              className="h-8 text-center text-sm"
+              placeholder="0"
+            />
+            <span className="text-sm font-bold text-right">${transfers.toLocaleString()}</span>
+          </div>
+          <div className="flex items-center justify-between border-t pt-2">
+            <span className="text-sm font-bold">Efectivo + Transferencias</span>
+            <span className="text-xl font-bold text-primary">${grandTotal.toLocaleString()}</span>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 const Cobros = () => {
   const { profile } = useAuth();
@@ -99,110 +171,121 @@ const Cobros = () => {
         {isLoading ? (
           <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
         ) : (
-          <>
-            {/* Summary cards */}
-            <div className="grid grid-cols-2 gap-3">
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <DollarSign className="h-4 w-4 text-primary" />
-                    <span className="text-sm text-muted-foreground">Total</span>
-                  </div>
-                  <p className="text-xl md:text-2xl font-bold">${grandTotal.toFixed(2)}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-1">
-                    <TrendingUp className="h-4 w-4 text-primary" />
-                    <span className="text-sm text-muted-foreground">Servicios</span>
-                  </div>
-                  <p className="text-xl md:text-2xl font-bold">{totalCount}</p>
-                </CardContent>
-              </Card>
-            </div>
+          <Tabs defaultValue="resumen" className="space-y-4">
+            <TabsList className="w-full grid grid-cols-2">
+              <TabsTrigger value="resumen">Resumen</TabsTrigger>
+              <TabsTrigger value="calculadora">Calculadora</TabsTrigger>
+            </TabsList>
 
-            {/* By payment type */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Por Método de Pago</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {Object.keys(byPayment).length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-2">Sin datos</p>
-                ) : (
-                  <div className="space-y-2">
-                    {Object.entries(byPayment).map(([type, amount]) => (
-                      <div key={type} className="flex items-center justify-between">
-                        <span className="text-sm">{paymentLabels[type] || type}</span>
-                        <span className="text-sm font-bold">${amount.toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <TabsContent value="resumen" className="space-y-4">
+              {/* Summary cards */}
+              <div className="grid grid-cols-2 gap-3">
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <DollarSign className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-muted-foreground">Total</span>
+                    </div>
+                    <p className="text-xl md:text-2xl font-bold">${grandTotal.toFixed(2)}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-2 mb-1">
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                      <span className="text-sm text-muted-foreground">Servicios</span>
+                    </div>
+                    <p className="text-xl md:text-2xl font-bold">{totalCount}</p>
+                  </CardContent>
+                </Card>
+              </div>
 
-            {/* By category */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Por Categoría</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {categoryTotals.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-2">Sin datos este mes</p>
-                ) : (
-                  <div className="space-y-3">
-                    {categoryTotals.map(cat => (
-                      <div key={cat.name} className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{cat.name}</span>
-                          <Badge variant="secondary" className="text-[10px]">{cat.count}</Badge>
+              {/* By payment type */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Por Método de Pago</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {Object.keys(byPayment).length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-2">Sin datos</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {Object.entries(byPayment).map(([type, amount]) => (
+                        <div key={type} className="flex items-center justify-between">
+                          <span className="text-sm">{paymentLabels[type] || type}</span>
+                          <span className="text-sm font-bold">${amount.toFixed(2)}</span>
                         </div>
-                        <span className="text-sm font-bold">${cat.total.toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
 
-            {/* Detail list */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">Detalle</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {filtered.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-4">Sin cobros este mes</p>
-                ) : (
-                  <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-                    {filtered.map(entry => (
-                      <div key={entry.id} className="flex items-center justify-between rounded-lg border p-2.5">
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <Badge variant="secondary" className="text-[10px]">
-                              {(entry as any).service_categories?.name}
-                            </Badge>
-                            <Badge variant="outline" className="text-[10px]">
-                              {paymentLabels[entry.payment_type] || entry.payment_type}
-                            </Badge>
+              {/* By category */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Por Categoría</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {categoryTotals.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-2">Sin datos este mes</p>
+                  ) : (
+                    <div className="space-y-3">
+                      {categoryTotals.map(cat => (
+                        <div key={cat.name} className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">{cat.name}</span>
+                            <Badge variant="secondary" className="text-[10px]">{cat.count}</Badge>
                           </div>
-                          {entry.description && (
-                            <p className="text-xs text-muted-foreground mt-0.5 truncate">{entry.description}</p>
-                          )}
-                          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                            {new Date(entry.created_at).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                          <span className="text-sm font-bold">${cat.total.toFixed(2)}</span>
                         </div>
-                        <span className="text-sm font-bold shrink-0 ml-2">${Number(entry.amount).toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Detail list */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Detalle</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {filtered.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-4">Sin cobros este mes</p>
+                  ) : (
+                    <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                      {filtered.map(entry => (
+                        <div key={entry.id} className="flex items-center justify-between rounded-lg border p-2.5">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <Badge variant="secondary" className="text-[10px]">
+                                {(entry as any).service_categories?.name}
+                              </Badge>
+                              <Badge variant="outline" className="text-[10px]">
+                                {paymentLabels[entry.payment_type] || entry.payment_type}
+                              </Badge>
+                            </div>
+                            {entry.description && (
+                              <p className="text-xs text-muted-foreground mt-0.5 truncate">{entry.description}</p>
+                            )}
+                            <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                              {new Date(entry.created_at).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                          <span className="text-sm font-bold shrink-0 ml-2">${Number(entry.amount).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="calculadora" className="space-y-4">
+              <CashCalculator />
+            </TabsContent>
+          </Tabs>
         )}
       </div>
     </AppLayout>
