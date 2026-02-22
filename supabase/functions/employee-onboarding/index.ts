@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
     };
     const role = roleMap[tokenData.position] || "seller";
 
-    // Check if role already exists
+    // Check if role already exists — additive: don't remove existing roles
     const { data: existingRole } = await admin
       .from("user_roles")
       .select("id")
@@ -119,14 +119,6 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (!existingRole) {
-      // Remove any old business roles first (clean slate)
-      await admin
-        .from("user_roles")
-        .delete()
-        .eq("user_id", user.id)
-        .in("role", ["owner", "manager", "seller", "accountant"]);
-
-      // Assign the new role
       const { error: roleError } = await admin
         .from("user_roles")
         .insert({ user_id: user.id, role });
