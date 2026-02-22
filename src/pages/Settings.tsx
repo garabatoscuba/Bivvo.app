@@ -9,9 +9,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import JornadaQR from '@/components/employees/JornadaQR';
 
 const Settings = () => {
-  const { profile, user } = useAuth();
+  const { profile, user, isOwner, isManager } = useAuth();
 
   return (
     <AppLayout title="Configuración">
@@ -33,6 +34,9 @@ const Settings = () => {
             <SecuritySection />
           </TabsContent>
         </Tabs>
+
+        {/* QR de Jornada - solo owner/manager */}
+        {(isOwner || isManager) && <JornadaQR />}
       </div>
     </AppLayout>
   );
