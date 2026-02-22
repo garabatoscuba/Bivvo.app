@@ -409,6 +409,93 @@ export type Database = {
           },
         ]
       }
+      employee_branch_assignments: {
+        Row: {
+          branch_id: string
+          created_at: string
+          employee_id: string
+          id: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_branch_assignments_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_branch_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employee_evaluations: {
+        Row: {
+          business_id: string
+          created_at: string
+          employee_id: string
+          evaluated_by: string
+          evaluation_month: string
+          id: string
+          notes: string | null
+          skills: Json
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          employee_id: string
+          evaluated_by: string
+          evaluation_month: string
+          id?: string
+          notes?: string | null
+          skills?: Json
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          employee_id?: string
+          evaluated_by?: string
+          evaluation_month?: string
+          id?: string
+          notes?: string | null
+          skills?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_evaluations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_evaluations_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           address: string | null
@@ -418,6 +505,7 @@ export type Database = {
           ci: string
           contract_number: string
           created_at: string
+          email: string | null
           full_name: string
           id: string
           license_number: string | null
@@ -433,6 +521,7 @@ export type Database = {
           ci: string
           contract_number: string
           created_at?: string
+          email?: string | null
           full_name: string
           id?: string
           license_number?: string | null
@@ -448,6 +537,7 @@ export type Database = {
           ci?: string
           contract_number?: string
           created_at?: string
+          email?: string | null
           full_name?: string
           id?: string
           license_number?: string | null
