@@ -45,7 +45,11 @@ const POS = () => {
   });
 
   // Filtrar productos disponibles para venta
-  const availableProducts = products.filter((p) => p.status === 'for_sale');
+  const availableProducts = products.filter((p) => {
+    if (p.status !== 'for_sale') return false;
+    const stock = stockMap.get(p.id) || 0;
+    return stock > 0;
+  });
 
   const filteredProducts = availableProducts.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(search.toLowerCase()) ||
