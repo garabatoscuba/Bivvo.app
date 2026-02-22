@@ -496,6 +496,70 @@ export type Database = {
           },
         ]
       }
+      employee_onboarding_tokens: {
+        Row: {
+          branch_id: string | null
+          business_id: string
+          created_at: string
+          created_by: string
+          employee_id: string
+          expires_at: string
+          id: string
+          position: string
+          token: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          branch_id?: string | null
+          business_id: string
+          created_at?: string
+          created_by: string
+          employee_id: string
+          expires_at?: string
+          id?: string
+          position?: string
+          token?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          branch_id?: string | null
+          business_id?: string
+          created_at?: string
+          created_by?: string
+          employee_id?: string
+          expires_at?: string
+          id?: string
+          position?: string
+          token?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_onboarding_tokens_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_onboarding_tokens_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_onboarding_tokens_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           address: string | null
