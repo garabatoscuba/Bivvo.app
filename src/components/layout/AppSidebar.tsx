@@ -33,6 +33,8 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 
+const VISION_HABANA_BIZ_ID = '03ab1b9d-c0ff-412c-9b78-c86d320dc41c';
+
 const AppSidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -62,20 +64,23 @@ const AppSidebar = () => {
   const activeBranch = branches.find(b => b.id === profile?.branch_id);
 
   // Check if user has an employee record (to show "Mi Empleo" in sidebar)
-  const { data: hasEmployeeRecord = false } = useQuery({
+  const { data: employeeRecord = null } = useQuery({
     queryKey: ['has-employee-record', profile?.email],
     queryFn: async () => {
-      if (!profile?.email) return false;
+      if (!profile?.email) return null;
       const { data, error } = await supabase
         .from('employees')
-        .select('id')
+        .select('id, business_id')
         .eq('email', profile.email.toLowerCase())
         .limit(1)
         .maybeSingle();
-      return !!data && !error;
+      if (error || !data) return null;
+      return data;
     },
     enabled: !!profile?.email,
   });
+  const hasEmployeeRecord = !!employeeRecord;
+  const isEmployeeVisionHabana = employeeRecord?.business_id === VISION_HABANA_BIZ_ID;
 
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
@@ -240,7 +245,6 @@ const AppSidebar = () => {
     { title: 'Usuarios', url: '/admin/users', icon: Users },
   ];
 
-  const VISION_HABANA_BIZ_ID = '03ab1b9d-c0ff-412c-9b78-c86d320dc41c';
   const isVisionHabana = profile?.business_id === VISION_HABANA_BIZ_ID;
 
   const businessItems = [
@@ -303,8 +307,64 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
+        {/* Mi Empleo section - employee tools */}
+        {hasEmployeeRecord && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Mi Empleo</SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/mi-empleo')}>
+                    <Link to="/mi-empleo">
+                      <Briefcase className="h-4 w-4" />
+                      <span className="text-sm">Mi Empleo</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/pos')}>
+                    <Link to="/pos">
+                      <ShoppingCart className="h-4 w-4" />
+                      <span className="text-sm">Punto de Venta</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/sales')}>
+                    <Link to="/sales">
+                      <Receipt className="h-4 w-4" />
+                      <span className="text-sm">Ventas</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                {isEmployeeVisionHabana && (
+                  <>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isActive('/services')}>
+                        <Link to="/services">
+                          <Wrench className="h-4 w-4" />
+                          <span className="text-sm">Servicios</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={isActive('/cobros')}>
+                        <Link to="/cobros">
+                          <DollarSign className="h-4 w-4" />
+                          <span className="text-sm">Cobros</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  </>
+                )}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {/* Negocios dropdown with branches */}
         <SidebarGroup>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Mis Negocios</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -378,7 +438,6 @@ const AppSidebar = () => {
                                       onSelect={(e) => {
                                         e.preventDefault();
                                         if (!isSelectedBiz) {
-                                          // Switch business first, then branch
                                           switchBusiness(biz.id);
                                         } else if (!isBranchActive) {
                                           handleSelectBranch(branch.id);
@@ -440,24 +499,6 @@ const AppSidebar = () => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
-        {/* Mi Empleo - standalone, outside business menu */}
-        {hasEmployeeRecord && (
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/mi-empleo')}>
-                    <Link to="/mi-empleo">
-                      <Briefcase className="h-4 w-4" />
-                      <span className="text-sm">Mi Empleo</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
