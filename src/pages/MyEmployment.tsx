@@ -171,16 +171,17 @@ const MyEmployment = () => {
     enabled: !!profile?.id && !!myEmployeeRecord,
   });
 
-  // Fetch my performance evaluation for selected month
+  // Fetch the LATEST performance evaluation (always show most recent)
   const { data: myEvaluation, isLoading: evalLoading } = useQuery({
-    queryKey: ['my-evaluation', myEmployeeRecord?.id, monthKey],
+    queryKey: ['my-latest-evaluation', myEmployeeRecord?.id],
     queryFn: async () => {
       if (!myEmployeeRecord?.id) return null;
       const { data, error } = await supabase
         .from('employee_evaluations')
-        .select('skills')
+        .select('skills, evaluation_month')
         .eq('employee_id', myEmployeeRecord.id)
-        .eq('evaluation_month', monthKey)
+        .order('evaluation_month', { ascending: false })
+        .limit(1)
         .maybeSingle();
       if (error) return null;
       return data;
@@ -238,10 +239,14 @@ const MyEmployment = () => {
     enabled: !!compareEmployeeId,
   });
 
-  // Initialize skills from evaluation
+  // Initialize skills from latest evaluation
   if (!evalInitialized && !evalLoading) {
     if (myEvaluation?.skills) {
       setEvalSkills(myEvaluation.skills as unknown as Skill[]);
+      // Set selectedMonth to the evaluation's month
+      if (myEvaluation.evaluation_month) {
+        setSelectedMonth(new Date(myEvaluation.evaluation_month));
+      }
     }
     setEvalInitialized(true);
   }
@@ -484,19 +489,14 @@ const MyEmployment = () => {
               </div>
             </CardHeader>
             <CardContent className="pt-0 space-y-3">
-              {/* Month selector */}
-              <div className="flex items-center justify-between">
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMonthChange('prev')}>
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="font-medium capitalize text-xs sm:text-sm">
-                  {format(selectedMonth, 'MMMM yyyy', { locale: es })}
-                </span>
-                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMonthChange('next')}
-                  disabled={selectedMonth >= startOfMonth(new Date())}>
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
-              </div>
+              {/* Latest evaluation month indicator */}
+              {myEvaluation?.evaluation_month && (
+                <div className="flex items-center justify-center">
+                  <span className="font-medium capitalize text-xs sm:text-sm text-muted-foreground">
+                    Última evaluación: {format(new Date(myEvaluation.evaluation_month), 'MMMM yyyy', { locale: es })}
+                  </span>
+                </div>
+              )}
 
               {evalLoading ? (
                 <div className="flex justify-center py-8">
@@ -506,7 +506,7 @@ const MyEmployment = () => {
                 <Tabs defaultValue="chart" className="w-full">
                   <TabsList className="grid w-full grid-cols-4 text-[10px] sm:text-xs">
                     <TabsTrigger value="chart">Gráfica</TabsTrigger>
-                    <TabsTrigger value="skills">Habilidades</TabsTrigger>
+                    <TabsTrigger value="skills">Evaluaciones</TabsTrigger>
                     <TabsTrigger value="history">Historial</TabsTrigger>
                     <TabsTrigger value="development">Desarrollo</TabsTrigger>
                   </TabsList>
