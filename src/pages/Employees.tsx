@@ -31,6 +31,7 @@ import PerformanceChart from '@/components/employees/PerformanceChart';
 import CerrarJornadaGerenteModal from '@/components/employees/CerrarJornadaGerenteModal';
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
 import HistorialJornadasTab from '@/components/employees/HistorialJornadasTab';
+import OnboardingQRDialog from '@/components/employees/OnboardingQRDialog';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -117,6 +118,9 @@ const Employees = () => {
 
   // Jornada gerente state
   const [jornadaCerrarTarget, setJornadaCerrarTarget] = useState<{ jornada: any; name: string } | null>(null);
+
+  // Onboarding QR state
+  const [onboardingQR, setOnboardingQR] = useState<{ token: string; name: string } | null>(null);
 
   const businessId = profile?.business_id;
   const canManage = isOwner || isManager || isSuperAdmin;
@@ -293,6 +297,24 @@ const Employees = () => {
           .single();
         if (error) throw error;
         employeeId = data.id;
+
+        // Generate onboarding token
+        const { data: tokenData, error: tokenError } = await supabase
+          .from('employee_onboarding_tokens')
+          .insert({
+            employee_id: employeeId,
+            business_id: businessId,
+            branch_id: profile?.branch_id || null,
+            position: form.position,
+            created_by: user!.id,
+          })
+          .select('token')
+          .single();
+
+        if (!tokenError && tokenData) {
+          setOnboardingQR({ token: tokenData.token, name: form.full_name.trim() });
+        }
+
         sonnerToast.success('Empleado registrado');
       }
 
@@ -891,6 +913,16 @@ const Employees = () => {
             onOpenChange={(open) => { if (!open) setJornadaCerrarTarget(null); }}
             jornada={jornadaCerrarTarget.jornada}
             employeeName={jornadaCerrarTarget.name}
+          />
+        )}
+
+        {/* Onboarding QR Dialog */}
+        {onboardingQR && (
+          <OnboardingQRDialog
+            open={!!onboardingQR}
+            onOpenChange={(open) => { if (!open) setOnboardingQR(null); }}
+            token={onboardingQR.token}
+            employeeName={onboardingQR.name}
           />
         )}
       </div>

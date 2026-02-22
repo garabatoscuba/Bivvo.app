@@ -27,6 +27,7 @@ import Orders from "./pages/Orders";
 import Services from "./pages/Services";
 import Cobros from "./pages/Cobros";
 import JornadaEntrada from "./pages/JornadaEntrada";
+import OnboardingEmpleado from "./pages/OnboardingEmpleado";
 
 
 const queryClient = new QueryClient();
@@ -77,6 +78,7 @@ const App = () => {
                 <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsers /></ProtectedRoute>} />
                 <Route path="/install" element={<Install />} />
                 <Route path="/jornada/entrada" element={<JornadaEntrada />} />
+                <Route path="/onboarding/empleado" element={<OnboardingEmpleado />} />
                 <Route path="/tienda/:bizSlug/:branchSlug" element={<PublicStorefront />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
