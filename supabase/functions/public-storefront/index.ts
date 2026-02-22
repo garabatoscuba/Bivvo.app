@@ -125,6 +125,33 @@ serve(async (req) => {
           });
         }
 
+        // Deduct stock for each item
+        for (const item of items) {
+          const { error: stockErr } = await supabase
+            .from("branch_stock")
+            .update({ quantity: supabase.rpc ? undefined : undefined })
+            .eq("branch_id", branch_id)
+            .eq("product_id", item.product_id);
+
+          // Use raw SQL-style update to decrement
+          await supabase.rpc("get_server_now"); // just to confirm connection
+          const { error: decErr } = await supabase
+            .from("branch_stock")
+            .select("quantity")
+            .eq("branch_id", branch_id)
+            .eq("product_id", item.product_id)
+            .single()
+            .then(async ({ data: stockData }) => {
+              if (!stockData) return { error: null };
+              const newQty = Math.max(0, stockData.quantity - item.quantity);
+              return supabase
+                .from("branch_stock")
+                .update({ quantity: newQty, updated_at: new Date().toISOString() })
+                .eq("branch_id", branch_id)
+                .eq("product_id", item.product_id);
+            });
+        }
+
         // Build order detail text
         const itemLines = items.map((i: any) => `• ${i.quantity}x ${i.product_name} — Bs ${Number(i.total).toFixed(2)}`).join("\n");
         const deliveryLine = delivery_address ? `\n📍 Dirección: ${delivery_address}` : "\n🏪 Retiro en tienda";
@@ -146,6 +173,7 @@ serve(async (req) => {
             notes: notes || null,
             items,
             subtotal,
+            status: "pending",
           },
         });
 

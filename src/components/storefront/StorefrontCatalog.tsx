@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingBag, Plus, LayoutGrid, List } from 'lucide-react';
+import { ShoppingBag, Plus, LayoutGrid, List, Heart, Star } from 'lucide-react';
 import type { StorefrontProduct } from '@/pages/PublicStorefront';
 import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
 import StorefrontProductDetail from '@/components/storefront/StorefrontProductDetail';
@@ -19,6 +19,17 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null);
+  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  const toggleFavorite = (e: React.MouseEvent, productId: string) => {
+    e.stopPropagation();
+    setFavorites(prev => {
+      const next = new Set(prev);
+      if (next.has(productId)) next.delete(productId);
+      else next.add(productId);
+      return next;
+    });
+  };
 
   let filtered = activeCategory
     ? products.filter(p => p.category === activeCategory)
@@ -76,7 +87,7 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
             <select
               value={sortMode}
               onChange={e => setSortMode(e.target.value as SortMode)}
-              className="h-9 px-3 rounded-lg border border-border bg-background text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 cursor-pointer"
+              className="h-9 px-3 rounded-lg bg-transparent text-xs text-foreground focus:outline-none cursor-pointer appearance-none"
             >
               <option value="default">Ordenar</option>
               <option value="price-asc">Precio: menor a mayor</option>
@@ -121,45 +132,61 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
           <p className="text-sm">No hay productos disponibles.</p>
         </div>
       ) : viewMode === 'grid' ? (
-        <div className="grid gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {filtered.map(product => {
             const cartQty = getCartQty(product.id);
+            const isFav = favorites.has(product.id);
             return (
               <div
                 key={product.id}
-                className="group bg-card rounded-xl border border-border overflow-hidden hover:shadow-md transition-all duration-300 cursor-pointer"
+                className="group bg-card rounded-lg border border-border overflow-hidden hover:shadow-sm transition-all duration-200 cursor-pointer"
                 onClick={() => setSelectedProduct(product)}
               >
-                {product.image_url ? (
-                  <div className="aspect-square overflow-hidden bg-muted/10">
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-full object-cover group-hover:scale-[1.03] transition-transform duration-500"
-                      loading="lazy"
-                    />
-                  </div>
-                ) : (
-                  <div className="aspect-square bg-muted/10 flex items-center justify-center">
-                    <ShoppingBag className="h-8 w-8 text-muted-foreground/15" />
-                  </div>
-                )}
-                <div className="p-3 sm:p-4 space-y-1">
+                <div className="relative">
+                  {product.image_url ? (
+                    <div className="aspect-[4/3] overflow-hidden bg-muted/10">
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                        loading="lazy"
+                      />
+                    </div>
+                  ) : (
+                    <div className="aspect-[4/3] bg-muted/10 flex items-center justify-center">
+                      <ShoppingBag className="h-6 w-6 text-muted-foreground/15" />
+                    </div>
+                  )}
+                  {/* Favorite button */}
+                  <button
+                    onClick={(e) => toggleFavorite(e, product.id)}
+                    className="absolute top-2 right-2 h-7 w-7 rounded-full bg-background/70 backdrop-blur flex items-center justify-center transition-colors hover:bg-background"
+                  >
+                    <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
+                  </button>
+                </div>
+                <div className="p-2.5 space-y-0.5">
                   {product.category && (
-                    <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
+                    <span className="text-[8px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
                       {product.category}
                     </span>
                   )}
-                  <h3 className="text-xs sm:text-sm font-semibold text-foreground leading-snug line-clamp-2">
+                  <h3 className="text-xs font-semibold text-foreground leading-snug line-clamp-1">
                     {product.name}
                   </h3>
-                  <div className="flex items-center justify-between pt-1">
-                    <p className="text-sm font-bold text-foreground">
+                  {/* Star rating placeholder */}
+                  <div className="flex items-center gap-0.5">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <Star key={i} className="h-2.5 w-2.5 text-muted-foreground/20" />
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-between pt-0.5">
+                    <p className="text-xs font-bold text-foreground">
                       Bs {Number(product.price).toFixed(2)}
                     </p>
                     {cartQty > 0 && (
                       <span
-                        className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                        className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
                         style={{ backgroundColor: accent }}
                       >
                         {cartQty}
@@ -167,11 +194,10 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
                     )}
                   </div>
                 </div>
-                {/* Quick add */}
                 {product.stock > cartQty && (
                   <button
                     onClick={(e) => { e.stopPropagation(); addItem(product); }}
-                    className="w-full py-2 flex items-center justify-center gap-1 text-xs font-medium border-t border-border text-muted-foreground hover:text-white hover:bg-foreground transition-all"
+                    className="w-full py-1.5 flex items-center justify-center gap-1 text-[11px] font-medium border-t border-border text-muted-foreground hover:text-white hover:bg-foreground transition-all"
                   >
                     <Plus className="h-3 w-3" /> Agregar
                   </button>
@@ -185,44 +211,50 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
         <div className="space-y-2">
           {filtered.map(product => {
             const cartQty = getCartQty(product.id);
+            const isFav = favorites.has(product.id);
             return (
               <div
                 key={product.id}
-                className="flex gap-3 p-3 rounded-xl border border-border bg-card hover:shadow-sm transition-all cursor-pointer"
+                className="flex gap-3 p-3 rounded-lg border border-border bg-card hover:shadow-sm transition-all cursor-pointer"
                 onClick={() => setSelectedProduct(product)}
               >
                 {product.image_url ? (
                   <img
                     src={product.image_url}
                     alt={product.name}
-                    className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg object-cover shrink-0"
+                    className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg object-cover shrink-0"
                     loading="lazy"
                   />
                 ) : (
-                  <div className="h-16 w-16 sm:h-20 sm:w-20 rounded-lg bg-muted/10 flex items-center justify-center shrink-0">
-                    <ShoppingBag className="h-5 w-5 text-muted-foreground/15" />
+                  <div className="h-14 w-14 sm:h-16 sm:w-16 rounded-lg bg-muted/10 flex items-center justify-center shrink-0">
+                    <ShoppingBag className="h-4 w-4 text-muted-foreground/15" />
                   </div>
                 )}
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
                   {product.category && (
-                    <span className="text-[9px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
+                    <span className="text-[8px] uppercase tracking-[0.15em] font-medium text-muted-foreground">
                       {product.category}
                     </span>
                   )}
                   <h3 className="text-sm font-semibold text-foreground leading-snug line-clamp-1">
                     {product.name}
                   </h3>
-                  {product.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{product.description}</p>
-                  )}
-                  <p className="text-sm font-bold text-foreground mt-1">
+                  <div className="flex items-center gap-0.5 mt-0.5">
+                    {[1, 2, 3, 4, 5].map(i => (
+                      <Star key={i} className="h-2.5 w-2.5 text-muted-foreground/20" />
+                    ))}
+                  </div>
+                  <p className="text-sm font-bold text-foreground mt-0.5">
                     Bs {Number(product.price).toFixed(2)}
                   </p>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex flex-col items-center gap-1 shrink-0 justify-center">
+                  <button onClick={(e) => toggleFavorite(e, product.id)} className="h-7 w-7 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                    <Heart className={`h-3.5 w-3.5 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground/40'}`} />
+                  </button>
                   {cartQty > 0 && (
                     <span
-                      className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white"
+                      className="text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
                       style={{ backgroundColor: accent }}
                     >
                       {cartQty}
@@ -231,9 +263,9 @@ const StorefrontCatalog = ({ products, accent }: Props) => {
                   {product.stock > cartQty && (
                     <button
                       onClick={(e) => { e.stopPropagation(); addItem(product); }}
-                      className="h-8 w-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white hover:bg-foreground transition-all"
+                      className="h-7 w-7 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white hover:bg-foreground transition-all"
                     >
-                      <Plus className="h-3.5 w-3.5" />
+                      <Plus className="h-3 w-3" />
                     </button>
                   )}
                 </div>
