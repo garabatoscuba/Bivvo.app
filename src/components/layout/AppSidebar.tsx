@@ -253,7 +253,7 @@ const AppSidebar = () => {
     { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
     { title: 'Pedidos', url: '/orders', icon: Receipt },
     { title: 'Empleados', url: '/employees', icon: Users },
-    ...(hasEmployeeRecord ? [{ title: 'Mi Empleo', url: '/mi-empleo', icon: Briefcase }] : []),
+    
     { title: 'Configuración', url: '/settings', icon: Settings },
     { title: 'Planes', url: '/plans', icon: CreditCard },
   ];
@@ -440,6 +440,24 @@ const AppSidebar = () => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {/* Mi Empleo - standalone, outside business menu */}
+        {hasEmployeeRecord && (
+          <SidebarGroup>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/mi-empleo')}>
+                    <Link to="/mi-empleo">
+                      <Briefcase className="h-4 w-4" />
+                      <span className="text-sm">Mi Empleo</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
