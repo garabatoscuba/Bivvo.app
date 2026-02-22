@@ -40,9 +40,9 @@ export const POSCart = ({
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
+    <div className="flex flex-col flex-1 overflow-hidden min-w-0">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-3 md:p-4 border-b flex-shrink-0">
         <h3 className="font-semibold">Carrito ({items.length})</h3>
         <Button variant="ghost" size="sm" onClick={onClearCart}>
           <Trash2 className="h-4 w-4 mr-1" />
@@ -50,14 +50,14 @@ export const POSCart = ({
         </Button>
       </div>
 
-      {/* Items */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      {/* Items - vertical scroll only */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
         <div className="p-3 space-y-2">
           {items.map((item) => (
-            <div key={item.product.id} className="rounded-lg border bg-card p-2.5">
+            <div key={item.product.id} className="rounded-lg border bg-card p-2.5 min-w-0">
               <div className="flex items-center gap-2 min-w-0">
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm leading-tight break-words">
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <h4 className="font-medium text-sm leading-tight break-words line-clamp-2">
                     {item.product.name}
                   </h4>
                   <span className="text-xs text-muted-foreground">
@@ -75,7 +75,7 @@ export const POSCart = ({
               </div>
 
               <div className="flex items-center justify-between mt-1.5">
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                   <Button
                     variant="outline"
                     size="icon"
@@ -85,7 +85,7 @@ export const POSCart = ({
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
-                  <span className="w-7 text-center font-medium text-sm">
+                  <span className="w-7 text-center font-medium text-sm flex-shrink-0">
                     {item.quantity}
                   </span>
                   <Button
@@ -98,7 +98,7 @@ export const POSCart = ({
                     <Plus className="h-3 w-3" />
                   </Button>
                 </div>
-                <span className="font-bold text-primary text-sm">
+                <span className="font-bold text-primary text-sm flex-shrink-0">
                   ${item.total.toFixed(2)}
                 </span>
               </div>
@@ -108,7 +108,7 @@ export const POSCart = ({
       </div>
 
       {/* Totals */}
-      <div className="border-t p-4 space-y-3 bg-muted/30">
+      <div className="border-t p-3 md:p-4 space-y-2 md:space-y-3 bg-muted/30 flex-shrink-0">
         <div className="flex justify-between text-sm">
           <span>Subtotal</span>
           <span>${subtotal.toFixed(2)}</span>
@@ -116,7 +116,7 @@ export const POSCart = ({
         
         <div className="flex items-center justify-between text-sm">
           <span>Descuento</span>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <span>$</span>
             <input
               type="number"

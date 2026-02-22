@@ -144,11 +144,11 @@ const POS = () => {
 
   return (
     <AppLayout>
-      <div className="flex h-[calc(100vh-6.5rem)] md:h-[calc(100vh-8rem)] gap-3 md:gap-4">
+      <div className="flex flex-col md:flex-row h-[calc(100vh-6.5rem)] md:h-[calc(100vh-8rem)] gap-0 md:gap-4 overflow-hidden">
         {/* Products Section */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Search & Categories */}
-          <div className="space-y-2 md:space-y-3 pb-3 md:pb-4">
+          <div className="space-y-2 md:space-y-3 pb-2 md:pb-4 flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -159,7 +159,7 @@ const POS = () => {
               />
             </div>
 
-            <div className="gap-2 overflow-x-auto pb-2 flex items-end justify-start my-0 py-[10px]">
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
               <button
                 onClick={() => setSelectedCategory(null)}
                 className={cn(
@@ -196,7 +196,7 @@ const POS = () => {
           </div>
 
           {/* Product Grid */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -207,7 +207,7 @@ const POS = () => {
                 <p>No se encontraron productos</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-4">
                 {filteredProducts.map((product) => {
                   const availableStock = getAvailableStock(product.id);
                   return (
@@ -227,7 +227,7 @@ const POS = () => {
         </div>
 
         {/* Desktop Cart */}
-        <Card className="hidden md:flex w-80 lg:w-96 flex-col overflow-hidden">
+        <Card className="hidden md:flex w-80 lg:w-96 flex-col overflow-hidden flex-shrink-0">
           <POSCart
             items={cart}
             discount={discount}
@@ -237,9 +237,17 @@ const POS = () => {
             onDiscountChange={setDiscount}
             stockMap={stockMap}
           />
+          {cart.length > 0 && (
+            <div className="p-4 border-t">
+              <Button className="w-full h-11 font-bold" onClick={() => setPaymentOpen(true)}>
+                <ShoppingCart className="h-5 w-5 mr-2" />
+                Cobrar ${cartTotal.toFixed(2)}
+              </Button>
+            </div>
+          )}
         </Card>
 
-        {/* Mobile Cart Button */}
+        {/* Mobile Cart FAB + Sheet */}
         <div className="md:hidden fixed bottom-4 right-4 z-50">
           <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
             <SheetTrigger asChild>
@@ -252,8 +260,8 @@ const POS = () => {
                 )}
               </Button>
             </SheetTrigger>
-            <SheetContent side="bottom" className="h-[85vh] p-0">
-              <div className="h-full overflow-hidden">
+            <SheetContent side="bottom" className="h-[85vh] p-0 overflow-hidden">
+              <div className="flex flex-col h-full overflow-hidden">
                 <POSCart
                   items={cart}
                   discount={discount}
@@ -263,6 +271,14 @@ const POS = () => {
                   onDiscountChange={setDiscount}
                   stockMap={stockMap}
                 />
+                {cart.length > 0 && (
+                  <div className="flex-shrink-0 p-3 border-t bg-background">
+                    <Button className="w-full h-12 text-base font-bold" onClick={() => { setMobileCartOpen(false); setPaymentOpen(true); }}>
+                      <ShoppingCart className="h-5 w-5 mr-2" />
+                      Cobrar ${cartTotal.toFixed(2)}
+                    </Button>
+                  </div>
+                )}
               </div>
             </SheetContent>
           </Sheet>
