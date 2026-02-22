@@ -230,7 +230,7 @@ const POS = () => {
                 <p>No se encontraron productos</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-2 md:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4 px-0.5">
                 {filteredProducts.map((product) => {
                   const availableStock = getAvailableStock(product.id);
                   return (
