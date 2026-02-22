@@ -3,6 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { Card } from '@/components/ui/card';
 import { ProductCard } from '@/components/inventory/ProductCard';
 import { POSCart } from '@/components/pos/POSCart';
 import { PaymentDialog } from '@/components/pos/PaymentDialog';
@@ -226,7 +227,7 @@ const POS = () => {
         </div>
 
         {/* Desktop Cart */}
-        <div className="hidden md:flex w-80 lg:w-96 flex-col">
+        <Card className="hidden md:flex w-80 lg:w-96 flex-col overflow-hidden">
           <POSCart
             items={cart}
             discount={discount}
@@ -236,7 +237,7 @@ const POS = () => {
             onDiscountChange={setDiscount}
             stockMap={stockMap}
           />
-        </div>
+        </Card>
 
         {/* Mobile Cart Button */}
         <div className="md:hidden fixed bottom-4 right-4 z-50">
