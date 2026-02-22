@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -13,19 +14,20 @@ import {
 import {
   Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, LineChart, Line,
+  ResponsiveContainer, LineChart, Line, ReferenceLine, Cell,
 } from 'recharts';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   BarChart3, Activity, Plus, Eye, EyeOff, Save, Loader2, ChevronLeft, ChevronRight, Users,
+  AlertTriangle, TrendingUp, Globe, Lock,
 } from 'lucide-react';
 import { format, startOfMonth, subMonths, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 
-interface Skill {
+export interface Skill {
   category: string;
   name: string;
   score: number;
@@ -33,7 +35,7 @@ interface Skill {
   custom?: boolean;
 }
 
-const DEFAULT_ATTITUDE_SKILLS: Skill[] = [
+export const DEFAULT_ATTITUDE_SKILLS: Skill[] = [
   { category: 'Actitud', name: 'Puntualidad', score: 5 },
   { category: 'Actitud', name: 'Responsabilidad', score: 5 },
   { category: 'Actitud', name: 'Habilidades sociales', score: 5 },
@@ -42,7 +44,7 @@ const DEFAULT_ATTITUDE_SKILLS: Skill[] = [
   { category: 'Actitud', name: 'Adaptabilidad', score: 5 },
 ];
 
-const DEFAULT_PERFORMANCE_SKILLS: Skill[] = [
+export const DEFAULT_PERFORMANCE_SKILLS: Skill[] = [
   { category: 'Desempeño', name: 'Productividad', score: 5 },
   { category: 'Desempeño', name: 'Calidad del trabajo', score: 5 },
   { category: 'Desempeño', name: 'Atención al cliente', score: 5 },
@@ -51,17 +53,15 @@ const DEFAULT_PERFORMANCE_SKILLS: Skill[] = [
   { category: 'Desempeño', name: 'Cumplimiento de metas', score: 5 },
 ];
 
-const DEFAULT_LEADERSHIP_SKILLS: Skill[] = [
+export const DEFAULT_LEADERSHIP_SKILLS: Skill[] = [
   { category: 'Liderazgo', name: 'Toma de decisiones', score: 5 },
   { category: 'Liderazgo', name: 'Gestión del tiempo', score: 5 },
   { category: 'Liderazgo', name: 'Resolución de conflictos', score: 5 },
 ];
 
-function getDefaultSkills(position: string): Skill[] {
+export function getDefaultSkills(position: string): Skill[] {
   const base = [...DEFAULT_ATTITUDE_SKILLS, ...DEFAULT_PERFORMANCE_SKILLS];
-  if (position === 'manager') {
-    return [...base, ...DEFAULT_LEADERSHIP_SKILLS];
-  }
+  if (position === 'manager') return [...base, ...DEFAULT_LEADERSHIP_SKILLS];
   return base;
 }
 
@@ -71,6 +71,19 @@ const CATEGORY_COLORS: Record<string, string> = {
   Liderazgo: 'hsl(var(--destructive))',
   Personalizada: 'hsl(var(--secondary-foreground))',
 };
+
+/** Get weak points (bottom 3 skills) */
+export function getWeakPoints(skills: Skill[]): Skill[] {
+  const visible = skills.filter(s => !s.hidden);
+  return [...visible].sort((a, b) => a.score - b.score).slice(0, 3);
+}
+
+/** Get average score */
+export function getAvgScore(skills: Skill[]): number {
+  const visible = skills.filter(s => !s.hidden);
+  if (!visible.length) return 0;
+  return visible.reduce((sum, s) => sum + s.score, 0) / visible.length;
+}
 
 interface PerformanceChartProps {
   employeeId: string;
@@ -83,13 +96,7 @@ interface PerformanceChartProps {
 }
 
 export default function PerformanceChart({
-  employeeId,
-  employeeName,
-  position,
-  businessId,
-  branchId,
-  canEdit,
-  onClose,
+  employeeId, employeeName, position, businessId, branchId, canEdit, onClose,
 }: PerformanceChartProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -100,6 +107,7 @@ export default function PerformanceChart({
   const [newSkillName, setNewSkillName] = useState('');
   const [saving, setSaving] = useState(false);
   const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
+  const [isPublic, setIsPublic] = useState(false);
 
   const monthKey = format(selectedMonth, 'yyyy-MM-dd');
 
@@ -164,17 +172,17 @@ export default function PerformanceChart({
     enabled: !!compareEmployeeId,
   });
 
-  // Initialize skills from evaluation or defaults
+  // Initialize skills
   if (!initialized && !isLoading) {
     if (evaluation?.skills) {
       setSkills(evaluation.skills as unknown as Skill[]);
     } else {
       setSkills(getDefaultSkills(position));
     }
+    if (evaluation?.notes === '__public__') setIsPublic(true);
     setInitialized(true);
   }
 
-  // Reset when month changes
   const handleMonthChange = (direction: 'prev' | 'next') => {
     setInitialized(false);
     setSelectedMonth(prev => direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1));
@@ -204,12 +212,13 @@ export default function PerformanceChart({
         evaluated_by: user.id,
         evaluation_month: monthKey,
         skills: skills as any,
+        notes: isPublic ? '__public__' : null,
       };
 
       if (evaluation) {
         const { error } = await supabase
           .from('employee_evaluations')
-          .update({ skills: skills as any, evaluated_by: user.id })
+          .update({ skills: skills as any, evaluated_by: user.id, notes: isPublic ? '__public__' : null })
           .eq('id', evaluation.id);
         if (error) throw error;
       } else {
@@ -234,29 +243,31 @@ export default function PerformanceChart({
     ? (visibleSkills.reduce((sum, s) => sum + s.score, 0) / visibleSkills.length).toFixed(1)
     : '0';
 
+  const weakPoints = useMemo(() => getWeakPoints(skills), [skills]);
+
   // Radar data
   const radarData = visibleSkills.map(s => {
     const base: any = { skill: s.name, score: s.score, fullMark: 10 };
     if (compareEvaluation?.skills) {
-      const compareSkills = compareEvaluation.skills as unknown as Skill[];
-      const match = compareSkills.find(cs => cs.name === s.name);
+      const cs = (compareEvaluation.skills as unknown as Skill[]);
+      const match = cs.find(c => c.name === s.name);
       base.compare = match?.score ?? 0;
     }
     return base;
   });
 
-  // Bar data
-  const barData = visibleSkills.map(s => {
+  // Bar data – sorted by score
+  const barData = [...visibleSkills].sort((a, b) => a.score - b.score).map(s => {
     const base: any = { skill: s.name, score: s.score };
     if (compareEvaluation?.skills) {
-      const compareSkills = compareEvaluation.skills as unknown as Skill[];
-      const match = compareSkills.find(cs => cs.name === s.name);
+      const cs = (compareEvaluation.skills as unknown as Skill[]);
+      const match = cs.find(c => c.name === s.name);
       base.compare = match?.score ?? 0;
     }
     return base;
   });
 
-  // History chart data
+  // History chart data with per-skill trends
   const historyData = history.map(h => {
     const hSkills = h.skills as unknown as Skill[];
     const visible = hSkills.filter(s => !s.hidden);
@@ -267,17 +278,42 @@ export default function PerformanceChart({
     };
   });
 
+  // Yearly skill-by-skill breakdown
+  const yearlySkillData = useMemo(() => {
+    if (history.length < 2) return [];
+    const skillNames = new Set<string>();
+    history.forEach(h => {
+      (h.skills as unknown as Skill[]).forEach(s => { if (!s.hidden) skillNames.add(s.name); });
+    });
+    return Array.from(skillNames).map(name => {
+      const scores = history.map(h => {
+        const s = (h.skills as unknown as Skill[]).find(sk => sk.name === name);
+        return s?.score ?? 0;
+      });
+      const latest = scores[scores.length - 1];
+      const first = scores[0];
+      return { name, latest, first, change: latest - first };
+    }).sort((a, b) => a.change - b.change);
+  }, [history]);
+
   const categories = [...new Set(skills.map(s => s.category))];
+
+  // Color for bar based on weak point threshold
+  const getBarColor = (score: number) => {
+    if (score <= 4) return 'hsl(var(--destructive))';
+    if (score <= 6) return 'hsl(var(--warning, 40 96% 50%))';
+    return 'hsl(var(--primary))';
+  };
 
   return (
     <Dialog open onOpenChange={() => onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-3 sm:p-6">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
             <Activity className="h-5 w-5" />
             Evaluación de {employeeName}
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-xs sm:text-sm">
             Puntuaciones de habilidades y desempeño
           </DialogDescription>
         </DialogHeader>
@@ -287,15 +323,11 @@ export default function PerformanceChart({
           <Button variant="ghost" size="icon" onClick={() => handleMonthChange('prev')}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="font-medium capitalize">
+          <span className="font-medium capitalize text-sm sm:text-base">
             {format(selectedMonth, 'MMMM yyyy', { locale: es })}
           </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => handleMonthChange('next')}
-            disabled={selectedMonth >= startOfMonth(new Date())}
-          >
+          <Button variant="ghost" size="icon" onClick={() => handleMonthChange('next')}
+            disabled={selectedMonth >= startOfMonth(new Date())}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -306,44 +338,37 @@ export default function PerformanceChart({
           </div>
         ) : (
           <Tabs defaultValue="chart" className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4 text-xs sm:text-sm">
               <TabsTrigger value="chart">Gráfica</TabsTrigger>
               <TabsTrigger value="skills">Habilidades</TabsTrigger>
               <TabsTrigger value="history">Historial</TabsTrigger>
+              <TabsTrigger value="development">Desarrollo</TabsTrigger>
             </TabsList>
 
-            {/* Chart tab */}
-            <TabsContent value="chart" className="space-y-4">
+            {/* ===== Chart tab ===== */}
+            <TabsContent value="chart" className="space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant={chartType === 'radar' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setChartType('radar')}
-                  >
+                  <Button variant={chartType === 'radar' ? 'default' : 'outline'} size="sm"
+                    onClick={() => setChartType('radar')}>
                     <Activity className="h-4 w-4 mr-1" /> Radar
                   </Button>
-                  <Button
-                    variant={chartType === 'bar' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setChartType('bar')}
-                  >
+                  <Button variant={chartType === 'bar' ? 'default' : 'outline'} size="sm"
+                    onClick={() => setChartType('bar')}>
                     <BarChart3 className="h-4 w-4 mr-1" /> Barras
                   </Button>
                 </div>
-                <Badge variant="secondary" className="text-sm">
+                <Badge variant="secondary" className="text-xs sm:text-sm">
                   Promedio: {avgScore}/10
                 </Badge>
               </div>
 
               {/* Comparison selector */}
               <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-                <Select
-                  value={compareEmployeeId || 'none'}
-                  onValueChange={(v) => setCompareEmployeeId(v === 'none' ? null : v)}
-                >
-                  <SelectTrigger className="w-[200px]">
+                <Users className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <Select value={compareEmployeeId || 'none'}
+                  onValueChange={(v) => setCompareEmployeeId(v === 'none' ? null : v)}>
+                  <SelectTrigger className="w-full sm:w-[200px] text-xs sm:text-sm">
                     <SelectValue placeholder="Comparar con..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -355,105 +380,106 @@ export default function PerformanceChart({
                 </Select>
               </div>
 
-              <div className="w-full h-[300px] sm:h-[400px]">
+              <div className="w-full h-[280px] sm:h-[380px]">
                 {chartType === 'radar' ? (
                   <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="70%">
+                    <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="65%">
                       <PolarGrid />
-                      <PolarAngleAxis dataKey="skill" tick={{ fontSize: 10 }} />
-                      <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fontSize: 9 }} />
-                      <Radar
-                        name={employeeName}
-                        dataKey="score"
-                        stroke="hsl(var(--primary))"
-                        fill="hsl(var(--primary))"
-                        fillOpacity={0.3}
-                      />
+                      <PolarAngleAxis dataKey="skill" tick={{ fontSize: 11 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fontSize: 10 }} />
+                      <Radar name={employeeName} dataKey="score"
+                        stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
                       {compareEmployeeId && (
-                        <Radar
-                          name="Comparación"
-                          dataKey="compare"
-                          stroke="hsl(var(--destructive))"
-                          fill="hsl(var(--destructive))"
-                          fillOpacity={0.15}
-                        />
+                        <Radar name="Comparación" dataKey="compare"
+                          stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} />
                       )}
-                      <Legend />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
                     </RadarChart>
                   </ResponsiveContainer>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={barData} layout="vertical" margin={{ left: 80 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis type="number" domain={[0, 10]} />
-                      <YAxis type="category" dataKey="skill" tick={{ fontSize: 11 }} width={80} />
-                      <Tooltip />
-                      <Legend />
-                      <Bar
-                        dataKey="score"
-                        name={employeeName}
-                        fill="hsl(var(--primary))"
-                        radius={[0, 4, 4, 0]}
-                      />
+                    <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                      <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 12 }} />
+                      <YAxis type="category" dataKey="skill" tick={{ fontSize: 12 }} width={100} />
+                      <Tooltip contentStyle={{ fontSize: 12 }} />
+                      <Legend wrapperStyle={{ fontSize: 12 }} />
+                      <Bar dataKey="score" name={employeeName} radius={[0, 4, 4, 0]} barSize={16}>
+                        {barData.map((entry, i) => (
+                          <Cell key={i} fill={getBarColor(entry.score)} />
+                        ))}
+                      </Bar>
                       {compareEmployeeId && (
-                        <Bar
-                          dataKey="compare"
-                          name="Comparación"
-                          fill="hsl(var(--destructive))"
-                          radius={[0, 4, 4, 0]}
-                        />
+                        <Bar dataKey="compare" name="Comparación"
+                          fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={12} />
                       )}
                     </BarChart>
                   </ResponsiveContainer>
                 )}
               </div>
+
+              {/* Weak points summary */}
+              <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                <h4 className="text-xs sm:text-sm font-semibold flex items-center gap-1.5">
+                  <AlertTriangle className="h-4 w-4 text-warning" />
+                  Puntos más débiles
+                </h4>
+                <div className="flex flex-wrap gap-1.5">
+                  {weakPoints.map(wp => (
+                    <Badge key={wp.name} variant="outline"
+                      className="text-xs border-destructive/50 text-destructive">
+                      {wp.name}: {wp.score}/10
+                    </Badge>
+                  ))}
+                </div>
+              </div>
             </TabsContent>
 
-            {/* Skills editing tab */}
+            {/* ===== Skills editing tab ===== */}
             <TabsContent value="skills" className="space-y-4">
+              {/* Visibility toggle */}
+              {canEdit && (
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="flex items-center gap-2">
+                    {isPublic ? <Globe className="h-4 w-4 text-primary" /> : <Lock className="h-4 w-4 text-muted-foreground" />}
+                    <div>
+                      <p className="text-sm font-medium">Visible para otros</p>
+                      <p className="text-xs text-muted-foreground">Permitir que otros vean esta evaluación</p>
+                    </div>
+                  </div>
+                  <Switch checked={isPublic} onCheckedChange={setIsPublic} />
+                </div>
+              )}
+
               {categories.map(cat => (
                 <div key={cat} className="space-y-2">
-                  <h4 className="font-semibold text-sm flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: CATEGORY_COLORS[cat] || CATEGORY_COLORS.Personalizada }}
-                    />
+                  <h4 className="font-semibold text-xs sm:text-sm flex items-center gap-2">
+                    <div className="w-3 h-3 rounded-full"
+                      style={{ backgroundColor: CATEGORY_COLORS[cat] || CATEGORY_COLORS.Personalizada }} />
                     {cat}
                   </h4>
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     {skills.map((skill, idx) => {
                       if (skill.category !== cat) return null;
                       return (
-                        <div
-                          key={`${skill.name}-${idx}`}
-                          className={`flex items-center gap-3 p-2 rounded-lg border ${skill.hidden ? 'opacity-40' : ''}`}
-                        >
+                        <div key={`${skill.name}-${idx}`}
+                          className={`flex items-center gap-3 p-2 rounded-lg border ${skill.hidden ? 'opacity-40' : ''}`}>
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between">
-                              <span className="text-sm font-medium truncate">{skill.name}</span>
+                              <span className="text-xs sm:text-sm font-medium truncate">{skill.name}</span>
                               <div className="flex items-center gap-1">
-                                <span className="text-sm font-bold w-6 text-center">{skill.score}</span>
+                                <span className="text-xs sm:text-sm font-bold w-6 text-center">{skill.score}</span>
                                 {canEdit && (
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-6 w-6"
-                                    onClick={() => toggleSkillVisibility(idx)}
-                                  >
+                                  <Button variant="ghost" size="icon" className="h-6 w-6"
+                                    onClick={() => toggleSkillVisibility(idx)}>
                                     {skill.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                                   </Button>
                                 )}
                               </div>
                             </div>
                             {canEdit && !skill.hidden && (
-                              <Slider
-                                value={[skill.score]}
-                                onValueChange={([v]) => updateSkillScore(idx, v)}
-                                min={1}
-                                max={10}
-                                step={1}
-                                className="mt-1"
-                              />
+                              <Slider value={[skill.score]} onValueChange={([v]) => updateSkillScore(idx, v)}
+                                min={1} max={10} step={1} className="mt-1" />
                             )}
                           </div>
                         </div>
@@ -463,17 +489,13 @@ export default function PerformanceChart({
                 </div>
               ))}
 
-              {/* Add custom skill */}
               {canEdit && (
                 <div className="flex items-end gap-2 pt-2">
                   <div className="flex-1 space-y-1">
                     <Label className="text-xs">Habilidad personalizada</Label>
-                    <Input
-                      placeholder="Nombre de la habilidad"
-                      value={newSkillName}
+                    <Input placeholder="Nombre de la habilidad" value={newSkillName}
                       onChange={e => setNewSkillName(e.target.value)}
-                      onKeyDown={e => e.key === 'Enter' && addCustomSkill()}
-                    />
+                      onKeyDown={e => e.key === 'Enter' && addCustomSkill()} />
                   </div>
                   <Button size="sm" onClick={addCustomSkill} disabled={!newSkillName.trim()}>
                     <Plus className="h-4 w-4" />
@@ -489,52 +511,109 @@ export default function PerformanceChart({
               )}
             </TabsContent>
 
-            {/* History tab */}
+            {/* ===== History tab ===== */}
             <TabsContent value="history" className="space-y-4">
               {historyData.length > 1 ? (
-                <div className="w-full h-[300px]">
+                <div className="w-full h-[250px] sm:h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={historyData}>
                       <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                      <YAxis domain={[0, 10]} />
-                      <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="promedio"
-                        stroke="hsl(var(--primary))"
-                        strokeWidth={2}
-                        dot={{ r: 4 }}
-                        name="Promedio"
-                      />
+                      <XAxis dataKey="month" tick={{ fontSize: 12 }} />
+                      <YAxis domain={[0, 10]} tick={{ fontSize: 12 }} />
+                      <Tooltip contentStyle={{ fontSize: 12 }} />
+                      <ReferenceLine y={5} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" label={{ value: 'Base', fontSize: 10 }} />
+                      <Line type="monotone" dataKey="promedio" stroke="hsl(var(--primary))"
+                        strokeWidth={2} dot={{ r: 5 }} name="Promedio" />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
               ) : (
                 <div className="py-8 text-center text-muted-foreground">
                   <Activity className="mx-auto h-12 w-12 opacity-50 mb-2" />
-                  <p>Se necesitan al menos 2 meses de evaluaciones para mostrar el historial.</p>
+                  <p className="text-sm">Se necesitan al menos 2 meses para mostrar el historial.</p>
                 </div>
               )}
 
               {history.length > 0 && (
                 <div className="space-y-1">
-                  <h4 className="text-sm font-semibold">Meses evaluados</h4>
+                  <h4 className="text-xs sm:text-sm font-semibold">Meses evaluados</h4>
                   <div className="flex flex-wrap gap-1.5">
                     {history.map(h => (
-                      <Badge
-                        key={h.evaluation_month}
+                      <Badge key={h.evaluation_month}
                         variant={h.evaluation_month === monthKey ? 'default' : 'outline'}
-                        className="cursor-pointer capitalize"
-                        onClick={() => {
-                          setInitialized(false);
-                          setSelectedMonth(new Date(h.evaluation_month));
-                        }}
-                      >
+                        className="cursor-pointer capitalize text-xs"
+                        onClick={() => { setInitialized(false); setSelectedMonth(new Date(h.evaluation_month)); }}>
                         {format(new Date(h.evaluation_month), 'MMM yy', { locale: es })}
                       </Badge>
                     ))}
                   </div>
+                </div>
+              )}
+            </TabsContent>
+
+            {/* ===== Development / Yearly tab ===== */}
+            <TabsContent value="development" className="space-y-4">
+              {yearlySkillData.length > 0 ? (
+                <>
+                  <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold flex items-center gap-1.5">
+                      <TrendingUp className="h-4 w-4 text-primary" />
+                      Desarrollo por habilidad
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      Cambio desde la primera evaluación hasta la más reciente
+                    </p>
+                  </div>
+
+                  <div className="w-full h-[300px] sm:h-[350px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={yearlySkillData} layout="vertical" margin={{ left: 10, right: 20 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" tick={{ fontSize: 12 }}
+                          label={{ value: 'Cambio', position: 'insideBottomRight', fontSize: 11, offset: -5 }} />
+                        <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={100} />
+                        <Tooltip contentStyle={{ fontSize: 12 }}
+                          formatter={(v: number) => [`${v > 0 ? '+' : ''}${v}`, 'Cambio']} />
+                        <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" />
+                        <Bar dataKey="change" radius={[0, 4, 4, 0]} barSize={14}>
+                          {yearlySkillData.map((entry, i) => (
+                            <Cell key={i} fill={entry.change >= 0 ? 'hsl(var(--primary))' : 'hsl(var(--destructive))'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  {/* Weak areas highlight */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs sm:text-sm font-semibold flex items-center gap-1.5">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      Áreas que necesitan atención
+                    </h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {yearlySkillData.filter(s => s.change < 0 || s.latest <= 4).slice(0, 4).map(s => (
+                        <div key={s.name} className="flex items-center justify-between rounded-lg border border-destructive/30 bg-destructive/5 p-2.5">
+                          <span className="text-xs sm:text-sm font-medium">{s.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{s.first}→{s.latest}</span>
+                            <Badge variant={s.change >= 0 ? 'secondary' : 'destructive'} className="text-xs">
+                              {s.change > 0 ? '+' : ''}{s.change}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                      {yearlySkillData.filter(s => s.change < 0 || s.latest <= 4).length === 0 && (
+                        <p className="text-xs text-muted-foreground col-span-2">
+                          ¡Excelente! No hay áreas críticas detectadas.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="py-8 text-center text-muted-foreground">
+                  <TrendingUp className="mx-auto h-12 w-12 opacity-50 mb-2" />
+                  <p className="text-sm">Se necesitan al menos 2 evaluaciones para mostrar el desarrollo.</p>
                 </div>
               )}
             </TabsContent>
