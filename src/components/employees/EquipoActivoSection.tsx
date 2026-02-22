@@ -45,7 +45,11 @@ const ElapsedBadge = ({ aperturaAt }: { aperturaAt: string }) => {
   );
 };
 
-const EquipoActivoSection = () => {
+interface EquipoActivoProps {
+  onlyActive?: boolean;
+}
+
+const EquipoActivoSection = ({ onlyActive = false }: EquipoActivoProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const businessId = profile?.business_id;
@@ -152,7 +156,10 @@ const EquipoActivoSection = () => {
   const initials = (name: string) => name.split(' ').map(w => w[0]).slice(0, 2).join('').toUpperCase();
 
   const activos = members.filter(m => m.jornada);
-  const inactivos = members.filter(m => !m.jornada);
+  const inactivos = onlyActive ? [] : members.filter(m => !m.jornada);
+  const displayMembers = [...activos, ...inactivos];
+
+  if (onlyActive && activos.length === 0 && !isLoading) return null;
 
   if (isLoading) {
     return (
@@ -177,11 +184,13 @@ const EquipoActivoSection = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {members.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No hay empleados registrados</p>
+          {displayMembers.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              {onlyActive ? 'Ningún empleado activo' : 'No hay empleados registrados'}
+            </p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-              {[...activos, ...inactivos].map(m => (
+              {displayMembers.map(m => (
                 <div
                   key={m.id}
                   className={`rounded-lg border p-3 space-y-2 transition-colors ${
