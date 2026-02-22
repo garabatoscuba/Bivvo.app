@@ -43,11 +43,11 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false, disa
                 <h4 className="font-medium text-xs leading-snug flex-1 break-words">{product.name}</h4>
                 {isLowStock && <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0 mt-0.5" />}
               </div>
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-bold text-primary">${Number(product.sale_price).toFixed(2)}</p>
+              <div className="flex items-center justify-between gap-1">
+                <p className="text-sm font-bold text-primary truncate">${Number(product.sale_price).toFixed(2)}</p>
                 <Badge
                   variant={isOutOfStock ? "secondary" : "outline"}
-                  className="text-[10px] px-1.5 py-0 h-5 flex-shrink-0"
+                  className="text-[10px] px-1.5 py-0 h-5 flex-shrink-0 ml-1"
                 >
                   {stock} disp.
                 </Badge>
