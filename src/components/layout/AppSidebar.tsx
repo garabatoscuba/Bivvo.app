@@ -21,7 +21,7 @@ import {
   LayoutDashboard, Package, ShoppingCart, Receipt, Users, Settings,
   Building2, Shield, LogOut, CreditCard, Download, Store,
   ChevronDown, Dumbbell, Check, Settings2, Sun, Moon, ShoppingBag,
-  Plus, MapPin, Pencil, Wrench, DollarSign,
+  Plus, MapPin, Pencil, Wrench, DollarSign, Briefcase,
 } from 'lucide-react';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,22 @@ const AppSidebar = () => {
   const [branchPhone, setBranchPhone] = useState('');
 
   const activeBranch = branches.find(b => b.id === profile?.branch_id);
+
+  // Check if user has an employee record (to show "Mi Empleo" in sidebar)
+  const { data: hasEmployeeRecord = false } = useQuery({
+    queryKey: ['has-employee-record', profile?.email],
+    queryFn: async () => {
+      if (!profile?.email) return false;
+      const { data, error } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('email', profile.email.toLowerCase())
+        .limit(1)
+        .maybeSingle();
+      return !!data && !error;
+    },
+    enabled: !!profile?.email,
+  });
 
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
@@ -237,6 +253,7 @@ const AppSidebar = () => {
     { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
     { title: 'Pedidos', url: '/orders', icon: Receipt },
     { title: 'Empleados', url: '/employees', icon: Users },
+    ...(hasEmployeeRecord ? [{ title: 'Mi Empleo', url: '/mi-empleo', icon: Briefcase }] : []),
     { title: 'Configuración', url: '/settings', icon: Settings },
     { title: 'Planes', url: '/plans', icon: CreditCard },
   ];
