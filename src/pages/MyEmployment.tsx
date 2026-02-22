@@ -539,37 +539,30 @@ const MyEmployment = () => {
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
               ) : mySkills.length > 0 ? (
-                <Tabs defaultValue="chart" className="w-full">
-                  <TabsList className="grid w-full grid-cols-4 text-[10px] sm:text-xs">
-                    <TabsTrigger value="chart">Gráfica</TabsTrigger>
-                    <TabsTrigger value="skills">Evaluaciones</TabsTrigger>
-                    <TabsTrigger value="history">Historial</TabsTrigger>
-                    <TabsTrigger value="development">Desarrollo</TabsTrigger>
+              <Tabs defaultValue="chart" className="w-full">
+                  <TabsList className="w-full flex overflow-x-auto scrollbar-none gap-1 p-1">
+                    <TabsTrigger value="chart" className="text-xs flex-shrink-0">Gráfica</TabsTrigger>
+                    <TabsTrigger value="skills" className="text-xs flex-shrink-0">Evaluaciones</TabsTrigger>
+                    <TabsTrigger value="history" className="text-xs flex-shrink-0">Historial</TabsTrigger>
+                    <TabsTrigger value="development" className="text-xs flex-shrink-0">Desarrollo</TabsTrigger>
                   </TabsList>
 
                   {/* Chart tab */}
                   <TabsContent value="chart" className="space-y-3 mt-3">
-                    <div className="flex items-center justify-between flex-wrap gap-2">
-                      <div className="flex items-center gap-1.5">
-                        <Button variant={chartType === 'radar' ? 'default' : 'outline'} size="sm" className="h-7 text-xs"
-                          onClick={() => setChartType('radar')}>
-                          <Activity className="h-3.5 w-3.5 mr-1" /> Radar
-                        </Button>
-                        <Button variant={chartType === 'bar' ? 'default' : 'outline'} size="sm" className="h-7 text-xs"
-                          onClick={() => setChartType('bar')}>
-                          <BarChart3 className="h-3.5 w-3.5 mr-1" /> Barras
-                        </Button>
-                      </div>
-                      <Badge variant="secondary" className="text-[10px]">Promedio: {myAvg.toFixed(1)}/10</Badge>
-                    </div>
-
-                    {/* Comparison selector */}
-                    <div className="flex items-center gap-2">
-                      <Users className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                    <div className="flex items-center flex-wrap gap-1.5">
+                      <Button variant={chartType === 'radar' ? 'default' : 'outline'} size="sm" className="h-7 text-xs"
+                        onClick={() => setChartType('radar')}>
+                        <Activity className="h-3.5 w-3.5 mr-1" /> Radar
+                      </Button>
+                      <Button variant={chartType === 'bar' ? 'default' : 'outline'} size="sm" className="h-7 text-xs"
+                        onClick={() => setChartType('bar')}>
+                        <BarChart3 className="h-3.5 w-3.5 mr-1" /> Barras
+                      </Button>
                       <Select value={compareEmployeeId || 'none'}
                         onValueChange={(v) => setCompareEmployeeId(v === 'none' ? null : v)}>
-                        <SelectTrigger className="w-full sm:w-[200px] text-xs h-8">
-                          <SelectValue placeholder="Comparar con..." />
+                        <SelectTrigger className="w-[140px] text-xs h-7">
+                          <Users className="h-3 w-3 mr-1 flex-shrink-0" />
+                          <SelectValue placeholder="Comparar" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="none">Sin comparación</SelectItem>
@@ -578,15 +571,25 @@ const MyEmployment = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                      <Badge variant="secondary" className="text-[10px] ml-auto">Promedio: {myAvg.toFixed(1)}/10</Badge>
                     </div>
 
-                    <div className="w-full h-[250px] sm:h-[320px]">
+                    <div className="w-full h-[280px] sm:h-[340px]">
                       {chartType === 'radar' ? (
                         <ResponsiveContainer width="100%" height="100%">
-                          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="65%">
+                          <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="60%">
                             <PolarGrid />
-                            <PolarAngleAxis dataKey="skill" tick={{ fontSize: 10 }} />
-                            <PolarRadiusAxis angle={30} domain={[0, 10]} tick={{ fontSize: 9 }} />
+                            <PolarAngleAxis dataKey="skill" tick={({ x, y, payload, ...rest }) => {
+                              const words = (payload.value as string).split(' ');
+                              return (
+                                <text {...rest} x={x} y={y} textAnchor="middle" className="fill-muted-foreground" style={{ fontSize: 10 }}>
+                                  {words.map((w, i) => (
+                                    <tspan key={i} x={x} dy={i === 0 ? 0 : 12}>{w}</tspan>
+                                  ))}
+                                </text>
+                              );
+                            }} />
+                            <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} />
                             <Radar name={myEmployeeRecord.full_name} dataKey="score"
                               stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
                             {compareEmployeeId && (
@@ -599,10 +602,11 @@ const MyEmployment = () => {
                         </ResponsiveContainer>
                       ) : (
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 10 }}>
+                          <BarChart data={barData} layout="vertical" margin={{ left: 5, right: 10 }}
+                            barCategoryGap="20%">
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                             <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 11 }} />
-                            <YAxis type="category" dataKey="skill" tick={{ fontSize: 10 }} width={90} />
+                            <YAxis type="category" dataKey="skill" tick={{ fontSize: 11 }} width={110} />
                             <Tooltip contentStyle={{ fontSize: 11 }} />
                             <Legend wrapperStyle={{ fontSize: 11 }} />
                             <Bar dataKey="score" name={myEmployeeRecord.full_name} radius={[0, 4, 4, 0]} barSize={14}>
@@ -711,12 +715,13 @@ const MyEmployment = () => {
                           </h4>
                           <p className="text-[10px] text-muted-foreground">Cambio desde la primera evaluación hasta la más reciente</p>
                         </div>
-                        <div className="w-full h-[260px] sm:h-[320px]">
+                        <div className="w-full h-[280px] sm:h-[340px]">
                           <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={yearlySkillData} layout="vertical" margin={{ left: 10, right: 20 }}>
+                            <BarChart data={yearlySkillData} layout="vertical" margin={{ left: 5, right: 20 }}
+                              barCategoryGap="20%">
                               <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                               <XAxis type="number" tick={{ fontSize: 11 }} />
-                              <YAxis type="category" dataKey="name" tick={{ fontSize: 10 }} width={90} />
+                              <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={110} />
                               <Tooltip contentStyle={{ fontSize: 11 }} formatter={(v: number) => [`${v > 0 ? '+' : ''}${v}`, 'Cambio']} />
                               <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" />
                               <Bar dataKey="change" radius={[0, 4, 4, 0]} barSize={12}>
