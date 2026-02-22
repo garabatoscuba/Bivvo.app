@@ -7,13 +7,13 @@ interface Props {
 
 const StorefrontSearch = ({ value, onChange }: Props) => (
   <div className="relative">
-    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40" />
+    <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/30" />
     <input
       type="text"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder="Buscar productos..."
-      className="w-full h-11 pl-10 pr-10 rounded-full border border-border bg-card text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-ring/30 focus:border-transparent transition-all"
+      className="w-full h-10 pl-10 pr-10 rounded-full bg-muted/30 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:bg-muted/50 transition-all"
     />
     {value && (
       <button

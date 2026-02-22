@@ -35,7 +35,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
 
   const tabs: { key: StorefrontTab; label: string }[] = [
     { key: 'home', label: 'Home' },
-    { key: 'catalog', label: 'Catálogo' },
+    { key: 'catalog', label: 'Productos' },
     { key: 'contact', label: 'Contacto' },
   ];
 

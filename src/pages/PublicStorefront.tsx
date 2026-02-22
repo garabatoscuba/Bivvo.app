@@ -181,7 +181,7 @@ const PublicStorefront = () => {
             />
           )}
           {activeTab === 'catalog' && (
-            <StorefrontCatalogView products={data.products} accent={accent} />
+            <StorefrontCatalogView products={data.products} accent={accent} branchId={data.branch.id} />
           )}
           {activeTab === 'contact' && (
             <StorefrontContact data={data} accent={accent} />

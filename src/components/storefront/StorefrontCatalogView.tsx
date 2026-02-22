@@ -2,13 +2,15 @@ import { useState } from 'react';
 import type { StorefrontProduct } from '@/pages/PublicStorefront';
 import StorefrontCatalog from '@/components/storefront/StorefrontCatalog';
 import StorefrontSearch from '@/components/storefront/StorefrontSearch';
+import StorefrontReviewForm from '@/components/storefront/StorefrontReviewForm';
 
 interface Props {
   products: StorefrontProduct[];
   accent: string;
+  branchId?: string;
 }
 
-const StorefrontCatalogView = ({ products, accent }: Props) => {
+const StorefrontCatalogView = ({ products, accent, branchId }: Props) => {
   const [search, setSearch] = useState('');
 
   const filteredProducts = search.trim()
@@ -26,13 +28,20 @@ const StorefrontCatalogView = ({ products, accent }: Props) => {
           className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground text-center"
           style={{ fontFamily: 'var(--font-heading)' }}
         >
-          Catálogo
+          Productos
         </h1>
         <div className="w-full max-w-sm">
           <StorefrontSearch value={search} onChange={setSearch} />
         </div>
       </div>
       <StorefrontCatalog products={filteredProducts} accent={accent} />
+
+      {/* Review section */}
+      {branchId && (
+        <div className="mt-16 pt-10 border-t border-border">
+          <StorefrontReviewForm branchId={branchId} accent={accent} />
+        </div>
+      )}
     </section>
   );
 };
