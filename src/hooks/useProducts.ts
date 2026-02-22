@@ -6,22 +6,23 @@ import { toast } from '@/hooks/use-toast';
 import { getAllFromStore, putManyInStore } from '@/lib/offlineDb';
 import type { Product, Category } from '@/types/database';
 
-export const useProducts = () => {
+export const useProducts = (overrideBusinessId?: string) => {
   const { profile } = useAuth();
   const { isOnline } = useOffline();
   const queryClient = useQueryClient();
+  const businessId = overrideBusinessId || profile?.business_id;
 
   const productsQuery = useQuery({
-    queryKey: ['products', profile?.business_id],
+    queryKey: ['products', businessId],
     queryFn: async () => {
-      if (!profile?.business_id) return [];
+      if (!businessId) return [];
 
       if (isOnline) {
         try {
           const { data, error } = await supabase
             .from('products')
             .select(`*, category:categories(*)`)
-            .eq('business_id', profile.business_id)
+            .eq('business_id', businessId)
             .order('name');
 
           if (error) throw error;
@@ -35,10 +36,10 @@ export const useProducts = () => {
       }
 
       // Offline fallback
-      const cached = await getAllFromStore<Product & { category: Category | null }>('products', 'by-business', profile.business_id);
+      const cached = await getAllFromStore<Product & { category: Category | null }>('products', 'by-business', businessId);
       return cached.sort((a, b) => a.name.localeCompare(b.name));
     },
-    enabled: !!profile?.business_id,
+    enabled: !!businessId,
   });
 
   const createProduct = useMutation({
@@ -110,22 +111,23 @@ export const useProducts = () => {
   };
 };
 
-export const useCategories = () => {
+export const useCategories = (overrideBusinessId?: string) => {
   const { profile } = useAuth();
   const { isOnline } = useOffline();
   const queryClient = useQueryClient();
+  const businessId = overrideBusinessId || profile?.business_id;
 
   const categoriesQuery = useQuery({
-    queryKey: ['categories', profile?.business_id],
+    queryKey: ['categories', businessId],
     queryFn: async () => {
-      if (!profile?.business_id) return [];
+      if (!businessId) return [];
 
       if (isOnline) {
         try {
           const { data, error } = await supabase
             .from('categories')
             .select('*')
-            .eq('business_id', profile.business_id)
+            .eq('business_id', businessId)
             .order('name');
 
           if (error) throw error;
@@ -136,10 +138,10 @@ export const useCategories = () => {
         }
       }
 
-      const cached = await getAllFromStore<Category>('categories', 'by-business', profile.business_id);
+      const cached = await getAllFromStore<Category>('categories', 'by-business', businessId);
       return cached.sort((a, b) => a.name.localeCompare(b.name));
     },
-    enabled: !!profile?.business_id,
+    enabled: !!businessId,
   });
 
   const createCategory = useMutation({

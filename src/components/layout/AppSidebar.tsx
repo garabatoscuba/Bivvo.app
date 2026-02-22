@@ -322,16 +322,16 @@ const AppSidebar = () => {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/pos')}>
-                    <Link to="/pos">
+                  <SidebarMenuButton asChild isActive={location.pathname === '/pos' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                    <Link to="/pos?ctx=emp">
                       <ShoppingCart className="h-4 w-4" />
                       <span className="text-sm">Punto de Venta</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/sales')}>
-                    <Link to="/sales">
+                  <SidebarMenuButton asChild isActive={location.pathname === '/sales' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                    <Link to="/sales?ctx=emp">
                       <Receipt className="h-4 w-4" />
                       <span className="text-sm">Ventas</span>
                     </Link>

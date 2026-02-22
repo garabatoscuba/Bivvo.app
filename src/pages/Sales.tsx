@@ -1,10 +1,13 @@
 import { useState, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSales } from '@/hooks/useSales';
+import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -47,7 +50,25 @@ const statusColors: Record<SaleStatus, string> = {
 
 const Sales = () => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
-  const branchId = profile?.branch_id;
+  const [searchParams] = useSearchParams();
+  const isEmployeeContext = searchParams.get('ctx') === 'emp';
+
+  // Fetch employee record for employee context
+  const { data: employeeRecord } = useQuery({
+    queryKey: ['employee-record-sales', profile?.email],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('employees')
+        .select('id, business_id, branch_id')
+        .eq('email', profile!.email)
+        .maybeSingle();
+      return data;
+    },
+    enabled: isEmployeeContext && !!profile?.email,
+  });
+
+  const effectiveBranchId = isEmployeeContext && employeeRecord ? (employeeRecord.branch_id || profile?.branch_id) : profile?.branch_id;
+  const branchId = effectiveBranchId;
   const { sales, isLoadingSales, useSaleItems, cancelSale, registerPayment } = useSales(branchId);
 
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
