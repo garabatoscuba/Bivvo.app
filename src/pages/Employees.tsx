@@ -287,7 +287,8 @@ const Employees = () => {
       sonnerToast.error('Este empleado no tiene cuenta vinculada');
       return;
     }
-    const branchId = prof.branch_id || profile?.branch_id;
+    // Use employee's assigned branch, then current user's branch as fallback
+    const branchId = emp.branch_id || profile?.branch_id;
     if (!branchId) {
       sonnerToast.error('No se puede determinar la sucursal');
       return;
