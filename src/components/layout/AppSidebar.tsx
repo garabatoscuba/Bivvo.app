@@ -253,7 +253,7 @@ const AppSidebar = () => {
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
     ...(isVisionHabana ? [{ title: 'Servicios', url: '/services', icon: Wrench }] : []),
     { title: 'Ventas', url: '/sales', icon: Receipt },
-    ...(isVisionHabana ? [{ title: 'Cobros', url: '/cobros', icon: DollarSign }] : []),
+    ...(isVisionHabana ? [{ title: 'Cobro', url: '/cobros', icon: DollarSign }] : []),
     { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
     { title: 'Pedidos', url: '/orders', icon: Receipt },
     { title: 'Empleados', url: '/employees', icon: Users },
@@ -351,7 +351,7 @@ const AppSidebar = () => {
                       <SidebarMenuButton asChild isActive={isActive('/cobros')}>
                         <Link to="/cobros">
                           <DollarSign className="h-4 w-4" />
-                          <span className="text-sm">Cobros</span>
+                          <span className="text-sm">Cobro</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

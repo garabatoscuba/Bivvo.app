@@ -1,292 +1,104 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Loader2, DollarSign, TrendingUp, Calendar, Calculator } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+import { Loader2 } from 'lucide-react';
+import SalaryConfigTab from '@/components/cobro/SalaryConfigTab';
+import CommissionsTab from '@/components/cobro/CommissionsTab';
+import EmployeeSalaryView from '@/components/cobro/EmployeeSalaryView';
+import CobrosResumen from '@/components/cobro/CobrosResumen';
+import CashCalculator from '@/components/cobro/CashCalculator';
 
-const BILL_DENOMINATIONS = [1, 3, 5, 10, 20, 50, 100, 200, 500, 1000];
-
-const CashCalculator = () => {
-  const [bills, setBills] = useState<Record<number, number>>(
-    Object.fromEntries(BILL_DENOMINATIONS.map(d => [d, 0]))
-  );
-  const [transfers, setTransfers] = useState(0);
-
-  const handleBillChange = (denom: number, qty: number) => {
-    setBills(prev => ({ ...prev, [denom]: isNaN(qty) ? 0 : qty }));
-  };
-
-  const totalCash = BILL_DENOMINATIONS.reduce((sum, d) => sum + d * (bills[d] || 0), 0);
-  const grandTotal = totalCash + transfers;
-
-  return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-base flex items-center gap-2">
-          <Calculator className="h-4 w-4" />
-          Calculadora de Efectivo
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="grid grid-cols-3 gap-1 text-xs font-medium text-muted-foreground border-b pb-1.5">
-          <span>Billete</span>
-          <span className="text-center">Cantidad</span>
-          <span className="text-right">Total</span>
-        </div>
-        {BILL_DENOMINATIONS.map(denom => (
-          <div key={denom} className="grid grid-cols-3 gap-1 items-center">
-            <span className="text-sm font-medium">${denom}</span>
-            <Input
-              type="number"
-              min={0}
-              value={bills[denom] || ''}
-              onChange={e => handleBillChange(denom, parseInt(e.target.value))}
-              className="h-8 text-center text-sm"
-              placeholder="0"
-            />
-            <span className="text-sm font-bold text-right">${(denom * (bills[denom] || 0)).toLocaleString()}</span>
-          </div>
-        ))}
-        <div className="border-t pt-2 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold">Total Efectivo</span>
-            <span className="text-lg font-bold text-primary">${totalCash.toLocaleString()}</span>
-          </div>
-          <div className="grid grid-cols-3 gap-1 items-center">
-            <span className="text-sm font-medium">Transferencias</span>
-            <Input
-              type="number"
-              min={0}
-              value={transfers || ''}
-              onChange={e => setTransfers(isNaN(parseInt(e.target.value)) ? 0 : parseInt(e.target.value))}
-              className="h-8 text-center text-sm"
-              placeholder="0"
-            />
-            <span className="text-sm font-bold text-right">${transfers.toLocaleString()}</span>
-          </div>
-          <div className="flex items-center justify-between border-t pt-2">
-            <span className="text-sm font-bold">Efectivo + Transferencias</span>
-            <span className="text-xl font-bold text-primary">${grandTotal.toLocaleString()}</span>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+const VISION_HABANA_BIZ_ID = '03ab1b9d-c0ff-412c-9b78-c86d320dc41c';
 
 const Cobros = () => {
-  const { profile } = useAuth();
-  const businessId = profile?.business_id;
-  const branchId = profile?.branch_id;
+  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const isAdminRole = isOwner || isManager || isSuperAdmin;
 
-  const now = new Date();
-  const [filterMonth, setFilterMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
-
-  // Fetch all entries for the branch
-  const { data: entries = [], isLoading } = useQuery({
-    queryKey: ['service-entries-cobros', businessId, branchId],
+  // Check if user is an employee of Vision Habana
+  const { data: employeeRecord, isLoading: loadingEmployee } = useQuery({
+    queryKey: ['employee-record-cobros', profile?.email],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('service_entries')
-        .select('*, service_categories(name)')
-        .eq('business_id', businessId!)
-        .eq('branch_id', branchId!)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
+      const { data } = await supabase
+        .from('employees')
+        .select('id, business_id, branch_id')
+        .eq('email', profile!.email)
+        .maybeSingle();
       return data;
     },
-    enabled: !!businessId && !!branchId,
+    enabled: !!profile?.email,
   });
 
-  // Filter by month
-  const filtered = entries.filter(e => {
-    const d = new Date(e.created_at);
-    const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    return m === filterMonth;
-  });
+  const isVisionHabanaEmployee = employeeRecord?.business_id === VISION_HABANA_BIZ_ID;
+  const isVisionHabanaOwner = profile?.business_id === VISION_HABANA_BIZ_ID && isAdminRole;
 
-  // Group by category
-  const byCat = filtered.reduce<Record<string, { name: string; total: number; count: number }>>((acc, e) => {
-    const catName = (e as any).service_categories?.name || 'Sin categoría';
-    if (!acc[catName]) acc[catName] = { name: catName, total: 0, count: 0 };
-    acc[catName].total += Number(e.amount);
-    acc[catName].count += 1;
-    return acc;
-  }, {});
+  // Determine which view to show
+  const showAdminView = isVisionHabanaOwner;
+  const showEmployeeView = isVisionHabanaEmployee && !showAdminView;
 
-  const categoryTotals = Object.values(byCat).sort((a, b) => b.total - a.total);
-  const grandTotal = filtered.reduce((s, e) => s + Number(e.amount), 0);
-  const totalCount = filtered.length;
-
-  // By payment type
-  const byPayment = filtered.reduce<Record<string, number>>((acc, e) => {
-    acc[e.payment_type] = (acc[e.payment_type] || 0) + Number(e.amount);
-    return acc;
-  }, {});
-
-  const paymentLabels: Record<string, string> = {
-    cash: 'Efectivo',
-    transfer: 'Transferencia',
-    card: 'Tarjeta',
-  };
-
-  // Generate month options
-  const months = [];
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const label = d.toLocaleString('es', { month: 'long', year: 'numeric' });
-    months.push({ val, label: label.charAt(0).toUpperCase() + label.slice(1) });
+  if (loadingEmployee) {
+    return (
+      <AppLayout>
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
+      </AppLayout>
+    );
   }
 
+  // Employee view
+  if (showEmployeeView) {
+    return (
+      <AppLayout>
+        <Tabs defaultValue="salario" className="space-y-4">
+          <TabsList className="w-full grid grid-cols-2">
+            <TabsTrigger value="salario">Mi Cobro</TabsTrigger>
+            <TabsTrigger value="calculadora">Calculadora</TabsTrigger>
+          </TabsList>
+          <TabsContent value="salario">
+            <EmployeeSalaryView
+              employeeBusinessId={employeeRecord!.business_id}
+              employeeBranchId={employeeRecord?.branch_id ?? profile?.branch_id ?? null}
+            />
+          </TabsContent>
+          <TabsContent value="calculadora">
+            <CashCalculator />
+          </TabsContent>
+        </Tabs>
+      </AppLayout>
+    );
+  }
+
+  // Admin view
   return (
     <AppLayout>
       <div className="space-y-4 md:space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h1 className="text-xl md:text-2xl font-bold">Cobros de Servicios</h1>
-            <p className="text-sm text-muted-foreground">Resumen de ingresos por servicios</p>
-          </div>
-          <Select value={filterMonth} onValueChange={setFilterMonth}>
-            <SelectTrigger className="w-44">
-              <Calendar className="h-4 w-4 mr-1" />
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {months.map(m => (
-                <SelectItem key={m.val} value={m.val}>{m.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div>
+          <h1 className="text-xl md:text-2xl font-bold">Cobro</h1>
+          <p className="text-sm text-muted-foreground">Gestión de salarios, comisiones y cobros</p>
         </div>
 
-        {isLoading ? (
-          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
-        ) : (
-          <Tabs defaultValue="resumen" className="space-y-4">
-            <TabsList className="w-full grid grid-cols-2">
-              <TabsTrigger value="resumen">Resumen</TabsTrigger>
-              <TabsTrigger value="calculadora">Calculadora</TabsTrigger>
-            </TabsList>
+        <Tabs defaultValue="resumen" className="space-y-4">
+          <TabsList className="w-full grid grid-cols-4">
+            <TabsTrigger value="resumen">Resumen</TabsTrigger>
+            <TabsTrigger value="config">Salarios</TabsTrigger>
+            <TabsTrigger value="comisiones">Comisiones</TabsTrigger>
+            <TabsTrigger value="calculadora">Calculadora</TabsTrigger>
+          </TabsList>
 
-            <TabsContent value="resumen" className="space-y-4">
-              {/* Summary cards */}
-              <div className="grid grid-cols-2 gap-3">
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <DollarSign className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">Total</span>
-                    </div>
-                    <p className="text-xl md:text-2xl font-bold">${grandTotal.toFixed(2)}</p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-2 mb-1">
-                      <TrendingUp className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-muted-foreground">Servicios</span>
-                    </div>
-                    <p className="text-xl md:text-2xl font-bold">{totalCount}</p>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* By payment type */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Por Método de Pago</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {Object.keys(byPayment).length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-2">Sin datos</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {Object.entries(byPayment).map(([type, amount]) => (
-                        <div key={type} className="flex items-center justify-between">
-                          <span className="text-sm">{paymentLabels[type] || type}</span>
-                          <span className="text-sm font-bold">${amount.toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* By category */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Por Categoría</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {categoryTotals.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-2">Sin datos este mes</p>
-                  ) : (
-                    <div className="space-y-3">
-                      {categoryTotals.map(cat => (
-                        <div key={cat.name} className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{cat.name}</span>
-                            <Badge variant="secondary" className="text-[10px]">{cat.count}</Badge>
-                          </div>
-                          <span className="text-sm font-bold">${cat.total.toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Detail list */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Detalle</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {filtered.length === 0 ? (
-                    <p className="text-sm text-muted-foreground text-center py-4">Sin cobros este mes</p>
-                  ) : (
-                    <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-                      {filtered.map(entry => (
-                        <div key={entry.id} className="flex items-center justify-between rounded-lg border p-2.5">
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              <Badge variant="secondary" className="text-[10px]">
-                                {(entry as any).service_categories?.name}
-                              </Badge>
-                              <Badge variant="outline" className="text-[10px]">
-                                {paymentLabels[entry.payment_type] || entry.payment_type}
-                              </Badge>
-                            </div>
-                            {entry.description && (
-                              <p className="text-xs text-muted-foreground mt-0.5 truncate">{entry.description}</p>
-                            )}
-                            <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                              {new Date(entry.created_at).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                          <span className="text-sm font-bold shrink-0 ml-2">${Number(entry.amount).toFixed(2)}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </TabsContent>
-
-            <TabsContent value="calculadora" className="space-y-4">
-              <CashCalculator />
-            </TabsContent>
-          </Tabs>
-        )}
+          <TabsContent value="resumen">
+            <CobrosResumen />
+          </TabsContent>
+          <TabsContent value="config">
+            <SalaryConfigTab businessId={profile?.business_id || ''} />
+          </TabsContent>
+          <TabsContent value="comisiones">
+            <CommissionsTab businessId={profile?.business_id || ''} />
+          </TabsContent>
+          <TabsContent value="calculadora">
+            <CashCalculator />
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );
