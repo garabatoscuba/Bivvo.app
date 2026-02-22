@@ -30,8 +30,8 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false, disa
         onClick={disabled ? undefined : onClick}
       >
         <div className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
+          <div className="flex items-center gap-4">
+            <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg bg-muted">
               {product.image_url ? (
                 <img src={product.image_url} alt={product.name} className="h-full w-full rounded-lg object-cover" />
               ) : (
@@ -39,10 +39,10 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false, disa
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <h4 className="font-medium text-xs leading-snug break-words mb-1">{product.name}</h4>
-              <div className="flex items-center gap-2 mt-1 flex-wrap">
+              <h4 className="font-medium text-sm leading-snug break-words">{product.name}</h4>
+              <div className="flex items-center gap-3 mt-1.5">
                 <p className="text-sm font-bold text-primary">${Number(product.sale_price).toFixed(2)}</p>
-                <Badge variant={isOutOfStock ? "secondary" : "outline"} className="text-[10px] px-1.5 py-0 h-5 flex-shrink-0">
+                <Badge variant={isOutOfStock ? "secondary" : "outline"} className="text-[10px] px-2 py-0.5 h-auto flex-shrink-0">
                   {stock} disp.
                 </Badge>
                 {isLowStock && <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />}
