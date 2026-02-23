@@ -742,6 +742,67 @@ export type Database = {
           },
         ]
       }
+      employee_salary_assignments: {
+        Row: {
+          base_salary: number
+          business_id: string
+          config_override: Json
+          created_at: string
+          employee_id: string
+          id: string
+          is_active: boolean
+          modality_id: string
+          pay_frequency: Database["public"]["Enums"]["pay_frequency"]
+          updated_at: string
+        }
+        Insert: {
+          base_salary?: number
+          business_id: string
+          config_override?: Json
+          created_at?: string
+          employee_id: string
+          id?: string
+          is_active?: boolean
+          modality_id: string
+          pay_frequency?: Database["public"]["Enums"]["pay_frequency"]
+          updated_at?: string
+        }
+        Update: {
+          base_salary?: number
+          business_id?: string
+          config_override?: Json
+          created_at?: string
+          employee_id?: string
+          id?: string
+          is_active?: boolean
+          modality_id?: string
+          pay_frequency?: Database["public"]["Enums"]["pay_frequency"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_salary_assignments_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_salary_assignments_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: true
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_salary_assignments_modality_id_fkey"
+            columns: ["modality_id"]
+            isOneToOne: false
+            referencedRelation: "salary_modalities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           address: string | null
@@ -1299,6 +1360,47 @@ export type Database = {
           },
         ]
       }
+      salary_modalities: {
+        Row: {
+          business_id: string
+          config: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          modality_type: Database["public"]["Enums"]["salary_modality_type"]
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          config?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          modality_type: Database["public"]["Enums"]["salary_modality_type"]
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          config?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          modality_type?: Database["public"]["Enums"]["salary_modality_type"]
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salary_modalities_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           cost_price: number
@@ -1651,8 +1753,18 @@ export type Database = {
         | "loss"
         | "adjustment"
         | "return"
+      pay_frequency: "daily" | "weekly" | "biweekly" | "monthly"
       payment_type: "cash" | "credit" | "card" | "transfer"
       product_status: "for_sale" | "warehouse" | "discontinued"
+      salary_modality_type:
+        | "fixed"
+        | "fixed_ladder"
+        | "fixed_plus_sales_percent"
+        | "sales_percent_only"
+        | "profit_percent"
+        | "fixed_plus_goal_bonus"
+        | "hourly"
+        | "custom_mixed"
       sale_status: "completed" | "pending" | "cancelled"
       subscription_status: "pending" | "active" | "suspended" | "cancelled"
     }
@@ -1799,8 +1911,19 @@ export const Constants = {
         "adjustment",
         "return",
       ],
+      pay_frequency: ["daily", "weekly", "biweekly", "monthly"],
       payment_type: ["cash", "credit", "card", "transfer"],
       product_status: ["for_sale", "warehouse", "discontinued"],
+      salary_modality_type: [
+        "fixed",
+        "fixed_ladder",
+        "fixed_plus_sales_percent",
+        "sales_percent_only",
+        "profit_percent",
+        "fixed_plus_goal_bonus",
+        "hourly",
+        "custom_mixed",
+      ],
       sale_status: ["completed", "pending", "cancelled"],
       subscription_status: ["pending", "active", "suspended", "cancelled"],
     },

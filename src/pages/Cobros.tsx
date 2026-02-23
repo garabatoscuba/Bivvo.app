@@ -5,8 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
-import SalaryConfigTab from '@/components/cobro/SalaryConfigTab';
-import CommissionsTab from '@/components/cobro/CommissionsTab';
 import EmployeeSalaryView from '@/components/cobro/EmployeeSalaryView';
 import CobrosResumen from '@/components/cobro/CobrosResumen';
 import AdminReportesTab from '@/components/cobro/AdminReportesTab';
@@ -52,16 +50,14 @@ const Cobros = () => {
       <AppLayout>
         <div className="space-y-4 md:space-y-6">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold">Cobro</h1>
-            <p className="text-sm text-muted-foreground">Gestión de salarios, comisiones y cobros</p>
+            <h1 className="text-xl md:text-2xl font-bold">Reportes</h1>
+            <p className="text-sm text-muted-foreground">Reportes diarios y resumen de cobros</p>
           </div>
 
           <Tabs defaultValue="mi-cobro" className="space-y-4">
-            <TabsList className="w-full grid grid-cols-4">
+            <TabsList className="w-full grid grid-cols-2">
               <TabsTrigger value="mi-cobro">Mi Cobro</TabsTrigger>
               <TabsTrigger value="reportes">Reportes</TabsTrigger>
-              <TabsTrigger value="config">Salarios</TabsTrigger>
-              <TabsTrigger value="comisiones">Comisiones</TabsTrigger>
             </TabsList>
 
             <TabsContent value="mi-cobro">
@@ -72,12 +68,6 @@ const Cobros = () => {
             </TabsContent>
             <TabsContent value="reportes">
               <AdminReportesTab businessId={profile?.business_id || ''} />
-            </TabsContent>
-            <TabsContent value="config">
-              <SalaryConfigTab businessId={profile?.business_id || ''} />
-            </TabsContent>
-            <TabsContent value="comisiones">
-              <CommissionsTab businessId={profile?.business_id || ''} />
             </TabsContent>
           </Tabs>
         </div>
@@ -97,21 +87,18 @@ const Cobros = () => {
     );
   }
 
-  // Admin-only view
   return (
     <AppLayout>
       <div className="space-y-4 md:space-y-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold">Cobro</h1>
-          <p className="text-sm text-muted-foreground">Gestión de salarios, comisiones y cobros</p>
+          <h1 className="text-xl md:text-2xl font-bold">Reportes</h1>
+          <p className="text-sm text-muted-foreground">Reportes diarios y resumen de cobros</p>
         </div>
 
         <Tabs defaultValue="reportes" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-4">
+          <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="reportes">Reportes</TabsTrigger>
             <TabsTrigger value="resumen">Resumen</TabsTrigger>
-            <TabsTrigger value="config">Salarios</TabsTrigger>
-            <TabsTrigger value="comisiones">Comisiones</TabsTrigger>
           </TabsList>
 
           <TabsContent value="reportes">
@@ -119,12 +106,6 @@ const Cobros = () => {
           </TabsContent>
           <TabsContent value="resumen">
             <CobrosResumen />
-          </TabsContent>
-          <TabsContent value="config">
-            <SalaryConfigTab businessId={profile?.business_id || ''} />
-          </TabsContent>
-          <TabsContent value="comisiones">
-            <CommissionsTab businessId={profile?.business_id || ''} />
           </TabsContent>
         </Tabs>
       </div>

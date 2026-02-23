@@ -26,6 +26,7 @@ import PublicStorefront from "./pages/PublicStorefront";
 import Orders from "./pages/Orders";
 import Services from "./pages/Services";
 import Cobros from "./pages/Cobros";
+import Nomina from "./pages/Nomina";
 import JornadaEntrada from "./pages/JornadaEntrada";
 import OnboardingEmpleado from "./pages/OnboardingEmpleado";
 import MyEmployment from "./pages/MyEmployment";
@@ -75,6 +76,7 @@ const App = () => {
                 <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
                 <Route path="/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
                 <Route path="/cobros" element={<ProtectedRoute><Cobros /></ProtectedRoute>} />
+                <Route path="/nomina" element={<ProtectedRoute><Nomina /></ProtectedRoute>} />
                 <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
                 <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsers /></ProtectedRoute>} />
