@@ -87,8 +87,9 @@ const AppSidebar = () => {
   // Jornada check for non-privileged employees — gate operational tools
   const { jornadaActiva, jornada: activeJornada } = useJornadaActiva();
   const hasAuthorizedJornada = jornadaActiva && activeJornada?.metodo_apertura === 'manual_gerente';
-  // Employee can see operational tools only if they have an authorized active shift
-  const showEmployeeTools = hasEmployeeRecord && !isPrivileged && hasAuthorizedJornada;
+  // Employee can see operational tools when they have an authorized active shift
+  // This applies even if they're also a business owner — the tools use ?ctx=emp for employer context
+  const showEmployeeTools = hasEmployeeRecord && hasAuthorizedJornada;
 
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
