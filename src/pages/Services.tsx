@@ -670,11 +670,11 @@ const Services = () => {
     enabled: !!profile?.email,
   });
 
-  const isCopyShopEmployee = (employeeRecord as any)?.businesses?.business_type === 'copy_shop';
+  const hasEmployeeRecord = !!employeeRecord;
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   
   // When ?ctx=emp is present, force employee view regardless of privilege level
-  const showEmployeeView = isEmpCtx ? isCopyShopEmployee : (!isPrivileged && isCopyShopEmployee);
+  const showEmployeeView = isEmpCtx ? hasEmployeeRecord : (!isPrivileged && hasEmployeeRecord);
 
   // For employee context, skip jornada checks for privileged users but still require jornada for non-privileged
   if (!isPrivileged && !isEmpCtx && jornadaLoading) {
