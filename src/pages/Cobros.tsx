@@ -8,12 +8,16 @@ import { Loader2 } from 'lucide-react';
 import EmployeeSalaryView from '@/components/cobro/EmployeeSalaryView';
 import CobrosResumen from '@/components/cobro/CobrosResumen';
 import AdminReportesTab from '@/components/cobro/AdminReportesTab';
+import { useJornadaActiva } from '@/hooks/useJornadaActiva';
+import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
+import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
 
 const VISION_HABANA_BIZ_ID = '03ab1b9d-c0ff-412c-9b78-c86d320dc41c';
 
 const Cobros = () => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
   const isAdminRole = isOwner || isManager || isSuperAdmin;
+  const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
 
   // Check if user is an employee of Vision Habana
   const { data: employeeRecord, isLoading: loadingEmployee } = useQuery({
@@ -36,12 +40,20 @@ const Cobros = () => {
   const showAdminView = isVisionHabanaOwner;
   const showEmployeeView = isVisionHabanaEmployee;
 
-  if (loadingEmployee) {
+  if (loadingEmployee || (!isAdminRole && jornadaLoading)) {
     return (
       <AppLayout>
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
       </AppLayout>
     );
+  }
+
+  // Jornada restriction for non-privileged users
+  if (!isAdminRole && !jornadaActiva) {
+    return <AppLayout><SinJornadaActiva /></AppLayout>;
+  }
+  if (!isAdminRole && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+    return <AppLayout><SinJornadaAutorizada /></AppLayout>;
   }
 
   // If admin AND employee, show both views in tabs

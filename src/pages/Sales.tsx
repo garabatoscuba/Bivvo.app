@@ -3,10 +3,13 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle } from 'lucide-react';
+import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2 } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSales } from '@/hooks/useSales';
+import { useJornadaActiva } from '@/hooks/useJornadaActiva';
+import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
+import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -50,6 +53,7 @@ const statusColors: Record<SaleStatus, string> = {
 
 const Sales = () => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const [searchParams] = useSearchParams();
   const isEmployeeContext = searchParams.get('ctx') === 'emp';
 
@@ -198,6 +202,7 @@ const Sales = () => {
             <TableRow>
               <TableHead>No. Venta</TableHead>
               <TableHead>Fecha</TableHead>
+              <TableHead>Productos</TableHead>
               <TableHead>Vendedor</TableHead>
               <TableHead>Cliente</TableHead>
               <TableHead>Pago</TableHead>
@@ -209,7 +214,7 @@ const Sales = () => {
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                   No hay ventas para mostrar
                 </TableCell>
               </TableRow>
@@ -218,6 +223,7 @@ const Sales = () => {
                 <TableRow key={sale.id}>
                   <TableCell className="font-mono text-sm">{sale.sale_number}</TableCell>
                   <TableCell className="text-sm">{format(new Date(sale.created_at), "dd/MM/yy HH:mm", { locale: es })}</TableCell>
+                  <TableCell className="text-sm max-w-[150px] truncate">{sale.product_names || '—'}</TableCell>
                   <TableCell className="text-sm">{sale.seller_name}</TableCell>
                   <TableCell className="text-sm">{sale.customer_name}</TableCell>
                   <TableCell>
@@ -244,6 +250,18 @@ const Sales = () => {
       </div>
     </>
   );
+
+  const isPrivileged = isOwner || isManager || isSuperAdmin;
+
+  if (!isPrivileged && jornadaLoading) {
+    return <AppLayout title="Ventas"><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></AppLayout>;
+  }
+  if (!isPrivileged && !jornadaActiva) {
+    return <AppLayout title="Ventas"><SinJornadaActiva /></AppLayout>;
+  }
+  if (!isPrivileged && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+    return <AppLayout title="Ventas"><SinJornadaAutorizada /></AppLayout>;
+  }
 
   return (
     <AppLayout title="Ventas">
