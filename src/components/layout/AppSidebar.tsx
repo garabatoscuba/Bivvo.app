@@ -262,7 +262,7 @@ const AppSidebar = () => {
     { title: 'Dashboard', url: '/', icon: LayoutDashboard },
     { title: 'Inventario', url: '/inventory', icon: Package },
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
-    ...(isCopyShop ? [{ title: 'Servicios', url: '/services', icon: Wrench }] : []),
+    { title: 'Servicios', url: '/services', icon: Wrench },
     { title: 'Ventas', url: '/sales', icon: Receipt },
     ...(isCopyShop ? [{ title: 'Reportes', url: '/cobros', icon: FileText }] : []),
     { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
