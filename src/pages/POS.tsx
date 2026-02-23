@@ -200,7 +200,7 @@ const POS = () => {
 
   return (
     <AppLayout>
-      <div className="flex flex-col md:flex-row h-[calc(100vh-6.5rem)] md:h-[calc(100vh-8rem)] gap-0 md:gap-4 overflow-hidden">
+      <div className="flex flex-col md:flex-row h-[calc(100vh-6.5rem)] md:h-[calc(100vh-8rem)] gap-0 md:gap-4 overflow-hidden max-w-full">
         {/* Products Section */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Search & Categories */}

@@ -41,15 +41,15 @@ const AppHeader = ({ title }: AppHeaderProps) => {
   const [cerrarOpen, setCerrarOpen] = useState(false);
 
   return (
-    <header className="flex h-11 md:h-14 shrink-0 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-3 md:px-4">
-      <div className="flex items-center gap-3">
-        <SidebarTrigger className="md:hidden" />
-        <h1 className="text-base font-semibold text-foreground">
+    <header className="flex h-11 md:h-14 shrink-0 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-2 md:px-4 overflow-hidden max-w-full">
+      <div className="flex items-center gap-2 min-w-0 flex-1">
+        <SidebarTrigger className="md:hidden flex-shrink-0" />
+        <h1 className="text-sm md:text-base font-semibold text-foreground truncate">
           {title || `¡Hola, ${profile?.full_name?.split(' ')[0] || 'Usuario'}!`}
         </h1>
       </div>
 
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-1 flex-shrink-0">
         {/* Jornada indicator — only for non-privileged roles */}
         {!isPrivileged && !jornadaLoading && (
           jornadaActiva && jornada ? (
