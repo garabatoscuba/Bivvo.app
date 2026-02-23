@@ -35,7 +35,7 @@ const paymentLabels: Record<PaymentType, string> = {
 const paymentColors: Record<PaymentType, string> = {
   cash: 'bg-success/15 text-success',
   card: 'bg-info/15 text-info',
-  transfer: 'bg-category-purple/20 text-category-purple-foreground',
+  transfer: 'bg-primary/15 text-primary',
   credit: 'bg-warning/15 text-warning',
 };
 

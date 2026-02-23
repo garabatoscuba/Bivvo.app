@@ -21,8 +21,9 @@ import {
   LayoutDashboard, Package, ShoppingCart, Receipt, Users, Settings,
   Building2, Shield, LogOut, CreditCard, Download, Store,
   ChevronDown, Dumbbell, Check, Settings2, Sun, Moon, ShoppingBag,
-  Plus, MapPin, Pencil, Wrench, DollarSign, Briefcase,
+  Plus, MapPin, Pencil, Wrench, DollarSign, Briefcase, FileText,
 } from 'lucide-react';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -36,6 +37,7 @@ import { useToast } from '@/hooks/use-toast';
 const VISION_HABANA_BIZ_ID = '03ab1b9d-c0ff-412c-9b78-c86d320dc41c';
 
 const AppSidebar = () => {
+  const { settings: storeSettings } = useStoreSettings();
   const location = useLocation();
   const navigate = useNavigate();
   const { profile, isSuperAdmin, signOut, switchBranch } = useAuth();
@@ -253,9 +255,9 @@ const AppSidebar = () => {
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
     ...(isVisionHabana ? [{ title: 'Servicios', url: '/services', icon: Wrench }] : []),
     { title: 'Ventas', url: '/sales', icon: Receipt },
-    ...(isVisionHabana ? [{ title: 'Reportes', url: '/cobros', icon: DollarSign }] : []),
+    ...(isVisionHabana ? [{ title: 'Reportes', url: '/cobros', icon: FileText }] : []),
     { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
-    { title: 'Pedidos', url: '/orders', icon: Receipt },
+    ...(storeSettings?.has_delivery ? [{ title: 'Pedidos', url: '/orders', icon: Receipt }] : []),
     { title: 'Recursos Humanos', url: '/employees', icon: Users },
     { title: 'Nómina', url: '/nomina', icon: DollarSign },
     { title: 'Configuración', url: '/settings', icon: Settings },
@@ -350,7 +352,7 @@ const AppSidebar = () => {
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive('/cobros')}>
                         <Link to="/cobros">
-                          <DollarSign className="h-4 w-4" />
+                          <FileText className="h-4 w-4" />
                           <span className="text-sm">Reportes</span>
                         </Link>
                       </SidebarMenuButton>

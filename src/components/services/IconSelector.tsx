@@ -14,6 +14,11 @@ import {
   Rocket, Ruler, Scale, Search, Settings, Sparkles, Speaker,
   Stethoscope, Store, Sword, Target, Tent, Timer, Trophy,
   Users, Video, Volume2, Watch, Wind, Wand2, Wheat,
+  Bot, Cherry, AppWindow, Laptop, Tablet, MonitorSmartphone,
+  Clapperboard, CircleDot, Scan, Fingerprint, QrCode, Bluetooth,
+  Cast, Cloud, CloudRain, Snowflake, CircuitBoard, Database,
+  HardDrive, Server, Terminal, Code, Binary, Braces,
+  Webhook, Share2, Link, Unlink, SquareStack, PanelLeft,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -35,6 +40,11 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Rocket, Ruler, Scale, Search, Settings, Sparkles, Speaker,
   Stethoscope, Store, Sword, Target, Tent, Timer, Trophy,
   Users, Video, Volume2, Watch, Wind, Wand2, Wheat,
+  Bot, Cherry, AppWindow, Laptop, Tablet, MonitorSmartphone,
+  Clapperboard, CircleDot, Scan, Fingerprint, QrCode, Bluetooth,
+  Cast, Cloud, CloudRain, Snowflake, CircuitBoard, Database,
+  HardDrive, Server, Terminal, Code, Binary, Braces,
+  Webhook, Share2, Link, Unlink, SquareStack, PanelLeft,
 };
 
 export const getIconComponent = (name: string | null | undefined): LucideIcon => {
