@@ -700,17 +700,15 @@ const MyEmployment = () => {
           {/* Quick actions when shift active */}
           {hasAuthorizedJornada && (
             <div className="grid grid-cols-2 gap-2">
+              <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/services?ctx=emp')}>
+                <Wrench className="h-5 w-5 text-primary" />
+                <span className="text-xs">Servicios</span>
+              </Button>
               {isEmployerCopyShop && (
-                <>
-                  <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/services')}>
-                    <Wrench className="h-5 w-5 text-primary" />
-                    <span className="text-xs">Servicios</span>
-                  </Button>
-                  <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/cobros')}>
-                    <FileText className="h-5 w-5 text-primary" />
-                    <span className="text-xs">Reportes</span>
-                  </Button>
-                </>
+                <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/cobros?ctx=emp')}>
+                  <FileText className="h-5 w-5 text-primary" />
+                  <span className="text-xs">Reportes</span>
+                </Button>
               )}
               <Button variant="destructive" className="h-auto py-3 flex flex-col items-center gap-1.5 col-span-2" onClick={() => setContarYCerrarOpen(true)}>
                 <LogOut className="h-5 w-5" />
