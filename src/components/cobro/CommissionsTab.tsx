@@ -13,7 +13,7 @@ import {
 
 interface Commission {
   product_id: string;
-  commission_type: 'fixed' | 'percent';
+  commission_type: 'fixed' | 'percent' | 'profit_percent';
   commission_value: number;
 }
 
@@ -27,7 +27,7 @@ const CommissionsTab = ({ businessId }: { businessId: string }) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('products')
-        .select('id, name, code, sale_price, category:categories(name)')
+        .select('id, name, code, sale_price, cost_price, category:categories(name)')
         .eq('business_id', businessId)
         .neq('status', 'discontinued')
         .order('name');
@@ -124,18 +124,20 @@ const CommissionsTab = ({ businessId }: { businessId: string }) => {
           ) : (
             <div className="space-y-2">
               {/* Header */}
-              <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 px-1">
-                <span className="col-span-5">Producto</span>
-                <span className="col-span-2 text-right">Precio</span>
-                <span className="col-span-3 text-center">Tipo</span>
-                <span className="col-span-2 text-center">Valor</span>
-              </div>
+               <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 px-1">
+                 <span className="col-span-4">Producto</span>
+                 <span className="col-span-2 text-right">Precio</span>
+                 <span className="col-span-1 text-right">Gan.</span>
+                 <span className="col-span-3 text-center">Tipo</span>
+                 <span className="col-span-2 text-center">Valor</span>
+               </div>
 
               {products.map((product: any) => {
                 const comm = getCommission(product.id);
+                const profit = Number(product.sale_price) - Number(product.cost_price || 0);
                 return (
                   <div key={product.id} className="grid grid-cols-12 gap-2 items-center rounded-lg border p-2">
-                    <div className="col-span-5 min-w-0">
+                    <div className="col-span-4 min-w-0">
                       <p className="text-sm font-medium truncate">{product.name}</p>
                       <div className="flex items-center gap-1 mt-0.5">
                         <span className="text-[10px] text-muted-foreground">{product.code}</span>
@@ -147,6 +149,9 @@ const CommissionsTab = ({ businessId }: { businessId: string }) => {
                     <div className="col-span-2 text-right">
                       <span className="text-sm font-medium">${Number(product.sale_price).toFixed(2)}</span>
                     </div>
+                    <div className="col-span-1 text-right">
+                      <span className="text-xs text-muted-foreground">${profit.toFixed(0)}</span>
+                    </div>
                     <div className="col-span-3">
                       <Select
                         value={comm.commission_type}
@@ -156,8 +161,9 @@ const CommissionsTab = ({ businessId }: { businessId: string }) => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="fixed">$ Fijo</SelectItem>
+                         <SelectItem value="fixed">$ Fijo</SelectItem>
                           <SelectItem value="percent">% Precio</SelectItem>
+                          <SelectItem value="profit_percent">% Ganancia</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
