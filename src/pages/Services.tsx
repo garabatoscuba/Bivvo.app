@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
@@ -652,6 +653,8 @@ const ManagerServicesView = () => {
 const Services = () => {
   const { isOwner, isManager, isSuperAdmin, profile } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
+  const [searchParams] = useSearchParams();
+  const isEmpCtx = searchParams.get('ctx') === 'emp';
 
   const { data: employeeRecord } = useQuery({
     queryKey: ['employee-record-for-services', profile?.email],
@@ -669,9 +672,12 @@ const Services = () => {
 
   const isCopyShopEmployee = (employeeRecord as any)?.businesses?.business_type === 'copy_shop';
   const isPrivileged = isOwner || isManager || isSuperAdmin;
-  const showEmployeeView = isCopyShopEmployee;
+  
+  // When ?ctx=emp is present, force employee view regardless of privilege level
+  const showEmployeeView = isEmpCtx ? isCopyShopEmployee : (!isPrivileged && isCopyShopEmployee);
 
-  if (!isPrivileged && jornadaLoading) {
+  // For employee context, skip jornada checks for privileged users but still require jornada for non-privileged
+  if (!isPrivileged && !isEmpCtx && jornadaLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center py-20">
@@ -681,11 +687,11 @@ const Services = () => {
     );
   }
 
-  if (!isPrivileged && !jornadaActiva) {
+  if (!isPrivileged && !isEmpCtx && !jornadaActiva) {
     return <AppLayout><SinJornadaActiva /></AppLayout>;
   }
 
-  if (!isPrivileged && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+  if (!isPrivileged && !isEmpCtx && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
     return <AppLayout><SinJornadaAutorizada /></AppLayout>;
   }
 
@@ -694,7 +700,7 @@ const Services = () => {
       {showEmployeeView ? (
         <EmployeeServicesView
           employeeBusinessId={employeeRecord!.business_id}
-          employeeBranchId={employeeRecord?.branch_id ?? profile?.branch_id ?? null}
+          employeeBranchId={employeeRecord?.branch_id ?? jornada?.sucursal_id ?? profile?.branch_id ?? null}
         />
       ) : (
         <ManagerServicesView />

@@ -71,7 +71,7 @@ const AppSidebar = () => {
       if (!profile?.email) return null;
       const { data, error } = await supabase
         .from('employees')
-        .select('id, business_id, businesses!employees_business_id_fkey(business_type)')
+        .select('id, business_id, businesses!employees_business_id_fkey(name, business_type)')
         .eq('email', profile.email.toLowerCase())
         .limit(1)
         .maybeSingle();
@@ -82,6 +82,7 @@ const AppSidebar = () => {
   });
   const hasEmployeeRecord = !!employeeRecord;
   const isEmployeeCopyShop = (employeeRecord as any)?.businesses?.business_type === 'copy_shop';
+  const employerName = (employeeRecord as any)?.businesses?.name || null;
   const isPrivileged = isOwner || isManager || isSuperAdmin;
 
   // Jornada check for non-privileged employees — gate operational tools
@@ -325,7 +326,14 @@ const AppSidebar = () => {
         {/* Mi Empleo section - employee tools */}
         {hasEmployeeRecord && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Mi Empleo</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
+              <span>Mi Empleo</span>
+              {employerName && (
+                <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
+                  {employerName}
+                </span>
+              )}
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
