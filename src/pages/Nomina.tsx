@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { CreditCard } from 'lucide-react';
 import ModalidadesTab from '@/components/nomina/ModalidadesTab';
 import CommissionsTab from '@/components/cobro/CommissionsTab';
-import SalaryConfigTab from '@/components/cobro/SalaryConfigTab';
 
 const Nomina = () => {
   const { profile } = useAuth();
@@ -40,10 +39,9 @@ const Nomina = () => {
         </div>
 
         <Tabs defaultValue="modalidades" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-3">
+          <TabsList className="w-full grid grid-cols-2">
             <TabsTrigger value="modalidades">Modalidades</TabsTrigger>
             <TabsTrigger value="comisiones">Comisiones</TabsTrigger>
-            <TabsTrigger value="mixto">Mixto Personal.</TabsTrigger>
           </TabsList>
 
           <TabsContent value="modalidades">
@@ -51,9 +49,6 @@ const Nomina = () => {
           </TabsContent>
           <TabsContent value="comisiones">
             <CommissionsTab businessId={businessId} />
-          </TabsContent>
-          <TabsContent value="mixto">
-            <SalaryConfigTab businessId={businessId} />
           </TabsContent>
         </Tabs>
       </div>
