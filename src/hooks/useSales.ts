@@ -39,6 +39,7 @@ export const useSales = (branchId?: string | null) => {
           if (salesError) throw salesError;
           if (!salesData || salesData.length === 0) return [];
 
+          // Fetch seller names
           const userIds = [...new Set(salesData.map((s: any) => s.user_id))];
           const { data: profiles } = await supabase
             .from('profiles')
@@ -48,10 +49,31 @@ export const useSales = (branchId?: string | null) => {
           const profileMap = new Map<string, string>();
           profiles?.forEach((p: any) => profileMap.set(p.user_id, p.full_name));
 
+          // Fetch product names for each sale
+          const saleIds = salesData.map((s: any) => s.id);
+          const { data: allItems } = await supabase
+            .from('sale_items')
+            .select('sale_id, products(name)')
+            .in('sale_id', saleIds);
+
+          const saleProductMap = new Map<string, string>();
+          if (allItems) {
+            const grouped: Record<string, string[]> = {};
+            for (const item of allItems) {
+              if (!grouped[item.sale_id]) grouped[item.sale_id] = [];
+              const name = (item as any).products?.name;
+              if (name) grouped[item.sale_id].push(name);
+            }
+            for (const [saleId, names] of Object.entries(grouped)) {
+              saleProductMap.set(saleId, names.join(', '));
+            }
+          }
+
           const result = salesData.map((s: any) => ({
             ...s,
             seller_name: profileMap.get(s.user_id) ?? 'Desconocido',
             customer_name: s.customers?.name ?? 'Público general',
+            product_names: saleProductMap.get(s.id) ?? '',
           }));
 
           // Cache to IndexedDB

@@ -21,6 +21,7 @@ import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Plus, Pencil, Trash2, Loader2, DollarSign, Send } from 'lucide-react';
 import IconSelector, { getIconComponent } from '@/components/services/IconSelector';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const VISION_HABANA_BIZ_ID = '03ab1b9d-c0ff-412c-9b78-c86d320dc41c';
 
@@ -476,6 +477,53 @@ const ManagerServicesView = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Top Services Chart (only for managers/owners) */}
+      {canManage && recentEntries.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Servicios más vendidos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {(() => {
+              const counts: Record<string, { name: string; count: number; total: number }> = {};
+              recentEntries.forEach((e: any) => {
+                const catName = e.service_categories?.name || 'Sin categoría';
+                if (!counts[catName]) counts[catName] = { name: catName, count: 0, total: 0 };
+                counts[catName].count++;
+                counts[catName].total += Number(e.amount);
+              });
+              const chartData = Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 8);
+              const COLORS = [
+                'hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))',
+                'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--accent))',
+                'hsl(var(--muted-foreground))', 'hsl(var(--secondary))',
+              ];
+              return (
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 10, top: 5, bottom: 5 }}>
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                    <XAxis type="number" allowDecimals={false} fontSize={11} />
+                    <YAxis type="category" dataKey="name" width={100} fontSize={11} tick={{ fill: 'hsl(var(--foreground))' }} />
+                    <RechartsTooltip
+                      formatter={(value: number, name: string) => [
+                        name === 'count' ? `${value} cobros` : `$${value.toFixed(2)}`,
+                        name === 'count' ? 'Cantidad' : 'Total'
+                      ]}
+                      contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                    />
+                    <Bar dataKey="count" name="Cantidad" radius={[0, 4, 4, 0]}>
+                      {chartData.map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              );
+            })()}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader className="pb-3">

@@ -3,7 +3,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, LogOut } from 'lucide-react';
+import { Loader2, LogOut, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -82,6 +82,16 @@ const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalP
             <p className="text-xs text-muted-foreground">Tiempo trabajado</p>
             <p className="text-lg font-semibold">{duration.text}</p>
           </div>
+        </div>
+
+        <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-1">
+          <div className="flex items-center gap-2 text-destructive text-sm font-medium">
+            <AlertTriangle className="h-4 w-4" />
+            Advertencia
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Al cerrar tu jornada perderás el salario del día. Asegúrate de haber terminado de contar antes de cerrar.
+          </p>
         </div>
 
         <DialogFooter className="gap-2 sm:gap-0">
