@@ -83,6 +83,9 @@ interface EmployeeForm {
   start_date: string;
   assigned_branches: string[];
   assigned_roles: AppRole[];
+  modality_id: string;
+  pay_frequency: string;
+  base_salary: string;
 }
 
 const emptyForm: EmployeeForm = {
@@ -97,6 +100,9 @@ const emptyForm: EmployeeForm = {
   start_date: new Date().toISOString().split('T')[0],
   assigned_branches: [],
   assigned_roles: ['seller'],
+  modality_id: '',
+  pay_frequency: 'monthly',
+  base_salary: '',
 };
 
 const Employees = () => {
@@ -143,6 +149,23 @@ const Employees = () => {
         .order('full_name');
       if (error) throw error;
       return data as Employee[];
+    },
+    enabled: !!businessId,
+  });
+
+  // Fetch salary modalities for this business
+  const { data: salaryModalities = [] } = useQuery({
+    queryKey: ['salary-modalities', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const { data, error } = await supabase
+        .from('salary_modalities')
+        .select('id, name, modality_type')
+        .eq('business_id', businessId)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data;
     },
     enabled: !!businessId,
   });
@@ -430,9 +453,46 @@ const Employees = () => {
         }
       }
 
+      // Save salary assignment if modality selected
+      if (form.modality_id && form.modality_id !== 'none') {
+        // Upsert salary assignment
+        const { data: existingAssignment } = await supabase
+          .from('employee_salary_assignments')
+          .select('id')
+          .eq('employee_id', employeeId)
+          .maybeSingle();
+
+        const assignmentPayload = {
+          employee_id: employeeId,
+          business_id: businessId,
+          modality_id: form.modality_id,
+          pay_frequency: form.pay_frequency as any,
+          base_salary: parseFloat(form.base_salary) || 0,
+          is_active: true,
+        };
+
+        if (existingAssignment) {
+          await supabase
+            .from('employee_salary_assignments')
+            .update(assignmentPayload as any)
+            .eq('id', existingAssignment.id);
+        } else {
+          await supabase
+            .from('employee_salary_assignments')
+            .insert(assignmentPayload as any);
+        }
+      } else {
+        // Remove assignment if no modality selected
+        await supabase
+          .from('employee_salary_assignments')
+          .delete()
+          .eq('employee_id', employeeId);
+      }
+
       queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['employee-branch-assignments'] });
+      queryClient.invalidateQueries({ queryKey: ['salary-assignments-history'] });
       setEmployeeDialogOpen(false);
       setEditingEmployee(null);
       setForm(emptyForm);
@@ -481,6 +541,21 @@ const Employees = () => {
       }
     }
 
+    // Load salary assignment
+    let modalityId = '';
+    let payFrequency = 'monthly';
+    let baseSalary = '';
+    const { data: salaryAssignment } = await supabase
+      .from('employee_salary_assignments')
+      .select('modality_id, pay_frequency, base_salary')
+      .eq('employee_id', emp.id)
+      .maybeSingle();
+    if (salaryAssignment) {
+      modalityId = salaryAssignment.modality_id || '';
+      payFrequency = salaryAssignment.pay_frequency || 'monthly';
+      baseSalary = salaryAssignment.base_salary ? String(salaryAssignment.base_salary) : '';
+    }
+
     setEditingEmployee(emp);
     setForm({
       contract_number: emp.contract_number,
@@ -494,6 +569,9 @@ const Employees = () => {
       start_date: emp.start_date,
       assigned_branches: empBranches,
       assigned_roles: currentRoles,
+      modality_id: modalityId,
+      pay_frequency: payFrequency,
+      base_salary: baseSalary,
     });
     setEmployeeDialogOpen(true);
   };
@@ -1053,6 +1131,58 @@ const Employees = () => {
                   <p className="text-xs text-muted-foreground">El empleado podrá trabajar en las sucursales seleccionadas.</p>
                 </div>
               )}
+
+              {/* Salary assignment */}
+              <div className="space-y-2 border-t pt-4">
+                <Label className="font-semibold">Nómina</Label>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="modality">Modalidad de Salario</Label>
+                    <Select value={form.modality_id} onValueChange={(v) => updateField('modality_id', v)}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Sin asignar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sin asignar</SelectItem>
+                        {salaryModalities.map((m: any) => (
+                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="pay_frequency">Frecuencia de Pago</Label>
+                    <Select value={form.pay_frequency} onValueChange={(v) => updateField('pay_frequency', v)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="daily">Diaria</SelectItem>
+                        <SelectItem value="weekly">Semanal</SelectItem>
+                        <SelectItem value="biweekly">Quincenal</SelectItem>
+                        <SelectItem value="monthly">Mensual</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="base_salary">Salario Base ($)</Label>
+                  <Input
+                    id="base_salary"
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={form.base_salary}
+                    onChange={(e) => updateField('base_salary', e.target.value)}
+                    placeholder="0.00"
+                  />
+                </div>
+                {salaryModalities.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    No hay modalidades activas. Configúralas en Nómina → Modalidades.
+                  </p>
+                )}
+              </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEmployeeDialogOpen(false)}>Cancelar</Button>
