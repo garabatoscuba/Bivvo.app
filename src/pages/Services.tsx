@@ -19,18 +19,10 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Loader2, Gamepad2, Monitor, Smartphone, Globe, DollarSign, Send } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, DollarSign, Send } from 'lucide-react';
+import IconSelector, { getIconComponent } from '@/components/services/IconSelector';
 
 const VISION_HABANA_BIZ_ID = '03ab1b9d-c0ff-412c-9b78-c86d320dc41c';
-
-const getCategoryIcon = (name: string) => {
-  const lower = name.toLowerCase();
-  if (lower.includes('ps4') || lower.includes('juego')) return Gamepad2;
-  if (lower.includes('pc') || lower.includes('windows')) return Monitor;
-  if (lower.includes('android') || lower.includes('ios')) return Smartphone;
-  if (lower.includes('online')) return Globe;
-  return DollarSign;
-};
 
 const paymentLabels: Record<string, string> = {
   cash: 'Efectivo',
@@ -71,7 +63,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     queryFn: async () => {
       const { data, error } = await supabase
         .from('service_entries')
-        .select('*, service_categories(name)')
+        .select('*, service_categories(name, icon)')
         .eq('business_id', businessId!)
         .eq('branch_id', branchId!)
         .order('created_at', { ascending: false })
@@ -107,6 +99,20 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
+  // When selecting a category, pre-fill its fixed price
+  const handleSelectCategory = (catId: string) => {
+    if (selectedCatId === catId) {
+      setSelectedCatId(null);
+      setAmount('');
+      return;
+    }
+    setSelectedCatId(catId);
+    const cat = categories.find((c: any) => c.id === catId);
+    if (cat && (cat as any).fixed_price != null && Number((cat as any).fixed_price) > 0) {
+      setAmount(String(Number((cat as any).fixed_price)));
+    }
+  };
+
   const todayTotal = recentEntries
     .filter(e => new Date(e.created_at).toDateString() === new Date().toDateString())
     .reduce((sum, e) => sum + Number(e.amount), 0);
@@ -120,7 +126,6 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
         <p className="text-sm text-muted-foreground">Registra cobros de servicios</p>
       </div>
 
-      {/* Today summary */}
       <Card>
         <CardContent className="p-4 flex items-center justify-between">
           <div>
@@ -131,13 +136,11 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
         </CardContent>
       </Card>
 
-      {/* Quick register form */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Registrar Servicio</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Category selection as buttons */}
           <div>
             <Label className="text-xs text-muted-foreground mb-2 block">Selecciona un servicio</Label>
             {loadingCats ? (
@@ -146,13 +149,13 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
               <p className="text-sm text-muted-foreground text-center py-3">No hay servicios configurados</p>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {categories.map((cat) => {
-                  const Icon = getCategoryIcon(cat.name);
+                {categories.map((cat: any) => {
+                  const Icon = getIconComponent(cat.icon);
                   const isSelected = selectedCatId === cat.id;
                   return (
                     <button
                       key={cat.id}
-                      onClick={() => setSelectedCatId(isSelected ? null : cat.id)}
+                      onClick={() => handleSelectCategory(cat.id)}
                       className={`flex items-center gap-2 rounded-lg border p-3 text-left transition-colors ${
                         isSelected
                           ? 'border-primary bg-primary/10 ring-1 ring-primary'
@@ -160,7 +163,12 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
                       }`}
                     >
                       <Icon className={`h-4 w-4 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <span className="text-sm font-medium truncate">{cat.name}</span>
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium truncate block">{cat.name}</span>
+                        {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
+                          <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
+                        )}
+                      </div>
                     </button>
                   );
                 })}
@@ -168,7 +176,6 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
             )}
           </div>
 
-          {/* Description + Amount + Payment inline */}
           <div className="space-y-3">
             <div>
               <Label className="text-xs text-muted-foreground">Descripción (opcional)</Label>
@@ -207,22 +214,13 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
             </div>
           </div>
 
-          <Button
-            className="w-full"
-            onClick={() => createEntryMutation.mutate()}
-            disabled={!canSubmit}
-          >
-            {createEntryMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-1" />
-            ) : (
-              <Send className="h-4 w-4 mr-1" />
-            )}
+          <Button className="w-full" onClick={() => createEntryMutation.mutate()} disabled={!canSubmit}>
+            {createEntryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
             Registrar Cobro
           </Button>
         </CardContent>
       </Card>
 
-      {/* Recent entries */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">Cobros Recientes</CardTitle>
@@ -234,27 +232,27 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
             <p className="text-sm text-muted-foreground text-center py-4">No hay cobros registrados</p>
           ) : (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-              {recentEntries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between rounded-lg border p-2.5">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <Badge variant="secondary" className="text-[10px]">
-                        {(entry as any).service_categories?.name}
-                      </Badge>
-                      <Badge variant="outline" className="text-[10px]">
-                        {paymentLabels[entry.payment_type] || entry.payment_type}
-                      </Badge>
+              {recentEntries.map((entry: any) => {
+                const EntryIcon = getIconComponent(entry.service_categories?.icon);
+                return (
+                  <div key={entry.id} className="flex items-center justify-between rounded-lg border p-2.5">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <EntryIcon className="h-4 w-4 text-primary shrink-0" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <Badge variant="secondary" className="text-[10px]">{entry.service_categories?.name}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{paymentLabels[entry.payment_type] || entry.payment_type}</Badge>
+                        </div>
+                        {entry.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{entry.description}</p>}
+                        <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                          {new Date(entry.created_at).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
                     </div>
-                    {entry.description && (
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{entry.description}</p>
-                    )}
-                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                      {new Date(entry.created_at).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                    <span className="text-sm font-bold shrink-0 ml-2">${Number(entry.amount).toFixed(2)}</span>
                   </div>
-                  <span className="text-sm font-bold shrink-0 ml-2">${Number(entry.amount).toFixed(2)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -273,8 +271,10 @@ const ManagerServicesView = () => {
   const branchId = profile?.branch_id;
 
   const [catDialogOpen, setCatDialogOpen] = useState(false);
-  const [editCat, setEditCat] = useState<{ id: string; name: string } | null>(null);
+  const [editCat, setEditCat] = useState<{ id: string; name: string; icon?: string; fixed_price?: number | null } | null>(null);
   const [catName, setCatName] = useState('');
+  const [catIcon, setCatIcon] = useState('DollarSign');
+  const [catFixedPrice, setCatFixedPrice] = useState('');
 
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [entryCategoryId, setEntryCategoryId] = useState('');
@@ -302,7 +302,7 @@ const ManagerServicesView = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('service_entries')
-        .select('*, service_categories(name)')
+        .select('*, service_categories(name, icon)')
         .eq('business_id', businessId!)
         .eq('branch_id', branchId!)
         .order('created_at', { ascending: false })
@@ -315,11 +315,16 @@ const ManagerServicesView = () => {
 
   const saveCatMutation = useMutation({
     mutationFn: async () => {
+      const payload: any = {
+        name: catName.trim(),
+        icon: catIcon,
+        fixed_price: catFixedPrice ? parseFloat(catFixedPrice) : null,
+      };
       if (editCat) {
-        const { error } = await supabase.from('service_categories').update({ name: catName.trim() }).eq('id', editCat.id);
+        const { error } = await supabase.from('service_categories').update(payload).eq('id', editCat.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('service_categories').insert({ business_id: businessId!, name: catName.trim() });
+        const { error } = await supabase.from('service_categories').insert({ ...payload, business_id: businessId! });
         if (error) throw error;
       }
     },
@@ -328,6 +333,8 @@ const ManagerServicesView = () => {
       toast({ title: editCat ? 'Categoría actualizada' : 'Categoría creada' });
       setCatDialogOpen(false);
       setCatName('');
+      setCatIcon('DollarSign');
+      setCatFixedPrice('');
       setEditCat(null);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
@@ -371,6 +378,30 @@ const ManagerServicesView = () => {
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
+  const handleOpenNewCat = () => {
+    setEditCat(null);
+    setCatName('');
+    setCatIcon('DollarSign');
+    setCatFixedPrice('');
+    setCatDialogOpen(true);
+  };
+
+  const handleEditCat = (cat: any) => {
+    setEditCat(cat);
+    setCatName(cat.name);
+    setCatIcon(cat.icon || 'DollarSign');
+    setCatFixedPrice(cat.fixed_price != null ? String(cat.fixed_price) : '');
+    setCatDialogOpen(true);
+  };
+
+  const handleSelectEntryCategory = (catId: string) => {
+    setEntryCategoryId(catId);
+    const cat = categories.find((c: any) => c.id === catId);
+    if (cat && (cat as any).fixed_price != null && Number((cat as any).fixed_price) > 0) {
+      setEntryAmount(String(Number((cat as any).fixed_price)));
+    }
+  };
+
   const todayTotal = recentEntries
     .filter(e => new Date(e.created_at).toDateString() === new Date().toDateString())
     .reduce((sum, e) => sum + Number(e.amount), 0);
@@ -402,7 +433,7 @@ const ManagerServicesView = () => {
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">Categorías de Servicio</CardTitle>
             {canManage && (
-              <Button variant="outline" size="sm" onClick={() => { setEditCat(null); setCatName(''); setCatDialogOpen(true); }}>
+              <Button variant="outline" size="sm" onClick={handleOpenNewCat}>
                 <Plus className="h-3.5 w-3.5 mr-1" /> Agregar
               </Button>
             )}
@@ -415,17 +446,22 @@ const ManagerServicesView = () => {
             <p className="text-sm text-muted-foreground text-center py-4">No hay categorías</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {categories.map((cat) => {
-                const Icon = getCategoryIcon(cat.name);
+              {categories.map((cat: any) => {
+                const Icon = getIconComponent(cat.icon);
                 return (
                   <div key={cat.id} className="flex items-center justify-between rounded-lg border p-2.5 gap-2">
                     <div className="flex items-center gap-2 min-w-0">
                       <Icon className="h-4 w-4 text-primary shrink-0" />
-                      <span className="text-sm font-medium truncate">{cat.name}</span>
+                      <div className="min-w-0">
+                        <span className="text-sm font-medium truncate block">{cat.name}</span>
+                        {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
+                          <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
+                        )}
+                      </div>
                     </div>
                     {canManage && (
                       <div className="flex items-center gap-0.5 shrink-0">
-                        <button className="p-1 rounded hover:bg-muted" onClick={() => { setEditCat(cat); setCatName(cat.name); setCatDialogOpen(true); }}>
+                        <button className="p-1 rounded hover:bg-muted" onClick={() => handleEditCat(cat)}>
                           <Pencil className="h-3 w-3 text-muted-foreground" />
                         </button>
                         <button className="p-1 rounded hover:bg-muted" onClick={() => deleteCatMutation.mutate(cat.id)}>
@@ -452,21 +488,27 @@ const ManagerServicesView = () => {
             <p className="text-sm text-muted-foreground text-center py-4">No hay cobros registrados</p>
           ) : (
             <div className="space-y-2">
-              {recentEntries.map((entry) => (
-                <div key={entry.id} className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary" className="text-[10px]">{(entry as any).service_categories?.name}</Badge>
-                      <Badge variant="outline" className="text-[10px]">{paymentLabels[entry.payment_type] || entry.payment_type}</Badge>
+              {recentEntries.map((entry: any) => {
+                const EntryIcon = getIconComponent(entry.service_categories?.icon);
+                return (
+                  <div key={entry.id} className="flex items-center justify-between rounded-lg border p-3">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <EntryIcon className="h-4 w-4 text-primary shrink-0" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="secondary" className="text-[10px]">{entry.service_categories?.name}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{paymentLabels[entry.payment_type] || entry.payment_type}</Badge>
+                        </div>
+                        {entry.description && <p className="text-sm text-muted-foreground mt-1 truncate">{entry.description}</p>}
+                        <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                          {new Date(entry.created_at).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
                     </div>
-                    {entry.description && <p className="text-sm text-muted-foreground mt-1 truncate">{entry.description}</p>}
-                    <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                      {new Date(entry.created_at).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    </p>
+                    <span className="text-sm font-bold shrink-0 ml-2">${Number(entry.amount).toFixed(2)}</span>
                   </div>
-                  <span className="text-sm font-bold shrink-0 ml-2">${Number(entry.amount).toFixed(2)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -483,6 +525,19 @@ const ManagerServicesView = () => {
               <Label>Nombre</Label>
               <Input value={catName} onChange={(e) => setCatName(e.target.value)} placeholder="Ej: Juegos de PS5" />
             </div>
+            <div>
+              <Label>Precio fijo (opcional)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={catFixedPrice}
+                onChange={(e) => setCatFixedPrice(e.target.value)}
+                placeholder="Dejar vacío si el precio varía"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">El vendedor puede modificar el monto al registrar</p>
+            </div>
+            <IconSelector value={catIcon} onChange={setCatIcon} />
           </div>
           <DialogFooter>
             <Button onClick={() => saveCatMutation.mutate()} disabled={!catName.trim() || saveCatMutation.isPending}>
@@ -501,10 +556,10 @@ const ManagerServicesView = () => {
           <div className="space-y-3">
             <div>
               <Label>Categoría</Label>
-              <Select value={entryCategoryId} onValueChange={setEntryCategoryId}>
+              <Select value={entryCategoryId} onValueChange={handleSelectEntryCategory}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
                 <SelectContent>
-                  {categories.map(cat => (
+                  {categories.map((cat: any) => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -517,6 +572,7 @@ const ManagerServicesView = () => {
             <div>
               <Label>Monto cobrado ($)</Label>
               <Input type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="0.00" />
+              <p className="text-[10px] text-muted-foreground mt-1">Puedes ajustar el monto si necesitas agregar extras</p>
             </div>
             <div>
               <Label>Método de pago</Label>
@@ -549,7 +605,6 @@ const Services = () => {
   const { isOwner, isManager, isSuperAdmin, profile } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
 
-  // Detect if user is an employee of Vision Habana to show correct view
   const { data: employeeRecord } = useQuery({
     queryKey: ['employee-record-for-services', profile?.email],
     queryFn: async () => {
@@ -566,12 +621,8 @@ const Services = () => {
 
   const isVisionHabanaEmployee = employeeRecord?.business_id === VISION_HABANA_BIZ_ID;
   const isPrivileged = isOwner || isManager || isSuperAdmin;
-
-  // If user is an employee of Vision Habana, always show employee view with VH context
-  // Otherwise, show manager view for their own business
   const showEmployeeView = isVisionHabanaEmployee;
 
-  // Jornada access control for non-privileged users
   if (!isPrivileged && jornadaLoading) {
     return (
       <AppLayout>
@@ -583,19 +634,11 @@ const Services = () => {
   }
 
   if (!isPrivileged && !jornadaActiva) {
-    return (
-      <AppLayout>
-        <SinJornadaActiva />
-      </AppLayout>
-    );
+    return <AppLayout><SinJornadaActiva /></AppLayout>;
   }
 
   if (!isPrivileged && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
-    return (
-      <AppLayout>
-        <SinJornadaAutorizada />
-      </AppLayout>
-    );
+    return <AppLayout><SinJornadaAutorizada /></AppLayout>;
   }
 
   return (
