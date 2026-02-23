@@ -24,6 +24,7 @@ import {
   Plus, MapPin, Pencil, Wrench, DollarSign, Briefcase, FileText,
 } from 'lucide-react';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import { usePWAInstall } from '@/hooks/usePWAInstall';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,7 +39,7 @@ const AppSidebar = () => {
   const { settings: storeSettings } = useStoreSettings();
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, isSuperAdmin, signOut, switchBranch, isCuba } = useAuth();
+  const { profile, isSuperAdmin, isOwner, isManager, signOut, switchBranch, isCuba } = useAuth();
   const { data: branches = [] } = useBranches();
   const { planType } = useSubscription();
   const { isInstalled } = usePWAInstall();
@@ -81,6 +82,13 @@ const AppSidebar = () => {
   });
   const hasEmployeeRecord = !!employeeRecord;
   const isEmployeeCopyShop = (employeeRecord as any)?.businesses?.business_type === 'copy_shop';
+  const isPrivileged = isOwner || isManager || isSuperAdmin;
+
+  // Jornada check for non-privileged employees — gate operational tools
+  const { jornadaActiva, jornada: activeJornada } = useJornadaActiva();
+  const hasAuthorizedJornada = jornadaActiva && activeJornada?.metodo_apertura === 'manual_gerente';
+  // Employee can see operational tools only if they have an authorized active shift
+  const showEmployeeTools = hasEmployeeRecord && !isPrivileged && hasAuthorizedJornada;
 
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
@@ -322,40 +330,45 @@ const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location.pathname === '/pos' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
-                    <Link to="/pos?ctx=emp">
-                      <ShoppingCart className="h-4 w-4" />
-                      <span className="text-sm">Punto de Venta</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={location.pathname === '/sales' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
-                    <Link to="/sales?ctx=emp">
-                      <Receipt className="h-4 w-4" />
-                      <span className="text-sm">Ventas</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-                {isEmployeeCopyShop && (
+                {/* Operational tools only shown when employee has authorized active shift */}
+                {showEmployeeTools && (
                   <>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isActive('/services')}>
-                        <Link to="/services">
-                          <Wrench className="h-4 w-4" />
-                          <span className="text-sm">Servicios</span>
+                      <SidebarMenuButton asChild isActive={location.pathname === '/pos' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                        <Link to="/pos?ctx=emp">
+                          <ShoppingCart className="h-4 w-4" />
+                          <span className="text-sm">Punto de Venta</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={isActive('/cobros')}>
-                        <Link to="/cobros">
-                          <FileText className="h-4 w-4" />
-                          <span className="text-sm">Reportes</span>
+                      <SidebarMenuButton asChild isActive={location.pathname === '/sales' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                        <Link to="/sales?ctx=emp">
+                          <Receipt className="h-4 w-4" />
+                          <span className="text-sm">Ventas</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
+                    {isEmployeeCopyShop && (
+                      <>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={isActive('/services')}>
+                            <Link to="/services">
+                              <Wrench className="h-4 w-4" />
+                              <span className="text-sm">Servicios</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                        <SidebarMenuItem>
+                          <SidebarMenuButton asChild isActive={isActive('/cobros')}>
+                            <Link to="/cobros">
+                              <FileText className="h-4 w-4" />
+                              <span className="text-sm">Reportes</span>
+                            </Link>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      </>
+                    )}
                   </>
                 )}
               </SidebarMenu>

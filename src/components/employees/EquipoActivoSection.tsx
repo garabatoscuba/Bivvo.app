@@ -47,12 +47,14 @@ const ElapsedBadge = ({ aperturaAt }: { aperturaAt: string }) => {
 
 interface EquipoActivoProps {
   onlyActive?: boolean;
+  /** Override business ID (e.g. employer's business for Mi Empleo context) */
+  businessIdOverride?: string;
 }
 
-const EquipoActivoSection = ({ onlyActive = false }: EquipoActivoProps) => {
+const EquipoActivoSection = ({ onlyActive = false, businessIdOverride }: EquipoActivoProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
-  const businessId = profile?.business_id;
+  const businessId = businessIdOverride || profile?.business_id;
 
   const [iniciarDialog, setIniciarDialog] = useState<{ profileId: string; name: string; branchId: string | null } | null>(null);
   const [saving, setSaving] = useState(false);
