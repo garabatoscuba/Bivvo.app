@@ -512,7 +512,7 @@ const ManagerServicesView = () => {
                       ]}
                       contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
                     />
-                    <Bar dataKey="count" name="Cantidad" radius={[0, 4, 4, 0]}>
+                    <Bar dataKey="count" name="Cantidad" barSize={14} radius={[0, 4, 4, 0]}>
                       {chartData.map((_, i) => (
                         <Cell key={i} fill={COLORS[i % COLORS.length]} />
                       ))}
