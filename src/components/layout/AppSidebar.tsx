@@ -34,13 +34,11 @@ import { Separator } from '@/components/ui/separator';
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 
-const VISION_HABANA_BIZ_ID = '03ab1b9d-c0ff-412c-9b78-c86d320dc41c';
-
 const AppSidebar = () => {
   const { settings: storeSettings } = useStoreSettings();
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, isSuperAdmin, signOut, switchBranch } = useAuth();
+  const { profile, isSuperAdmin, signOut, switchBranch, isCuba } = useAuth();
   const { data: branches = [] } = useBranches();
   const { planType } = useSubscription();
   const { isInstalled } = usePWAInstall();
@@ -72,7 +70,7 @@ const AppSidebar = () => {
       if (!profile?.email) return null;
       const { data, error } = await supabase
         .from('employees')
-        .select('id, business_id')
+        .select('id, business_id, businesses!employees_business_id_fkey(business_type)')
         .eq('email', profile.email.toLowerCase())
         .limit(1)
         .maybeSingle();
@@ -82,7 +80,7 @@ const AppSidebar = () => {
     enabled: !!profile?.email,
   });
   const hasEmployeeRecord = !!employeeRecord;
-  const isEmployeeVisionHabana = employeeRecord?.business_id === VISION_HABANA_BIZ_ID;
+  const isEmployeeCopyShop = (employeeRecord as any)?.businesses?.business_type === 'copy_shop';
 
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
@@ -91,7 +89,7 @@ const AppSidebar = () => {
       if (!profile?.id) return [];
       const { data: bizList } = await supabase
         .from('businesses')
-        .select('id, name')
+        .select('id, name, business_type')
         .eq('owner_id', profile.id)
         .order('created_at');
       if (!bizList) return [];
@@ -247,15 +245,16 @@ const AppSidebar = () => {
     { title: 'Usuarios', url: '/admin/users', icon: Users },
   ];
 
-  const isVisionHabana = profile?.business_id === VISION_HABANA_BIZ_ID;
+  const activeBusiness = userBusinesses.find(b => b.id === profile?.business_id);
+  const isCopyShop = activeBusiness?.business_type === 'copy_shop';
 
   const businessItems = [
     { title: 'Dashboard', url: '/', icon: LayoutDashboard },
     { title: 'Inventario', url: '/inventory', icon: Package },
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
-    ...(isVisionHabana ? [{ title: 'Servicios', url: '/services', icon: Wrench }] : []),
+    ...(isCopyShop ? [{ title: 'Servicios', url: '/services', icon: Wrench }] : []),
     { title: 'Ventas', url: '/sales', icon: Receipt },
-    ...(isVisionHabana ? [{ title: 'Reportes', url: '/cobros', icon: FileText }] : []),
+    ...(isCopyShop ? [{ title: 'Reportes', url: '/cobros', icon: FileText }] : []),
     { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
     ...(storeSettings?.has_delivery ? [{ title: 'Pedidos', url: '/orders', icon: Receipt }] : []),
     { title: 'Recursos Humanos', url: '/employees', icon: Users },
@@ -339,7 +338,7 @@ const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {isEmployeeVisionHabana && (
+                {isEmployeeCopyShop && (
                   <>
                     <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={isActive('/services')}>
@@ -599,6 +598,7 @@ const AppSidebar = () => {
                 className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="store">🏪 Tienda</option>
+                {isCuba && <option value="copy_shop">📄 Punto de Copias</option>}
                 <option value="gym" disabled>🏋️ Gym (próximamente)</option>
               </select>
             </div>
