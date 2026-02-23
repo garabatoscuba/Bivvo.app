@@ -3,6 +3,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -18,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
+import ContarYCerrarModal from '@/components/employees/ContarYCerrarModal';
 import { toast as sonnerToast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
@@ -85,6 +87,11 @@ const MyEmployment = () => {
   const [jornadaCerrarTarget, setJornadaCerrarTarget] = useState<{ jornada: any; name: string } | null>(null);
   const [jornadaLoading, setJornadaLoading] = useState<string | null>(null);
   const [cerrarMiJornadaOpen, setCerrarMiJornadaOpen] = useState(false);
+  const [contarYCerrarOpen, setContarYCerrarOpen] = useState(false);
+
+  // Daily copies state for copy shop employees
+  const [copiesCash, setCopiesCash] = useState('');
+  const [copiesTransfer, setCopiesTransfer] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
   const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
@@ -122,6 +129,140 @@ const MyEmployment = () => {
   });
   const isEmployerCopyShop = employerBiz?.business_type === 'copy_shop';
   const hasAuthorizedJornada = jornadaActiva && myJornada?.metodo_apertura === 'manual_gerente';
+
+  // Fetch today's copies for this employee (copy shop)
+  const todayStr = new Date().toISOString().split('T')[0];
+  const { data: todayCopiesRecord } = useQuery({
+    queryKey: ['my-daily-copies', businessId, todayStr, profile?.user_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('daily_copies')
+        .select('*')
+        .eq('user_id', profile!.user_id)
+        .eq('business_id', businessId!)
+        .eq('date', todayStr)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!businessId && !!profile?.user_id && isEmployerCopyShop && hasAuthorizedJornada,
+  });
+
+  // Fetch today's service earnings for salary preview
+  const { data: todayServiceEarnings = 0 } = useQuery({
+    queryKey: ['my-today-service-earnings', businessId, myJornada?.sucursal_id, todayStr],
+    queryFn: async () => {
+      const startOfDay = todayStr + 'T00:00:00';
+      const endOfDay = todayStr + 'T23:59:59';
+      const { data } = await supabase
+        .from('service_entries')
+        .select('amount')
+        .eq('business_id', businessId!)
+        .eq('branch_id', myJornada!.sucursal_id)
+        .eq('user_id', profile!.user_id)
+        .gte('created_at', startOfDay)
+        .lte('created_at', endOfDay);
+      return data?.reduce((sum, s) => sum + Number(s.amount), 0) || 0;
+    },
+    enabled: !!businessId && !!myJornada?.sucursal_id && !!profile?.user_id && hasAuthorizedJornada,
+  });
+
+  // Fetch today's sales commissions for salary preview
+  const { data: todaySalesTotal = 0 } = useQuery({
+    queryKey: ['my-today-sales-total', myJornada?.sucursal_id, todayStr],
+    queryFn: async () => {
+      const startOfDay = todayStr + 'T00:00:00';
+      const endOfDay = todayStr + 'T23:59:59';
+      const { data } = await supabase
+        .from('sales')
+        .select('total')
+        .eq('branch_id', myJornada!.sucursal_id)
+        .eq('user_id', profile!.user_id)
+        .eq('status', 'completed')
+        .gte('created_at', startOfDay)
+        .lte('created_at', endOfDay);
+      return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
+    },
+    enabled: !!myJornada?.sucursal_id && !!profile?.user_id && hasAuthorizedJornada,
+  });
+
+  // Fetch salary assignment for display
+  const { data: mySalaryAssignment } = useQuery({
+    queryKey: ['my-salary-assignment', myEmployeeRecord?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('employee_salary_assignments')
+        .select('*, salary_modalities(name, modality_type, config)')
+        .eq('employee_id', myEmployeeRecord!.id)
+        .eq('is_active', true)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!myEmployeeRecord?.id,
+  });
+
+  // Calculate running daily salary
+  const dailySalary = useMemo(() => {
+    if (!mySalaryAssignment) return null;
+    const modType = (mySalaryAssignment as any)?.salary_modalities?.modality_type;
+    const config = (mySalaryAssignment as any)?.salary_modalities?.config || {};
+    const baseSalary = Number(mySalaryAssignment.base_salary || 0);
+    let serviceEarning = 0;
+    let salesEarning = 0;
+
+    // Simple salary estimation based on modality
+    if (modType === 'fixed') {
+      // Fixed daily = base / frequency days
+      const freq = mySalaryAssignment.pay_frequency;
+      const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
+      return { total: baseSalary / days, serviceEarning: 0, salesEarning: 0, base: baseSalary / days };
+    }
+
+    // Service percent
+    const servicePercent = Number(config.service_percent || config.percent || 0);
+    if (servicePercent > 0) {
+      serviceEarning = todayServiceEarnings * (servicePercent / 100);
+    }
+
+    // Sales percent
+    const salesPercent = Number(config.sales_percent || 0);
+    if (salesPercent > 0) {
+      salesEarning = todaySalesTotal * (salesPercent / 100);
+    }
+
+    const total = baseSalary + serviceEarning + salesEarning;
+    return { total, serviceEarning, salesEarning, base: baseSalary };
+  }, [mySalaryAssignment, todayServiceEarnings, todaySalesTotal]);
+
+  // Save copies
+  const handleSaveCopies = async () => {
+    if (!businessId || !myJornada || !profile) return;
+    const cashVal = parseFloat(copiesCash) || 0;
+    const transferVal = parseFloat(copiesTransfer) || 0;
+
+    if (todayCopiesRecord) {
+      await supabase.from('daily_copies').update({
+        cash_amount: cashVal,
+        transfer_amount: transferVal,
+      }).eq('id', todayCopiesRecord.id);
+    } else {
+      await supabase.from('daily_copies').insert({
+        user_id: profile.user_id,
+        business_id: businessId,
+        branch_id: myJornada.sucursal_id,
+        cash_amount: cashVal,
+        transfer_amount: transferVal,
+      });
+    }
+    queryClient.invalidateQueries({ queryKey: ['my-daily-copies'] });
+  };
+
+  // Sync copies inputs from DB
+  useEffect(() => {
+    if (todayCopiesRecord) {
+      setCopiesCash(String(todayCopiesRecord.cash_amount || ''));
+      setCopiesTransfer(String(todayCopiesRecord.transfer_amount || ''));
+    }
+  }, [todayCopiesRecord]);
 
   const { data: branchAssignments = [] } = useQuery({
     queryKey: ['my-employee-branch-assignments', myEmployeeRecord?.id],
@@ -493,17 +634,76 @@ const MyEmployment = () => {
             </CardContent>
           </Card>
 
-          {/* Quick-access tools when shift is active */}
+          {/* Daily salary preview */}
+          {hasAuthorizedJornada && dailySalary && (
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="py-3 px-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Salario acumulado hoy</p>
+                    <p className="text-2xl font-bold text-primary">${dailySalary.total.toFixed(2)}</p>
+                  </div>
+                  <DollarSign className="h-8 w-8 text-primary/30" />
+                </div>
+                {(dailySalary.serviceEarning > 0 || dailySalary.salesEarning > 0) && (
+                  <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground">
+                    {dailySalary.base > 0 && <span>Base: ${dailySalary.base.toFixed(2)}</span>}
+                    {dailySalary.serviceEarning > 0 && <span>Servicios: ${dailySalary.serviceEarning.toFixed(2)}</span>}
+                    {dailySalary.salesEarning > 0 && <span>Ventas: ${dailySalary.salesEarning.toFixed(2)}</span>}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Copy shop: daily copies inputs */}
+          {hasAuthorizedJornada && isEmployerCopyShop && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Receipt className="h-4 w-4" />
+                  Copias del Día
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Efectivo</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="0.00"
+                      value={copiesCash}
+                      onChange={e => setCopiesCash(e.target.value)}
+                      onBlur={handleSaveCopies}
+                      className="h-9"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground mb-1 block">Transferencia</label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="0.00"
+                      value={copiesTransfer}
+                      onChange={e => setCopiesTransfer(e.target.value)}
+                      onBlur={handleSaveCopies}
+                      className="h-9"
+                    />
+                  </div>
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Total copias: ${((parseFloat(copiesCash) || 0) + (parseFloat(copiesTransfer) || 0)).toFixed(2)}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Quick actions when shift active */}
           {hasAuthorizedJornada && (
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/pos?ctx=emp')}>
-                <ShoppingCart className="h-5 w-5 text-primary" />
-                <span className="text-xs">Punto de Venta</span>
-              </Button>
-              <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/sales?ctx=emp')}>
-                <Receipt className="h-5 w-5 text-primary" />
-                <span className="text-xs">Ventas</span>
-              </Button>
+            <div className="grid grid-cols-2 gap-2">
               {isEmployerCopyShop && (
                 <>
                   <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/services')}>
@@ -516,9 +716,9 @@ const MyEmployment = () => {
                   </Button>
                 </>
               )}
-              <Button variant="destructive" className="h-auto py-3 flex flex-col items-center gap-1.5 col-span-2 sm:col-span-1" onClick={() => setCerrarMiJornadaOpen(true)}>
+              <Button variant="destructive" className="h-auto py-3 flex flex-col items-center gap-1.5 col-span-2" onClick={() => setContarYCerrarOpen(true)}>
                 <LogOut className="h-5 w-5" />
-                <span className="text-xs">Cerrar Jornada</span>
+                <span className="text-xs">Contar y Cerrar Jornada</span>
               </Button>
             </div>
           )}
@@ -1104,7 +1304,7 @@ const MyEmployment = () => {
           </Card>
         </TabsContent>
 
-        {/* ===== TAB 3: NÓMINA ===== */}
+        {/* ===== TAB 3: NÓMINA (now PayrollHistory) ===== */}
         <TabsContent value="nomina" className="space-y-4">
           {myEmployeeRecord?.business_id ? (
             <PayrollHistory
@@ -1117,7 +1317,7 @@ const MyEmployment = () => {
           )}
         </TabsContent>
 
-        {/* ===== TAB 4: INFORMACIÓN LABORAL ===== */}
+        {/* ===== TAB 4: INFORMACIÓN LABORAL + Nómina info ===== */}
         <TabsContent value="info" className="space-y-4">
           <Card>
             <CardHeader className="pb-2">
@@ -1192,6 +1392,38 @@ const MyEmployment = () => {
               })()}
             </CardContent>
           </Card>
+
+          {/* Salary assignment info */}
+          {mySalaryAssignment && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <DollarSign className="h-4 w-4" />
+                  Información de Nómina
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Modalidad</p>
+                    <p className="text-sm font-medium">{(mySalaryAssignment as any)?.salary_modalities?.name || 'Sin asignar'}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-muted-foreground">Frecuencia de Pago</p>
+                    <Badge variant="outline" className="text-[10px]">
+                      {mySalaryAssignment.pay_frequency === 'daily' ? 'Diaria' : mySalaryAssignment.pay_frequency === 'weekly' ? 'Semanal' : mySalaryAssignment.pay_frequency === 'biweekly' ? 'Quincenal' : 'Mensual'}
+                    </Badge>
+                  </div>
+                  {Number(mySalaryAssignment.base_salary) > 0 && (
+                    <div>
+                      <p className="text-[10px] text-muted-foreground">Salario Base</p>
+                      <p className="text-sm font-medium">${Number(mySalaryAssignment.base_salary).toFixed(2)}</p>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
 
@@ -1205,7 +1437,17 @@ const MyEmployment = () => {
         />
       )}
 
-      {/* Cerrar mi propia jornada */}
+      {/* Contar y Cerrar Jornada */}
+      {myJornada && businessId && (
+        <ContarYCerrarModal
+          open={contarYCerrarOpen}
+          onOpenChange={setContarYCerrarOpen}
+          jornada={myJornada}
+          employeeBusinessId={businessId}
+        />
+      )}
+
+      {/* Cerrar mi propia jornada (fallback) */}
       {myJornada && (
         <CerrarJornadaModal
           open={cerrarMiJornadaOpen}
