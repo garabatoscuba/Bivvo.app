@@ -253,11 +253,11 @@ const AppSidebar = () => {
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
     ...(isVisionHabana ? [{ title: 'Servicios', url: '/services', icon: Wrench }] : []),
     { title: 'Ventas', url: '/sales', icon: Receipt },
-    ...(isVisionHabana ? [{ title: 'Cobro', url: '/cobros', icon: DollarSign }] : []),
+    ...(isVisionHabana ? [{ title: 'Reportes', url: '/cobros', icon: DollarSign }] : []),
     { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
     { title: 'Pedidos', url: '/orders', icon: Receipt },
     { title: 'Recursos Humanos', url: '/employees', icon: Users },
-    
+    { title: 'Nómina', url: '/nomina', icon: DollarSign },
     { title: 'Configuración', url: '/settings', icon: Settings },
     { title: 'Planes', url: '/plans', icon: CreditCard },
   ];
@@ -351,7 +351,7 @@ const AppSidebar = () => {
                       <SidebarMenuButton asChild isActive={isActive('/cobros')}>
                         <Link to="/cobros">
                           <DollarSign className="h-4 w-4" />
-                          <span className="text-sm">Cobro</span>
+                          <span className="text-sm">Reportes</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
