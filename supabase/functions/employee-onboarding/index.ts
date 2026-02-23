@@ -47,22 +47,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update profile: assign to business and branch
-    const { error: profileError } = await admin
-      .from("profiles")
-      .update({
-        business_id,
-        branch_id: branch_id || null,
-        user_type: "internal",
-      })
-      .eq("id", targetProfile.id);
-
-    if (profileError) {
-      return new Response(
-        JSON.stringify({ error: "Error al actualizar perfil: " + profileError.message }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // IMPORTANT: Do NOT overwrite the employee's profile business_id/branch_id.
+    // The employee's profile should always point to their OWN business.
+    // The employment relationship is tracked via the `employees` table,
+    // not by changing the profile's business_id.
 
     // Determine role from position
     const roleMap: Record<string, string> = {
