@@ -59,7 +59,7 @@ const ChangeIndicator = ({ value }: {value: number;}) => {
 };
 
 const Dashboard = () => {
-  const { profile, roles, isAffiliated } = useAuth();
+  const { profile, roles, isAffiliated, isCuba } = useAuth();
   const { products } = useProducts();
   const { data: branches } = useBranches();
   const currentBranch = profile?.branch_id || branches?.[0]?.id;
@@ -75,17 +75,16 @@ const Dashboard = () => {
   const [newBizType, setNewBizType] = useState('store');
   const [creatingBiz, setCreatingBiz] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
+  const [selectedCountry, setSelectedCountry] = useState('');
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
 
-  // Show welcome dialog for first-time users
+  // Show welcome dialog for first-time users (no country set)
   useEffect(() => {
     if (!profile?.user_id) return;
-    const key = `welcome_shown_${profile.user_id}`;
-    if (!localStorage.getItem(key)) {
+    if (!profile.country) {
       setShowWelcome(true);
-      localStorage.setItem(key, 'true');
     }
-  }, [profile?.user_id]);
+  }, [profile?.user_id, profile?.country]);
 
   // Show popup reactively when plan changes from free to paid/trial
   useEffect(() => {
@@ -428,16 +427,42 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Welcome Dialog for first-time users */}
-      <Dialog open={showWelcome} onOpenChange={setShowWelcome}>
-        <DialogContent className="sm:max-w-md">
+      {/* Welcome Dialog for first-time users — requires country */}
+      <Dialog open={showWelcome} onOpenChange={() => {}}>
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
           <DialogHeader>
             <DialogTitle className="text-xl">🎉 ¡Bienvenido a GestorPro!</DialogTitle>
             <DialogDescription className="text-base pt-2">
-              Tu herramienta todo-en-uno para gestionar tu negocio de forma simple y eficiente.
+              Tu herramienta todo-en-uno para gestionar tu negocio. Primero, dinos en qué parte del mundo te encuentras.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">¿Dónde te encuentras?</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { value: 'cuba', label: '🇨🇺 Cuba' },
+                  { value: 'usa', label: '🇺🇸 Estados Unidos' },
+                  { value: 'americas', label: '🌎 Américas' },
+                  { value: 'europe', label: '🇪🇺 Europa' },
+                  { value: 'asia', label: '🌏 Asia' },
+                  { value: 'africa', label: '🌍 África' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    onClick={() => setSelectedCountry(opt.value)}
+                    className={`flex items-center justify-center rounded-lg border p-3 text-sm font-medium transition-colors ${
+                      selectedCountry === opt.value
+                        ? 'border-primary bg-primary/10 ring-1 ring-primary text-foreground'
+                        : 'hover:bg-muted/50 text-muted-foreground'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
             <div className="rounded-lg border bg-muted/50 p-3 space-y-2">
               <p className="text-sm font-medium">Primeros pasos:</p>
               <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
@@ -452,8 +477,17 @@ const Dashboard = () => {
             </p>
           </div>
           <DialogFooter>
-            <DialogButton className="w-full" onClick={() => setShowWelcome(false)}>
-              ¡Empezar!
+            <DialogButton
+              className="w-full"
+              disabled={!selectedCountry}
+              onClick={async () => {
+                if (!selectedCountry || !profile?.user_id) return;
+                await supabase.from('profiles').update({ country: selectedCountry } as any).eq('user_id', profile.user_id);
+                setShowWelcome(false);
+                window.location.reload();
+              }}
+            >
+              {selectedCountry ? '¡Empezar!' : 'Selecciona tu ubicación'}
             </DialogButton>
           </DialogFooter>
         </DialogContent>
@@ -488,6 +522,7 @@ const Dashboard = () => {
                 className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 <option value="store">🏪 Tienda</option>
+                {isCuba && <option value="copy_shop">📄 Punto de Copias</option>}
                 <option value="gym" disabled>🏋️ Gym (próximamente)</option>
               </select>
             </div>

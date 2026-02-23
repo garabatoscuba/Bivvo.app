@@ -1210,6 +1210,7 @@ export type Database = {
           avatar_url: string | null
           branch_id: string | null
           business_id: string | null
+          country: string | null
           created_at: string
           deleted_at: string | null
           deletion_scheduled_at: string | null
@@ -1229,6 +1230,7 @@ export type Database = {
           avatar_url?: string | null
           branch_id?: string | null
           business_id?: string | null
+          country?: string | null
           created_at?: string
           deleted_at?: string | null
           deletion_scheduled_at?: string | null
@@ -1248,6 +1250,7 @@ export type Database = {
           avatar_url?: string | null
           branch_id?: string | null
           business_id?: string | null
+          country?: string | null
           created_at?: string
           deleted_at?: string | null
           deletion_scheduled_at?: string | null

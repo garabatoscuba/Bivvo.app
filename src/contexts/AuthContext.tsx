@@ -21,6 +21,7 @@ interface Profile {
   deleted_at: string | null;
   deletion_scheduled_at: string | null;
   user_type: string;
+  country: string | null;
 }
 
 interface AuthContextType {
@@ -39,6 +40,7 @@ interface AuthContextType {
   isSeller: boolean;
   isAccountant: boolean;
   isAffiliated: boolean;
+  isCuba: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -239,6 +241,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isSeller: roles.includes('seller'),
     isAccountant: roles.includes('accountant'),
     isAffiliated: profile?.user_type === 'affiliated',
+    isCuba: profile?.country === 'cuba',
   };
 
   return (

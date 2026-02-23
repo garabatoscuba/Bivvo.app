@@ -23,7 +23,7 @@ import { Plus, Pencil, Trash2, Loader2, DollarSign, Send } from 'lucide-react';
 import IconSelector, { getIconComponent } from '@/components/services/IconSelector';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 
-const VISION_HABANA_BIZ_ID = '03ab1b9d-c0ff-412c-9b78-c86d320dc41c';
+// Business type check replaces hardcoded ID
 
 const paymentLabels: Record<string, string> = {
   cash: 'Efectivo',
@@ -658,7 +658,7 @@ const Services = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('employees')
-        .select('id, business_id, branch_id')
+        .select('id, business_id, branch_id, businesses!employees_business_id_fkey(business_type)')
         .eq('email', profile!.email)
         .maybeSingle();
       if (error) throw error;
@@ -667,9 +667,9 @@ const Services = () => {
     enabled: !!profile?.email,
   });
 
-  const isVisionHabanaEmployee = employeeRecord?.business_id === VISION_HABANA_BIZ_ID;
+  const isCopyShopEmployee = (employeeRecord as any)?.businesses?.business_type === 'copy_shop';
   const isPrivileged = isOwner || isManager || isSuperAdmin;
-  const showEmployeeView = isVisionHabanaEmployee;
+  const showEmployeeView = isCopyShopEmployee;
 
   if (!isPrivileged && jornadaLoading) {
     return (
