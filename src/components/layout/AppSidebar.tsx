@@ -363,16 +363,14 @@ const AppSidebar = () => {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    {isEmployeeCopyShop && (
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={location.pathname === '/services' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
-                          <Link to="/services?ctx=emp">
-                            <Wrench className="h-4 w-4" />
-                            <span className="text-sm">Servicios</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    )}
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={location.pathname === '/services' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                        <Link to="/services?ctx=emp">
+                          <Wrench className="h-4 w-4" />
+                          <span className="text-sm">Servicios</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
                     {isEmployeeCopyShop && (
                       <SidebarMenuItem>
                         <SidebarMenuButton asChild isActive={location.pathname === '/cobros' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
