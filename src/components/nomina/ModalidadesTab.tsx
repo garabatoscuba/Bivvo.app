@@ -33,6 +33,7 @@ const MODALITY_INFO: Record<string, { label: string; description: string }> = {
 };
 
 const ALL_TYPES = Object.keys(MODALITY_INFO);
+const BLOCKED_TYPES = new Set(['fixed_ladder', 'fixed_plus_goal_bonus']);
 
 interface Condition {
   positions: number;
@@ -235,6 +236,7 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium">{info.label}</p>
                       {isEnabled && <Badge variant="secondary" className="text-[10px]">Activa</Badge>}
+                      {BLOCKED_TYPES.has(type) && <Badge variant="outline" className="text-[10px] opacity-60">Próximamente</Badge>}
                       {isEnabled && modAppliesTo && modAppliesTo !== 'both' && (
                         <Badge variant="outline" className="text-[10px]">
                           {modAppliesTo === 'services' ? 'Servicios' : 'Productos'}
@@ -249,7 +251,7 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
                     <p className="text-xs text-muted-foreground mt-0.5">{info.description}</p>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    {isEnabled && (
+                    {isEnabled && !BLOCKED_TYPES.has(type) && (
                       <Button
                         variant="ghost"
                         size="icon"
@@ -262,7 +264,7 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
                     <Switch
                       checked={isEnabled}
                       onCheckedChange={checked => toggleMutation.mutate({ type, enable: checked })}
-                      disabled={toggleMutation.isPending}
+                      disabled={toggleMutation.isPending || BLOCKED_TYPES.has(type)}
                     />
                   </div>
                 </div>
