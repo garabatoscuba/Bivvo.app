@@ -10,9 +10,16 @@ import { Loader2, Settings2, Users } from 'lucide-react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
+
+import AppliesToSelector from './modality-configs/AppliesToSelector';
+import FixedConfig from './modality-configs/FixedConfig';
+import FixedLadderConfig from './modality-configs/FixedLadderConfig';
+import SalesPercentConfig from './modality-configs/SalesPercentConfig';
+import ProfitPercentConfig from './modality-configs/ProfitPercentConfig';
+import GoalBonusConfig from './modality-configs/GoalBonusConfig';
+import HourlyConfig from './modality-configs/HourlyConfig';
+import CustomMixedConfig from './modality-configs/CustomMixedConfig';
+import type { Preset } from './modality-configs/PresetManager';
 
 const MODALITY_INFO: Record<string, { label: string; description: string }> = {
   fixed: { label: 'Fijo', description: 'Salario fijo independiente de ventas' },
@@ -22,7 +29,7 @@ const MODALITY_INFO: Record<string, { label: string; description: string }> = {
   profit_percent: { label: '% sobre Ganancia Total', description: 'Porcentaje sobre la ganancia neta del negocio' },
   fixed_plus_goal_bonus: { label: 'Fijo + Bono por Meta', description: 'Salario base con bonos al cumplir metas' },
   hourly: { label: 'Por Horas', description: 'Pago según horas trabajadas' },
-  custom_mixed: { label: 'Mixto Personalizado', description: 'Se destina un % de la venta total a salarios, dividido entre los trabajadores activos' },
+  custom_mixed: { label: 'Mixto Personalizado', description: 'Cada trabajador gana un % de la venta según cuántos estén activos' },
 };
 
 const ALL_TYPES = Object.keys(MODALITY_INFO);
@@ -41,9 +48,12 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
   const queryClient = useQueryClient();
   const [configOpen, setConfigOpen] = useState(false);
   const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [configJson, setConfigJson] = useState('');
 
-  // custom_mixed state
+  // Config state
+  const [appliesTo, setAppliesTo] = useState('both');
+  const [presets, setPresets] = useState<Preset[]>([]);
+
+  // custom_mixed specific state
   const [totalPositions, setTotalPositions] = useState<number>(3);
   const [conditions, setConditions] = useState<Condition[]>([
     { positions: 3, service_percent: 12 },
@@ -65,7 +75,6 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
     enabled: !!businessId,
   });
 
-  // Also fetch salary_config for custom_mixed
   const { data: salaryConfig } = useQuery({
     queryKey: ['salary-config', businessId],
     queryFn: async () => {
@@ -92,6 +101,8 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
           name: info.label,
           config: {},
           is_active: true,
+          applies_to: 'both',
+          presets: [],
         } as any);
         if (error) throw error;
       } else {
@@ -112,44 +123,37 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
 
   const saveConfigMutation = useMutation({
     mutationFn: async () => {
-      let parsed = {};
-      try { parsed = JSON.parse(configJson || '{}'); } catch { parsed = {}; }
+      if (selectedType === 'custom_mixed') {
+        // Save to salary_config
+        const payload = {
+          business_id: businessId,
+          total_positions: totalPositions,
+          conditions: conditions,
+        };
+        if (salaryConfig) {
+          const { error } = await supabase
+            .from('salary_config')
+            .update({ total_positions: totalPositions, conditions: conditions as any })
+            .eq('id', salaryConfig.id);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from('salary_config').insert(payload as any);
+          if (error) throw error;
+        }
+      }
+
+      // Save applies_to and presets to the modality
       const { error } = await supabase
         .from('salary_modalities')
-        .update({ config: parsed } as any)
+        .update({ applies_to: appliesTo, presets: presets as any, config: {} } as any)
         .eq('business_id', businessId)
         .eq('modality_type', selectedType as any);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['salary-modalities'] });
-      toast({ title: 'Configuración guardada' });
-      setConfigOpen(false);
-    },
-    onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
-  });
-
-  const saveMixtoConfigMutation = useMutation({
-    mutationFn: async () => {
-      const payload = {
-        business_id: businessId,
-        total_positions: totalPositions,
-        conditions: conditions,
-      };
-      if (salaryConfig) {
-        const { error } = await supabase
-          .from('salary_config')
-          .update({ total_positions: totalPositions, conditions: conditions as any })
-          .eq('id', salaryConfig.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('salary_config').insert(payload as any);
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['salary-config'] });
-      toast({ title: 'Configuración del Mixto guardada' });
+      toast({ title: 'Configuración guardada' });
       setConfigOpen(false);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
@@ -157,40 +161,52 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
 
   const openConfig = (type: string) => {
     setSelectedType(type);
+    const mod = modalities.find((m: any) => m.modality_type === type);
+    setAppliesTo((mod as any)?.applies_to || 'both');
+    setPresets(((mod as any)?.presets as Preset[]) || []);
+
     if (type === 'custom_mixed') {
       const cfg = salaryConfig;
-      const pos = cfg?.total_positions ?? 3;
-      const conds = (cfg?.conditions as unknown as Condition[]) ?? [
+      setTotalPositions(cfg?.total_positions ?? 3);
+      setConditions((cfg?.conditions as unknown as Condition[]) ?? [
         { positions: 3, service_percent: 12 },
         { positions: 2, service_percent: 33 },
         { positions: 1, service_percent: 30 },
-      ];
-      setTotalPositions(pos);
-      setConditions(conds);
-    } else {
-      const mod = modalities.find((m: any) => m.modality_type === type);
-      setConfigJson(JSON.stringify(mod?.config || {}, null, 2));
+      ]);
     }
     setConfigOpen(true);
   };
 
-  const handlePositionsChange = (val: number) => {
-    const n = Math.max(1, Math.min(10, val));
-    setTotalPositions(n);
-    const newConditions: Condition[] = [];
-    for (let i = n; i >= 1; i--) {
-      const existing = conditions.find(c => c.positions === i);
-      newConditions.push({ positions: i, service_percent: existing?.service_percent ?? 10 });
-    }
-    setConditions(newConditions);
-  };
+  const renderModalityConfig = () => {
+    if (!selectedType) return null;
 
-  const handlePercentChange = (positions: number, percent: number) => {
-    setConditions(prev =>
-      prev.map(c =>
-        c.positions === positions ? { ...c, service_percent: Math.max(0, Math.min(100, percent)) } : c
-      )
-    );
+    switch (selectedType) {
+      case 'fixed':
+        return <FixedConfig presets={presets} onPresetsChange={setPresets} />;
+      case 'fixed_ladder':
+        return <FixedLadderConfig presets={presets} onPresetsChange={setPresets} />;
+      case 'fixed_plus_sales_percent':
+        return <SalesPercentConfig type="fixed_plus_sales_percent" presets={presets} onPresetsChange={setPresets} />;
+      case 'sales_percent_only':
+        return <SalesPercentConfig type="sales_percent_only" presets={presets} onPresetsChange={setPresets} />;
+      case 'profit_percent':
+        return <ProfitPercentConfig presets={presets} onPresetsChange={setPresets} />;
+      case 'fixed_plus_goal_bonus':
+        return <GoalBonusConfig presets={presets} onPresetsChange={setPresets} />;
+      case 'hourly':
+        return <HourlyConfig presets={presets} onPresetsChange={setPresets} />;
+      case 'custom_mixed':
+        return (
+          <CustomMixedConfig
+            totalPositions={totalPositions}
+            conditions={conditions}
+            onTotalPositionsChange={setTotalPositions}
+            onConditionsChange={setConditions}
+          />
+        );
+      default:
+        return null;
+    }
   };
 
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>;
@@ -203,18 +219,32 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground mb-4">
-            Activa las modalidades de salario que aplican a tu negocio. Luego podrás asignarlas a cada empleado.
+            Activa las modalidades de salario que aplican a tu negocio. Configura cada una con el ícono de ajustes.
           </p>
           <div className="space-y-3">
             {ALL_TYPES.map(type => {
               const info = MODALITY_INFO[type];
               const isEnabled = enabledTypes.has(type);
+              const mod = modalities.find((m: any) => m.modality_type === type);
+              const modAppliesTo = (mod as any)?.applies_to;
+              const modPresets = ((mod as any)?.presets as Preset[]) || [];
+
               return (
                 <div key={type} className="flex items-center justify-between rounded-lg border p-3">
                   <div className="flex-1 min-w-0 mr-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium">{info.label}</p>
                       {isEnabled && <Badge variant="secondary" className="text-[10px]">Activa</Badge>}
+                      {isEnabled && modAppliesTo && modAppliesTo !== 'both' && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {modAppliesTo === 'services' ? 'Servicios' : 'Productos'}
+                        </Badge>
+                      )}
+                      {isEnabled && modPresets.length > 0 && (
+                        <Badge variant="outline" className="text-[10px]">
+                          {modPresets.length} preset{modPresets.length > 1 ? 's' : ''}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{info.description}</p>
                   </div>
@@ -243,96 +273,22 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
       </Card>
 
       <Dialog open={configOpen} onOpenChange={setConfigOpen}>
-        <DialogContent className={selectedType === 'custom_mixed' ? 'max-w-lg' : ''}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Configurar {selectedType ? MODALITY_INFO[selectedType]?.label : ''}</DialogTitle>
           </DialogHeader>
 
-          {selectedType === 'custom_mixed' ? (
-            <div className="space-y-4">
-              <div>
-                <Label className="text-sm flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  Cantidad máxima de puestos
-                </Label>
-                <Input
-                  type="number"
-                  min={1}
-                  max={10}
-                  value={totalPositions}
-                  onChange={e => handlePositionsChange(parseInt(e.target.value) || 1)}
-                  className="w-32 mt-1"
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  Define cuántos puestos de trabajo puede tener activos este negocio
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-sm font-medium">Condiciones por trabajadores activos</Label>
-                <p className="text-xs text-muted-foreground">
-                  Define el % de la venta total que se destina a salarios según cuántos trabajadores estén activos en la jornada. Ese porcentaje se divide equitativamente entre ellos.
-                </p>
-                {conditions
-                  .sort((a, b) => b.positions - a.positions)
-                  .map(cond => (
-                    <div key={cond.positions} className="flex items-center gap-3 rounded-lg border p-3">
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">
-                          {cond.positions === 1
-                            ? '1 trabajador activo'
-                            : `${cond.positions} trabajadores activos`}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {cond.positions === 1
-                            ? `El empleado cobra el ${cond.service_percent}% de las ventas`
-                            : `${cond.service_percent}% de las ventas ÷ ${cond.positions} = ${(cond.service_percent / cond.positions).toFixed(1)}% c/u`}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          value={cond.service_percent}
-                          onChange={e => handlePercentChange(cond.positions, parseFloat(e.target.value) || 0)}
-                          className="w-20 h-8 text-center text-sm"
-                        />
-                        <span className="text-sm font-medium">%</span>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <Label className="text-sm">Configuración (JSON)</Label>
-              <Textarea
-                value={configJson}
-                onChange={e => setConfigJson(e.target.value)}
-                rows={8}
-                className="font-mono text-xs"
-                placeholder='{"rangos": [...]}'
-              />
-              <p className="text-xs text-muted-foreground">
-                Define rangos de escalera, metas, porcentajes u otros parámetros según la modalidad.
-              </p>
-            </div>
-          )}
+          <div className="space-y-5">
+            <AppliesToSelector value={appliesTo} onChange={setAppliesTo} />
+            {renderModalityConfig()}
+          </div>
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfigOpen(false)}>Cancelar</Button>
-            {selectedType === 'custom_mixed' ? (
-              <Button onClick={() => saveMixtoConfigMutation.mutate()} disabled={saveMixtoConfigMutation.isPending}>
-                {saveMixtoConfigMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                Guardar
-              </Button>
-            ) : (
-              <Button onClick={() => saveConfigMutation.mutate()} disabled={saveConfigMutation.isPending}>
-                {saveConfigMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-                Guardar
-              </Button>
-            )}
+            <Button onClick={() => saveConfigMutation.mutate()} disabled={saveConfigMutation.isPending}>
+              {saveConfigMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Guardar
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

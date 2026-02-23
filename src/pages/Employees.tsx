@@ -84,6 +84,7 @@ interface EmployeeForm {
   assigned_branches: string[];
   assigned_roles: AppRole[];
   modality_id: string;
+  preset_id: string;
   pay_frequency: string;
   base_salary: string;
 }
@@ -101,6 +102,7 @@ const emptyForm: EmployeeForm = {
   assigned_branches: [],
   assigned_roles: ['seller'],
   modality_id: '',
+  preset_id: '',
   pay_frequency: 'monthly',
   base_salary: '',
 };
@@ -160,7 +162,7 @@ const Employees = () => {
       if (!businessId) return [];
       const { data, error } = await supabase
         .from('salary_modalities')
-        .select('id, name, modality_type')
+        .select('id, name, modality_type, presets')
         .eq('business_id', businessId)
         .eq('is_active', true)
         .order('name');
@@ -462,6 +464,7 @@ const Employees = () => {
           .eq('employee_id', employeeId)
           .maybeSingle();
 
+        const configOverride = form.preset_id ? { preset_id: form.preset_id } : {};
         const assignmentPayload = {
           employee_id: employeeId,
           business_id: businessId,
@@ -469,6 +472,7 @@ const Employees = () => {
           pay_frequency: form.pay_frequency as any,
           base_salary: parseFloat(form.base_salary) || 0,
           is_active: true,
+          config_override: configOverride,
         };
 
         if (existingAssignment) {
@@ -547,13 +551,15 @@ const Employees = () => {
     let baseSalary = '';
     const { data: salaryAssignment } = await supabase
       .from('employee_salary_assignments')
-      .select('modality_id, pay_frequency, base_salary')
+      .select('modality_id, pay_frequency, base_salary, config_override')
       .eq('employee_id', emp.id)
       .maybeSingle();
+    let presetId = '';
     if (salaryAssignment) {
       modalityId = salaryAssignment.modality_id || '';
       payFrequency = salaryAssignment.pay_frequency || 'monthly';
       baseSalary = salaryAssignment.base_salary ? String(salaryAssignment.base_salary) : '';
+      presetId = (salaryAssignment.config_override as any)?.preset_id || '';
     }
 
     setEditingEmployee(emp);
@@ -570,6 +576,7 @@ const Employees = () => {
       assigned_branches: empBranches,
       assigned_roles: currentRoles,
       modality_id: modalityId,
+      preset_id: presetId,
       pay_frequency: payFrequency,
       base_salary: baseSalary,
     });
@@ -1138,7 +1145,7 @@ const Employees = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="modality">Modalidad de Salario</Label>
-                    <Select value={form.modality_id} onValueChange={(v) => updateField('modality_id', v)}>
+                    <Select value={form.modality_id} onValueChange={(v) => { updateField('modality_id', v); updateField('preset_id', ''); }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Sin asignar" />
                       </SelectTrigger>
@@ -1165,6 +1172,30 @@ const Employees = () => {
                     </Select>
                   </div>
                 </div>
+                {/* Preset selector */}
+                {(() => {
+                  const selectedMod = salaryModalities.find((m: any) => m.id === form.modality_id);
+                  const modPresets = (selectedMod as any)?.presets as { id: string; name: string; config: Record<string, any> }[] || [];
+                  if (modPresets.length > 0) {
+                    return (
+                      <div className="space-y-2">
+                        <Label>Preset</Label>
+                        <Select value={form.preset_id || 'none'} onValueChange={(v) => updateField('preset_id', v === 'none' ? '' : v)}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Sin preset" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none">Sin preset (manual)</SelectItem>
+                            {modPresets.map((p: any) => (
+                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 <div className="space-y-2">
                   <Label htmlFor="base_salary">Salario Base ($)</Label>
                   <Input

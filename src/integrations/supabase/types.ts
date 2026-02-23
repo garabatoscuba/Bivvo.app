@@ -1362,6 +1362,7 @@ export type Database = {
       }
       salary_modalities: {
         Row: {
+          applies_to: string
           business_id: string
           config: Json
           created_at: string
@@ -1369,9 +1370,11 @@ export type Database = {
           is_active: boolean
           modality_type: Database["public"]["Enums"]["salary_modality_type"]
           name: string
+          presets: Json
           updated_at: string
         }
         Insert: {
+          applies_to?: string
           business_id: string
           config?: Json
           created_at?: string
@@ -1379,9 +1382,11 @@ export type Database = {
           is_active?: boolean
           modality_type: Database["public"]["Enums"]["salary_modality_type"]
           name: string
+          presets?: Json
           updated_at?: string
         }
         Update: {
+          applies_to?: string
           business_id?: string
           config?: Json
           created_at?: string
@@ -1389,6 +1394,7 @@ export type Database = {
           is_active?: boolean
           modality_type?: Database["public"]["Enums"]["salary_modality_type"]
           name?: string
+          presets?: Json
           updated_at?: string
         }
         Relationships: [
