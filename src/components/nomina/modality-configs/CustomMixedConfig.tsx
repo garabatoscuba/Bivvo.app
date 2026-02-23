@@ -1,7 +1,7 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
-import { Users, Plus, Trash2 } from 'lucide-react';
+import { Users } from 'lucide-react';
+import PresetManager, { type Preset } from './PresetManager';
 
 interface Condition {
   positions: number;
@@ -13,14 +13,15 @@ interface CustomMixedConfigProps {
   conditions: Condition[];
   onTotalPositionsChange: (val: number) => void;
   onConditionsChange: (conditions: Condition[]) => void;
+  presets: Preset[];
+  onPresetsChange: (presets: Preset[]) => void;
 }
 
-const CustomMixedConfig = ({ totalPositions, conditions, onTotalPositionsChange, onConditionsChange }: CustomMixedConfigProps) => {
+const CustomMixedConfig = ({ totalPositions, conditions, onTotalPositionsChange, onConditionsChange, presets, onPresetsChange }: CustomMixedConfigProps) => {
 
   const handlePositionsChange = (val: number) => {
     const n = Math.max(1, Math.min(20, val));
     onTotalPositionsChange(n);
-    // Auto-generate conditions for each position count from n down to 1
     const newConditions: Condition[] = [];
     for (let i = n; i >= 1; i--) {
       const existing = conditions.find(c => c.positions === i);
@@ -96,6 +97,35 @@ const CustomMixedConfig = ({ totalPositions, conditions, onTotalPositionsChange,
             );
           })}
       </div>
+
+      {/* Presets */}
+      <PresetManager
+        presets={presets}
+        onChange={onPresetsChange}
+        defaultConfig={{ service_percent_override: null }}
+        renderPresetConfig={(preset, updatePreset) => (
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">
+              % personalizado para este preset (deja vacío para usar el de la condición general)
+            </Label>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={preset.config.service_percent_override ?? ''}
+                onChange={e => {
+                  const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                  updatePreset({ ...preset, config: { ...preset.config, service_percent_override: val } });
+                }}
+                placeholder="Usar condición general"
+                className="w-40 h-8 text-sm"
+              />
+              <span className="text-sm">%</span>
+            </div>
+          </div>
+        )}
+      />
     </div>
   );
 };

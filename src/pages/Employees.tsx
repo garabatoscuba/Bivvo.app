@@ -25,7 +25,7 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
   Loader2, Pencil, Trash2, Activity, Mail, MapPin, StopCircle, Clock,
-  Play, Square,
+  Play, Square, Plus,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import PerformanceChart from '@/components/employees/PerformanceChart';
@@ -71,6 +71,13 @@ interface Employee {
   updated_at: string;
 }
 
+interface SalaryAssignmentEntry {
+  modality_id: string;
+  preset_id: string;
+  pay_frequency: string;
+  base_salary: string;
+}
+
 interface EmployeeForm {
   contract_number: string;
   full_name: string;
@@ -83,11 +90,20 @@ interface EmployeeForm {
   start_date: string;
   assigned_branches: string[];
   assigned_roles: AppRole[];
+  salary_assignments: SalaryAssignmentEntry[];
+  // Legacy single fields kept for backward compat
   modality_id: string;
   preset_id: string;
   pay_frequency: string;
   base_salary: string;
 }
+
+const emptyAssignment: SalaryAssignmentEntry = {
+  modality_id: '',
+  preset_id: '',
+  pay_frequency: 'monthly',
+  base_salary: '',
+};
 
 const emptyForm: EmployeeForm = {
   contract_number: '',
@@ -101,6 +117,7 @@ const emptyForm: EmployeeForm = {
   start_date: new Date().toISOString().split('T')[0],
   assigned_branches: [],
   assigned_roles: ['seller'],
+  salary_assignments: [],
   modality_id: '',
   preset_id: '',
   pay_frequency: 'monthly',
@@ -455,42 +472,30 @@ const Employees = () => {
         }
       }
 
-      // Save salary assignment if modality selected
-      if (form.modality_id && form.modality_id !== 'none') {
-        // Upsert salary assignment
-        const { data: existingAssignment } = await supabase
-          .from('employee_salary_assignments')
-          .select('id')
-          .eq('employee_id', employeeId)
-          .maybeSingle();
+      // Save salary assignments (multiple modalities)
+      const validAssignments = form.salary_assignments.filter(a => a.modality_id && a.modality_id !== 'none');
+      
+      // Delete existing assignments for this employee
+      await supabase
+        .from('employee_salary_assignments')
+        .delete()
+        .eq('employee_id', employeeId);
 
-        const configOverride = form.preset_id ? { preset_id: form.preset_id } : {};
-        const assignmentPayload = {
+      // Insert new assignments
+      if (validAssignments.length > 0) {
+        const insertPayloads = validAssignments.map(a => ({
           employee_id: employeeId,
           business_id: businessId,
-          modality_id: form.modality_id,
-          pay_frequency: form.pay_frequency as any,
-          base_salary: parseFloat(form.base_salary) || 0,
+          modality_id: a.modality_id,
+          pay_frequency: a.pay_frequency as any,
+          base_salary: parseFloat(a.base_salary) || 0,
           is_active: true,
-          config_override: configOverride,
-        };
-
-        if (existingAssignment) {
-          await supabase
-            .from('employee_salary_assignments')
-            .update(assignmentPayload as any)
-            .eq('id', existingAssignment.id);
-        } else {
-          await supabase
-            .from('employee_salary_assignments')
-            .insert(assignmentPayload as any);
-        }
-      } else {
-        // Remove assignment if no modality selected
-        await supabase
+          config_override: a.preset_id ? { preset_id: a.preset_id } : {},
+        }));
+        const { error: insertErr } = await supabase
           .from('employee_salary_assignments')
-          .delete()
-          .eq('employee_id', employeeId);
+          .insert(insertPayloads as any);
+        if (insertErr) throw insertErr;
       }
 
       queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
@@ -545,22 +550,21 @@ const Employees = () => {
       }
     }
 
-    // Load salary assignment
-    let modalityId = '';
-    let payFrequency = 'monthly';
-    let baseSalary = '';
-    const { data: salaryAssignment } = await supabase
+    // Load salary assignments (multiple)
+    const { data: salaryAssignments } = await supabase
       .from('employee_salary_assignments')
       .select('modality_id, pay_frequency, base_salary, config_override')
-      .eq('employee_id', emp.id)
-      .maybeSingle();
-    let presetId = '';
-    if (salaryAssignment) {
-      modalityId = salaryAssignment.modality_id || '';
-      payFrequency = salaryAssignment.pay_frequency || 'monthly';
-      baseSalary = salaryAssignment.base_salary ? String(salaryAssignment.base_salary) : '';
-      presetId = (salaryAssignment.config_override as any)?.preset_id || '';
-    }
+      .eq('employee_id', emp.id);
+    
+    const loadedAssignments: SalaryAssignmentEntry[] = (salaryAssignments || []).map((sa: any) => ({
+      modality_id: sa.modality_id || '',
+      preset_id: (sa.config_override as any)?.preset_id || '',
+      pay_frequency: sa.pay_frequency || 'monthly',
+      base_salary: sa.base_salary ? String(sa.base_salary) : '',
+    }));
+
+    // Legacy: use first assignment for backward compat fields
+    const first = loadedAssignments[0];
 
     setEditingEmployee(emp);
     setForm({
@@ -575,10 +579,11 @@ const Employees = () => {
       start_date: emp.start_date,
       assigned_branches: empBranches,
       assigned_roles: currentRoles,
-      modality_id: modalityId,
-      preset_id: presetId,
-      pay_frequency: payFrequency,
-      base_salary: baseSalary,
+      salary_assignments: loadedAssignments,
+      modality_id: first?.modality_id || '',
+      preset_id: first?.preset_id || '',
+      pay_frequency: first?.pay_frequency || 'monthly',
+      base_salary: first?.base_salary || '',
     });
     setEmployeeDialogOpen(true);
   };
@@ -990,80 +995,149 @@ const Employees = () => {
                 </div>
               )}
 
-              {/* Salary assignment */}
-              <div className="space-y-2 border-t pt-4">
-                <Label className="font-semibold">Nómina</Label>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="modality">Modalidad de Salario</Label>
-                    <Select value={form.modality_id} onValueChange={(v) => { updateField('modality_id', v); updateField('preset_id', ''); }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Sin asignar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">Sin asignar</SelectItem>
-                        {salaryModalities.map((m: any) => (
-                          <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="pay_frequency">Frecuencia de Pago</Label>
-                    <Select value={form.pay_frequency} onValueChange={(v) => updateField('pay_frequency', v)}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="daily">Diaria</SelectItem>
-                        <SelectItem value="weekly">Semanal</SelectItem>
-                        <SelectItem value="biweekly">Quincenal</SelectItem>
-                        <SelectItem value="monthly">Mensual</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+              {/* Salary assignments - multiple modalities */}
+              <div className="space-y-3 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <Label className="font-semibold">Nómina</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setForm(prev => ({
+                      ...prev,
+                      salary_assignments: [...prev.salary_assignments, { ...emptyAssignment }],
+                    }))}
+                    disabled={form.salary_assignments.length >= salaryModalities.length}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Agregar modalidad
+                  </Button>
                 </div>
-                {/* Preset selector */}
-                {(() => {
-                  const selectedMod = salaryModalities.find((m: any) => m.id === form.modality_id);
-                  const modPresets = (selectedMod as any)?.presets as { id: string; name: string; config: Record<string, any> }[] || [];
-                  if (modPresets.length > 0) {
-                    return (
-                      <div className="space-y-2">
-                        <Label>Preset</Label>
-                        <Select value={form.preset_id || 'none'} onValueChange={(v) => updateField('preset_id', v === 'none' ? '' : v)}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Sin preset" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Sin preset (manual)</SelectItem>
-                            {modPresets.map((p: any) => (
-                              <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-                <div className="space-y-2">
-                  <Label htmlFor="base_salary">Salario Base ($)</Label>
-                  <Input
-                    id="base_salary"
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    value={form.base_salary}
-                    onChange={(e) => updateField('base_salary', e.target.value)}
-                    placeholder="0.00"
-                  />
-                </div>
-                {salaryModalities.length === 0 && (
+
+                {form.salary_assignments.length === 0 && (
                   <p className="text-xs text-muted-foreground">
-                    No hay modalidades activas. Configúralas en Nómina → Modalidades.
+                    {salaryModalities.length === 0
+                      ? 'No hay modalidades activas. Configúralas en Nómina → Modalidades.'
+                      : 'Sin modalidades asignadas. Agrega una para configurar el salario.'}
                   </p>
                 )}
+
+                {form.salary_assignments.map((assignment, idx) => {
+                  const usedModalities = form.salary_assignments
+                    .filter((_, i) => i !== idx)
+                    .map(a => a.modality_id);
+                  const availableModalities = salaryModalities.filter(
+                    (m: any) => !usedModalities.includes(m.id) || m.id === assignment.modality_id
+                  );
+                  const selectedMod = salaryModalities.find((m: any) => m.id === assignment.modality_id);
+                  const modPresets = (selectedMod as any)?.presets as { id: string; name: string; config: Record<string, any> }[] || [];
+
+                  return (
+                    <div key={idx} className="rounded-lg border p-3 space-y-3 relative">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 absolute top-2 right-2"
+                        onClick={() => setForm(prev => ({
+                          ...prev,
+                          salary_assignments: prev.salary_assignments.filter((_, i) => i !== idx),
+                        }))}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                      </Button>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Modalidad</Label>
+                          <Select
+                            value={assignment.modality_id || 'none'}
+                            onValueChange={(v) => setForm(prev => ({
+                              ...prev,
+                              salary_assignments: prev.salary_assignments.map((a, i) =>
+                                i === idx ? { ...a, modality_id: v === 'none' ? '' : v, preset_id: '' } : a
+                              ),
+                            }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Seleccionar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Seleccionar...</SelectItem>
+                              {availableModalities.map((m: any) => (
+                                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Frecuencia</Label>
+                          <Select
+                            value={assignment.pay_frequency}
+                            onValueChange={(v) => setForm(prev => ({
+                              ...prev,
+                              salary_assignments: prev.salary_assignments.map((a, i) =>
+                                i === idx ? { ...a, pay_frequency: v } : a
+                              ),
+                            }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="daily">Diaria</SelectItem>
+                              <SelectItem value="weekly">Semanal</SelectItem>
+                              <SelectItem value="biweekly">Quincenal</SelectItem>
+                              <SelectItem value="monthly">Mensual</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {modPresets.length > 0 && (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Preset</Label>
+                          <Select
+                            value={assignment.preset_id || 'none'}
+                            onValueChange={(v) => setForm(prev => ({
+                              ...prev,
+                              salary_assignments: prev.salary_assignments.map((a, i) =>
+                                i === idx ? { ...a, preset_id: v === 'none' ? '' : v } : a
+                              ),
+                            }))}
+                          >
+                            <SelectTrigger className="h-8 text-xs">
+                              <SelectValue placeholder="Sin preset" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="none">Sin preset</SelectItem>
+                              {modPresets.map((p: any) => (
+                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+
+                      <div className="space-y-1">
+                        <Label className="text-xs">Salario Base ($)</Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          value={assignment.base_salary}
+                          onChange={(e) => setForm(prev => ({
+                            ...prev,
+                            salary_assignments: prev.salary_assignments.map((a, i) =>
+                              i === idx ? { ...a, base_salary: e.target.value } : a
+                            ),
+                          }))}
+                          placeholder="0.00"
+                          className="h-8 text-xs"
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <DialogFooter>
