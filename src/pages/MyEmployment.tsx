@@ -1068,7 +1068,8 @@ const MyEmployment = () => {
         <TabsContent value="nomina" className="space-y-4">
           {myEmployeeRecord?.business_id ? (
             <PayrollHistory
-              employeeId={profile?.user_id || ''}
+              employeeId={myEmployeeRecord.id}
+              userId={profile?.user_id || ''}
               businessId={myEmployeeRecord.business_id}
             />
           ) : (

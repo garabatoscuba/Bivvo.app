@@ -28,12 +28,13 @@ const FREQUENCY_LABELS: Record<string, string> = {
 };
 
 interface PayrollHistoryProps {
-  employeeId?: string; // specific employee (admin view)
+  employeeId?: string; // employees table ID (for salary_assignments)
+  userId?: string; // auth user_id (for daily_reports)
   businessId: string;
   showAllEmployees?: boolean; // admin view all
 }
 
-const PayrollHistory = ({ employeeId, businessId, showAllEmployees }: PayrollHistoryProps) => {
+const PayrollHistory = ({ employeeId, userId, businessId, showAllEmployees }: PayrollHistoryProps) => {
   // Fetch salary assignments
   const { data: assignments = [], isLoading } = useQuery({
     queryKey: ['salary-assignments-history', businessId, employeeId, showAllEmployees],
@@ -55,8 +56,9 @@ const PayrollHistory = ({ employeeId, businessId, showAllEmployees }: PayrollHis
   });
 
   // Fetch daily reports for the employee(s)
+  const reportFilterId = userId || employeeId;
   const { data: reports = [], isLoading: reportsLoading } = useQuery({
-    queryKey: ['payroll-reports', businessId, employeeId, showAllEmployees],
+    queryKey: ['payroll-reports', businessId, reportFilterId, showAllEmployees],
     queryFn: async () => {
       let query = supabase
         .from('daily_reports')
@@ -65,8 +67,13 @@ const PayrollHistory = ({ employeeId, businessId, showAllEmployees }: PayrollHis
         .order('date', { ascending: false })
         .limit(50);
 
-      if (employeeId && !showAllEmployees) {
-        query = query.eq('user_id', employeeId);
+      if (reportFilterId && !showAllEmployees) {
+        // If we have userId, filter by user_id; otherwise use employee_id
+        if (userId) {
+          query = query.eq('user_id', userId);
+        } else {
+          query = query.eq('employee_id', reportFilterId);
+        }
       }
 
       const { data, error } = await query;
