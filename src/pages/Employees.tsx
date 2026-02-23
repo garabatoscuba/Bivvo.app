@@ -539,7 +539,7 @@ const Employees = () => {
 
   return (
     <AppLayout title="Empleados">
-      <div className="space-y-6">
+      <div className="space-y-6 overflow-hidden max-w-full">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base md:text-lg font-semibold text-foreground">Equipo de Trabajo</h2>
@@ -670,7 +670,7 @@ const Employees = () => {
                           </div>
 
                           {/* Desktop table */}
-                          <div className="overflow-x-auto hidden md:block">
+                          <div className="overflow-x-auto hidden md:block max-w-full">
                             <Table>
                               <TableHeader>
                                 <TableRow>
@@ -845,7 +845,7 @@ const Employees = () => {
                           </div>
 
                           {/* Desktop table */}
-                          <div className="hidden md:block">
+                          <div className="overflow-x-auto hidden md:block max-w-full">
                             <Table>
                               <TableHeader>
                                 <TableRow>

@@ -14,9 +14,9 @@ interface AppLayoutProps {
 const AppLayout = ({ children, title }: AppLayoutProps) => {
   return (
     <SidebarProvider>
-      <div className="flex min-h-screen w-full">
+      <div className="flex min-h-screen w-full overflow-hidden">
         <AppSidebar />
-        <SidebarInset className="flex flex-1 flex-col">
+        <SidebarInset className="flex flex-1 flex-col overflow-hidden">
           <InstallBanner />
           <SubscriptionBanner />
           <AppHeader title={title} />
