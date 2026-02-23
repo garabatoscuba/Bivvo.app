@@ -203,6 +203,8 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
             conditions={conditions}
             onTotalPositionsChange={setTotalPositions}
             onConditionsChange={setConditions}
+            presets={presets}
+            onPresetsChange={setPresets}
           />
         );
       default:

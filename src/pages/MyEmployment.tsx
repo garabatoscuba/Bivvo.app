@@ -185,53 +185,57 @@ const MyEmployment = () => {
     enabled: !!myJornada?.sucursal_id && !!profile?.user_id && hasAuthorizedJornada,
   });
 
-  // Fetch salary assignment for display
-  const { data: mySalaryAssignment } = useQuery({
-    queryKey: ['my-salary-assignment', myEmployeeRecord?.id],
+  // Fetch salary assignments (multiple) for display
+  const { data: mySalaryAssignments = [] } = useQuery({
+    queryKey: ['my-salary-assignments', myEmployeeRecord?.id],
     queryFn: async () => {
       const { data } = await supabase
         .from('employee_salary_assignments')
         .select('*, salary_modalities(name, modality_type, config)')
         .eq('employee_id', myEmployeeRecord!.id)
-        .eq('is_active', true)
-        .maybeSingle();
-      return data;
+        .eq('is_active', true);
+      return data || [];
     },
     enabled: !!myEmployeeRecord?.id,
   });
 
-  // Calculate running daily salary
+  // Keep backward compat alias
+  const mySalaryAssignment = mySalaryAssignments[0] || null;
+
+  // Calculate running daily salary from ALL assignments
   const dailySalary = useMemo(() => {
-    if (!mySalaryAssignment) return null;
-    const modType = (mySalaryAssignment as any)?.salary_modalities?.modality_type;
-    const config = (mySalaryAssignment as any)?.salary_modalities?.config || {};
-    const baseSalary = Number(mySalaryAssignment.base_salary || 0);
-    let serviceEarning = 0;
-    let salesEarning = 0;
+    if (!mySalaryAssignments.length) return null;
+    let totalBase = 0;
+    let totalServiceEarning = 0;
+    let totalSalesEarning = 0;
 
-    // Simple salary estimation based on modality
-    if (modType === 'fixed') {
-      // Fixed daily = base / frequency days
-      const freq = mySalaryAssignment.pay_frequency;
-      const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
-      return { total: baseSalary / days, serviceEarning: 0, salesEarning: 0, base: baseSalary / days };
+    for (const assignment of mySalaryAssignments) {
+      const modType = (assignment as any)?.salary_modalities?.modality_type;
+      const config = (assignment as any)?.salary_modalities?.config || {};
+      const baseSalary = Number(assignment.base_salary || 0);
+
+      if (modType === 'fixed') {
+        const freq = assignment.pay_frequency;
+        const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
+        totalBase += baseSalary / days;
+      } else {
+        totalBase += baseSalary;
+      }
+
+      const servicePercent = Number(config.service_percent || config.percent || 0);
+      if (servicePercent > 0) {
+        totalServiceEarning += todayServiceEarnings * (servicePercent / 100);
+      }
+
+      const salesPercent = Number(config.sales_percent || 0);
+      if (salesPercent > 0) {
+        totalSalesEarning += todaySalesTotal * (salesPercent / 100);
+      }
     }
 
-    // Service percent
-    const servicePercent = Number(config.service_percent || config.percent || 0);
-    if (servicePercent > 0) {
-      serviceEarning = todayServiceEarnings * (servicePercent / 100);
-    }
-
-    // Sales percent
-    const salesPercent = Number(config.sales_percent || 0);
-    if (salesPercent > 0) {
-      salesEarning = todaySalesTotal * (salesPercent / 100);
-    }
-
-    const total = baseSalary + serviceEarning + salesEarning;
-    return { total, serviceEarning, salesEarning, base: baseSalary };
-  }, [mySalaryAssignment, todayServiceEarnings, todaySalesTotal]);
+    const total = totalBase + totalServiceEarning + totalSalesEarning;
+    return { total, serviceEarning: totalServiceEarning, salesEarning: totalSalesEarning, base: totalBase };
+  }, [mySalaryAssignments, todayServiceEarnings, todaySalesTotal]);
 
   // Save copies
   const handleSaveCopies = async () => {
