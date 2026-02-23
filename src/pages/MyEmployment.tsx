@@ -14,8 +14,10 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, Loader2, Activity, Clock, Briefcase, Play, Square,
   LayoutDashboard, CalendarDays, Info, AlertTriangle, TrendingUp, CheckCircle2, XCircle,
-  DollarSign,
+  DollarSign, ShoppingCart, Receipt, Wrench, FileText, LogOut,
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
 import { toast as sonnerToast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
@@ -75,17 +77,14 @@ interface Employee {
 const MyEmployment = () => {
   const { profile, user, isOwner, isManager, isSuperAdmin } = useAuth();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const { data: branches = [] } = useBranches();
   const { jornadaActiva, jornada: myJornada, isLoading: jornadaLoading2 } = useJornadaActiva();
-  // Note: canManage here refers to the user's OWN business roles (owner/manager).
-  // In Mi Empleo context, the user is an employee — they should NOT see HR tools
-  // of their employer unless they also hold manager/owner roles IN THAT employer business.
-  // For now, we disable canManage in this page entirely — only employer's owner/manager
-  // should manage employees, and they do it from THEIR OWN Employees page.
-  const canManage = false; // Employees don't manage HR from Mi Empleo
+  const canManage = false;
 
   const [jornadaCerrarTarget, setJornadaCerrarTarget] = useState<{ jornada: any; name: string } | null>(null);
   const [jornadaLoading, setJornadaLoading] = useState<string | null>(null);
+  const [cerrarMiJornadaOpen, setCerrarMiJornadaOpen] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
   const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
@@ -112,7 +111,18 @@ const MyEmployment = () => {
   const businessId = myEmployeeRecord?.business_id || null;
   const monthKey = formatLocalMonthKey(selectedMonth);
 
-  // Fetch branch assignments
+  // Fetch employer business type for conditional tools
+  const { data: employerBiz } = useQuery({
+    queryKey: ['employer-biz-type', businessId],
+    queryFn: async () => {
+      const { data } = await supabase.from('businesses').select('business_type').eq('id', businessId!).single();
+      return data;
+    },
+    enabled: !!businessId,
+  });
+  const isEmployerCopyShop = employerBiz?.business_type === 'copy_shop';
+  const hasAuthorizedJornada = jornadaActiva && myJornada?.metodo_apertura === 'manual_gerente';
+
   const { data: branchAssignments = [] } = useQuery({
     queryKey: ['my-employee-branch-assignments', myEmployeeRecord?.id],
     queryFn: async () => {
@@ -482,6 +492,36 @@ const MyEmployment = () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Quick-access tools when shift is active */}
+          {hasAuthorizedJornada && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/pos?ctx=emp')}>
+                <ShoppingCart className="h-5 w-5 text-primary" />
+                <span className="text-xs">Punto de Venta</span>
+              </Button>
+              <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/sales?ctx=emp')}>
+                <Receipt className="h-5 w-5 text-primary" />
+                <span className="text-xs">Ventas</span>
+              </Button>
+              {isEmployerCopyShop && (
+                <>
+                  <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/services')}>
+                    <Wrench className="h-5 w-5 text-primary" />
+                    <span className="text-xs">Servicios</span>
+                  </Button>
+                  <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/cobros')}>
+                    <FileText className="h-5 w-5 text-primary" />
+                    <span className="text-xs">Reportes</span>
+                  </Button>
+                </>
+              )}
+              <Button variant="destructive" className="h-auto py-3 flex flex-col items-center gap-1.5 col-span-2 sm:col-span-1" onClick={() => setCerrarMiJornadaOpen(true)}>
+                <LogOut className="h-5 w-5" />
+                <span className="text-xs">Cerrar Jornada</span>
+              </Button>
+            </div>
+          )}
 
           {/* Stat cards row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
@@ -1162,6 +1202,15 @@ const MyEmployment = () => {
           onOpenChange={(open) => { if (!open) setJornadaCerrarTarget(null); }}
           jornada={jornadaCerrarTarget.jornada}
           employeeName={jornadaCerrarTarget.name}
+        />
+      )}
+
+      {/* Cerrar mi propia jornada */}
+      {myJornada && (
+        <CerrarJornadaModal
+          open={cerrarMiJornadaOpen}
+          onOpenChange={setCerrarMiJornadaOpen}
+          jornada={myJornada}
         />
       )}
     </AppLayout>
