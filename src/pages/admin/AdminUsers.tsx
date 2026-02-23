@@ -53,6 +53,8 @@ const AdminUsers = () => {
   const [editName, setEditName] = useState('');
   const [editPlan, setEditPlan] = useState('');
   const [editRole, setEditRole] = useState('');
+  const [editCountry, setEditCountry] = useState('');
+  const [editSubStatus, setEditSubStatus] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
   const { data: users, isLoading } = useQuery({
@@ -122,6 +124,8 @@ const AdminUsers = () => {
     setEditName(u.full_name);
     setEditPlan(u.plan_type);
     setEditRole(u.roles[0] || 'owner');
+    setEditCountry(u.country || '');
+    setEditSubStatus(u.subscription_status || 'active');
   };
 
   const handleEditSave = async () => {
@@ -131,7 +135,7 @@ const AdminUsers = () => {
       // Update profile
       const { error: profileErr } = await supabase
         .from('profiles')
-        .update({ full_name: editName, plan_type: editPlan })
+        .update({ full_name: editName, plan_type: editPlan, country: editCountry || null, subscription_status: editSubStatus } as any)
         .eq('user_id', editTarget.user_id);
       if (profileErr) throw profileErr;
 
@@ -443,6 +447,32 @@ const AdminUsers = () => {
                     <SelectItem value="manager">Gerente</SelectItem>
                     <SelectItem value="seller">Vendedor</SelectItem>
                     <SelectItem value="accountant">Contable</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">País / Región</Label>
+                <Select value={editCountry} onValueChange={setEditCountry}>
+                  <SelectTrigger><SelectValue placeholder="Sin definir" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cuba">🇨🇺 Cuba</SelectItem>
+                    <SelectItem value="usa">🇺🇸 Estados Unidos</SelectItem>
+                    <SelectItem value="americas">🌎 Américas</SelectItem>
+                    <SelectItem value="europe">🇪🇺 Europa</SelectItem>
+                    <SelectItem value="asia">🌏 Asia</SelectItem>
+                    <SelectItem value="africa">🌍 África</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Estado</Label>
+                <Select value={editSubStatus} onValueChange={setEditSubStatus}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Activo</SelectItem>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="suspended">Suspendido</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

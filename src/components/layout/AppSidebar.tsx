@@ -365,8 +365,13 @@ const AppSidebar = () => {
 
         {/* Mis Negocios - owner's businesses */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
-            {userBusinesses.find(b => b.id === profile?.business_id)?.name || 'Mi Negocio'}
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
+            <span>{activeBusiness?.name || 'Mi Negocio'}</span>
+            {activeBusiness?.business_type && (
+              <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
+                {activeBusiness.business_type === 'store' ? 'Tienda' : activeBusiness.business_type === 'copy_shop' ? 'Punto de Copias' : activeBusiness.business_type === 'gym' ? 'Gym' : activeBusiness.business_type}
+              </span>
+            )}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -414,9 +419,14 @@ const AppSidebar = () => {
                                 ) : (
                                   <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                 )}
-                                <span className={`truncate text-sm ${isSelectedBiz ? 'font-semibold' : ''}`}>
-                                  {biz.name}
-                                </span>
+                                <div className="flex flex-col min-w-0">
+                                  <span className={`truncate text-sm ${isSelectedBiz ? 'font-semibold' : ''}`}>
+                                    {biz.name}
+                                  </span>
+                                  <span className="text-[9px] text-muted-foreground/60">
+                                    {biz.business_type === 'store' ? 'Tienda' : biz.business_type === 'copy_shop' ? 'Punto de Copias' : biz.business_type === 'gym' ? 'Gym' : biz.business_type}
+                                  </span>
+                                </div>
                               </div>
                               <div className="flex items-center gap-0.5 shrink-0">
                                 <button
@@ -504,6 +514,12 @@ const AppSidebar = () => {
                       <Store className="h-3.5 w-3.5" />
                       <span>Nueva Tienda</span>
                     </DropdownMenuItem>
+                    {isCuba && (
+                      <DropdownMenuItem className="gap-2" onSelect={() => handleAddBusiness('store')}>
+                        <FileText className="h-3.5 w-3.5" />
+                        <span>Punto de Copias</span>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem className="gap-2 opacity-50" disabled>
                       <Dumbbell className="h-3.5 w-3.5" />
                       <span>Gym</span>
