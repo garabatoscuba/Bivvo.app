@@ -588,7 +588,7 @@ const MyEmployment = () => {
   return (
     <AppLayout title="Mi Empleo">
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="w-full grid grid-cols-4 text-xs sm:text-sm">
+        <TabsList className="w-full grid grid-cols-3 text-xs sm:text-sm">
           <TabsTrigger value="dashboard" className="gap-1">
             <LayoutDashboard className="h-3.5 w-3.5 hidden sm:block" />
             Dashboard
@@ -596,10 +596,6 @@ const MyEmployment = () => {
           <TabsTrigger value="actividad" className="gap-1">
             <CalendarDays className="h-3.5 w-3.5 hidden sm:block" />
             Actividad
-          </TabsTrigger>
-          <TabsTrigger value="nomina" className="gap-1">
-            <DollarSign className="h-3.5 w-3.5 hidden sm:block" />
-            Nómina
           </TabsTrigger>
           <TabsTrigger value="info" className="gap-1">
             <Info className="h-3.5 w-3.5 hidden sm:block" />
@@ -1304,18 +1300,6 @@ const MyEmployment = () => {
           </Card>
         </TabsContent>
 
-        {/* ===== TAB 3: NÓMINA (now PayrollHistory) ===== */}
-        <TabsContent value="nomina" className="space-y-4">
-          {myEmployeeRecord?.business_id ? (
-            <PayrollHistory
-              employeeId={myEmployeeRecord.id}
-              userId={profile?.user_id || ''}
-              businessId={myEmployeeRecord.business_id}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground text-center py-8">No hay datos de nómina disponibles</p>
-          )}
-        </TabsContent>
 
         {/* ===== TAB 4: INFORMACIÓN LABORAL + Nómina info ===== */}
         <TabsContent value="info" className="space-y-4">

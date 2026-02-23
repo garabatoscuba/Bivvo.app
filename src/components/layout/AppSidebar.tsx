@@ -272,7 +272,12 @@ const AppSidebar = () => {
     { title: 'Planes', url: '/plans', icon: CreditCard },
   ];
 
+  const ctxParam = new URLSearchParams(location.search).get('ctx');
   const isActive = (url: string) => {
+    // If viewing in employee context (?ctx=emp), don't highlight the business menu items for overlapping paths
+    if (ctxParam === 'emp' && (url === '/pos' || url === '/sales' || url === '/services' || url === '/cobros')) {
+      return false;
+    }
     if (url === '/') return location.pathname === '/';
     return location.pathname.startsWith(url);
   };
@@ -351,24 +356,24 @@ const AppSidebar = () => {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     {isEmployeeCopyShop && (
-                      <>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild isActive={isActive('/services')}>
-                            <Link to="/services">
-                              <Wrench className="h-4 w-4" />
-                              <span className="text-sm">Servicios</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                        <SidebarMenuItem>
-                          <SidebarMenuButton asChild isActive={isActive('/cobros')}>
-                            <Link to="/cobros">
-                              <FileText className="h-4 w-4" />
-                              <span className="text-sm">Reportes</span>
-                            </Link>
-                          </SidebarMenuButton>
-                        </SidebarMenuItem>
-                      </>
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={location.pathname === '/services' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                          <Link to="/services?ctx=emp">
+                            <Wrench className="h-4 w-4" />
+                            <span className="text-sm">Servicios</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
+                    )}
+                    {isEmployeeCopyShop && (
+                      <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={location.pathname === '/cobros' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                          <Link to="/cobros?ctx=emp">
+                            <FileText className="h-4 w-4" />
+                            <span className="text-sm">Reportes</span>
+                          </Link>
+                        </SidebarMenuButton>
+                      </SidebarMenuItem>
                     )}
                   </>
                 )}
