@@ -256,7 +256,7 @@ const AppSidebar = () => {
     ...(isVisionHabana ? [{ title: 'Cobro', url: '/cobros', icon: DollarSign }] : []),
     { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
     { title: 'Pedidos', url: '/orders', icon: Receipt },
-    { title: 'Empleados', url: '/employees', icon: Users },
+    { title: 'Recursos Humanos', url: '/employees', icon: Users },
     
     { title: 'Configuración', url: '/settings', icon: Settings },
     { title: 'Planes', url: '/plans', icon: CreditCard },
