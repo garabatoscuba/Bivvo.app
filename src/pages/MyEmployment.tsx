@@ -77,7 +77,12 @@ const MyEmployment = () => {
   const queryClient = useQueryClient();
   const { data: branches = [] } = useBranches();
   const { jornadaActiva, jornada: myJornada, isLoading: jornadaLoading2 } = useJornadaActiva();
-  const canManage = isOwner || isManager || isSuperAdmin;
+  // Note: canManage here refers to the user's OWN business roles (owner/manager).
+  // In Mi Empleo context, the user is an employee — they should NOT see HR tools
+  // of their employer unless they also hold manager/owner roles IN THAT employer business.
+  // For now, we disable canManage in this page entirely — only employer's owner/manager
+  // should manage employees, and they do it from THEIR OWN Employees page.
+  const canManage = false; // Employees don't manage HR from Mi Empleo
 
   const [jornadaCerrarTarget, setJornadaCerrarTarget] = useState<{ jornada: any; name: string } | null>(null);
   const [jornadaLoading, setJornadaLoading] = useState<string | null>(null);
@@ -85,9 +90,6 @@ const MyEmployment = () => {
   const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
   const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
   const [evalSkills, setEvalSkills] = useState<Skill[]>([]);
-
-  const businessId = profile?.business_id;
-  const monthKey = formatLocalMonthKey(selectedMonth);
 
   // Find current user's employee record
   const { data: myEmployeeRecord = null } = useQuery({
@@ -105,6 +107,10 @@ const MyEmployment = () => {
     },
     enabled: !!profile?.email,
   });
+
+  // CRITICAL: Use the EMPLOYER's business_id, NOT the user's own business
+  const businessId = myEmployeeRecord?.business_id || null;
+  const monthKey = formatLocalMonthKey(selectedMonth);
 
   // Fetch branch assignments
   const { data: branchAssignments = [] } = useQuery({
@@ -786,8 +792,8 @@ const MyEmployment = () => {
             </CardContent>
           </Card>
 
-          {/* Equipo activo (only active members shown) */}
-          <EquipoActivoSection onlyActive />
+          {/* Equipo activo (only active members shown — from EMPLOYER's business) */}
+          {businessId && <EquipoActivoSection onlyActive businessIdOverride={businessId} />}
 
           {/* Manager: employee table */}
           {canManage && hrEmployees.length > 0 && (
