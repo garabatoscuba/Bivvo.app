@@ -59,16 +59,20 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
     minute: '2-digit',
   });
 
-  // Fetch active workers count
+  // Fetch active workers count (all unique workers who worked today in this branch)
   const { data: activeWorkersCount = 1 } = useQuery({
     queryKey: ['closure-active-workers', jornada.sucursal_id, todayStr],
     queryFn: async () => {
+      const startOfDay = todayStr + 'T00:00:00';
+      const endOfDay = todayStr + 'T23:59:59';
       const { data } = await supabase
         .from('jornadas')
-        .select('id')
+        .select('empleado_id')
         .eq('sucursal_id', jornada.sucursal_id)
-        .is('cierre_at', null);
-      return Math.max(1, data?.length || 1);
+        .gte('apertura_at', startOfDay)
+        .lte('apertura_at', endOfDay);
+      const unique = new Set(data?.map(j => j.empleado_id) || []);
+      return Math.max(1, unique.size);
     },
     enabled: open,
   });

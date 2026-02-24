@@ -207,12 +207,16 @@ const MyEmployment = () => {
   const { data: activeWorkersCount = 1 } = useQuery({
     queryKey: ['active-workers-count', myJornada?.sucursal_id, todayStr],
     queryFn: async () => {
+      const startOfDay = todayStr + 'T00:00:00';
+      const endOfDay = todayStr + 'T23:59:59';
       const { data } = await supabase
         .from('jornadas')
-        .select('id')
+        .select('empleado_id')
         .eq('sucursal_id', myJornada!.sucursal_id)
-        .is('cierre_at', null);
-      return Math.max(1, data?.length || 1);
+        .gte('apertura_at', startOfDay)
+        .lte('apertura_at', endOfDay);
+      const unique = new Set(data?.map(j => j.empleado_id) || []);
+      return Math.max(1, unique.size);
     },
     enabled: !!myJornada?.sucursal_id && !!jornadaActiva,
     refetchInterval: 30000,
