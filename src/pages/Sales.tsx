@@ -105,39 +105,76 @@ const Sales = () => {
         product_names: s.service_categories?.name || 'Servicio',
         _type: 'service' as const,
         description: s.description,
+        user_id: s.user_id,
       }));
     },
     enabled: !!branchId && !!(isEmployeeContext ? employeeRecord?.business_id : profile?.business_id),
   });
 
-  // For owner/manager: fetch employee list for filter
-  const { data: branchEmployees = [] } = useQuery({
-    queryKey: ['branch-employees-for-filter', branchId],
+  // Build seller name map from employees table (avoids RLS issues with profiles)
+  const { data: sellerNameMap = new Map<string, string>() } = useQuery({
+    queryKey: ['seller-name-map', isEmployeeContext ? employeeRecord?.business_id : profile?.business_id],
     queryFn: async () => {
-      if (!branchId) return [];
-      // Get all unique user_ids from sales + their profile names
-      const userIds = [...new Set(sales.map((s: any) => s.user_id).filter(Boolean))];
-      if (!userIds.length) return [];
-      const { data } = await supabase
-        .from('profiles')
-        .select('user_id, full_name')
-        .in('user_id', userIds);
-      return data || [];
+      const bizId = isEmployeeContext ? employeeRecord?.business_id : profile?.business_id;
+      if (!bizId) return new Map<string, string>();
+
+      // Get all employees for the business
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('full_name, email')
+        .eq('business_id', bizId);
+
+      const map = new Map<string, string>();
+
+      if (employees?.length) {
+        const emails = employees.map(e => e.email).filter(Boolean) as string[];
+        if (emails.length) {
+          const { data: profileLinks } = await supabase.rpc('get_profiles_by_emails', { emails });
+          const emailToName = new Map<string, string>();
+          employees.forEach(e => { if (e.email) emailToName.set(e.email, e.full_name); });
+          profileLinks?.forEach((p: any) => {
+            const name = emailToName.get(p.email);
+            if (name) map.set(p.user_id, name);
+          });
+        }
+      }
+
+      // Add current user (owner/manager)
+      if (profile) {
+        if (!map.has(profile.user_id)) {
+          map.set(profile.user_id, profile.full_name);
+        }
+      }
+
+      return map;
     },
-    enabled: isPrivileged && sales.length > 0,
+    enabled: !!(isEmployeeContext ? employeeRecord?.business_id : profile?.business_id),
   });
 
-  // Merge sales + services into unified list
+  // Build seller list for filter dropdown (owner/manager only)
+  const sellerList = useMemo(() => {
+    return Array.from(sellerNameMap.entries()).map(([userId, name]) => ({ user_id: userId, full_name: name }));
+  }, [sellerNameMap]);
+
+  // Merge sales + services into unified list, resolving seller names
   const unifiedEntries = useMemo(() => {
     // Employee context: filter sales to only their own
     const filteredSales = isEmployeeContext && profile?.user_id
       ? sales.filter((s: any) => s.user_id === profile.user_id)
       : sales;
-    const salesWithType = filteredSales.map((s: any) => ({ ...s, _type: 'sale' as const }));
-    const merged = [...salesWithType, ...serviceEntries];
+    const salesWithType = filteredSales.map((s: any) => ({
+      ...s,
+      _type: 'sale' as const,
+      seller_name: sellerNameMap.get(s.user_id) || s.seller_name || 'Desconocido',
+    }));
+    const servicesWithSeller = serviceEntries.map((s: any) => ({
+      ...s,
+      seller_name: sellerNameMap.get(s.user_id) || '',
+    }));
+    const merged = [...salesWithType, ...servicesWithSeller];
     merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return merged;
-  }, [sales, serviceEntries, isEmployeeContext, profile?.user_id]);
+  }, [sales, serviceEntries, isEmployeeContext, profile?.user_id, sellerNameMap]);
 
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -475,12 +512,12 @@ const Sales = () => {
                 <SelectItem value="cancelled">Cancelada</SelectItem>
               </SelectContent>
             </Select>
-            {isPrivileged && branchEmployees.length > 0 && (
+            {isPrivileged && sellerList.length > 0 && (
               <Select value={filterEmployee} onValueChange={setFilterEmployee}>
-                <SelectTrigger className="md:w-44 text-sm"><SelectValue placeholder="Empleado" /></SelectTrigger>
+                <SelectTrigger className="md:w-44 text-sm"><SelectValue placeholder="Vendedor" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  {branchEmployees.map((emp: any) => (
+                  {sellerList.map((emp: any) => (
                     <SelectItem key={emp.user_id} value={emp.user_id}>{emp.full_name}</SelectItem>
                   ))}
                 </SelectContent>
