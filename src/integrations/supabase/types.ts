@@ -1709,6 +1709,105 @@ export type Database = {
           },
         ]
       }
+      tip_config: {
+        Row: {
+          business_id: string
+          conditions: Json
+          created_at: string
+          id: string
+          owner_percent: number
+          total_positions: number
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          conditions?: Json
+          created_at?: string
+          id?: string
+          owner_percent?: number
+          total_positions?: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          conditions?: Json
+          created_at?: string
+          id?: string
+          owner_percent?: number
+          total_positions?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_config_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      tip_entries: {
+        Row: {
+          amount: number
+          branch_id: string
+          business_id: string
+          created_at: string
+          date: string
+          id: string
+          jornada_id: string | null
+          notes: string | null
+          tip_type: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          branch_id: string
+          business_id: string
+          created_at?: string
+          date?: string
+          id?: string
+          jornada_id?: string | null
+          notes?: string | null
+          tip_type?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          branch_id?: string
+          business_id?: string
+          created_at?: string
+          date?: string
+          id?: string
+          jornada_id?: string | null
+          notes?: string | null
+          tip_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tip_entries_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tip_entries_jornada_id_fkey"
+            columns: ["jornada_id"]
+            isOneToOne: false
+            referencedRelation: "jornadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string

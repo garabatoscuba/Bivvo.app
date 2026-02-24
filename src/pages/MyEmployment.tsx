@@ -4,18 +4,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useBranches } from '@/hooks/useBranches';
 import {
   Users, Loader2, Activity, Clock, Briefcase, Play, Square,
   LayoutDashboard, CalendarDays, Info, AlertTriangle, TrendingUp, CheckCircle2, XCircle,
-  DollarSign, ShoppingCart, Wrench, FileText, LogOut,
+  DollarSign, ShoppingCart, Wrench, FileText, LogOut, Gift, Plus,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
@@ -88,6 +90,8 @@ const MyEmployment = () => {
   const [jornadaLoading, setJornadaLoading] = useState<string | null>(null);
   const [cerrarMiJornadaOpen, setCerrarMiJornadaOpen] = useState(false);
   const [contarYCerrarOpen, setContarYCerrarOpen] = useState(false);
+  const [manualTipOpen, setManualTipOpen] = useState(false);
+  const [manualTipAmount, setManualTipAmount] = useState('');
 
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
@@ -230,7 +234,74 @@ const MyEmployment = () => {
   // Keep backward compat alias
   const mySalaryAssignment = mySalaryAssignments[0] || null;
 
+  // Fetch tip config for the business
+  const { data: tipConfig } = useQuery({
+    queryKey: ['tip-config', businessId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('tip_config')
+        .select('*')
+        .eq('business_id', businessId!)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: !!businessId,
+  });
 
+  // Fetch today's manual tips for this branch
+  const { data: todayTipEntries = [] } = useQuery({
+    queryKey: ['my-today-tips', businessId, myJornada?.sucursal_id, todayStr],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tip_entries')
+        .select('amount, tip_type')
+        .eq('business_id', businessId!)
+        .eq('branch_id', myJornada!.sucursal_id)
+        .eq('date', todayStr);
+      return data || [];
+    },
+    enabled: !!businessId && !!myJornada?.sucursal_id && !!jornadaActiva,
+    refetchInterval: 30000,
+  });
+
+  const todayManualTips = todayTipEntries.reduce((sum, t) => sum + Number(t.amount), 0);
+
+  // Calculate my tip share
+  const myTipShare = useMemo(() => {
+    if (!tipConfig || !todayManualTips) return 0;
+    const ownerPct = Number(tipConfig.owner_percent) || 0;
+    const afterOwner = todayManualTips * ((100 - ownerPct) / 100);
+    const conditions = (tipConfig.conditions as unknown as { positions: number; tip_percent: number }[]) || [];
+    const matched = conditions.find(c => c.positions === activeWorkersCount)
+      || conditions.filter(c => c.positions <= activeWorkersCount).sort((a, b) => b.positions - a.positions)[0]
+      || conditions.sort((a, b) => a.positions - b.positions)[0];
+    if (!matched) return afterOwner / Math.max(1, activeWorkersCount);
+    return afterOwner * (matched.tip_percent / 100);
+  }, [tipConfig, todayManualTips, activeWorkersCount]);
+
+  // Mutation to add manual tip
+  const addTipMutation = useMutation({
+    mutationFn: async (amount: number) => {
+      const { error } = await supabase.from('tip_entries').insert({
+        business_id: businessId!,
+        branch_id: myJornada!.sucursal_id,
+        user_id: user!.id,
+        amount,
+        tip_type: 'manual',
+        jornada_id: myJornada!.id,
+        date: todayStr,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['my-today-tips'] });
+      sonnerToast.success('Propina registrada');
+      setManualTipOpen(false);
+      setManualTipAmount('');
+    },
+    onError: (err: any) => sonnerToast.error(err.message),
+  });
   // Helper to calculate earnings from a set of assignments against a given income base
   const calcAssignmentEarnings = (assignments: any[], incomeBase: number, label: string) => {
     let base = 0;
@@ -719,6 +790,27 @@ const MyEmployment = () => {
                 <p className="text-[10px] text-muted-foreground mt-0.5">
                   👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''} · Serv: ${todayBranchServiceTotal.toFixed(0)} · Ventas: ${todaySalesTotal.toFixed(0)}
                 </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Tips card */}
+          {jornadaActiva && tipConfig && (
+            <Card className="border-accent/20">
+              <CardContent className="py-3 px-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Gift className="h-3 w-3" /> Propinas hoy</p>
+                    <p className="text-lg font-bold">${todayManualTips.toFixed(2)}</p>
+                    {myTipShare > 0 && (
+                      <p className="text-xs text-muted-foreground">Tu parte: ${myTipShare.toFixed(2)}</p>
+                    )}
+                  </div>
+                  <Button variant="outline" size="sm" className="gap-1" onClick={() => setManualTipOpen(true)}>
+                    <Plus className="h-3.5 w-3.5" />
+                    Agregar
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -1451,6 +1543,39 @@ const MyEmployment = () => {
           jornada={myJornada}
         />
       )}
+
+      {/* Manual tip dialog */}
+      <Dialog open={manualTipOpen} onOpenChange={setManualTipOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Gift className="h-4 w-4" /> Agregar Propina
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <Label className="text-sm">Monto de la propina</Label>
+            <Input
+              type="number"
+              min={0}
+              step={0.01}
+              value={manualTipAmount}
+              onChange={e => setManualTipAmount(e.target.value)}
+              placeholder="0.00"
+              autoFocus
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setManualTipOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => addTipMutation.mutate(parseFloat(manualTipAmount) || 0)}
+              disabled={!manualTipAmount || parseFloat(manualTipAmount) <= 0 || addTipMutation.isPending}
+            >
+              {addTipMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Registrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

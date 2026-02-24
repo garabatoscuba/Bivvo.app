@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, LogOut, Calculator } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import CashCalculator from '@/components/cobro/CashCalculator';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,7 +38,9 @@ function calcDuration(apertura: string): { text: string; minutes: number } {
 
 const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }: ContarYCerrarModalProps) => {
   const [closing, setClosing] = useState(false);
+  const [tipSurplus, setTipSurplus] = useState(0);
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   const duration = calcDuration(jornada.apertura_at);
   const entryTime = new Date(jornada.apertura_at).toLocaleTimeString('es', {
@@ -45,8 +48,28 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }:
     minute: '2-digit',
   });
 
+  const handleTipSurplusChange = useCallback((surplus: number) => {
+    setTipSurplus(surplus);
+  }, []);
+
   const handleClose = async () => {
     setClosing(true);
+
+    // Save automatic tip entry if there's a surplus
+    if (tipSurplus > 0 && user?.id) {
+      const todayStr = new Date().toISOString().split('T')[0];
+      await supabase.from('tip_entries').insert({
+        business_id: employeeBusinessId,
+        branch_id: jornada.sucursal_id,
+        user_id: user.id,
+        amount: tipSurplus,
+        tip_type: 'automatic',
+        jornada_id: jornada.id,
+        date: todayStr,
+        notes: 'Excedente de caja al cierre',
+      } as any);
+    }
+
     const { error } = await supabase
       .from('jornadas')
       .update({
@@ -64,6 +87,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }:
 
     queryClient.invalidateQueries({ queryKey: ['jornada-activa'] });
     queryClient.invalidateQueries({ queryKey: ['jornadas-activas-business'] });
+    queryClient.invalidateQueries({ queryKey: ['my-today-tips'] });
     toast.success('Jornada cerrada. ¡Hasta luego! 👋');
     onOpenChange(false);
   };
@@ -89,6 +113,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }:
           <CashCalculator
             employeeBusinessId={employeeBusinessId}
             employeeBranchId={jornada.sucursal_id}
+            onTipSurplusChange={handleTipSurplusChange}
           />
         </ScrollArea>
 
