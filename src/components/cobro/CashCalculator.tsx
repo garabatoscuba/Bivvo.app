@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Calculator, Coins, ArrowRightLeft, Copy, Wrench, Package, Gift } from 'lucide-react';
+import { Calculator, Coins, ArrowRightLeft, Wrench, Package, Gift } from 'lucide-react';
 
 const BILL_DENOMINATIONS = [1, 3, 5, 10, 20, 50, 100, 200, 500, 1000];
 
@@ -68,21 +68,6 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId }: CashCalculator
     enabled: !!branchId,
   });
 
-  // Fetch today's copies
-  const { data: todayCopies = [] } = useQuery({
-    queryKey: ['calculator-copies-today', branchId, todayStr],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('daily_copies')
-        .select('cash_amount, transfer_amount')
-        .eq('branch_id', branchId!)
-        .eq('date', todayStr);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!branchId,
-  });
-
   // Fetch jornadas to count active workers
   const { data: todayJornadas = [] } = useQuery({
     queryKey: ['calculator-jornadas-today', branchId, todayStr],
@@ -110,16 +95,9 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId }: CashCalculator
     const salesTransfer = todaySales.filter(s => s.payment_type === 'transfer').reduce((sum, s) => sum + Number(s.total), 0);
     const salesTotal = salesCash + salesTransfer;
 
-    const copiesCash = todayCopies.reduce((sum, c) => sum + Number(c.cash_amount), 0);
-    const copiesTransfer = todayCopies.reduce((sum, c) => sum + Number(c.transfer_amount), 0);
-    const copiesTotal = copiesCash + copiesTransfer;
-
-    const totalTransferSystem = serviceTransfer + salesTransfer; // from system
-    const totalTransferCopies = copiesTransfer; // manual
-    const totalAllTransfers = totalTransferSystem + totalTransferCopies;
-
-    const totalExpectedCash = serviceCash + salesCash + copiesCash;
-    const totalSalesDay = serviceTotal + salesTotal + copiesTotal;
+    const totalAllTransfers = serviceTransfer + salesTransfer;
+    const totalExpectedCash = serviceCash + salesCash;
+    const totalSalesDay = serviceTotal + salesTotal;
 
     const activeWorkers = new Set(todayJornadas.map(j => j.empleado_id)).size;
 
@@ -130,12 +108,11 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId }: CashCalculator
     return {
       serviceCash, serviceTransfer, serviceTotal,
       salesCash, salesTransfer, salesTotal,
-      copiesCash, copiesTransfer, copiesTotal,
-      totalTransferSystem, totalTransferCopies, totalAllTransfers,
+      totalAllTransfers,
       totalExpectedCash, totalSalesDay,
       tips, tipsPerWorker, activeWorkers,
     };
-  }, [todayServices, todaySales, todayCopies, todayJornadas, totalCash]);
+  }, [todayServices, todaySales, todayJornadas, totalCash]);
 
   return (
     <div className="space-y-4">
@@ -197,16 +174,6 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId }: CashCalculator
             </span>
             <span className="font-medium">${breakdown.salesTransfer.toFixed(2)}</span>
           </div>
-          <div className="border-t pt-1 flex justify-between text-sm">
-            <span className="text-muted-foreground font-medium">Subtotal sistema</span>
-            <span className="font-bold">${breakdown.totalTransferSystem.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="flex items-center gap-1.5 text-muted-foreground">
-              <Copy className="h-3.5 w-3.5" /> Copias (manual)
-            </span>
-            <span className="font-medium">${breakdown.totalTransferCopies.toFixed(2)}</span>
-          </div>
           <div className="border-t pt-2 flex justify-between">
             <span className="text-sm font-bold">Total Transferencias</span>
             <span className="text-lg font-bold text-primary">${breakdown.totalAllTransfers.toFixed(2)}</span>
@@ -227,10 +194,6 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId }: CashCalculator
           <div className="flex justify-between text-sm">
             <span className="text-muted-foreground">Venta productos</span>
             <span>${breakdown.salesTotal.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Copias</span>
-            <span>${breakdown.copiesTotal.toFixed(2)}</span>
           </div>
           <div className="border-t pt-2 flex justify-between">
             <span className="text-sm font-bold">Venta Total del Día</span>

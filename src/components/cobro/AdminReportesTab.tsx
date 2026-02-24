@@ -212,7 +212,7 @@ const AdminReportesTab = ({ businessId }: { businessId: string }) => {
                   </div>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Servicios</span><span>${Number(r.total_services).toFixed(2)}</span></div>
-                    <div className="flex justify-between"><span className="text-muted-foreground">Copias</span><span>${Number(r.total_copies).toFixed(2)}</span></div>
+                    
                     <div className="flex justify-between"><span className="text-muted-foreground">Comisiones</span><span>${Number(r.total_commissions).toFixed(2)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Venta total</span><span>${Number(r.total_sales_day).toFixed(2)}</span></div>
                   </div>

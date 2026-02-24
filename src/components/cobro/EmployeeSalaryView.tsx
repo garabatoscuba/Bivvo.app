@@ -5,9 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Loader2, DollarSign, Users, Wrench, Package, Calendar, TrendingUp, Copy, Save, Calculator, Coins, ArrowRightLeft, Gift, CheckCircle2 } from 'lucide-react';
+import { Loader2, DollarSign, Users, Wrench, Package, Calendar, TrendingUp, Save, Calculator, Coins, ArrowRightLeft, Gift, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -35,10 +34,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
   const todayStr = today.toISOString().split('T')[0];
   const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('today');
   const [selectedDate, setSelectedDate] = useState(todayStr);
-
-  // Copies input state
-  const [copiesCash, setCopiesCash] = useState('');
-  const [copiesTransfer, setCopiesTransfer] = useState('');
 
   // Calculator state
   const [bills, setBills] = useState<Record<number, number>>(
@@ -137,43 +132,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
     enabled: !!businessId && !!branchId,
   });
 
-  // Fetch daily_copies for range
-  const { data: rangeCopies = [] } = useQuery({
-    queryKey: ['daily-copies-range', branchId, dateRange.start, dateRange.end],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('daily_copies')
-        .select('*')
-        .eq('branch_id', branchId!)
-        .gte('date', dateRange.start)
-        .lte('date', dateRange.end);
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!branchId,
-  });
-
-  // Fetch today's copies for input prefill
-  const { data: todayCopiesRecord } = useQuery({
-    queryKey: ['daily-copies-today', branchId, todayStr, profile?.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('daily_copies')
-        .select('*')
-        .eq('branch_id', branchId!)
-        .eq('user_id', profile!.user_id)
-        .eq('date', todayStr)
-        .maybeSingle();
-      if (error) throw error;
-      if (data) {
-        setCopiesCash(String(data.cash_amount || ''));
-        setCopiesTransfer(String(data.transfer_amount || ''));
-      }
-      return data;
-    },
-    enabled: !!branchId && !!profile?.user_id,
-  });
-
   // Check if today is already closed
   const { data: todayReport } = useQuery({
     queryKey: ['daily-report-today', branchId, todayStr, profile?.id],
@@ -188,41 +146,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
       return data;
     },
     enabled: !!profile?.id,
-  });
-
-  // Save copies mutation
-  const saveCopies = useMutation({
-    mutationFn: async () => {
-      const cashVal = parseFloat(copiesCash) || 0;
-      const transferVal = parseFloat(copiesTransfer) || 0;
-      
-      if (todayCopiesRecord) {
-        const { error } = await supabase
-          .from('daily_copies')
-          .update({ cash_amount: cashVal, transfer_amount: transferVal })
-          .eq('id', todayCopiesRecord.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase
-          .from('daily_copies')
-          .insert({
-            business_id: businessId,
-            branch_id: branchId!,
-            user_id: profile!.user_id,
-            date: todayStr,
-            cash_amount: cashVal,
-            transfer_amount: transferVal,
-          });
-        if (error) throw error;
-      }
-    },
-    onSuccess: () => {
-      toast.success('Copias guardadas');
-      queryClient.invalidateQueries({ queryKey: ['daily-copies'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-copies-today'] });
-      queryClient.invalidateQueries({ queryKey: ['daily-copies-range'] });
-    },
-    onError: () => toast.error('Error al guardar'),
   });
 
   // Fetch sales for range
@@ -281,10 +204,8 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
       date: string;
       activeWorkers: number;
       totalServices: number;
-      totalCopies: number;
       servicePercent: number;
       serviceEarning: number;
-      copiesEarning: number;
       totalCommissions: number;
       commissionEarning: number;
       tips: number;
@@ -294,8 +215,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
       serviceTransferTotal: number;
       salesCashTotal: number;
       salesTransferTotal: number;
-      copiesCashTotal: number;
-      copiesTransferTotal: number;
       salesTotal: number;
     }> = [];
 
@@ -311,7 +230,7 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
       const wasWorking = uniqueWorkers.has(profile.id);
 
       if (!wasWorking) {
-        results.push({ date: dateStr, activeWorkers: 0, totalServices: 0, totalCopies: 0, servicePercent: 0, serviceEarning: 0, copiesEarning: 0, totalCommissions: 0, commissionEarning: 0, tips: 0, total: 0, wasWorking: false, serviceCashTotal: 0, serviceTransferTotal: 0, salesCashTotal: 0, salesTransferTotal: 0, copiesCashTotal: 0, copiesTransferTotal: 0, salesTotal: 0 });
+        results.push({ date: dateStr, activeWorkers: 0, totalServices: 0, servicePercent: 0, serviceEarning: 0, totalCommissions: 0, commissionEarning: 0, tips: 0, total: 0, wasWorking: false, serviceCashTotal: 0, serviceTransferTotal: 0, salesCashTotal: 0, salesTransferTotal: 0, salesTotal: 0 });
         continue;
       }
 
@@ -320,18 +239,12 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
       const serviceCashTotal = dayServices.filter((s: any) => s.payment_type === 'cash').reduce((sum: number, s: any) => sum + Number(s.amount), 0);
       const serviceTransferTotal = dayServices.filter((s: any) => s.payment_type === 'transfer').reduce((sum: number, s: any) => sum + Number(s.amount), 0);
 
-      const dayCopies = rangeCopies.filter((c: any) => c.date === dateStr);
-      const copiesCashTotal = dayCopies.reduce((sum: number, c: any) => sum + Number(c.cash_amount), 0);
-      const copiesTransferTotal = dayCopies.reduce((sum: number, c: any) => sum + Number(c.transfer_amount), 0);
-      const totalCopies = copiesCashTotal + copiesTransferTotal;
-
       const condition = conditions
         .sort((a, b) => b.positions - a.positions)
         .find(c => c.positions <= activeWorkers) || conditions[conditions.length - 1];
       const servicePercent = condition?.service_percent ?? 0;
 
       const serviceEarning = (totalServices * servicePercent / 100) / activeWorkers;
-      const copiesEarning = (totalCopies * servicePercent / 100) / activeWorkers;
 
       const daySales = rangeSales.filter((s: any) => new Date(s.created_at).toISOString().split('T')[0] === dateStr);
       const daySaleIds = new Set(daySales.map((s: any) => s.id));
@@ -358,27 +271,23 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
         date: dateStr,
         activeWorkers,
         totalServices,
-        totalCopies,
         servicePercent,
         serviceEarning,
-        copiesEarning,
         totalCommissions,
         commissionEarning,
         tips: 0,
-        total: serviceEarning + copiesEarning + commissionEarning,
+        total: serviceEarning + commissionEarning,
         wasWorking: true,
         serviceCashTotal,
         serviceTransferTotal,
         salesCashTotal,
         salesTransferTotal,
-        copiesCashTotal,
-        copiesTransferTotal,
         salesTotal,
       });
     }
 
     return results;
-  }, [rangeJornadas, rangeServices, rangeSales, rangeSaleItems, rangeCopies, commissions, conditions, profile?.id, dateRange, commissionsMap]);
+  }, [rangeJornadas, rangeServices, rangeSales, rangeSaleItems, commissions, conditions, profile?.id, dateRange, commissionsMap]);
 
   const workedDays = dailySalary.filter(d => d.wasWorking);
   const periodTotal = workedDays.reduce((sum, d) => sum + d.total, 0);
@@ -389,17 +298,15 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
     if (!todayData || !todayData.wasWorking) return null;
     const d = todayData;
     const totalTransferSystem = d.serviceTransferTotal + d.salesTransferTotal;
-    const totalTransferCopies = d.copiesTransferTotal;
-    const totalAllTransfers = totalTransferSystem + totalTransferCopies;
-    const totalExpectedCash = d.serviceCashTotal + d.salesCashTotal + d.copiesCashTotal;
-    const totalSalesDay = d.totalServices + d.salesTotal + d.totalCopies;
+    const totalAllTransfers = totalTransferSystem;
+    const totalExpectedCash = d.serviceCashTotal + d.salesCashTotal;
+    const totalSalesDay = d.totalServices + d.salesTotal;
     const tips = Math.max(0, totalCash - totalExpectedCash);
     const tipsPerWorker = d.activeWorkers > 0 ? tips / d.activeWorkers : tips;
     const moneyToDeliver = totalCash - tips;
     return {
       ...d,
       totalTransferSystem,
-      totalTransferCopies,
       totalAllTransfers,
       totalExpectedCash,
       totalSalesDay,
@@ -423,7 +330,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
     mutationFn: async () => {
       if (!profile || !calcBreakdown || !branchId || !todayData) throw new Error('Missing data');
 
-      // Save report
       const reportData = {
         business_id: businessId,
         branch_id: branchId,
@@ -433,10 +339,10 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
         active_workers: todayData.activeWorkers,
         service_percent: todayData.servicePercent,
         total_services: todayData.totalServices,
-        total_copies: todayData.totalCopies,
+        total_copies: 0,
         total_commissions: todayData.totalCommissions,
         service_earning: todayData.serviceEarning,
-        copies_earning: todayData.copiesEarning,
+        copies_earning: 0,
         commission_earning: todayData.commissionEarning,
         tips: calcBreakdown.tips,
         total_salary: todayData.total + calcBreakdown.tipsPerWorker,
@@ -445,8 +351,8 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
         service_transfer: todayData.serviceTransferTotal,
         sales_cash: todayData.salesCashTotal,
         sales_transfer: todayData.salesTransferTotal,
-        copies_cash: todayData.copiesCashTotal,
-        copies_transfer: todayData.copiesTransferTotal,
+        copies_cash: 0,
+        copies_transfer: 0,
         total_expected_cash: calcBreakdown.totalExpectedCash,
         total_transfers: calcBreakdown.totalAllTransfers,
         total_sales_day: calcBreakdown.totalSalesDay,
@@ -459,23 +365,17 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
         .upsert(reportData, { onConflict: 'employee_id,date' });
       if (reportError) throw reportError;
 
-      // Close jornada if open
       if (todayJornada) {
         const now = new Date().toISOString();
         const apertura = new Date(todayJornada.apertura_at);
         const duracion = Math.round((Date.now() - apertura.getTime()) / 60000);
         const { error: jornadaError } = await supabase
           .from('jornadas')
-          .update({
-            cierre_at: now,
-            duracion_min: duracion,
-            metodo_cierre: 'cierre_dia',
-          })
+          .update({ cierre_at: now, duracion_min: duracion, metodo_cierre: 'cierre_dia' })
           .eq('id', todayJornada.id);
         if (jornadaError) throw jornadaError;
       }
 
-      // Send notification to owner
       const { error: notifError } = await supabase
         .from('notifications')
         .insert({
@@ -550,38 +450,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
             </Card>
           )}
 
-          {/* Copies input */}
-          {!isDayClosed && (
-            <Card className="border-primary/30 bg-primary/5">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Copy className="h-4 w-4" /> Copias de Hoy
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Efectivo</Label>
-                    <Input type="number" min={0} placeholder="0.00" value={copiesCash} onChange={e => setCopiesCash(e.target.value)} className="mt-1" />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Transferencias</Label>
-                    <Input type="number" min={0} placeholder="0.00" value={copiesTransfer} onChange={e => setCopiesTransfer(e.target.value)} className="mt-1" />
-                  </div>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">
-                    Total: <span className="font-bold text-foreground">${((parseFloat(copiesCash) || 0) + (parseFloat(copiesTransfer) || 0)).toFixed(2)}</span>
-                  </span>
-                  <Button size="sm" onClick={() => saveCopies.mutate()} disabled={saveCopies.isPending}>
-                    {saveCopies.isPending ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Save className="h-3 w-3 mr-1" />}
-                    Guardar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
           {/* Today's salary */}
           {todayData && todayData.wasWorking && (
             <Card className="border-primary">
@@ -597,10 +465,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Servicios ({todayData.servicePercent}% de ${todayData.totalServices.toFixed(2)} ÷ {todayData.activeWorkers})</span>
                     <span className="font-medium">${todayData.serviceEarning.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Copias ({todayData.servicePercent}% de ${todayData.totalCopies.toFixed(2)} ÷ {todayData.activeWorkers})</span>
-                    <span className="font-medium">${todayData.copiesEarning.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Comisiones (${todayData.totalCommissions.toFixed(2)} ÷ {todayData.activeWorkers})</span>
@@ -667,14 +531,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
                       <span className="flex items-center gap-1.5 text-muted-foreground"><Package className="h-3.5 w-3.5" /> Punto de Venta</span>
                       <span className="font-medium">${calcBreakdown.salesTransferTotal.toFixed(2)}</span>
                     </div>
-                    <div className="border-t pt-1 flex justify-between text-sm">
-                      <span className="text-muted-foreground font-medium">Subtotal sistema</span>
-                      <span className="font-bold">${calcBreakdown.totalTransferSystem.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="flex items-center gap-1.5 text-muted-foreground"><Copy className="h-3.5 w-3.5" /> Copias (manual)</span>
-                      <span className="font-medium">${calcBreakdown.totalTransferCopies.toFixed(2)}</span>
-                    </div>
                     <div className="border-t pt-2 flex justify-between">
                       <span className="text-sm font-bold">Total Transferencias</span>
                       <span className="text-lg font-bold text-primary">${calcBreakdown.totalAllTransfers.toFixed(2)}</span>
@@ -697,10 +553,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Venta productos</span>
                       <span>${calcBreakdown.salesTotal.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Copias</span>
-                      <span>${calcBreakdown.totalCopies.toFixed(2)}</span>
                     </div>
                     <div className="border-t pt-2 flex justify-between">
                       <span className="text-sm font-bold">Venta Total del Día</span>
@@ -822,7 +674,6 @@ const EmployeeSalaryView = ({ employeeBusinessId, employeeBranchId }: { employee
                     </div>
                     <div className="border-t pt-2 space-y-1">
                       <div className="flex justify-between text-sm"><span className="text-muted-foreground">Servicios</span><span>${dayData.serviceEarning.toFixed(2)}</span></div>
-                      <div className="flex justify-between text-sm"><span className="text-muted-foreground">Copias</span><span>${dayData.copiesEarning.toFixed(2)}</span></div>
                       <div className="flex justify-between text-sm"><span className="text-muted-foreground">Comisiones</span><span>${dayData.commissionEarning.toFixed(2)}</span></div>
                     </div>
                     <div className="border-t pt-2 flex justify-between">

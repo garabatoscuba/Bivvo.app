@@ -42,10 +42,10 @@ interface Condition {
 
 interface ModalidadesTabProps {
   businessId: string;
-  context?: 'general' | 'copies';
 }
 
-const ModalidadesTab = ({ businessId, context = 'general' }: ModalidadesTabProps) => {
+const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
+  const context = 'general';
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [configOpen, setConfigOpen] = useState(false);
@@ -288,7 +288,7 @@ const ModalidadesTab = ({ businessId, context = 'general' }: ModalidadesTabProps
           </DialogHeader>
 
           <div className="space-y-5">
-            {context !== 'copies' && <AppliesToSelector value={appliesTo} onChange={setAppliesTo} />}
+            <AppliesToSelector value={appliesTo} onChange={setAppliesTo} />
             {renderModalityConfig()}
           </div>
 

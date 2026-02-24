@@ -15,7 +15,7 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, Loader2, Activity, Clock, Briefcase, Play, Square,
   LayoutDashboard, CalendarDays, Info, AlertTriangle, TrendingUp, CheckCircle2, XCircle,
-  DollarSign, ShoppingCart, Receipt, Wrench, FileText, LogOut,
+  DollarSign, ShoppingCart, Wrench, FileText, LogOut,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
@@ -89,9 +89,6 @@ const MyEmployment = () => {
   const [cerrarMiJornadaOpen, setCerrarMiJornadaOpen] = useState(false);
   const [contarYCerrarOpen, setContarYCerrarOpen] = useState(false);
 
-  // Daily copies state for copy shop employees
-  const [copiesCash, setCopiesCash] = useState('');
-  const [copiesTransfer, setCopiesTransfer] = useState('');
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
   const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
@@ -118,50 +115,9 @@ const MyEmployment = () => {
   const businessId = myEmployeeRecord?.business_id || null;
   const monthKey = formatLocalMonthKey(selectedMonth);
 
-  // Fetch employer business type for conditional tools
-  const { data: employerBiz } = useQuery({
-    queryKey: ['employer-biz-type', businessId],
-    queryFn: async () => {
-      const { data } = await supabase.from('businesses').select('business_type').eq('id', businessId!).single();
-      return data;
-    },
-    enabled: !!businessId,
-  });
-  const isEmployerCopyShop = employerBiz?.business_type === 'copy_shop';
   const hasAuthorizedJornada = jornadaActiva && myJornada?.metodo_apertura === 'manual_gerente';
 
-  // Fetch today's copies for this employee (copy shop) - for input display
   const todayStr = new Date().toISOString().split('T')[0];
-  const { data: todayCopiesRecord } = useQuery({
-    queryKey: ['my-daily-copies', businessId, todayStr, profile?.user_id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('daily_copies')
-        .select('*')
-        .eq('user_id', profile!.user_id)
-        .eq('business_id', businessId!)
-        .eq('date', todayStr)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!businessId && !!profile?.user_id && isEmployerCopyShop && jornadaActiva,
-  });
-
-  // Fetch ALL copies for the branch today (shared pool for salary)
-  const { data: todayBranchCopiesTotalFromDB = 0 } = useQuery({
-    queryKey: ['branch-daily-copies-total', businessId, myJornada?.sucursal_id, todayStr],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('daily_copies')
-        .select('cash_amount, transfer_amount')
-        .eq('business_id', businessId!)
-        .eq('branch_id', myJornada!.sucursal_id)
-        .eq('date', todayStr);
-      return data?.reduce((sum, c) => sum + Number(c.cash_amount) + Number(c.transfer_amount), 0) || 0;
-    },
-    enabled: !!businessId && !!myJornada?.sucursal_id && isEmployerCopyShop && jornadaActiva,
-    refetchInterval: 30000,
-  });
 
   // Fetch today's service earnings for the BRANCH (shared pool for salary calc)
   const { data: todayBranchServiceTotal = 0 } = useQuery({
@@ -274,25 +230,6 @@ const MyEmployment = () => {
   // Keep backward compat alias
   const mySalaryAssignment = mySalaryAssignments[0] || null;
 
-  // Separate general vs copies assignments
-  const generalAssignments = mySalaryAssignments.filter((a: any) => 
-    !a.salary_modalities?.context || a.salary_modalities.context === 'general'
-  );
-  const copiesAssignments = mySalaryAssignments.filter((a: any) => 
-    a.salary_modalities?.context === 'copies'
-  );
-
-  // Total copies for today - local input (reactive) 
-  const todayCopiesTotalAmount = (parseFloat(copiesCash) || 0) + (parseFloat(copiesTransfer) || 0);
-  
-  // For salary: use local copies for reactivity, plus DB copies from other workers
-  // Subtract the DB-saved amount for this user and use local input instead (more reactive)
-  const mySavedCopies = todayCopiesRecord 
-    ? Number(todayCopiesRecord.cash_amount) + Number(todayCopiesRecord.transfer_amount) 
-    : 0;
-  const branchCopiesTotalForSalary = isEmployerCopyShop 
-    ? (todayBranchCopiesTotalFromDB - mySavedCopies + todayCopiesTotalAmount)
-    : 0;
 
   // Helper to calculate earnings from a set of assignments against a given income base
   const calcAssignmentEarnings = (assignments: any[], incomeBase: number, label: string) => {
@@ -374,13 +311,9 @@ const MyEmployment = () => {
   const dailySalary = useMemo(() => {
     if (!mySalaryAssignments.length) return null;
 
-    // General modalities: apply to services + sales
+    // All modalities apply to services + sales
     const generalBase = todayBranchServiceTotal + todaySalesTotal;
-    const generalResult = calcAssignmentEarnings(generalAssignments, generalBase, 'general');
-
-    // Copies modalities: apply to THIS employee's own daily copies (not branch total)
-    const myCopiesTotalForSalary = todayCopiesTotalAmount || mySavedCopies;
-    const copiesResult = calcAssignmentEarnings(copiesAssignments, myCopiesTotalForSalary, 'copies');
+    const generalResult = calcAssignmentEarnings(mySalaryAssignments, generalBase, 'general');
 
     // Product commissions
     let totalCommissionEarning = 0;
@@ -404,50 +337,16 @@ const MyEmployment = () => {
       totalCommissionEarning += commAmount;
     }
 
-    const totalBase = generalResult.base + copiesResult.base;
-    const serviceEarning = generalResult.earning;
-    const copiesEarning = copiesResult.earning;
-    const total = totalBase + serviceEarning + copiesEarning + totalCommissionEarning;
+    const total = generalResult.base + generalResult.earning + totalCommissionEarning;
 
     return {
       total,
-      base: totalBase,
-      serviceEarning,
-      copiesEarning,
+      base: generalResult.base,
+      serviceEarning: generalResult.earning,
       commissionEarning: totalCommissionEarning,
     };
-  }, [mySalaryAssignments, generalAssignments, copiesAssignments, todayBranchServiceTotal, todaySalesTotal, branchCopiesTotalForSalary, activeWorkersCount, todaySaleItems, productCommissions, myJornada]);
+  }, [mySalaryAssignments, todayBranchServiceTotal, todaySalesTotal, activeWorkersCount, todaySaleItems, productCommissions, myJornada]);
 
-  // Save copies
-  const handleSaveCopies = async () => {
-    if (!businessId || !myJornada || !profile) return;
-    const cashVal = parseFloat(copiesCash) || 0;
-    const transferVal = parseFloat(copiesTransfer) || 0;
-
-    if (todayCopiesRecord) {
-      await supabase.from('daily_copies').update({
-        cash_amount: cashVal,
-        transfer_amount: transferVal,
-      }).eq('id', todayCopiesRecord.id);
-    } else {
-      await supabase.from('daily_copies').insert({
-        user_id: profile.user_id,
-        business_id: businessId,
-        branch_id: myJornada.sucursal_id,
-        cash_amount: cashVal,
-        transfer_amount: transferVal,
-      });
-    }
-    queryClient.invalidateQueries({ queryKey: ['my-daily-copies'] });
-  };
-
-  // Sync copies inputs from DB
-  useEffect(() => {
-    if (todayCopiesRecord) {
-      setCopiesCash(String(todayCopiesRecord.cash_amount || ''));
-      setCopiesTransfer(String(todayCopiesRecord.transfer_amount || ''));
-    }
-  }, [todayCopiesRecord]);
 
   const { data: branchAssignments = [] } = useQuery({
     queryKey: ['my-employee-branch-assignments', myEmployeeRecord?.id],
@@ -814,60 +713,16 @@ const MyEmployment = () => {
                 <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-muted-foreground">
                   {dailySalary.base > 0 && <span>Base: ${dailySalary.base.toFixed(2)}</span>}
                   {dailySalary.serviceEarning > 0 && <span>% Serv+Ventas: ${dailySalary.serviceEarning.toFixed(2)}</span>}
-                  {dailySalary.copiesEarning > 0 && <span>% Copias: ${dailySalary.copiesEarning.toFixed(2)}</span>}
+                  
                   {dailySalary.commissionEarning > 0 && <span>Comisiones: ${dailySalary.commissionEarning.toFixed(2)}</span>}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''} · Serv: ${todayBranchServiceTotal.toFixed(0)} · Copias: ${branchCopiesTotalForSalary.toFixed(0)} · Ventas: ${todaySalesTotal.toFixed(0)}
+                  👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''} · Serv: ${todayBranchServiceTotal.toFixed(0)} · Ventas: ${todaySalesTotal.toFixed(0)}
                 </p>
               </CardContent>
             </Card>
           )}
 
-          {/* Copy shop: daily copies inputs */}
-          {jornadaActiva && isEmployerCopyShop && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  <Receipt className="h-4 w-4" />
-                  Copias del Día
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Efectivo</label>
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      placeholder="0.00"
-                      value={copiesCash}
-                      onChange={e => setCopiesCash(e.target.value)}
-                      onBlur={handleSaveCopies}
-                      className="h-9"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-muted-foreground mb-1 block">Transferencia</label>
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      placeholder="0.00"
-                      value={copiesTransfer}
-                      onChange={e => setCopiesTransfer(e.target.value)}
-                      onBlur={handleSaveCopies}
-                      className="h-9"
-                    />
-                  </div>
-                </div>
-                <p className="text-[10px] text-muted-foreground">
-                  Total copias: ${((parseFloat(copiesCash) || 0) + (parseFloat(copiesTransfer) || 0)).toFixed(2)}
-                </p>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Quick actions when shift active */}
           {jornadaActiva && (
