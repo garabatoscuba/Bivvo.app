@@ -3,13 +3,21 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, LogOut, Calculator } from 'lucide-react';
+import { Loader2, LogOut, Calculator, DollarSign, Gift, Briefcase, TrendingUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import CashCalculator from '@/components/cobro/CashCalculator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+
+interface DailySalaryBreakdown {
+  total: number;
+  base: number;
+  serviceEarning: number;
+  commissionEarning: number;
+  tipShare: number;
+}
 
 interface ContarYCerrarModalProps {
   open: boolean;
@@ -21,6 +29,7 @@ interface ContarYCerrarModalProps {
     sucursal_id: string;
   };
   employeeBusinessId: string;
+  dailySalary?: DailySalaryBreakdown | null;
 }
 
 function calcDuration(apertura: string): { text: string; minutes: number } {
@@ -36,7 +45,7 @@ function calcDuration(apertura: string): { text: string; minutes: number } {
   };
 }
 
-const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }: ContarYCerrarModalProps) => {
+const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, dailySalary }: ContarYCerrarModalProps) => {
   const [closing, setClosing] = useState(false);
   const [tipSurplus, setTipSurplus] = useState(0);
   const [calculatorBreakdown, setCalculatorBreakdown] = useState<any>(null);
@@ -139,7 +148,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }:
         copies_earning: 0,
         commission_earning: 0,
         tips: totalTips,
-        total_salary: myTipShare,
+        total_salary: (dailySalary?.total || 0) + myTipShare,
         cash_counted: totalCash,
         service_cash: bd.serviceCash || 0,
         service_transfer: bd.serviceTransfer || 0,
@@ -180,13 +189,16 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }:
       });
     }
 
+    const salarioTotal = (dailySalary?.total || 0) + myTipShare;
+
     const { error } = await supabase
       .from('jornadas')
       .update({
         cierre_at: new Date().toISOString(),
         duracion_min: duration.minutes,
         metodo_cierre: 'manual',
-      })
+        salario_ganado: salarioTotal,
+      } as any)
       .eq('id', jornada.id);
 
     setClosing(false);
@@ -228,6 +240,52 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }:
             onBreakdownChange={handleBreakdownChange}
           />
         </ScrollArea>
+
+        {/* Salary + Tips summary */}
+        {dailySalary && (
+          <div className="px-6 py-3 border-t space-y-2">
+            <h4 className="text-sm font-bold flex items-center gap-1.5">
+              <DollarSign className="h-4 w-4 text-primary" />
+              Resumen Salarial
+            </h4>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              {dailySalary.base > 0 && (
+                <div className="flex items-center gap-1">
+                  <Briefcase className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">Base:</span>
+                  <span className="font-semibold">${dailySalary.base.toFixed(2)}</span>
+                </div>
+              )}
+              {dailySalary.serviceEarning > 0 && (
+                <div className="flex items-center gap-1">
+                  <TrendingUp className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">% Ventas:</span>
+                  <span className="font-semibold">${dailySalary.serviceEarning.toFixed(2)}</span>
+                </div>
+              )}
+              {dailySalary.commissionEarning > 0 && (
+                <div className="flex items-center gap-1">
+                  <DollarSign className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">Comisiones:</span>
+                  <span className="font-semibold">${dailySalary.commissionEarning.toFixed(2)}</span>
+                </div>
+              )}
+              {(dailySalary.tipShare > 0 || tipSurplus > 0) && (
+                <div className="flex items-center gap-1">
+                  <Gift className="h-3 w-3 text-muted-foreground" />
+                  <span className="text-muted-foreground">Propinas:</span>
+                  <span className="font-semibold">${(dailySalary.tipShare + (tipSurplus > 0 ? tipSurplus : 0)).toFixed(2)}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-between pt-1 border-t">
+              <span className="text-sm font-bold">Total a ganar:</span>
+              <span className="text-lg font-bold text-primary">
+                ${((dailySalary.total || 0) + (tipSurplus > 0 ? tipSurplus : 0)).toFixed(2)}
+              </span>
+            </div>
+          </div>
+        )}
 
         <DialogFooter className="gap-2 sm:gap-0 px-6 pb-6 pt-3 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>

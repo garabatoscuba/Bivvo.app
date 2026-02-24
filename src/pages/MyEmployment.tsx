@@ -1558,6 +1558,7 @@ const MyEmployment = () => {
           onOpenChange={setContarYCerrarOpen}
           jornada={myJornada}
           employeeBusinessId={businessId}
+          dailySalary={dailySalary}
         />
       )}
 

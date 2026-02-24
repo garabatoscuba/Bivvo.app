@@ -1,0 +1,1 @@
+ALTER TABLE public.jornadas ADD COLUMN salario_ganado numeric DEFAULT 0;
