@@ -202,12 +202,19 @@ const MyEmployment = () => {
   // Keep backward compat alias
   const mySalaryAssignment = mySalaryAssignments[0] || null;
 
+  // Total copies for today (treated as services)
+  const todayCopiesTotalAmount = (parseFloat(copiesCash) || 0) + (parseFloat(copiesTransfer) || 0);
+
   // Calculate running daily salary from ALL assignments
+  // Copies are treated as services: they use the same service_percent
   const dailySalary = useMemo(() => {
     if (!mySalaryAssignments.length) return null;
     let totalBase = 0;
     let totalServiceEarning = 0;
     let totalSalesEarning = 0;
+
+    // Service base = service entries + copies (copies get service treatment)
+    const serviceBase = todayServiceEarnings + (isEmployerCopyShop ? todayCopiesTotalAmount : 0);
 
     for (const assignment of mySalaryAssignments) {
       const modType = (assignment as any)?.salary_modalities?.modality_type;
@@ -224,7 +231,7 @@ const MyEmployment = () => {
 
       const servicePercent = Number(config.service_percent || config.percent || 0);
       if (servicePercent > 0) {
-        totalServiceEarning += todayServiceEarnings * (servicePercent / 100);
+        totalServiceEarning += serviceBase * (servicePercent / 100);
       }
 
       const salesPercent = Number(config.sales_percent || 0);
@@ -235,7 +242,7 @@ const MyEmployment = () => {
 
     const total = totalBase + totalServiceEarning + totalSalesEarning;
     return { total, serviceEarning: totalServiceEarning, salesEarning: totalSalesEarning, base: totalBase };
-  }, [mySalaryAssignments, todayServiceEarnings, todaySalesTotal]);
+  }, [mySalaryAssignments, todayServiceEarnings, todaySalesTotal, todayCopiesTotalAmount, isEmployerCopyShop]);
 
   // Save copies
   const handleSaveCopies = async () => {
