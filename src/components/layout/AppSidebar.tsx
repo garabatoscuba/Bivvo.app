@@ -264,7 +264,7 @@ const AppSidebar = () => {
     { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
     { title: 'Servicios', url: '/services', icon: Wrench },
     { title: 'Ventas', url: '/sales', icon: Receipt },
-    ...(isCopyShop ? [{ title: 'Reportes', url: '/cobros', icon: FileText }] : []),
+    { title: 'Reportes', url: '/cobros', icon: FileText },
     { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
     ...(storeSettings?.has_delivery ? [{ title: 'Pedidos', url: '/orders', icon: Receipt }] : []),
     { title: 'Recursos Humanos', url: '/employees', icon: Users },
