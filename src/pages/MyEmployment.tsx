@@ -38,6 +38,7 @@ import { format, startOfMonth, subMonths, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 import PayrollHistory from '@/components/nomina/PayrollHistory';
+import EmployeeSalaryView from '@/components/cobro/EmployeeSalaryView';
 
 /** Parse 'YYYY-MM-DD' as local date (avoids UTC shift) */
 function parseLocalDate(dateStr: string): Date {
@@ -751,10 +752,14 @@ const MyEmployment = () => {
   return (
     <AppLayout title="Mi Empleo">
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="w-full grid grid-cols-3 text-xs sm:text-sm">
+        <TabsList className="w-full grid grid-cols-4 text-xs sm:text-sm">
           <TabsTrigger value="dashboard" className="gap-1">
             <LayoutDashboard className="h-3.5 w-3.5 hidden sm:block" />
             Dashboard
+          </TabsTrigger>
+          <TabsTrigger value="cobros" className="gap-1">
+            <DollarSign className="h-3.5 w-3.5 hidden sm:block" />
+            Cobros
           </TabsTrigger>
           <TabsTrigger value="actividad" className="gap-1">
             <CalendarDays className="h-3.5 w-3.5 hidden sm:block" />
@@ -1269,6 +1274,16 @@ const MyEmployment = () => {
                 </div>
               </CardContent>
             </Card>
+          )}
+        </TabsContent>
+
+        {/* ===== TAB: COBROS ===== */}
+        <TabsContent value="cobros" className="space-y-4">
+          {myEmployeeRecord && (
+            <EmployeeSalaryView
+              employeeBusinessId={myEmployeeRecord.business_id}
+              employeeBranchId={myEmployeeRecord.branch_id ?? profile?.branch_id ?? null}
+            />
           )}
         </TabsContent>
 
