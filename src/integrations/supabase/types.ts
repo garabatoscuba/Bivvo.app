@@ -932,6 +932,7 @@ export type Database = {
           metodo_apertura: string
           metodo_cierre: string | null
           notas: string | null
+          salario_ganado: number | null
           sucursal_id: string
         }
         Insert: {
@@ -945,6 +946,7 @@ export type Database = {
           metodo_apertura: string
           metodo_cierre?: string | null
           notas?: string | null
+          salario_ganado?: number | null
           sucursal_id: string
         }
         Update: {
@@ -958,6 +960,7 @@ export type Database = {
           metodo_apertura?: string
           metodo_cierre?: string | null
           notas?: string | null
+          salario_ganado?: number | null
           sucursal_id?: string
         }
         Relationships: [
