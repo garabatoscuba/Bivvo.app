@@ -1,0 +1,2 @@
+ALTER TABLE public.salary_modalities DROP CONSTRAINT IF EXISTS salary_modalities_business_id_modality_type_key;
+ALTER TABLE public.salary_modalities ADD CONSTRAINT salary_modalities_business_id_modality_type_context_key UNIQUE (business_id, modality_type, context);
