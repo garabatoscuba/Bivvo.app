@@ -164,6 +164,7 @@ const MyEmployment = () => {
       return data?.reduce((sum, s) => sum + Number(s.amount), 0) || 0;
     },
     enabled: !!businessId && !!myJornada?.sucursal_id && !!profile?.user_id && !!jornadaActiva,
+    refetchInterval: 30000,
   });
 
   // Fetch today's sales commissions for salary preview
@@ -183,6 +184,7 @@ const MyEmployment = () => {
       return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
     },
     enabled: !!myJornada?.sucursal_id && !!profile?.user_id && !!jornadaActiva,
+    refetchInterval: 30000,
   });
 
   // Fetch salary assignments (multiple) for display
@@ -637,13 +639,14 @@ const MyEmployment = () => {
                   </div>
                   <DollarSign className="h-8 w-8 text-primary/30" />
                 </div>
-                {(dailySalary.serviceEarning > 0 || dailySalary.salesEarning > 0) && (
-                  <div className="flex gap-3 mt-1 text-[10px] text-muted-foreground">
-                    {dailySalary.base > 0 && <span>Base: ${dailySalary.base.toFixed(2)}</span>}
-                    {dailySalary.serviceEarning > 0 && <span>Servicios: ${dailySalary.serviceEarning.toFixed(2)}</span>}
-                    {dailySalary.salesEarning > 0 && <span>Ventas: ${dailySalary.salesEarning.toFixed(2)}</span>}
-                  </div>
-                )}
+                <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-muted-foreground">
+                  {dailySalary.base > 0 && <span>Base: ${dailySalary.base.toFixed(2)}</span>}
+                  {todayServiceEarnings > 0 && <span>Servicios: ${todayServiceEarnings.toFixed(2)}</span>}
+                  {isEmployerCopyShop && todayCopiesTotalAmount > 0 && <span>Copias: ${todayCopiesTotalAmount.toFixed(2)}</span>}
+                  {dailySalary.serviceEarning > 0 && <span>% Serv: ${dailySalary.serviceEarning.toFixed(2)}</span>}
+                  {todaySalesTotal > 0 && <span>Ventas: ${todaySalesTotal.toFixed(2)}</span>}
+                  {dailySalary.salesEarning > 0 && <span>% Ventas: ${dailySalary.salesEarning.toFixed(2)}</span>}
+                </div>
               </CardContent>
             </Card>
           )}
