@@ -144,7 +144,7 @@ const MyEmployment = () => {
         .maybeSingle();
       return data;
     },
-    enabled: !!businessId && !!profile?.user_id && isEmployerCopyShop && hasAuthorizedJornada,
+    enabled: !!businessId && !!profile?.user_id && isEmployerCopyShop && jornadaActiva,
   });
 
   // Fetch today's service earnings for salary preview
@@ -664,7 +664,7 @@ const MyEmployment = () => {
           )}
 
           {/* Copy shop: daily copies inputs */}
-          {hasAuthorizedJornada && isEmployerCopyShop && (
+          {jornadaActiva && isEmployerCopyShop && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
