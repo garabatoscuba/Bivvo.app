@@ -163,7 +163,7 @@ const MyEmployment = () => {
         .lte('created_at', endOfDay);
       return data?.reduce((sum, s) => sum + Number(s.amount), 0) || 0;
     },
-    enabled: !!businessId && !!myJornada?.sucursal_id && !!profile?.user_id && hasAuthorizedJornada,
+    enabled: !!businessId && !!myJornada?.sucursal_id && !!profile?.user_id && !!jornadaActiva,
   });
 
   // Fetch today's sales commissions for salary preview
@@ -182,7 +182,7 @@ const MyEmployment = () => {
         .lte('created_at', endOfDay);
       return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
     },
-    enabled: !!myJornada?.sucursal_id && !!profile?.user_id && hasAuthorizedJornada,
+    enabled: !!myJornada?.sucursal_id && !!profile?.user_id && !!jornadaActiva,
   });
 
   // Fetch salary assignments (multiple) for display
@@ -616,33 +616,37 @@ const MyEmployment = () => {
 
         {/* ===== TAB 1: DASHBOARD LABORAL ===== */}
         <TabsContent value="dashboard" className="space-y-4">
-          {/* Jornada status */}
-          <Card>
-            <CardContent className="py-3 px-4">
-              {jornadaActiva && myJornada ? (
-                <div className="flex items-center gap-3 flex-wrap">
-                  <Badge variant="outline" className="border-primary/30 text-primary gap-1.5 text-xs py-1 px-3">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+          {/* Jornada status + Equipo activo side by side */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <Card>
+              <CardContent className="py-3 px-4">
+                {jornadaActiva && myJornada ? (
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <Badge variant="outline" className="border-primary/30 text-primary gap-1.5 text-xs py-1 px-3">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+                      </span>
+                      Jornada Activa · {getJornadaElapsed(myJornada.apertura_at)}
+                    </Badge>
+                    <span className="text-[10px] text-muted-foreground">
+                      Desde {new Date(myJornada.apertura_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
                     </span>
-                    Jornada Activa · {getJornadaElapsed(myJornada.apertura_at)}
-                  </Badge>
-                  <span className="text-[10px] text-muted-foreground">
-                    Desde {new Date(myJornada.apertura_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
-                  </span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />
-                  <span className="text-xs text-muted-foreground">Sin jornada activa</span>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />
+                    <span className="text-xs text-muted-foreground">Sin jornada activa</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {businessId && <EquipoActivoSection onlyActive businessIdOverride={businessId} />}
+          </div>
 
           {/* Daily salary preview */}
-          {hasAuthorizedJornada && dailySalary && (
+          {jornadaActiva && dailySalary && (
             <Card className="border-primary/20 bg-primary/5">
               <CardContent className="py-3 px-4">
                 <div className="flex items-center justify-between">
@@ -709,7 +713,7 @@ const MyEmployment = () => {
           )}
 
           {/* Quick actions when shift active */}
-          {hasAuthorizedJornada && (
+          {jornadaActiva && (
             <div className="grid grid-cols-2 gap-2">
               {isEmployerCopyShop && (
                 <Button variant="outline" className="h-auto py-3 flex flex-col items-center gap-1.5" onClick={() => navigate('/cobros?ctx=emp')}>
@@ -1032,9 +1036,6 @@ const MyEmployment = () => {
               )}
             </CardContent>
           </Card>
-
-          {/* Equipo activo (only active members shown — from EMPLOYER's business) */}
-          {businessId && <EquipoActivoSection onlyActive businessIdOverride={businessId} />}
 
           {/* Manager: employee table */}
           {canManage && hrEmployees.length > 0 && (
