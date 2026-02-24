@@ -289,9 +289,12 @@ const MyEmployment = () => {
         case 'custom_mixed': {
           // Find the condition matching active workers count
           const conditions = config.conditions || [];
-          const matchedCondition = conditions
-            .sort((a: any, b: any) => b.positions - a.positions)
-            .find((c: any) => activeWorkersCount >= c.positions);
+          // Exact match first, then closest <= activeWorkersCount
+          const matchedCondition = conditions.find((c: any) => c.positions === activeWorkersCount)
+            || conditions
+              .filter((c: any) => c.positions <= activeWorkersCount)
+              .sort((a: any, b: any) => b.positions - a.positions)[0]
+            || conditions.sort((a: any, b: any) => a.positions - b.positions)[0];
           
           // Check if employee has a preset override
           const presetId = configOverride?.preset_id;
@@ -305,8 +308,10 @@ const MyEmployment = () => {
             }
           }
 
-          // Check config_override for applies_to
-          const appliesTo = configOverride?.applies_to || config.applies_to || 'services';
+          // For copy shops, services + copies all go through same percent
+          // serviceBase already includes copies
+          // Apply to the full service+copies pool by default
+          const appliesTo = configOverride?.applies_to || config.applies_to || 'both';
 
           if (appliesTo === 'services' || appliesTo === 'both') {
             totalServiceEarning += serviceBase * (servicePercent / 100);
