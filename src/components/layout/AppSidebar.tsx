@@ -371,16 +371,6 @@ const AppSidebar = () => {
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
-                    {isEmployeeCopyShop && (
-                      <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={location.pathname === '/cobros' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
-                          <Link to="/cobros?ctx=emp">
-                            <FileText className="h-4 w-4" />
-                            <span className="text-sm">Reportes</span>
-                          </Link>
-                        </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    )}
                   </>
                 )}
               </SidebarMenu>
