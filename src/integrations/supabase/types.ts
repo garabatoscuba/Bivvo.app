@@ -1093,6 +1093,7 @@ export type Database = {
           created_at: string
           id: string
           product_id: string
+          split_type: string
           updated_at: string
         }
         Insert: {
@@ -1102,6 +1103,7 @@ export type Database = {
           created_at?: string
           id?: string
           product_id: string
+          split_type?: string
           updated_at?: string
         }
         Update: {
@@ -1111,6 +1113,7 @@ export type Database = {
           created_at?: string
           id?: string
           product_id?: string
+          split_type?: string
           updated_at?: string
         }
         Relationships: [

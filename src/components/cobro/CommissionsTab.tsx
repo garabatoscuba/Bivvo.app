@@ -15,6 +15,7 @@ interface Commission {
   product_id: string;
   commission_type: 'fixed' | 'percent' | 'profit_percent';
   commission_value: number;
+  split_type: 'personal' | 'shared';
 }
 
 const CommissionsTab = ({ businessId }: { businessId: string }) => {
@@ -61,8 +62,9 @@ const CommissionsTab = ({ businessId }: { businessId: string }) => {
       product_id: productId,
       commission_type: existing.commission_type as 'fixed' | 'percent',
       commission_value: Number(existing.commission_value),
+      split_type: (existing.split_type as 'personal' | 'shared') || 'shared',
     };
-    return { product_id: productId, commission_type: 'fixed', commission_value: 0 };
+    return { product_id: productId, commission_type: 'fixed', commission_value: 0, split_type: 'shared' };
   };
 
   const updateEdit = (productId: string, field: string, value: any) => {
@@ -83,6 +85,7 @@ const CommissionsTab = ({ businessId }: { businessId: string }) => {
           product_id: p.id,
           commission_type: comm.commission_type,
           commission_value: comm.commission_value,
+          split_type: comm.split_type,
         };
       });
 
@@ -116,7 +119,7 @@ const CommissionsTab = ({ businessId }: { businessId: string }) => {
         </CardHeader>
         <CardContent>
           <p className="text-xs text-muted-foreground mb-4">
-            Define cuánto gana un empleado de comisión por cada producto vendido. Las comisiones son colectivas y se dividen entre los trabajadores activos del día.
+            Define cuánto gana un empleado de comisión por cada producto vendido. Puedes elegir si la comisión es personal o se divide entre los trabajadores activos.
           </p>
 
           {products.length === 0 ? (
@@ -125,11 +128,11 @@ const CommissionsTab = ({ businessId }: { businessId: string }) => {
             <div className="space-y-2">
               {/* Header */}
                <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground border-b pb-2 px-1">
-                 <span className="col-span-4">Producto</span>
-                 <span className="col-span-2 text-right">Precio</span>
+                 <span className="col-span-3">Producto</span>
                  <span className="col-span-1 text-right">Gan.</span>
                  <span className="col-span-3 text-center">Tipo</span>
                  <span className="col-span-2 text-center">Valor</span>
+                 <span className="col-span-3 text-center">Reparto</span>
                </div>
 
               {products.map((product: any) => {
@@ -137,48 +140,59 @@ const CommissionsTab = ({ businessId }: { businessId: string }) => {
                 const profit = Number(product.sale_price) - Number(product.cost_price || 0);
                 return (
                   <div key={product.id} className="grid grid-cols-12 gap-2 items-center rounded-lg border p-2">
-                    <div className="col-span-4 min-w-0">
-                      <p className="text-sm font-medium truncate">{product.name}</p>
-                      <div className="flex items-center gap-1 mt-0.5">
-                        <span className="text-[10px] text-muted-foreground">{product.code}</span>
-                        {product.category?.name && (
-                          <Badge variant="secondary" className="text-[9px] px-1 py-0">{product.category.name}</Badge>
-                        )}
-                      </div>
-                    </div>
-                    <div className="col-span-2 text-right">
-                      <span className="text-sm font-medium">${Number(product.sale_price).toFixed(2)}</span>
-                    </div>
-                    <div className="col-span-1 text-right">
-                      <span className="text-xs text-muted-foreground">${profit.toFixed(0)}</span>
-                    </div>
-                    <div className="col-span-3">
-                      <Select
-                        value={comm.commission_type}
-                        onValueChange={v => updateEdit(product.id, 'commission_type', v)}
-                      >
-                        <SelectTrigger className="h-8 text-xs">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                         <SelectItem value="fixed">$ Fijo</SelectItem>
-                          <SelectItem value="percent">% Precio</SelectItem>
-                          <SelectItem value="profit_percent">% Ganancia</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="col-span-2">
-                      <Input
-                        type="number"
-                        min={0}
-                        step={comm.commission_type === 'percent' ? 1 : 0.01}
-                        value={comm.commission_value || ''}
-                        onChange={e => updateEdit(product.id, 'commission_value', parseFloat(e.target.value) || 0)}
-                        className="h-8 text-center text-sm"
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
+                     <div className="col-span-3 min-w-0">
+                       <p className="text-sm font-medium truncate">{product.name}</p>
+                       <div className="flex items-center gap-1 mt-0.5">
+                         <span className="text-[10px] text-muted-foreground">{product.code}</span>
+                         {product.category?.name && (
+                           <Badge variant="secondary" className="text-[9px] px-1 py-0">{product.category.name}</Badge>
+                         )}
+                       </div>
+                     </div>
+                     <div className="col-span-1 text-right">
+                       <span className="text-xs text-muted-foreground">${profit.toFixed(0)}</span>
+                     </div>
+                     <div className="col-span-3">
+                       <Select
+                         value={comm.commission_type}
+                         onValueChange={v => updateEdit(product.id, 'commission_type', v)}
+                       >
+                         <SelectTrigger className="h-8 text-xs">
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                          <SelectItem value="fixed">$ Fijo</SelectItem>
+                           <SelectItem value="percent">% Precio</SelectItem>
+                           <SelectItem value="profit_percent">% Ganancia</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+                     <div className="col-span-2">
+                       <Input
+                         type="number"
+                         min={0}
+                         step={comm.commission_type === 'percent' ? 1 : 0.01}
+                         value={comm.commission_value || ''}
+                         onChange={e => updateEdit(product.id, 'commission_value', parseFloat(e.target.value) || 0)}
+                         className="h-8 text-center text-sm"
+                         placeholder="0"
+                       />
+                     </div>
+                     <div className="col-span-3">
+                       <Select
+                         value={comm.split_type}
+                         onValueChange={v => updateEdit(product.id, 'split_type', v)}
+                       >
+                         <SelectTrigger className="h-8 text-xs">
+                           <SelectValue />
+                         </SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="shared">Dividida</SelectItem>
+                           <SelectItem value="personal">Personal</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+                   </div>
                 );
               })}
             </div>
