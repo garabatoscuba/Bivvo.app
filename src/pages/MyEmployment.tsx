@@ -756,7 +756,7 @@ const MyEmployment = () => {
   return (
     <AppLayout title="Mi Empleo">
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="w-full grid grid-cols-4 text-xs sm:text-sm">
+        <TabsList className="w-full grid grid-cols-5 text-xs sm:text-sm overflow-x-auto">
           <TabsTrigger value="dashboard" className="gap-1">
             <LayoutDashboard className="h-3.5 w-3.5 hidden sm:block" />
             Dashboard
@@ -764,6 +764,10 @@ const MyEmployment = () => {
           <TabsTrigger value="cobros" className="gap-1">
             <DollarSign className="h-3.5 w-3.5 hidden sm:block" />
             Cobros
+          </TabsTrigger>
+          <TabsTrigger value="evaluaciones" className="gap-1">
+            <Activity className="h-3.5 w-3.5 hidden sm:block" />
+            Evaluaciones
           </TabsTrigger>
           <TabsTrigger value="actividad" className="gap-1">
             <CalendarDays className="h-3.5 w-3.5 hidden sm:block" />
@@ -805,12 +809,52 @@ const MyEmployment = () => {
             </Card>
           )}
 
-          {/* Salary view (moved from Cobros tab) */}
-          {myEmployeeRecord && jornadaActiva && (
-            <EmployeeSalaryView
-              employeeBusinessId={myEmployeeRecord.business_id}
-              employeeBranchId={myEmployeeRecord.branch_id ?? profile?.branch_id ?? null}
-            />
+          {/* Simple Salary Today card */}
+          {jornadaActiva && (
+            <Card className="border-primary/30">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Salario de Hoy
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-muted-foreground">Condición activa</span>
+                  <Badge variant="secondary" className="text-xs">{activeWorkersCount} puestos</Badge>
+                </div>
+                <div className="text-xs space-y-0.5">
+                  {dailySalary.serviceEarning > 0 && (
+                    <div className="flex justify-between">
+                      <span>Servicios</span>
+                      <span className="font-medium">${dailySalary.serviceEarning.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySalary.commissionEarning > 0 && (
+                    <div className="flex justify-between">
+                      <span>Comisiones</span>
+                      <span className="font-medium">${dailySalary.commissionEarning.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySalary.tipShare > 0 && (
+                    <div className="flex justify-between">
+                      <span>Propinas</span>
+                      <span className="font-medium">${dailySalary.tipShare.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySalary.base > 0 && (
+                    <div className="flex justify-between">
+                      <span>Salario base</span>
+                      <span className="font-medium">${dailySalary.base.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-between pt-1 border-t font-bold text-sm">
+                  <span>Total del día</span>
+                  <span className="text-primary">${dailySalary.total.toFixed(2)}</span>
+                </div>
+              </CardContent>
+            </Card>
           )}
 
 
@@ -936,7 +980,173 @@ const MyEmployment = () => {
           )}
         </TabsContent>
 
-        {/* ===== TAB 2: MI ACTIVIDAD ===== */}
+        {/* ===== TAB: EVALUACIONES ===== */}
+        <TabsContent value="evaluaciones" className="space-y-4">
+          {/* Month selector */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleMonthChange('prev')}>
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm font-medium capitalize min-w-[120px] text-center">
+                {format(selectedMonth, 'MMMM yyyy', { locale: es })}
+              </span>
+              <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleMonthChange('next')}>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-1">
+              <Button variant={chartType === 'radar' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setChartType('radar')}>
+                Radar
+              </Button>
+              <Button variant={chartType === 'bar' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setChartType('bar')}>
+                <BarChart3 className="h-3 w-3 mr-1" /> Barras
+              </Button>
+              {compareEmployees.length > 0 && (
+                <Select value={compareEmployeeId || 'none'} onValueChange={v => setCompareEmployeeId(v === 'none' ? null : v)}>
+                  <SelectTrigger className="h-7 text-xs w-[120px]">
+                    <SelectValue placeholder="Comparar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none" className="text-xs">Sin comparar</SelectItem>
+                    {compareEmployees.map(e => (
+                      <SelectItem key={e.id} value={e.id} className="text-xs">{e.full_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
+          </div>
+
+          {evalLoading ? (
+            <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
+          ) : mySkills.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+                <Activity className="h-10 w-10 opacity-40 mb-3" />
+                <p className="text-sm">Sin evaluación este mes</p>
+                <p className="text-xs mt-1">Tu evaluación aparecerá cuando sea registrada.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              {/* Score and chart */}
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm">Puntuación General</CardTitle>
+                    <Badge variant="secondary">{myAvg.toFixed(1)}/10</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="w-full h-[250px] sm:h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      {chartType === 'radar' ? (
+                        <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="65%">
+                          <PolarGrid />
+                          <PolarAngleAxis dataKey="skill" tick={{ fontSize: 9 }} />
+                          <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} />
+                          <Tooltip contentStyle={{ fontSize: 11 }} />
+                          <Radar name="Mi evaluación" dataKey="score" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
+                          {compareEvaluation && (
+                            <Radar name="Comparación" dataKey="compare" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} />
+                          )}
+                        </RadarChart>
+                      ) : (
+                        <BarChart data={barData} layout="vertical" margin={{ left: 60 }}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 10 }} />
+                          <YAxis type="category" dataKey="skill" tick={{ fontSize: 9 }} width={55} />
+                          <Tooltip contentStyle={{ fontSize: 11 }} />
+                          <Bar dataKey="score" name="Mi evaluación" radius={[0, 4, 4, 0]}>
+                            {barData.map((entry, idx) => (
+                              <Cell key={idx} fill={getBarColor(entry.score)} />
+                            ))}
+                          </Bar>
+                          {compareEvaluation && (
+                            <Bar dataKey="compare" name="Comparación" fill="hsl(var(--destructive))" fillOpacity={0.5} radius={[0, 4, 4, 0]} />
+                          )}
+                        </BarChart>
+                      )}
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Weak points */}
+              {myWeak.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4 text-destructive" />
+                      Puntos Débiles
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-1.5">
+                      {myWeak.map(w => (
+                        <Badge key={w.name} variant="outline" className="text-xs border-destructive/50 text-destructive">
+                          {w.name}: {w.score}/10
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* History trend */}
+              {historyData.length > 1 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <TrendingUp className="h-4 w-4" />
+                      Historial de Desempeño
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="w-full h-[180px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={historyData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis dataKey="month" tick={{ fontSize: 10 }} />
+                          <YAxis domain={[0, 10]} tick={{ fontSize: 10 }} />
+                          <Tooltip contentStyle={{ fontSize: 11 }} />
+                          <ReferenceLine y={5} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+                          <Line type="monotone" dataKey="promedio" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Skill development */}
+              {yearlySkillData.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Desarrollo por Habilidad</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-1.5">
+                      {yearlySkillData.map(s => (
+                        <div key={s.name} className="flex items-center justify-between text-xs">
+                          <span className="truncate max-w-[150px]">{s.name}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-muted-foreground">{s.first} → {s.latest}</span>
+                            <Badge variant={s.change > 0 ? 'default' : s.change < 0 ? 'destructive' : 'secondary'} className="text-[10px]">
+                              {s.change > 0 ? '+' : ''}{s.change.toFixed(1)}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          )}
+        </TabsContent>
+
         <TabsContent value="actividad" className="space-y-4">
           {/* Punctuality summary */}
           <div className="grid grid-cols-3 gap-2">
