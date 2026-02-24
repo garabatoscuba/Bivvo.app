@@ -288,7 +288,7 @@ const ModalidadesTab = ({ businessId, context = 'general' }: ModalidadesTabProps
           </DialogHeader>
 
           <div className="space-y-5">
-            <AppliesToSelector value={appliesTo} onChange={setAppliesTo} />
+            {context !== 'copies' && <AppliesToSelector value={appliesTo} onChange={setAppliesTo} />}
             {renderModalityConfig()}
           </div>
 
