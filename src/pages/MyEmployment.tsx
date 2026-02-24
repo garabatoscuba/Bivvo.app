@@ -837,9 +837,6 @@ const MyEmployment = () => {
                   <div>
                     <p className="text-xs text-muted-foreground flex items-center gap-1"><Gift className="h-3 w-3" /> Propinas hoy</p>
                     <p className="text-lg font-bold">${todayManualTips.toFixed(2)}</p>
-                    {myTipShare > 0 && (
-                      <p className="text-xs text-muted-foreground">Tu parte: ${myTipShare.toFixed(2)}</p>
-                    )}
                   </div>
                   <Button variant="outline" size="sm" className="gap-1" onClick={() => setManualTipOpen(true)}>
                     <Plus className="h-3.5 w-3.5" />
