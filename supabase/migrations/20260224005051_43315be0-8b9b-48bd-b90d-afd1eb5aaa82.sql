@@ -1,0 +1,1 @@
+ALTER TABLE public.product_commissions ADD COLUMN split_type text NOT NULL DEFAULT 'shared';
