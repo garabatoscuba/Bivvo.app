@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2 } from 'lucide-react';
+import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2, Wrench } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSales } from '@/hooks/useSales';
@@ -23,6 +23,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Separator } from '@/components/ui/separator';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import type { PaymentType, SaleStatus } from '@/types/database';
 
 const paymentLabels: Record<PaymentType, string> = {
@@ -75,8 +76,46 @@ const Sales = () => {
   const branchId = effectiveBranchId;
   const { sales, isLoadingSales, useSaleItems, cancelSale, registerPayment } = useSales(branchId);
 
+  // Fetch service entries for the branch
+  const { data: serviceEntries = [], isLoading: isLoadingServices } = useQuery({
+    queryKey: ['branch-service-entries', branchId, employeeRecord?.business_id, profile?.business_id],
+    queryFn: async () => {
+      const bizId = isEmployeeContext ? employeeRecord?.business_id : profile?.business_id;
+      if (!bizId || !branchId) return [];
+      const { data } = await supabase
+        .from('service_entries')
+        .select('*, service_categories(name)')
+        .eq('business_id', bizId)
+        .eq('branch_id', branchId)
+        .order('created_at', { ascending: false });
+      return (data || []).map((s: any) => ({
+        id: s.id,
+        created_at: s.created_at,
+        total: Number(s.amount),
+        payment_type: s.payment_type as PaymentType,
+        status: 'completed' as SaleStatus,
+        sale_number: '',
+        seller_name: '',
+        customer_name: '',
+        product_names: s.service_categories?.name || 'Servicio',
+        _type: 'service' as const,
+        description: s.description,
+      }));
+    },
+    enabled: !!branchId && !!(isEmployeeContext ? employeeRecord?.business_id : profile?.business_id),
+  });
+
+  // Merge sales + services into unified list
+  const unifiedEntries = useMemo(() => {
+    const salesWithType = sales.map((s: any) => ({ ...s, _type: 'sale' as const }));
+    const merged = [...salesWithType, ...serviceEntries];
+    merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    return merged;
+  }, [sales, serviceEntries]);
+
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Filters
   const [dateFrom, setDateFrom] = useState('');
@@ -100,16 +139,16 @@ const Sales = () => {
   const todayStr = format(today, 'yyyy-MM-dd');
   const monthStart = format(new Date(today.getFullYear(), today.getMonth(), 1), 'yyyy-MM-dd');
 
-  const salesToday = useMemo(() => sales.filter((s: any) => s.status !== 'cancelled' && format(new Date(s.created_at), 'yyyy-MM-dd') === todayStr), [sales, todayStr]);
-  const salesMonth = useMemo(() => sales.filter((s: any) => s.status !== 'cancelled' && format(new Date(s.created_at), 'yyyy-MM-dd') >= monthStart), [sales, monthStart]);
-  const totalToday = salesToday.reduce((sum: number, s: any) => sum + Number(s.total), 0);
-  const totalMonth = salesMonth.reduce((sum: number, s: any) => sum + Number(s.total), 0);
-  const avgTicket = salesMonth.length > 0 ? totalMonth / salesMonth.length : 0;
-  const pendingTotal = useMemo(() => sales.filter((s: any) => s.status === 'pending').reduce((sum: number, s: any) => sum + (Number(s.total) - Number(s.amount_paid)), 0), [sales]);
+  const entriesToday = useMemo(() => unifiedEntries.filter((s: any) => s.status !== 'cancelled' && format(new Date(s.created_at), 'yyyy-MM-dd') === todayStr), [unifiedEntries, todayStr]);
+  const entriesMonth = useMemo(() => unifiedEntries.filter((s: any) => s.status !== 'cancelled' && format(new Date(s.created_at), 'yyyy-MM-dd') >= monthStart), [unifiedEntries, monthStart]);
+  const totalToday = entriesToday.reduce((sum: number, s: any) => sum + Number(s.total), 0);
+  const totalMonth = entriesMonth.reduce((sum: number, s: any) => sum + Number(s.total), 0);
+  const avgTicket = entriesMonth.length > 0 ? totalMonth / entriesMonth.length : 0;
+  const pendingTotal = useMemo(() => unifiedEntries.filter((s: any) => s.status === 'pending').reduce((sum: number, s: any) => sum + (Number(s.total) - Number(s.amount_paid || 0)), 0), [unifiedEntries]);
 
-  // Filtered sales
-  const filteredSales = useMemo(() => {
-    return sales.filter((s: any) => {
+  // Filtered entries (unified)
+  const filteredEntries = useMemo(() => {
+    return unifiedEntries.filter((s: any) => {
       if (filterPayment !== 'all' && s.payment_type !== filterPayment) return false;
       if (filterStatus !== 'all' && s.status !== filterStatus) return false;
       const saleDate = format(new Date(s.created_at), 'yyyy-MM-dd');
@@ -117,9 +156,32 @@ const Sales = () => {
       if (dateTo && saleDate > dateTo) return false;
       return true;
     });
-  }, [sales, filterPayment, filterStatus, dateFrom, dateTo]);
+  }, [unifiedEntries, filterPayment, filterStatus, dateFrom, dateTo]);
 
-  const pendingSales = useMemo(() => sales.filter((s: any) => s.status === 'pending'), [sales]);
+  const pendingSales = useMemo(() => unifiedEntries.filter((s: any) => s.status === 'pending'), [unifiedEntries]);
+
+  // Selection helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+  const toggleSelectAll = (entries: any[]) => {
+    const allSelected = entries.every(e => selectedIds.has(e.id));
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(entries.map(e => e.id)));
+    }
+  };
+  const selectedTotal = useMemo(() => {
+    return filteredEntries.filter(e => selectedIds.has(e.id)).reduce((sum, e) => sum + Number(e.total), 0);
+  }, [filteredEntries, selectedIds]);
+  const selectedCount = useMemo(() => {
+    return filteredEntries.filter(e => selectedIds.has(e.id)).length;
+  }, [filteredEntries, selectedIds]);
 
   const openDetail = (saleId: string) => {
     setSelectedSaleId(saleId);
@@ -158,38 +220,64 @@ const Sales = () => {
 
   const SalesTable = ({ data }: { data: any[] }) => (
     <>
+      {/* Selection summary bar */}
+      {selectedCount > 0 && (
+        <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg px-4 py-2 mb-3">
+          <span className="text-sm font-medium">{selectedCount} seleccionado{selectedCount > 1 ? 's' : ''}</span>
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold">Total: ${selectedTotal.toFixed(2)}</span>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-xs h-7">
+              Limpiar
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* Mobile cards */}
       <div className="space-y-2 md:hidden">
         {data.length === 0 ? (
-          <p className="text-center text-muted-foreground py-8">No hay ventas para mostrar</p>
+          <p className="text-center text-muted-foreground py-8">No hay registros para mostrar</p>
         ) : (
           data.map((sale: any) => (
             <div
               key={sale.id}
-              className="border rounded-lg p-3 space-y-2 active:bg-accent/50 cursor-pointer"
-              onClick={() => openDetail(sale.id)}
+              className={`border rounded-lg p-3 space-y-2 cursor-pointer ${selectedIds.has(sale.id) ? 'border-primary bg-primary/5' : 'active:bg-accent/50'}`}
             >
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-xs text-muted-foreground">{sale.sale_number}</span>
-                <span className="text-xs text-muted-foreground">{format(new Date(sale.created_at), "dd/MM/yy HH:mm", { locale: es })}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="font-semibold text-base">${Number(sale.total).toFixed(2)}</span>
-                <div className="flex gap-1.5">
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${paymentColors[sale.payment_type as PaymentType]}`}>
-                    {paymentLabels[sale.payment_type as PaymentType]}
-                  </span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusColors[sale.status as SaleStatus]}`}>
-                    {statusLabels[sale.status as SaleStatus]}
-                  </span>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  checked={selectedIds.has(sale.id)}
+                  onCheckedChange={() => toggleSelect(sale.id)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                <div className="flex-1" onClick={() => sale._type !== 'service' && openDetail(sale.id)}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      {sale._type === 'service' ? (
+                        <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5"><Wrench className="h-2.5 w-2.5" />Servicio</Badge>
+                      ) : (
+                        <span className="font-mono text-xs text-muted-foreground">{sale.sale_number}</span>
+                      )}
+                    </div>
+                    <span className="text-xs text-muted-foreground">{format(new Date(sale.created_at), "dd/MM/yy HH:mm", { locale: es })}</span>
+                  </div>
+                  <div className="flex items-center justify-between mt-1">
+                    <span className="font-semibold text-base">${Number(sale.total).toFixed(2)}</span>
+                    <div className="flex gap-1.5">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${paymentColors[sale.payment_type as PaymentType]}`}>
+                        {paymentLabels[sale.payment_type as PaymentType]}
+                      </span>
+                      {sale._type !== 'service' && (
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusColors[sale.status as SaleStatus]}`}>
+                          {statusLabels[sale.status as SaleStatus]}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  {sale.product_names && (
+                    <p className="text-xs text-muted-foreground truncate mt-0.5">{sale.product_names}</p>
+                  )}
                 </div>
               </div>
-              {(sale.seller_name || sale.customer_name) && (
-                <div className="flex justify-between text-xs text-muted-foreground">
-                  {sale.seller_name && <span>{sale.seller_name}</span>}
-                  {sale.customer_name && <span>{sale.customer_name}</span>}
-                </div>
-              )}
             </div>
           ))
         )}
@@ -200,11 +288,16 @@ const Sales = () => {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>No. Venta</TableHead>
+              <TableHead className="w-10">
+                <Checkbox
+                  checked={data.length > 0 && data.every(e => selectedIds.has(e.id))}
+                  onCheckedChange={() => toggleSelectAll(data)}
+                />
+              </TableHead>
+              <TableHead>Tipo</TableHead>
+              <TableHead>Ref.</TableHead>
               <TableHead>Fecha</TableHead>
-              <TableHead>Productos</TableHead>
-              <TableHead>Vendedor</TableHead>
-              <TableHead>Cliente</TableHead>
+              <TableHead>Descripción</TableHead>
               <TableHead>Pago</TableHead>
               <TableHead className="text-right">Total</TableHead>
               <TableHead>Estado</TableHead>
@@ -215,17 +308,28 @@ const Sales = () => {
             {data.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  No hay ventas para mostrar
+                  No hay registros para mostrar
                 </TableCell>
               </TableRow>
             ) : (
               data.map((sale: any) => (
-                <TableRow key={sale.id}>
-                  <TableCell className="font-mono text-sm">{sale.sale_number}</TableCell>
+                <TableRow key={sale.id} className={selectedIds.has(sale.id) ? 'bg-primary/5' : ''}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.has(sale.id)}
+                      onCheckedChange={() => toggleSelect(sale.id)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    {sale._type === 'service' ? (
+                      <Badge variant="outline" className="text-[10px] gap-0.5"><Wrench className="h-3 w-3" />Servicio</Badge>
+                    ) : (
+                      <Badge variant="secondary" className="text-[10px] gap-0.5"><ShoppingCart className="h-3 w-3" />Venta</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-mono text-sm">{sale.sale_number || '—'}</TableCell>
                   <TableCell className="text-sm">{format(new Date(sale.created_at), "dd/MM/yy HH:mm", { locale: es })}</TableCell>
-                  <TableCell className="text-sm max-w-[150px] truncate">{sale.product_names || '—'}</TableCell>
-                  <TableCell className="text-sm">{sale.seller_name}</TableCell>
-                  <TableCell className="text-sm">{sale.customer_name}</TableCell>
+                  <TableCell className="text-sm max-w-[150px] truncate">{sale.product_names || sale.description || '—'}</TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${paymentColors[sale.payment_type as PaymentType]}`}>
                       {paymentLabels[sale.payment_type as PaymentType]}
@@ -238,9 +342,11 @@ const Sales = () => {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => openDetail(sale.id)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    {sale._type !== 'service' && (
+                      <Button variant="ghost" size="icon" onClick={() => openDetail(sale.id)}>
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    )}
                   </TableCell>
                 </TableRow>
               ))
@@ -274,7 +380,7 @@ const Sales = () => {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-lg md:text-2xl font-bold">${totalToday.toFixed(2)}</div>
-            <p className="text-[10px] md:text-xs text-muted-foreground">{salesToday.length} ventas</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground">{entriesToday.length} registros</p>
           </CardContent>
         </Card>
         <Card>
@@ -284,7 +390,7 @@ const Sales = () => {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-lg md:text-2xl font-bold">${totalMonth.toFixed(2)}</div>
-            <p className="text-[10px] md:text-xs text-muted-foreground">{salesMonth.length} ventas</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground">{entriesMonth.length} registros</p>
           </CardContent>
         </Card>
         <Card>
@@ -344,7 +450,7 @@ const Sales = () => {
           {isLoadingSales ? (
             <p className="text-muted-foreground py-8 text-center">Cargando ventas...</p>
           ) : (
-            <SalesTable data={filteredSales} />
+            <SalesTable data={filteredEntries} />
           )}
         </TabsContent>
 
