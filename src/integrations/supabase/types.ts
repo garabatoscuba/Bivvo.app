@@ -1371,6 +1371,7 @@ export type Database = {
           applies_to: string
           business_id: string
           config: Json
+          context: string
           created_at: string
           id: string
           is_active: boolean
@@ -1383,6 +1384,7 @@ export type Database = {
           applies_to?: string
           business_id: string
           config?: Json
+          context?: string
           created_at?: string
           id?: string
           is_active?: boolean
@@ -1395,6 +1397,7 @@ export type Database = {
           applies_to?: string
           business_id?: string
           config?: Json
+          context?: string
           created_at?: string
           id?: string
           is_active?: boolean
