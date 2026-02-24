@@ -344,7 +344,7 @@ const MyEmployment = () => {
             }
           }
 
-          earning += incomeBase * (servicePercent / 100);
+          earning += (incomeBase * (servicePercent / 100)) / activeWorkersCount;
           break;
         }
         case 'fixed_plus_sales_percent': {
