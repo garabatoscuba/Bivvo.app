@@ -187,13 +187,68 @@ const MyEmployment = () => {
     refetchInterval: 30000,
   });
 
+  // Fetch today's sale items for product commission calculation
+  const { data: todaySaleItems = [] } = useQuery({
+    queryKey: ['my-today-sale-items', myJornada?.sucursal_id, todayStr],
+    queryFn: async () => {
+      const startOfDay = todayStr + 'T00:00:00';
+      const endOfDay = todayStr + 'T23:59:59';
+      // Get today's completed sale IDs first
+      const { data: sales } = await supabase
+        .from('sales')
+        .select('id')
+        .eq('branch_id', myJornada!.sucursal_id)
+        .eq('user_id', profile!.user_id)
+        .eq('status', 'completed')
+        .gte('created_at', startOfDay)
+        .lte('created_at', endOfDay);
+      if (!sales?.length) return [];
+      const saleIds = sales.map(s => s.id);
+      const { data: items } = await supabase
+        .from('sale_items')
+        .select('product_id, quantity, unit_price, cost_price, total')
+        .in('sale_id', saleIds);
+      return items || [];
+    },
+    enabled: !!myJornada?.sucursal_id && !!profile?.user_id && !!jornadaActiva,
+    refetchInterval: 30000,
+  });
+
+  // Fetch product commissions config
+  const { data: productCommissions = [] } = useQuery({
+    queryKey: ['my-product-commissions', businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('product_commissions')
+        .select('product_id, commission_type, commission_value, split_type')
+        .eq('business_id', businessId!);
+      return data || [];
+    },
+    enabled: !!businessId && !!jornadaActiva,
+  });
+
+  // Fetch active workers count in my branch today
+  const { data: activeWorkersCount = 1 } = useQuery({
+    queryKey: ['active-workers-count', myJornada?.sucursal_id, todayStr],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('jornadas')
+        .select('id')
+        .eq('sucursal_id', myJornada!.sucursal_id)
+        .is('cierre_at', null);
+      return Math.max(1, data?.length || 1);
+    },
+    enabled: !!myJornada?.sucursal_id && !!jornadaActiva,
+    refetchInterval: 30000,
+  });
+
   // Fetch salary assignments (multiple) for display
   const { data: mySalaryAssignments = [] } = useQuery({
     queryKey: ['my-salary-assignments', myEmployeeRecord?.id],
     queryFn: async () => {
       const { data } = await supabase
         .from('employee_salary_assignments')
-        .select('*, salary_modalities(name, modality_type, config)')
+        .select('*, salary_modalities(name, modality_type, config, presets)')
         .eq('employee_id', myEmployeeRecord!.id)
         .eq('is_active', true);
       return data || [];
@@ -208,43 +263,133 @@ const MyEmployment = () => {
   const todayCopiesTotalAmount = (parseFloat(copiesCash) || 0) + (parseFloat(copiesTransfer) || 0);
 
   // Calculate running daily salary from ALL assignments
-  // Copies are treated as services: they use the same service_percent
   const dailySalary = useMemo(() => {
     if (!mySalaryAssignments.length) return null;
     let totalBase = 0;
     let totalServiceEarning = 0;
     let totalSalesEarning = 0;
+    let totalCommissionEarning = 0;
 
-    // Service base = service entries + copies (copies get service treatment)
+    // Service base = service entries + copies
     const serviceBase = todayServiceEarnings + (isEmployerCopyShop ? todayCopiesTotalAmount : 0);
 
     for (const assignment of mySalaryAssignments) {
       const modType = (assignment as any)?.salary_modalities?.modality_type;
       const config = (assignment as any)?.salary_modalities?.config || {};
       const baseSalary = Number(assignment.base_salary || 0);
+      const configOverride = assignment.config_override as Record<string, any> || {};
 
-      if (modType === 'fixed') {
-        const freq = assignment.pay_frequency;
-        const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
-        totalBase += baseSalary / days;
-      } else {
-        totalBase += baseSalary;
-      }
+      switch (modType) {
+        case 'fixed': {
+          const freq = assignment.pay_frequency;
+          const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
+          totalBase += baseSalary / days;
+          break;
+        }
+        case 'custom_mixed': {
+          // Find the condition matching active workers count
+          const conditions = config.conditions || [];
+          const matchedCondition = conditions
+            .sort((a: any, b: any) => b.positions - a.positions)
+            .find((c: any) => activeWorkersCount >= c.positions);
+          
+          // Check if employee has a preset override
+          const presetId = configOverride?.preset_id;
+          let servicePercent = matchedCondition?.service_percent || 0;
+          
+          if (presetId) {
+            const presets = (assignment as any)?.salary_modalities?.presets || [];
+            const preset = presets.find((p: any) => p.id === presetId);
+            if (preset?.config?.service_percent_override != null) {
+              servicePercent = preset.config.service_percent_override;
+            }
+          }
 
-      const servicePercent = Number(config.service_percent || config.percent || 0);
-      if (servicePercent > 0) {
-        totalServiceEarning += serviceBase * (servicePercent / 100);
-      }
+          // Check config_override for applies_to
+          const appliesTo = configOverride?.applies_to || config.applies_to || 'services';
 
-      const salesPercent = Number(config.sales_percent || 0);
-      if (salesPercent > 0) {
-        totalSalesEarning += todaySalesTotal * (salesPercent / 100);
+          if (appliesTo === 'services' || appliesTo === 'both') {
+            totalServiceEarning += serviceBase * (servicePercent / 100);
+          }
+          if (appliesTo === 'products' || appliesTo === 'both') {
+            totalSalesEarning += todaySalesTotal * (servicePercent / 100);
+          }
+          break;
+        }
+        case 'fixed_plus_sales_percent': {
+          const freq = assignment.pay_frequency;
+          const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
+          totalBase += baseSalary / days;
+          const salesPct = Number(config.sales_percent || 0);
+          if (salesPct > 0) totalSalesEarning += todaySalesTotal * (salesPct / 100);
+          break;
+        }
+        case 'sales_percent_only': {
+          const salesPct = Number(config.sales_percent || config.percent || 0);
+          if (salesPct > 0) totalSalesEarning += todaySalesTotal * (salesPct / 100);
+          break;
+        }
+        case 'profit_percent': {
+          // Calculate profit from today's sale items
+          const totalProfit = todaySaleItems.reduce((sum, item) => {
+            return sum + (Number(item.unit_price) - Number(item.cost_price)) * Number(item.quantity);
+          }, 0);
+          const profitPct = Number(config.profit_percent || config.percent || 0);
+          if (profitPct > 0) totalSalesEarning += totalProfit * (profitPct / 100);
+          break;
+        }
+        case 'hourly': {
+          // Calculate hours from jornada start
+          if (myJornada) {
+            const hoursWorked = (Date.now() - new Date(myJornada.apertura_at).getTime()) / 3600000;
+            const hourlyRate = Number(config.hourly_rate || baseSalary || 0);
+            totalBase += hourlyRate * hoursWorked;
+          }
+          break;
+        }
+        default: {
+          // Fallback for any other type
+          totalBase += baseSalary;
+          const servicePercent = Number(config.service_percent || config.percent || 0);
+          if (servicePercent > 0) totalServiceEarning += serviceBase * (servicePercent / 100);
+          const salesPercent = Number(config.sales_percent || 0);
+          if (salesPercent > 0) totalSalesEarning += todaySalesTotal * (salesPercent / 100);
+        }
       }
     }
 
-    const total = totalBase + totalServiceEarning + totalSalesEarning;
-    return { total, serviceEarning: totalServiceEarning, salesEarning: totalSalesEarning, base: totalBase };
-  }, [mySalaryAssignments, todayServiceEarnings, todaySalesTotal, todayCopiesTotalAmount, isEmployerCopyShop]);
+    // Product commissions from product_commissions table
+    for (const item of todaySaleItems) {
+      const commConfig = productCommissions.find((c: any) => c.product_id === item.product_id);
+      if (!commConfig || Number(commConfig.commission_value) === 0) continue;
+
+      let commAmount = 0;
+      if (commConfig.commission_type === 'fixed') {
+        commAmount = Number(commConfig.commission_value) * Number(item.quantity);
+      } else if (commConfig.commission_type === 'percent') {
+        commAmount = Number(item.total) * (Number(commConfig.commission_value) / 100);
+      } else if (commConfig.commission_type === 'profit_percent') {
+        const itemProfit = (Number(item.unit_price) - Number(item.cost_price)) * Number(item.quantity);
+        commAmount = itemProfit * (Number(commConfig.commission_value) / 100);
+      }
+
+      // Apply split logic
+      if (commConfig.split_type === 'shared' && activeWorkersCount > 1) {
+        commAmount = commAmount / activeWorkersCount;
+      }
+
+      totalCommissionEarning += commAmount;
+    }
+
+    const total = totalBase + totalServiceEarning + totalSalesEarning + totalCommissionEarning;
+    return {
+      total,
+      serviceEarning: totalServiceEarning,
+      salesEarning: totalSalesEarning,
+      commissionEarning: totalCommissionEarning,
+      base: totalBase,
+    };
+  }, [mySalaryAssignments, todayServiceEarnings, todaySalesTotal, todayCopiesTotalAmount, isEmployerCopyShop, activeWorkersCount, todaySaleItems, productCommissions, myJornada]);
 
   // Save copies
   const handleSaveCopies = async () => {
@@ -641,12 +786,15 @@ const MyEmployment = () => {
                 </div>
                 <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-muted-foreground">
                   {dailySalary.base > 0 && <span>Base: ${dailySalary.base.toFixed(2)}</span>}
-                  {todayServiceEarnings > 0 && <span>Servicios: ${todayServiceEarnings.toFixed(2)}</span>}
-                  {isEmployerCopyShop && todayCopiesTotalAmount > 0 && <span>Copias: ${todayCopiesTotalAmount.toFixed(2)}</span>}
-                  {dailySalary.serviceEarning > 0 && <span>% Serv: ${dailySalary.serviceEarning.toFixed(2)}</span>}
-                  {todaySalesTotal > 0 && <span>Ventas: ${todaySalesTotal.toFixed(2)}</span>}
-                  {dailySalary.salesEarning > 0 && <span>% Ventas: ${dailySalary.salesEarning.toFixed(2)}</span>}
+                  {dailySalary.serviceEarning > 0 && <span>Serv: ${dailySalary.serviceEarning.toFixed(2)}</span>}
+                  {dailySalary.salesEarning > 0 && <span>Ventas: ${dailySalary.salesEarning.toFixed(2)}</span>}
+                  {dailySalary.commissionEarning > 0 && <span>Comisiones: ${dailySalary.commissionEarning.toFixed(2)}</span>}
                 </div>
+                {activeWorkersCount > 1 && (
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    👥 {activeWorkersCount} trabajadores activos
+                  </p>
+                )}
               </CardContent>
             </Card>
           )}
