@@ -313,7 +313,6 @@ const MyEmployment = () => {
         case 'custom_mixed': {
           // Find the condition matching active workers count
           const conditions = config.conditions || [];
-          // Exact match first, then closest <= activeWorkersCount
           const matchedCondition = conditions.find((c: any) => c.positions === activeWorkersCount)
             || conditions
               .filter((c: any) => c.positions <= activeWorkersCount)
@@ -332,17 +331,9 @@ const MyEmployment = () => {
             }
           }
 
-          // For copy shops, services + copies all go through same percent
-          // serviceBase already includes copies
-          // Apply to the full service+copies pool by default
-          const appliesTo = configOverride?.applies_to || config.applies_to || 'both';
-
-          if (appliesTo === 'services' || appliesTo === 'both') {
-            totalServiceEarning += serviceBase * (servicePercent / 100);
-          }
-          if (appliesTo === 'products' || appliesTo === 'both') {
-            totalSalesEarning += todaySalesTotal * (servicePercent / 100);
-          }
+          // BOLSA TOTAL = servicios + copias + ventas de productos (todo junto)
+          const bolsaTotal = serviceBase + todaySalesTotal;
+          totalServiceEarning += bolsaTotal * (servicePercent / 100);
           break;
         }
         case 'fixed_plus_sales_percent': {
@@ -816,13 +807,13 @@ const MyEmployment = () => {
                 <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-muted-foreground">
                   {dailySalary.base > 0 && <span>Base: ${dailySalary.base.toFixed(2)}</span>}
                   {dailySalary.serviceEarning > 0 && (
-                    <span>Serv+Copias ({todayBranchServiceTotal.toFixed(0)}+{branchCopiesTotalForSalary.toFixed(0)}): ${dailySalary.serviceEarning.toFixed(2)}</span>
+                    <span>% Bolsa: ${dailySalary.serviceEarning.toFixed(2)}</span>
                   )}
-                  {dailySalary.salesEarning > 0 && <span>Ventas: ${dailySalary.salesEarning.toFixed(2)}</span>}
+                  {dailySalary.salesEarning > 0 && <span>% Ventas: ${dailySalary.salesEarning.toFixed(2)}</span>}
                   {dailySalary.commissionEarning > 0 && <span>Comisiones: ${dailySalary.commissionEarning.toFixed(2)}</span>}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''} · Bolsa: ${(todayBranchServiceTotal + branchCopiesTotalForSalary).toFixed(2)}
+                  👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''} · Bolsa: ${(todayBranchServiceTotal + branchCopiesTotalForSalary + todaySalesTotal).toFixed(2)} (Serv: {todayBranchServiceTotal.toFixed(0)} + Copias: {branchCopiesTotalForSalary.toFixed(0)} + Ventas: {todaySalesTotal.toFixed(0)})
                 </p>
               </CardContent>
             </Card>
