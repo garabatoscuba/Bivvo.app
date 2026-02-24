@@ -13,9 +13,10 @@ interface CashCalculatorProps {
   employeeBusinessId?: string;
   employeeBranchId?: string | null;
   onTipSurplusChange?: (surplus: number) => void;
+  onBreakdownChange?: (breakdown: any) => void;
 }
 
-const CashCalculator = ({ employeeBusinessId, employeeBranchId, onTipSurplusChange }: CashCalculatorProps) => {
+const CashCalculator = ({ employeeBusinessId, employeeBranchId, onTipSurplusChange, onBreakdownChange }: CashCalculatorProps) => {
   const { profile } = useAuth();
   const businessId = employeeBusinessId || profile?.business_id;
   const branchId = employeeBranchId || profile?.branch_id;
@@ -117,7 +118,20 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId, onTipSurplusChan
 
   useEffect(() => {
     onTipSurplusChange?.(breakdown.tips);
-  }, [breakdown.tips, onTipSurplusChange]);
+    onBreakdownChange?.({
+      totalCash,
+      serviceCash: breakdown.serviceCash,
+      serviceTransfer: breakdown.serviceTransfer,
+      serviceTotal: breakdown.serviceTotal,
+      salesCash: breakdown.salesCash,
+      salesTransfer: breakdown.salesTransfer,
+      salesTotal: breakdown.salesTotal,
+      totalAllTransfers: breakdown.totalAllTransfers,
+      totalExpectedCash: breakdown.totalExpectedCash,
+      totalSalesDay: breakdown.totalSalesDay,
+      tips: breakdown.tips,
+    });
+  }, [breakdown.tips, onTipSurplusChange, onBreakdownChange, totalCash, breakdown]);
   return (
     <div className="space-y-4">
       {/* Cash counter */}
