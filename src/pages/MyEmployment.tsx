@@ -378,8 +378,9 @@ const MyEmployment = () => {
     const generalBase = todayBranchServiceTotal + todaySalesTotal;
     const generalResult = calcAssignmentEarnings(generalAssignments, generalBase, 'general');
 
-    // Copies modalities: apply to copies total only
-    const copiesResult = calcAssignmentEarnings(copiesAssignments, branchCopiesTotalForSalary, 'copies');
+    // Copies modalities: apply to THIS employee's own daily copies (not branch total)
+    const myCopiesTotalForSalary = todayCopiesTotalAmount || mySavedCopies;
+    const copiesResult = calcAssignmentEarnings(copiesAssignments, myCopiesTotalForSalary, 'copies');
 
     // Product commissions
     let totalCommissionEarning = 0;
