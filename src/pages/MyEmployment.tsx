@@ -616,34 +616,15 @@ const MyEmployment = () => {
 
         {/* ===== TAB 1: DASHBOARD LABORAL ===== */}
         <TabsContent value="dashboard" className="space-y-4">
-          {/* Jornada status + Equipo activo side by side */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            <Card>
-              <CardContent className="py-3 px-4">
-                {jornadaActiva && myJornada ? (
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <Badge variant="outline" className="border-primary/30 text-primary gap-1.5 text-xs py-1 px-3">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
-                      </span>
-                      Jornada Activa · {getJornadaElapsed(myJornada.apertura_at)}
-                    </Badge>
-                    <span className="text-[10px] text-muted-foreground">
-                      Desde {new Date(myJornada.apertura_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <div className="h-2 w-2 rounded-full bg-muted-foreground/40" />
-                    <span className="text-xs text-muted-foreground">Sin jornada activa</span>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {businessId && <EquipoActivoSection onlyActive businessIdOverride={businessId} />}
-          </div>
+          {/* Equipo activo with personal jornada info */}
+          {businessId && (
+            <EquipoActivoSection
+              onlyActive
+              businessIdOverride={businessId}
+              myJornada={myJornada}
+              jornadaActiva={jornadaActiva}
+            />
+          )}
 
           {/* Daily salary preview */}
           {jornadaActiva && dailySalary && (

@@ -49,9 +49,12 @@ interface EquipoActivoProps {
   onlyActive?: boolean;
   /** Override business ID (e.g. employer's business for Mi Empleo context) */
   businessIdOverride?: string;
+  /** Show personal jornada info inline */
+  myJornada?: { apertura_at: string } | null;
+  jornadaActiva?: boolean;
 }
 
-const EquipoActivoSection = ({ onlyActive = false, businessIdOverride }: EquipoActivoProps) => {
+const EquipoActivoSection = ({ onlyActive = false, businessIdOverride, myJornada, jornadaActiva: myJornadaActiva }: EquipoActivoProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const businessId = businessIdOverride || profile?.business_id;
@@ -161,7 +164,7 @@ const EquipoActivoSection = ({ onlyActive = false, businessIdOverride }: EquipoA
   const inactivos = onlyActive ? [] : members.filter(m => !m.jornada);
   const displayMembers = [...activos, ...inactivos];
 
-  if (onlyActive && activos.length === 0 && !isLoading) return null;
+  if (onlyActive && activos.length === 0 && !isLoading && !myJornadaActiva) return null;
 
   if (isLoading) {
     return (
@@ -184,6 +187,26 @@ const EquipoActivoSection = ({ onlyActive = false, businessIdOverride }: EquipoA
               <Badge variant="secondary" className="text-[10px] ml-1">{activos.length}</Badge>
             )}
           </CardTitle>
+          {/* Personal jornada status */}
+          {myJornadaActiva && myJornada ? (
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="border-primary/30 text-primary gap-1.5 text-[10px] py-0.5 px-2">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
+                </span>
+                Tu jornada activa
+              </Badge>
+              <span className="text-[10px] text-muted-foreground">
+                Desde {new Date(myJornada.apertura_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          ) : myJornadaActiva === false ? (
+            <div className="flex items-center gap-1.5 mt-1">
+              <div className="h-1.5 w-1.5 rounded-full bg-muted-foreground/40" />
+              <span className="text-[10px] text-muted-foreground">Sin jornada activa</span>
+            </div>
+          ) : null}
         </CardHeader>
         <CardContent>
           {displayMembers.length === 0 ? (
