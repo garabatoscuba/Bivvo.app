@@ -386,37 +386,45 @@ const MyEmployment = () => {
     const generalBase = todayBranchServiceTotal + todaySalesTotal;
     const generalResult = calcAssignmentEarnings(mySalaryAssignments, generalBase, 'general');
 
-    // Product commissions
+    // Product commissions - only if any assignment has commissions_enabled
+    const hasCommissions = mySalaryAssignments.some((a: any) => {
+      const override = a.config_override as Record<string, any> || {};
+      return override.commissions_enabled;
+    });
+
     let totalCommissionEarning = 0;
-    for (const item of todaySaleItems) {
-      const commConfig = productCommissions.find((c: any) => c.product_id === item.product_id);
-      if (!commConfig || Number(commConfig.commission_value) === 0) continue;
+    if (hasCommissions) {
+      for (const item of todaySaleItems) {
+        const commConfig = productCommissions.find((c: any) => c.product_id === item.product_id);
+        if (!commConfig || Number(commConfig.commission_value) === 0) continue;
 
-      let commAmount = 0;
-      if (commConfig.commission_type === 'fixed') {
-        commAmount = Number(commConfig.commission_value) * Number(item.quantity);
-      } else if (commConfig.commission_type === 'percent') {
-        commAmount = Number(item.total) * (Number(commConfig.commission_value) / 100);
-      } else if (commConfig.commission_type === 'profit_percent') {
-        const itemProfit = (Number(item.unit_price) - Number(item.cost_price)) * Number(item.quantity);
-        commAmount = itemProfit * (Number(commConfig.commission_value) / 100);
-      }
+        let commAmount = 0;
+        if (commConfig.commission_type === 'fixed') {
+          commAmount = Number(commConfig.commission_value) * Number(item.quantity);
+        } else if (commConfig.commission_type === 'percent') {
+          commAmount = Number(item.total) * (Number(commConfig.commission_value) / 100);
+        } else if (commConfig.commission_type === 'profit_percent') {
+          const itemProfit = (Number(item.unit_price) - Number(item.cost_price)) * Number(item.quantity);
+          commAmount = itemProfit * (Number(commConfig.commission_value) / 100);
+        }
 
-      if (commConfig.split_type === 'shared' && activeWorkersCount > 1) {
-        commAmount = commAmount / activeWorkersCount;
+        if (commConfig.split_type === 'shared' && activeWorkersCount > 1) {
+          commAmount = commAmount / activeWorkersCount;
+        }
+        totalCommissionEarning += commAmount;
       }
-      totalCommissionEarning += commAmount;
     }
 
-    const total = generalResult.base + generalResult.earning + totalCommissionEarning;
+    const total = generalResult.base + generalResult.earning + totalCommissionEarning + myTipShare;
 
     return {
       total,
       base: generalResult.base,
       serviceEarning: generalResult.earning,
       commissionEarning: totalCommissionEarning,
+      tipShare: myTipShare,
     };
-  }, [mySalaryAssignments, todayBranchServiceTotal, todaySalesTotal, activeWorkersCount, todaySaleItems, productCommissions, myJornada]);
+  }, [mySalaryAssignments, todayBranchServiceTotal, todaySalesTotal, activeWorkersCount, todaySaleItems, productCommissions, myJornada, myTipShare]);
 
 
   const { data: branchAssignments = [] } = useQuery({
@@ -770,6 +778,24 @@ const MyEmployment = () => {
             />
           )}
 
+          {/* Daily sales indicator */}
+          {jornadaActiva && (
+            <Card>
+              <CardContent className="py-3 px-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs text-muted-foreground flex items-center gap-1"><ShoppingCart className="h-3 w-3" /> Venta del día</p>
+                    <p className="text-xl font-bold">${(todayBranchServiceTotal + todaySalesTotal).toFixed(2)}</p>
+                  </div>
+                  <div className="text-right text-[10px] text-muted-foreground space-y-0.5">
+                    <p>Servicios: ${todayBranchServiceTotal.toFixed(0)}</p>
+                    <p>Productos: ${todaySalesTotal.toFixed(0)}</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
           {/* Daily salary preview */}
           {jornadaActiva && dailySalary && (
             <Card className="border-primary/20 bg-primary/5">
@@ -784,11 +810,11 @@ const MyEmployment = () => {
                 <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-muted-foreground">
                   {dailySalary.base > 0 && <span>Base: ${dailySalary.base.toFixed(2)}</span>}
                   {dailySalary.serviceEarning > 0 && <span>% Serv+Ventas: ${dailySalary.serviceEarning.toFixed(2)}</span>}
-                  
                   {dailySalary.commissionEarning > 0 && <span>Comisiones: ${dailySalary.commissionEarning.toFixed(2)}</span>}
+                  {dailySalary.tipShare > 0 && <span>Propinas: ${dailySalary.tipShare.toFixed(2)}</span>}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''} · Serv: ${todayBranchServiceTotal.toFixed(0)} · Ventas: ${todaySalesTotal.toFixed(0)}
+                  👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''}
                 </p>
               </CardContent>
             </Card>

@@ -5,7 +5,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, LogOut, Calculator } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import CashCalculator from '@/components/cobro/CashCalculator';
@@ -39,25 +39,61 @@ function calcDuration(apertura: string): { text: string; minutes: number } {
 const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }: ContarYCerrarModalProps) => {
   const [closing, setClosing] = useState(false);
   const [tipSurplus, setTipSurplus] = useState(0);
+  const [calculatorBreakdown, setCalculatorBreakdown] = useState<any>(null);
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
 
+  const todayStr = new Date().toISOString().split('T')[0];
   const duration = calcDuration(jornada.apertura_at);
   const entryTime = new Date(jornada.apertura_at).toLocaleTimeString('es', {
     hour: '2-digit',
     minute: '2-digit',
   });
 
+  // Fetch active workers count
+  const { data: activeWorkersCount = 1 } = useQuery({
+    queryKey: ['closure-active-workers', jornada.sucursal_id, todayStr],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('jornadas')
+        .select('id')
+        .eq('sucursal_id', jornada.sucursal_id)
+        .is('cierre_at', null);
+      return Math.max(1, data?.length || 1);
+    },
+    enabled: open,
+  });
+
+  // Fetch tip config
+  const { data: tipConfig } = useQuery({
+    queryKey: ['tip-config-closure', employeeBusinessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('tip_config')
+        .select('*')
+        .eq('business_id', employeeBusinessId)
+        .maybeSingle();
+      return data;
+    },
+    enabled: open && !!employeeBusinessId,
+  });
+
   const handleTipSurplusChange = useCallback((surplus: number) => {
     setTipSurplus(surplus);
+  }, []);
+
+  const handleBreakdownChange = useCallback((breakdown: any) => {
+    setCalculatorBreakdown(breakdown);
   }, []);
 
   const handleClose = async () => {
     setClosing(true);
 
+    const bd = calculatorBreakdown;
+    const totalCash = bd?.totalCash || 0;
+
     // Save automatic tip entry if there's a surplus
     if (tipSurplus > 0 && user?.id) {
-      const todayStr = new Date().toISOString().split('T')[0];
       await supabase.from('tip_entries').insert({
         business_id: employeeBusinessId,
         branch_id: jornada.sucursal_id,
@@ -68,6 +104,80 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }:
         date: todayStr,
         notes: 'Excedente de caja al cierre',
       } as any);
+    }
+
+    // Calculate tip share for this worker
+    let myTipShare = 0;
+    const totalTips = tipSurplus;
+    if (tipConfig && totalTips > 0) {
+      const ownerPct = Number(tipConfig.owner_percent) || 0;
+      const afterOwner = totalTips * ((100 - ownerPct) / 100);
+      const conditions = (tipConfig.conditions as unknown as { positions: number; tip_percent: number }[]) || [];
+      const matched = conditions.find(c => c.positions === activeWorkersCount)
+        || conditions.filter(c => c.positions <= activeWorkersCount).sort((a, b) => b.positions - a.positions)[0]
+        || conditions.sort((a, b) => a.positions - b.positions)[0];
+      myTipShare = matched ? afterOwner * (matched.tip_percent / 100) : afterOwner / Math.max(1, activeWorkersCount);
+    }
+
+    // Save daily report
+    if (profile && bd) {
+      const totalSalesDay = (bd.serviceTotal || 0) + (bd.salesTotal || 0);
+      const moneyToDeliver = totalCash - totalTips;
+
+      const reportData = {
+        business_id: employeeBusinessId,
+        branch_id: jornada.sucursal_id,
+        employee_id: profile.id,
+        user_id: profile.user_id,
+        date: todayStr,
+        active_workers: activeWorkersCount,
+        service_percent: 0,
+        total_services: bd.serviceTotal || 0,
+        total_copies: 0,
+        total_commissions: 0,
+        service_earning: 0,
+        copies_earning: 0,
+        commission_earning: 0,
+        tips: totalTips,
+        total_salary: myTipShare,
+        cash_counted: totalCash,
+        service_cash: bd.serviceCash || 0,
+        service_transfer: bd.serviceTransfer || 0,
+        sales_cash: bd.salesCash || 0,
+        sales_transfer: bd.salesTransfer || 0,
+        copies_cash: 0,
+        copies_transfer: 0,
+        total_expected_cash: bd.totalExpectedCash || 0,
+        total_transfers: bd.totalAllTransfers || 0,
+        total_sales_day: totalSalesDay,
+        money_to_deliver: Math.max(0, moneyToDeliver),
+        jornada_id: jornada.id,
+      };
+
+      const { error: reportError } = await supabase
+        .from('daily_reports')
+        .upsert(reportData as any, { onConflict: 'employee_id,date' });
+
+      if (reportError) {
+        console.error('Error saving daily report:', reportError);
+      }
+
+      // Send notification to owner
+      await supabase.from('notifications').insert({
+        business_id: employeeBusinessId,
+        branch_id: jornada.sucursal_id,
+        type: 'daily_report',
+        title: `Cierre: ${profile.full_name}`,
+        message: `${profile.full_name} cerró jornada. Venta: $${totalSalesDay.toFixed(2)}, Propinas: $${totalTips.toFixed(2)}, Entrega: $${Math.max(0, moneyToDeliver).toFixed(2)}`,
+        metadata: {
+          employee_name: profile.full_name,
+          date: todayStr,
+          tips: totalTips,
+          cash_counted: totalCash,
+          total_sales_day: totalSalesDay,
+          money_to_deliver: Math.max(0, moneyToDeliver),
+        },
+      });
     }
 
     const { error } = await supabase
@@ -88,6 +198,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }:
     queryClient.invalidateQueries({ queryKey: ['jornada-activa'] });
     queryClient.invalidateQueries({ queryKey: ['jornadas-activas-business'] });
     queryClient.invalidateQueries({ queryKey: ['my-today-tips'] });
+    queryClient.invalidateQueries({ queryKey: ['admin-daily-reports'] });
     toast.success('Jornada cerrada. ¡Hasta luego! 👋');
     onOpenChange(false);
   };
@@ -114,6 +225,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId }:
             employeeBusinessId={employeeBusinessId}
             employeeBranchId={jornada.sucursal_id}
             onTipSurplusChange={handleTipSurplusChange}
+            onBreakdownChange={handleBreakdownChange}
           />
         </ScrollArea>
 

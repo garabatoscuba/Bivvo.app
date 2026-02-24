@@ -76,6 +76,7 @@ interface SalaryAssignmentEntry {
   preset_id: string;
   pay_frequency: string;
   base_salary: string;
+  commissions_enabled: boolean;
 }
 
 interface EmployeeForm {
@@ -104,6 +105,7 @@ const emptyAssignment: SalaryAssignmentEntry = {
   preset_id: '',
   pay_frequency: 'monthly',
   base_salary: '',
+  commissions_enabled: false,
 };
 
 const emptyForm: EmployeeForm = {
@@ -506,7 +508,10 @@ const Employees = () => {
           pay_frequency: a.pay_frequency as any,
           base_salary: parseFloat(a.base_salary) || 0,
           is_active: true,
-          config_override: a.preset_id ? { preset_id: a.preset_id } : {},
+          config_override: {
+            ...(a.preset_id ? { preset_id: a.preset_id } : {}),
+            ...(a.commissions_enabled ? { commissions_enabled: true } : {}),
+          },
         }));
         const { error: insertErr } = await supabase
           .from('employee_salary_assignments')
@@ -580,6 +585,7 @@ const Employees = () => {
         preset_id: (sa.config_override as any)?.preset_id || '',
         pay_frequency: sa.pay_frequency || 'monthly',
         base_salary: sa.base_salary ? String(sa.base_salary) : '',
+        commissions_enabled: (sa.config_override as any)?.commissions_enabled || false,
       };
       generalLoaded.push(entry);
     }
@@ -1155,6 +1161,23 @@ const Employees = () => {
                           placeholder="0.00"
                           className="h-8 text-xs"
                         />
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <Checkbox
+                          id={`comm-${idx}`}
+                          checked={assignment.commissions_enabled}
+                          onCheckedChange={(checked) => setForm(prev => ({
+                            ...prev,
+                            salary_assignments: prev.salary_assignments.map((a, i) =>
+                              i === idx ? { ...a, commissions_enabled: !!checked } : a
+                            ),
+                          }))}
+                        />
+                        <Label htmlFor={`comm-${idx}`} className="text-xs font-normal cursor-pointer flex items-center gap-1">
+                          <ShoppingCart className="h-3 w-3" />
+                          Comisiones por productos
+                        </Label>
                       </div>
                     </div>
                   );
