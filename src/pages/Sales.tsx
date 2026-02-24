@@ -195,8 +195,10 @@ const Sales = () => {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
 
+  const selectedEntry = useMemo(() => unifiedEntries.find((s: any) => s.id === selectedSaleId), [unifiedEntries, selectedSaleId]);
   const selectedSale = useMemo(() => sales.find((s: any) => s.id === selectedSaleId), [sales, selectedSaleId]);
-  const { data: saleItems = [], isLoading: isLoadingItems } = useSaleItems(selectedSaleId);
+  const isServiceDetail = selectedEntry?._type === 'service';
+  const { data: saleItems = [], isLoading: isLoadingItems } = useSaleItems(isServiceDetail ? null : selectedSaleId);
 
   // Metrics
   const today = new Date();
@@ -314,7 +316,7 @@ const Sales = () => {
                   onCheckedChange={() => toggleSelect(sale.id)}
                   onClick={(e) => e.stopPropagation()}
                 />
-                <div className="flex-1" onClick={() => sale._type !== 'service' && openDetail(sale.id)}>
+                <div className="flex-1" onClick={() => openDetail(sale.id)}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       {sale._type === 'service' ? (
@@ -407,11 +409,9 @@ const Sales = () => {
                     </span>
                   </TableCell>
                   <TableCell>
-                    {sale._type !== 'service' && (
-                      <Button variant="ghost" size="icon" onClick={() => openDetail(sale.id)}>
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    )}
+                    <Button variant="ghost" size="icon" onClick={() => openDetail(sale.id)}>
+                      <Eye className="h-4 w-4" />
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -540,15 +540,53 @@ const Sales = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Sale Detail Sheet */}
+      {/* Detail Sheet (Sales + Services) */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="right" className="sm:max-w-lg overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Detalle de venta</SheetTitle>
-            <SheetDescription>{selectedSale?.sale_number}</SheetDescription>
+            <SheetTitle>{isServiceDetail ? 'Detalle de servicio' : 'Detalle de venta'}</SheetTitle>
+            <SheetDescription>{isServiceDetail ? (selectedEntry?.product_names || 'Servicio') : selectedSale?.sale_number}</SheetDescription>
           </SheetHeader>
 
-          {selectedSale && (
+          {isServiceDetail && selectedEntry && (
+            <div className="mt-4 space-y-4">
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="text-muted-foreground">Fecha</div>
+                <div>{format(new Date(selectedEntry.created_at), "dd/MM/yyyy HH:mm", { locale: es })}</div>
+                <div className="text-muted-foreground">Categoría</div>
+                <div>{selectedEntry.product_names}</div>
+                <div className="text-muted-foreground">Vendedor</div>
+                <div>{selectedEntry.seller_name || '—'}</div>
+                <div className="text-muted-foreground">Pago</div>
+                <div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${paymentColors[selectedEntry.payment_type as PaymentType]}`}>
+                    {paymentLabels[selectedEntry.payment_type as PaymentType]}
+                  </span>
+                </div>
+                <div className="text-muted-foreground">Estado</div>
+                <div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors['completed']}`}>
+                    Completada
+                  </span>
+                </div>
+                {selectedEntry.description && (
+                  <>
+                    <div className="text-muted-foreground">Descripción</div>
+                    <div>{selectedEntry.description}</div>
+                  </>
+                )}
+              </div>
+              <Separator />
+              <div className="space-y-1 text-sm">
+                <div className="flex justify-between font-bold text-base">
+                  <span>Total</span>
+                  <span>${Number(selectedEntry.total).toFixed(2)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!isServiceDetail && selectedSale && (
             <div className="mt-4 space-y-4">
               {/* General info */}
               <div className="grid grid-cols-2 gap-2 text-sm">
