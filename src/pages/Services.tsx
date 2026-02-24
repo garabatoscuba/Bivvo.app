@@ -223,42 +223,6 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Cobros Recientes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingEntries ? (
-            <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>
-          ) : recentEntries.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No hay cobros registrados</p>
-          ) : (
-            <div className="space-y-2 max-h-[50vh] overflow-y-auto">
-              {recentEntries.map((entry: any) => {
-                const EntryIcon = getIconComponent(entry.service_categories?.icon);
-                return (
-                  <div key={entry.id} className="flex items-center justify-between rounded-lg border p-2.5">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <EntryIcon className="h-4 w-4 text-primary shrink-0" />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <Badge variant="secondary" className="text-[10px]">{entry.service_categories?.name}</Badge>
-                          <Badge variant="outline" className="text-[10px]">{paymentLabels[entry.payment_type] || entry.payment_type}</Badge>
-                        </div>
-                        {entry.description && <p className="text-xs text-muted-foreground mt-0.5 truncate">{entry.description}</p>}
-                        <p className="text-[10px] text-muted-foreground/60 mt-0.5">
-                          {new Date(entry.created_at).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-bold shrink-0 ml-2">${Number(entry.amount).toFixed(2)}</span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
     </div>
   );
 };
