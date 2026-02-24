@@ -356,18 +356,18 @@ const AppSidebar = () => {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={location.pathname === '/sales' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
-                        <Link to="/sales?ctx=emp">
-                          <Receipt className="h-4 w-4" />
-                          <span className="text-sm">Ventas</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
                       <SidebarMenuButton asChild isActive={location.pathname === '/services' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
                         <Link to="/services?ctx=emp">
                           <Wrench className="h-4 w-4" />
                           <span className="text-sm">Servicios</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
+                      <SidebarMenuButton asChild isActive={location.pathname === '/sales' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                        <Link to="/sales?ctx=emp">
+                          <Receipt className="h-4 w-4" />
+                          <span className="text-sm">Ventas</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>

@@ -385,7 +385,7 @@ const MyEmployment = () => {
 
   // Calculate running daily salary
   const dailySalary = useMemo(() => {
-    if (!mySalaryAssignments.length) return null;
+    // Show salary card for ALL employees, even without assignments (shows tips/commissions only)
 
     // All modalities apply to services + sales
     const generalBase = todayBranchServiceTotal + todaySalesTotal;
@@ -829,23 +829,6 @@ const MyEmployment = () => {
             </Card>
           )}
 
-          {/* Tips card */}
-          {jornadaActiva && tipConfig && (
-            <Card className="border-accent/20">
-              <CardContent className="py-3 px-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1"><Gift className="h-3 w-3" /> Propinas hoy</p>
-                    <p className="text-lg font-bold">${todayManualTips.toFixed(2)}</p>
-                  </div>
-                  <Button variant="outline" size="sm" className="gap-1" onClick={() => setManualTipOpen(true)}>
-                    <Plus className="h-3.5 w-3.5" />
-                    Agregar
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
 
           {/* Quick actions when shift active */}
