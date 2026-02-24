@@ -130,7 +130,7 @@ const MyEmployment = () => {
   const isEmployerCopyShop = employerBiz?.business_type === 'copy_shop';
   const hasAuthorizedJornada = jornadaActiva && myJornada?.metodo_apertura === 'manual_gerente';
 
-  // Fetch today's copies for this employee (copy shop)
+  // Fetch today's copies for this employee (copy shop) - for input display
   const todayStr = new Date().toISOString().split('T')[0];
   const { data: todayCopiesRecord } = useQuery({
     queryKey: ['my-daily-copies', businessId, todayStr, profile?.user_id],
@@ -147,9 +147,25 @@ const MyEmployment = () => {
     enabled: !!businessId && !!profile?.user_id && isEmployerCopyShop && jornadaActiva,
   });
 
-  // Fetch today's service earnings for salary preview
-  const { data: todayServiceEarnings = 0 } = useQuery({
-    queryKey: ['my-today-service-earnings', businessId, myJornada?.sucursal_id, todayStr],
+  // Fetch ALL copies for the branch today (shared pool for salary)
+  const { data: todayBranchCopiesTotalFromDB = 0 } = useQuery({
+    queryKey: ['branch-daily-copies-total', businessId, myJornada?.sucursal_id, todayStr],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('daily_copies')
+        .select('cash_amount, transfer_amount')
+        .eq('business_id', businessId!)
+        .eq('branch_id', myJornada!.sucursal_id)
+        .eq('date', todayStr);
+      return data?.reduce((sum, c) => sum + Number(c.cash_amount) + Number(c.transfer_amount), 0) || 0;
+    },
+    enabled: !!businessId && !!myJornada?.sucursal_id && isEmployerCopyShop && jornadaActiva,
+    refetchInterval: 30000,
+  });
+
+  // Fetch today's service earnings for the BRANCH (shared pool for salary calc)
+  const { data: todayBranchServiceTotal = 0 } = useQuery({
+    queryKey: ['my-today-branch-services', businessId, myJornada?.sucursal_id, todayStr],
     queryFn: async () => {
       const startOfDay = todayStr + 'T00:00:00';
       const endOfDay = todayStr + 'T23:59:59';
@@ -158,12 +174,11 @@ const MyEmployment = () => {
         .select('amount')
         .eq('business_id', businessId!)
         .eq('branch_id', myJornada!.sucursal_id)
-        .eq('user_id', profile!.user_id)
         .gte('created_at', startOfDay)
         .lte('created_at', endOfDay);
       return data?.reduce((sum, s) => sum + Number(s.amount), 0) || 0;
     },
-    enabled: !!businessId && !!myJornada?.sucursal_id && !!profile?.user_id && !!jornadaActiva,
+    enabled: !!businessId && !!myJornada?.sucursal_id && !!jornadaActiva,
     refetchInterval: 30000,
   });
 
@@ -259,8 +274,17 @@ const MyEmployment = () => {
   // Keep backward compat alias
   const mySalaryAssignment = mySalaryAssignments[0] || null;
 
-  // Total copies for today (treated as services)
+  // Total copies for today - local input (reactive) 
   const todayCopiesTotalAmount = (parseFloat(copiesCash) || 0) + (parseFloat(copiesTransfer) || 0);
+  
+  // For salary: use local copies for reactivity, plus DB copies from other workers
+  // Subtract the DB-saved amount for this user and use local input instead (more reactive)
+  const mySavedCopies = todayCopiesRecord 
+    ? Number(todayCopiesRecord.cash_amount) + Number(todayCopiesRecord.transfer_amount) 
+    : 0;
+  const branchCopiesTotalForSalary = isEmployerCopyShop 
+    ? (todayBranchCopiesTotalFromDB - mySavedCopies + todayCopiesTotalAmount)
+    : 0;
 
   // Calculate running daily salary from ALL assignments
   const dailySalary = useMemo(() => {
@@ -270,8 +294,8 @@ const MyEmployment = () => {
     let totalSalesEarning = 0;
     let totalCommissionEarning = 0;
 
-    // Service base = service entries + copies
-    const serviceBase = todayServiceEarnings + (isEmployerCopyShop ? todayCopiesTotalAmount : 0);
+    // Service base = ALL branch services + ALL branch copies (shared pool)
+    const serviceBase = todayBranchServiceTotal + branchCopiesTotalForSalary;
 
     for (const assignment of mySalaryAssignments) {
       const modType = (assignment as any)?.salary_modalities?.modality_type;
@@ -394,7 +418,7 @@ const MyEmployment = () => {
       commissionEarning: totalCommissionEarning,
       base: totalBase,
     };
-  }, [mySalaryAssignments, todayServiceEarnings, todaySalesTotal, todayCopiesTotalAmount, isEmployerCopyShop, activeWorkersCount, todaySaleItems, productCommissions, myJornada]);
+  }, [mySalaryAssignments, todayBranchServiceTotal, todaySalesTotal, branchCopiesTotalForSalary, activeWorkersCount, todaySaleItems, productCommissions, myJornada]);
 
   // Save copies
   const handleSaveCopies = async () => {
@@ -791,15 +815,15 @@ const MyEmployment = () => {
                 </div>
                 <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-muted-foreground">
                   {dailySalary.base > 0 && <span>Base: ${dailySalary.base.toFixed(2)}</span>}
-                  {dailySalary.serviceEarning > 0 && <span>Serv: ${dailySalary.serviceEarning.toFixed(2)}</span>}
+                  {dailySalary.serviceEarning > 0 && (
+                    <span>Serv+Copias ({todayBranchServiceTotal.toFixed(0)}+{branchCopiesTotalForSalary.toFixed(0)}): ${dailySalary.serviceEarning.toFixed(2)}</span>
+                  )}
                   {dailySalary.salesEarning > 0 && <span>Ventas: ${dailySalary.salesEarning.toFixed(2)}</span>}
                   {dailySalary.commissionEarning > 0 && <span>Comisiones: ${dailySalary.commissionEarning.toFixed(2)}</span>}
                 </div>
-                {activeWorkersCount > 1 && (
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    👥 {activeWorkersCount} trabajadores activos
-                  </p>
-                )}
+                <p className="text-[10px] text-muted-foreground mt-0.5">
+                  👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''} · Bolsa: ${(todayBranchServiceTotal + branchCopiesTotalForSalary).toFixed(2)}
+                </p>
               </CardContent>
             </Card>
           )}
