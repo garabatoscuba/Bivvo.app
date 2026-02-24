@@ -263,7 +263,7 @@ const MyEmployment = () => {
     queryFn: async () => {
       const { data } = await supabase
         .from('employee_salary_assignments')
-        .select('*, salary_modalities(name, modality_type, config, presets)')
+        .select('*, salary_modalities(name, modality_type, config, presets, context)')
         .eq('employee_id', myEmployeeRecord!.id)
         .eq('is_active', true);
       return data || [];
@@ -273,6 +273,14 @@ const MyEmployment = () => {
 
   // Keep backward compat alias
   const mySalaryAssignment = mySalaryAssignments[0] || null;
+
+  // Separate general vs copies assignments
+  const generalAssignments = mySalaryAssignments.filter((a: any) => 
+    !a.salary_modalities?.context || a.salary_modalities.context === 'general'
+  );
+  const copiesAssignments = mySalaryAssignments.filter((a: any) => 
+    a.salary_modalities?.context === 'copies'
+  );
 
   // Total copies for today - local input (reactive) 
   const todayCopiesTotalAmount = (parseFloat(copiesCash) || 0) + (parseFloat(copiesTransfer) || 0);
@@ -286,20 +294,14 @@ const MyEmployment = () => {
     ? (todayBranchCopiesTotalFromDB - mySavedCopies + todayCopiesTotalAmount)
     : 0;
 
-  // Calculate running daily salary from ALL assignments
-  const dailySalary = useMemo(() => {
-    if (!mySalaryAssignments.length) return null;
-    let totalBase = 0;
-    let totalServiceEarning = 0;
-    let totalSalesEarning = 0;
-    let totalCommissionEarning = 0;
+  // Helper to calculate earnings from a set of assignments against a given income base
+  const calcAssignmentEarnings = (assignments: any[], incomeBase: number, label: string) => {
+    let base = 0;
+    let earning = 0;
 
-    // Service base = ALL branch services + ALL branch copies (shared pool)
-    const serviceBase = todayBranchServiceTotal + branchCopiesTotalForSalary;
-
-    for (const assignment of mySalaryAssignments) {
-      const modType = (assignment as any)?.salary_modalities?.modality_type;
-      const config = (assignment as any)?.salary_modalities?.config || {};
+    for (const assignment of assignments) {
+      const modType = assignment?.salary_modalities?.modality_type;
+      const config = assignment?.salary_modalities?.config || {};
       const baseSalary = Number(assignment.base_salary || 0);
       const configOverride = assignment.config_override as Record<string, any> || {};
 
@@ -307,78 +309,80 @@ const MyEmployment = () => {
         case 'fixed': {
           const freq = assignment.pay_frequency;
           const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
-          totalBase += baseSalary / days;
+          base += baseSalary / days;
           break;
         }
         case 'custom_mixed': {
-          // Find the condition matching active workers count
           const conditions = config.conditions || [];
           const matchedCondition = conditions.find((c: any) => c.positions === activeWorkersCount)
             || conditions
               .filter((c: any) => c.positions <= activeWorkersCount)
               .sort((a: any, b: any) => b.positions - a.positions)[0]
             || conditions.sort((a: any, b: any) => a.positions - b.positions)[0];
-          
-          // Check if employee has a preset override
+
           const presetId = configOverride?.preset_id;
           let servicePercent = matchedCondition?.service_percent || 0;
-          
+
           if (presetId) {
-            const presets = (assignment as any)?.salary_modalities?.presets || [];
+            const presets = assignment?.salary_modalities?.presets || [];
             const preset = presets.find((p: any) => p.id === presetId);
             if (preset?.config?.service_percent_override != null) {
               servicePercent = preset.config.service_percent_override;
             }
           }
 
-          // BOLSA TOTAL = servicios + copias + ventas de productos (todo junto)
-          const bolsaTotal = serviceBase + todaySalesTotal;
-          totalServiceEarning += bolsaTotal * (servicePercent / 100);
+          earning += incomeBase * (servicePercent / 100);
           break;
         }
         case 'fixed_plus_sales_percent': {
           const freq = assignment.pay_frequency;
           const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
-          totalBase += baseSalary / days;
+          base += baseSalary / days;
           const salesPct = Number(config.sales_percent || 0);
-          if (salesPct > 0) totalSalesEarning += todaySalesTotal * (salesPct / 100);
+          if (salesPct > 0) earning += incomeBase * (salesPct / 100);
           break;
         }
         case 'sales_percent_only': {
-          const salesPct = Number(config.sales_percent || config.percent || 0);
-          if (salesPct > 0) totalSalesEarning += todaySalesTotal * (salesPct / 100);
+          const pct = Number(config.sales_percent || config.percent || 0);
+          if (pct > 0) earning += incomeBase * (pct / 100);
           break;
         }
         case 'profit_percent': {
-          // Calculate profit from today's sale items
-          const totalProfit = todaySaleItems.reduce((sum, item) => {
-            return sum + (Number(item.unit_price) - Number(item.cost_price)) * Number(item.quantity);
-          }, 0);
           const profitPct = Number(config.profit_percent || config.percent || 0);
-          if (profitPct > 0) totalSalesEarning += totalProfit * (profitPct / 100);
+          if (profitPct > 0) earning += incomeBase * (profitPct / 100);
           break;
         }
         case 'hourly': {
-          // Calculate hours from jornada start
           if (myJornada) {
             const hoursWorked = (Date.now() - new Date(myJornada.apertura_at).getTime()) / 3600000;
             const hourlyRate = Number(config.hourly_rate || baseSalary || 0);
-            totalBase += hourlyRate * hoursWorked;
+            base += hourlyRate * hoursWorked;
           }
           break;
         }
         default: {
-          // Fallback for any other type
-          totalBase += baseSalary;
-          const servicePercent = Number(config.service_percent || config.percent || 0);
-          if (servicePercent > 0) totalServiceEarning += serviceBase * (servicePercent / 100);
-          const salesPercent = Number(config.sales_percent || 0);
-          if (salesPercent > 0) totalSalesEarning += todaySalesTotal * (salesPercent / 100);
+          base += baseSalary;
+          const pct = Number(config.service_percent || config.percent || 0);
+          if (pct > 0) earning += incomeBase * (pct / 100);
         }
       }
     }
+    return { base, earning };
+  };
 
-    // Product commissions from product_commissions table
+  // Calculate running daily salary
+  const dailySalary = useMemo(() => {
+    if (!mySalaryAssignments.length) return null;
+
+    // General modalities: apply to services + sales
+    const generalBase = todayBranchServiceTotal + todaySalesTotal;
+    const generalResult = calcAssignmentEarnings(generalAssignments, generalBase, 'general');
+
+    // Copies modalities: apply to copies total only
+    const copiesResult = calcAssignmentEarnings(copiesAssignments, branchCopiesTotalForSalary, 'copies');
+
+    // Product commissions
+    let totalCommissionEarning = 0;
     for (const item of todaySaleItems) {
       const commConfig = productCommissions.find((c: any) => c.product_id === item.product_id);
       if (!commConfig || Number(commConfig.commission_value) === 0) continue;
@@ -393,23 +397,25 @@ const MyEmployment = () => {
         commAmount = itemProfit * (Number(commConfig.commission_value) / 100);
       }
 
-      // Apply split logic
       if (commConfig.split_type === 'shared' && activeWorkersCount > 1) {
         commAmount = commAmount / activeWorkersCount;
       }
-
       totalCommissionEarning += commAmount;
     }
 
-    const total = totalBase + totalServiceEarning + totalSalesEarning + totalCommissionEarning;
+    const totalBase = generalResult.base + copiesResult.base;
+    const serviceEarning = generalResult.earning;
+    const copiesEarning = copiesResult.earning;
+    const total = totalBase + serviceEarning + copiesEarning + totalCommissionEarning;
+
     return {
       total,
-      serviceEarning: totalServiceEarning,
-      salesEarning: totalSalesEarning,
-      commissionEarning: totalCommissionEarning,
       base: totalBase,
+      serviceEarning,
+      copiesEarning,
+      commissionEarning: totalCommissionEarning,
     };
-  }, [mySalaryAssignments, todayBranchServiceTotal, todaySalesTotal, branchCopiesTotalForSalary, activeWorkersCount, todaySaleItems, productCommissions, myJornada]);
+  }, [mySalaryAssignments, generalAssignments, copiesAssignments, todayBranchServiceTotal, todaySalesTotal, branchCopiesTotalForSalary, activeWorkersCount, todaySaleItems, productCommissions, myJornada]);
 
   // Save copies
   const handleSaveCopies = async () => {
@@ -806,14 +812,12 @@ const MyEmployment = () => {
                 </div>
                 <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-muted-foreground">
                   {dailySalary.base > 0 && <span>Base: ${dailySalary.base.toFixed(2)}</span>}
-                  {dailySalary.serviceEarning > 0 && (
-                    <span>% Bolsa: ${dailySalary.serviceEarning.toFixed(2)}</span>
-                  )}
-                  {dailySalary.salesEarning > 0 && <span>% Ventas: ${dailySalary.salesEarning.toFixed(2)}</span>}
+                  {dailySalary.serviceEarning > 0 && <span>% Serv+Ventas: ${dailySalary.serviceEarning.toFixed(2)}</span>}
+                  {dailySalary.copiesEarning > 0 && <span>% Copias: ${dailySalary.copiesEarning.toFixed(2)}</span>}
                   {dailySalary.commissionEarning > 0 && <span>Comisiones: ${dailySalary.commissionEarning.toFixed(2)}</span>}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-0.5">
-                  👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''} · Bolsa: ${(todayBranchServiceTotal + branchCopiesTotalForSalary + todaySalesTotal).toFixed(2)} (Serv: {todayBranchServiceTotal.toFixed(0)} + Copias: {branchCopiesTotalForSalary.toFixed(0)} + Ventas: {todaySalesTotal.toFixed(0)})
+                  👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''} · Serv: ${todayBranchServiceTotal.toFixed(0)} · Copias: ${branchCopiesTotalForSalary.toFixed(0)} · Ventas: ${todaySalesTotal.toFixed(0)}
                 </p>
               </CardContent>
             </Card>

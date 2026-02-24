@@ -1,0 +1,1 @@
+ALTER TABLE public.salary_modalities ADD COLUMN context text NOT NULL DEFAULT 'general';

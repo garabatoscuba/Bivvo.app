@@ -2,6 +2,8 @@ import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { CreditCard } from 'lucide-react';
@@ -12,6 +14,19 @@ const Nomina = () => {
   const { profile } = useAuth();
   const { planType } = useSubscription();
   const navigate = useNavigate();
+
+  const businessId = profile?.business_id || '';
+
+  const { data: business } = useQuery({
+    queryKey: ['business-type', businessId],
+    queryFn: async () => {
+      const { data } = await supabase.from('businesses').select('business_type').eq('id', businessId).single();
+      return data;
+    },
+    enabled: !!businessId,
+  });
+
+  const isCopyShop = business?.business_type === 'copy_shop';
 
   if (planType === 'free') {
     return (
@@ -28,7 +43,7 @@ const Nomina = () => {
     );
   }
 
-  const businessId = profile?.business_id || '';
+  const tabCount = isCopyShop ? 3 : 2;
 
   return (
     <AppLayout title="Nómina">
@@ -39,14 +54,20 @@ const Nomina = () => {
         </div>
 
         <Tabs defaultValue="modalidades" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-2">
+          <TabsList className={`w-full grid grid-cols-${tabCount}`}>
             <TabsTrigger value="modalidades">Modalidades</TabsTrigger>
+            {isCopyShop && <TabsTrigger value="copias">Copias</TabsTrigger>}
             <TabsTrigger value="comisiones">Comisiones</TabsTrigger>
           </TabsList>
 
           <TabsContent value="modalidades">
-            <ModalidadesTab businessId={businessId} />
+            <ModalidadesTab businessId={businessId} context="general" />
           </TabsContent>
+          {isCopyShop && (
+            <TabsContent value="copias">
+              <ModalidadesTab businessId={businessId} context="copies" />
+            </TabsContent>
+          )}
           <TabsContent value="comisiones">
             <CommissionsTab businessId={businessId} />
           </TabsContent>

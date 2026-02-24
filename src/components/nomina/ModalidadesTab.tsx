@@ -42,9 +42,10 @@ interface Condition {
 
 interface ModalidadesTabProps {
   businessId: string;
+  context?: 'general' | 'copies';
 }
 
-const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
+const ModalidadesTab = ({ businessId, context = 'general' }: ModalidadesTabProps) => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [configOpen, setConfigOpen] = useState(false);
@@ -63,12 +64,13 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
   ]);
 
   const { data: modalities = [], isLoading } = useQuery({
-    queryKey: ['salary-modalities', businessId],
+    queryKey: ['salary-modalities', businessId, context],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('salary_modalities')
         .select('*')
         .eq('business_id', businessId)
+        .eq('context', context)
         .order('created_at');
       if (error) throw error;
       return data;
@@ -104,6 +106,7 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
           is_active: true,
           applies_to: 'both',
           presets: [],
+          context,
         } as any);
         if (error) throw error;
       } else {
@@ -111,7 +114,8 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
           .from('salary_modalities')
           .delete()
           .eq('business_id', businessId)
-          .eq('modality_type', type as any);
+          .eq('modality_type', type as any)
+          .eq('context', context);
         if (error) throw error;
       }
     },
@@ -148,7 +152,8 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
         .from('salary_modalities')
         .update({ applies_to: appliesTo, presets: presets as any, config: {} } as any)
         .eq('business_id', businessId)
-        .eq('modality_type', selectedType as any);
+        .eq('modality_type', selectedType as any)
+        .eq('context', context);
       if (error) throw error;
     },
     onSuccess: () => {
