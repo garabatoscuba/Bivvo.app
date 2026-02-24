@@ -91,6 +91,7 @@ interface EmployeeForm {
   assigned_branches: string[];
   assigned_roles: AppRole[];
   salary_assignments: SalaryAssignmentEntry[];
+  copies_salary_assignments: SalaryAssignmentEntry[];
   // Legacy single fields kept for backward compat
   modality_id: string;
   preset_id: string;
@@ -118,6 +119,7 @@ const emptyForm: EmployeeForm = {
   assigned_branches: [],
   assigned_roles: ['seller'],
   salary_assignments: [],
+  copies_salary_assignments: [],
   modality_id: '',
   preset_id: '',
   pay_frequency: 'monthly',
@@ -172,14 +174,25 @@ const Employees = () => {
     enabled: !!businessId,
   });
 
-  // Fetch salary modalities for this business
-  const { data: salaryModalities = [] } = useQuery({
+  // Fetch business type
+  const { data: businessData } = useQuery({
+    queryKey: ['business-type', businessId],
+    queryFn: async () => {
+      const { data } = await supabase.from('businesses').select('business_type').eq('id', businessId!).single();
+      return data;
+    },
+    enabled: !!businessId,
+  });
+  const isCopyShop = businessData?.business_type === 'copy_shop';
+
+  // Fetch salary modalities for this business (all contexts)
+  const { data: allSalaryModalities = [] } = useQuery({
     queryKey: ['salary-modalities', businessId],
     queryFn: async () => {
       if (!businessId) return [];
       const { data, error } = await supabase
         .from('salary_modalities')
-        .select('id, name, modality_type, presets')
+        .select('id, name, modality_type, presets, context')
         .eq('business_id', businessId)
         .eq('is_active', true)
         .order('name');
@@ -188,6 +201,9 @@ const Employees = () => {
     },
     enabled: !!businessId,
   });
+
+  const salaryModalities = allSalaryModalities.filter((m: any) => !m.context || m.context === 'general');
+  const copiesSalaryModalities = allSalaryModalities.filter((m: any) => m.context === 'copies');
 
   // Fetch branch assignments for all employees
   const { data: branchAssignments = [] } = useQuery({
@@ -472,8 +488,10 @@ const Employees = () => {
         }
       }
 
-      // Save salary assignments (multiple modalities)
+      // Save salary assignments (multiple modalities) - general + copies
       const validAssignments = form.salary_assignments.filter(a => a.modality_id && a.modality_id !== 'none');
+      const validCopiesAssignments = form.copies_salary_assignments.filter(a => a.modality_id && a.modality_id !== 'none');
+      const allValidAssignments = [...validAssignments, ...validCopiesAssignments];
       
       // Delete existing assignments for this employee
       await supabase
@@ -482,8 +500,8 @@ const Employees = () => {
         .eq('employee_id', employeeId);
 
       // Insert new assignments
-      if (validAssignments.length > 0) {
-        const insertPayloads = validAssignments.map(a => ({
+      if (allValidAssignments.length > 0) {
+        const insertPayloads = allValidAssignments.map(a => ({
           employee_id: employeeId,
           business_id: businessId,
           modality_id: a.modality_id,
@@ -550,21 +568,31 @@ const Employees = () => {
       }
     }
 
-    // Load salary assignments (multiple)
+    // Load salary assignments (multiple) - need modality context to separate
     const { data: salaryAssignments } = await supabase
       .from('employee_salary_assignments')
-      .select('modality_id, pay_frequency, base_salary, config_override')
+      .select('modality_id, pay_frequency, base_salary, config_override, salary_modalities(context)')
       .eq('employee_id', emp.id);
     
-    const loadedAssignments: SalaryAssignmentEntry[] = (salaryAssignments || []).map((sa: any) => ({
-      modality_id: sa.modality_id || '',
-      preset_id: (sa.config_override as any)?.preset_id || '',
-      pay_frequency: sa.pay_frequency || 'monthly',
-      base_salary: sa.base_salary ? String(sa.base_salary) : '',
-    }));
+    const generalLoaded: SalaryAssignmentEntry[] = [];
+    const copiesLoaded: SalaryAssignmentEntry[] = [];
+    
+    for (const sa of (salaryAssignments || [])) {
+      const entry: SalaryAssignmentEntry = {
+        modality_id: sa.modality_id || '',
+        preset_id: (sa.config_override as any)?.preset_id || '',
+        pay_frequency: sa.pay_frequency || 'monthly',
+        base_salary: sa.base_salary ? String(sa.base_salary) : '',
+      };
+      if ((sa as any).salary_modalities?.context === 'copies') {
+        copiesLoaded.push(entry);
+      } else {
+        generalLoaded.push(entry);
+      }
+    }
 
     // Legacy: use first assignment for backward compat fields
-    const first = loadedAssignments[0];
+    const first = generalLoaded[0];
 
     setEditingEmployee(emp);
     setForm({
@@ -579,7 +607,8 @@ const Employees = () => {
       start_date: emp.start_date,
       assigned_branches: empBranches,
       assigned_roles: currentRoles,
-      salary_assignments: loadedAssignments,
+      salary_assignments: generalLoaded,
+      copies_salary_assignments: copiesLoaded,
       modality_id: first?.modality_id || '',
       preset_id: first?.preset_id || '',
       pay_frequency: first?.pay_frequency || 'monthly',
@@ -1139,6 +1168,149 @@ const Employees = () => {
                   );
                 })}
               </div>
+
+              {/* Copies salary assignments - only for copy_shop */}
+              {isCopyShop && copiesSalaryModalities.length > 0 && (
+                <div className="space-y-3 border-t pt-4">
+                  <div className="flex items-center justify-between">
+                    <Label className="font-semibold">Nómina de Copias</Label>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setForm(prev => ({
+                        ...prev,
+                        copies_salary_assignments: [...prev.copies_salary_assignments, { ...emptyAssignment }],
+                      }))}
+                      disabled={form.copies_salary_assignments.length >= copiesSalaryModalities.length}
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Agregar modalidad
+                    </Button>
+                  </div>
+
+                  <p className="text-xs text-muted-foreground">
+                    Modalidades aplicadas a las copias que reporta el empleado.
+                  </p>
+
+                  {form.copies_salary_assignments.map((assignment, idx) => {
+                    const usedModalities = form.copies_salary_assignments
+                      .filter((_, i) => i !== idx)
+                      .map(a => a.modality_id);
+                    const availableModalities = copiesSalaryModalities.filter(
+                      (m: any) => !usedModalities.includes(m.id) || m.id === assignment.modality_id
+                    );
+                    const selectedMod = copiesSalaryModalities.find((m: any) => m.id === assignment.modality_id);
+                    const modPresets = (selectedMod as any)?.presets as { id: string; name: string; config: Record<string, any> }[] || [];
+
+                    return (
+                      <div key={idx} className="rounded-lg border p-3 space-y-3 relative">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 absolute top-2 right-2"
+                          onClick={() => setForm(prev => ({
+                            ...prev,
+                            copies_salary_assignments: prev.copies_salary_assignments.filter((_, i) => i !== idx),
+                          }))}
+                        >
+                          <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                        </Button>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <Label className="text-xs">Modalidad</Label>
+                            <Select
+                              value={assignment.modality_id || 'none'}
+                              onValueChange={(v) => setForm(prev => ({
+                                ...prev,
+                                copies_salary_assignments: prev.copies_salary_assignments.map((a, i) =>
+                                  i === idx ? { ...a, modality_id: v === 'none' ? '' : v, preset_id: '' } : a
+                                ),
+                              }))}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Seleccionar" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Seleccionar...</SelectItem>
+                                {availableModalities.map((m: any) => (
+                                  <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs">Frecuencia</Label>
+                            <Select
+                              value={assignment.pay_frequency}
+                              onValueChange={(v) => setForm(prev => ({
+                                ...prev,
+                                copies_salary_assignments: prev.copies_salary_assignments.map((a, i) =>
+                                  i === idx ? { ...a, pay_frequency: v } : a
+                                ),
+                              }))}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="daily">Diaria</SelectItem>
+                                <SelectItem value="weekly">Semanal</SelectItem>
+                                <SelectItem value="biweekly">Quincenal</SelectItem>
+                                <SelectItem value="monthly">Mensual</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+
+                        {modPresets.length > 0 && (
+                          <div className="space-y-1">
+                            <Label className="text-xs">Preset</Label>
+                            <Select
+                              value={assignment.preset_id || 'none'}
+                              onValueChange={(v) => setForm(prev => ({
+                                ...prev,
+                                copies_salary_assignments: prev.copies_salary_assignments.map((a, i) =>
+                                  i === idx ? { ...a, preset_id: v === 'none' ? '' : v } : a
+                                ),
+                              }))}
+                            >
+                              <SelectTrigger className="h-8 text-xs">
+                                <SelectValue placeholder="Sin preset" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Sin preset</SelectItem>
+                                {modPresets.map((p: any) => (
+                                  <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+
+                        <div className="space-y-1">
+                          <Label className="text-xs">Salario Base ($)</Label>
+                          <Input
+                            type="number"
+                            min={0}
+                            step={0.01}
+                            value={assignment.base_salary}
+                            onChange={(e) => setForm(prev => ({
+                              ...prev,
+                              copies_salary_assignments: prev.copies_salary_assignments.map((a, i) =>
+                                i === idx ? { ...a, base_salary: e.target.value } : a
+                              ),
+                            }))}
+                            placeholder="0.00"
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEmployeeDialogOpen(false)}>Cancelar</Button>
