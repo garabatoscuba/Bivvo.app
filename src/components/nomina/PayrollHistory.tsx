@@ -153,7 +153,6 @@ const PayrollHistory = ({ employeeId, userId, businessId, showAllEmployees }: Pa
                   <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
                     <span>Servicios: ${Number(r.service_earning).toFixed(2)}</span>
                     <span>Comisiones: ${Number(r.commission_earning).toFixed(2)}</span>
-                    <span>Copias: ${Number(r.copies_earning).toFixed(2)}</span>
                     <span>Propinas: ${Number(r.tips).toFixed(2)}</span>
                   </div>
                 </div>
@@ -167,7 +166,6 @@ const PayrollHistory = ({ employeeId, userId, businessId, showAllEmployees }: Pa
                     <TableHead>Fecha</TableHead>
                     <TableHead className="text-right">Servicios</TableHead>
                     <TableHead className="text-right">Comisiones</TableHead>
-                    <TableHead className="text-right">Copias</TableHead>
                     <TableHead className="text-right">Propinas</TableHead>
                     <TableHead className="text-right">Total Salario</TableHead>
                   </TableRow>
@@ -178,7 +176,6 @@ const PayrollHistory = ({ employeeId, userId, businessId, showAllEmployees }: Pa
                       <TableCell>{format(new Date(r.date), 'dd MMM yyyy', { locale: es })}</TableCell>
                       <TableCell className="text-right">${Number(r.service_earning).toFixed(2)}</TableCell>
                       <TableCell className="text-right">${Number(r.commission_earning).toFixed(2)}</TableCell>
-                      <TableCell className="text-right">${Number(r.copies_earning).toFixed(2)}</TableCell>
                       <TableCell className="text-right">${Number(r.tips).toFixed(2)}</TableCell>
                       <TableCell className="text-right font-bold">${Number(r.total_salary).toFixed(2)}</TableCell>
                     </TableRow>
