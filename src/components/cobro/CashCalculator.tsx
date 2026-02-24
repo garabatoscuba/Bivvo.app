@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -12,9 +12,10 @@ const BILL_DENOMINATIONS = [1, 3, 5, 10, 20, 50, 100, 200, 500, 1000];
 interface CashCalculatorProps {
   employeeBusinessId?: string;
   employeeBranchId?: string | null;
+  onTipSurplusChange?: (surplus: number) => void;
 }
 
-const CashCalculator = ({ employeeBusinessId, employeeBranchId }: CashCalculatorProps) => {
+const CashCalculator = ({ employeeBusinessId, employeeBranchId, onTipSurplusChange }: CashCalculatorProps) => {
   const { profile } = useAuth();
   const businessId = employeeBusinessId || profile?.business_id;
   const branchId = employeeBranchId || profile?.branch_id;
@@ -114,6 +115,9 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId }: CashCalculator
     };
   }, [todayServices, todaySales, todayJornadas, totalCash]);
 
+  useEffect(() => {
+    onTipSurplusChange?.(breakdown.tips);
+  }, [breakdown.tips, onTipSurplusChange]);
   return (
     <div className="space-y-4">
       {/* Cash counter */}

@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { CreditCard } from 'lucide-react';
 import ModalidadesTab from '@/components/nomina/ModalidadesTab';
 import CommissionsTab from '@/components/cobro/CommissionsTab';
+import TipConfigTab from '@/components/nomina/TipConfigTab';
+import { Gift } from 'lucide-react';
 
 const Nomina = () => {
   const { profile } = useAuth();
@@ -41,9 +43,13 @@ const Nomina = () => {
         </div>
 
         <Tabs defaultValue="modalidades" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-2">
+          <TabsList className="w-full grid grid-cols-3">
             <TabsTrigger value="modalidades">Modalidades</TabsTrigger>
             <TabsTrigger value="comisiones">Comisiones</TabsTrigger>
+            <TabsTrigger value="propinas" className="gap-1">
+              <Gift className="h-3.5 w-3.5 hidden sm:block" />
+              Propinas
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="modalidades">
@@ -51,6 +57,9 @@ const Nomina = () => {
           </TabsContent>
           <TabsContent value="comisiones">
             <CommissionsTab businessId={businessId} />
+          </TabsContent>
+          <TabsContent value="propinas">
+            <TipConfigTab businessId={businessId} />
           </TabsContent>
         </Tabs>
       </div>
