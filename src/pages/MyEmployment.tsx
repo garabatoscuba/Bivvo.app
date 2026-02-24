@@ -236,6 +236,20 @@ const MyEmployment = () => {
     enabled: !!myEmployeeRecord?.id,
   });
 
+  // Fetch salary_config (conditions for custom_mixed are stored here, NOT in salary_modalities.config)
+  const { data: salaryConfig } = useQuery({
+    queryKey: ['salary-config', businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('salary_config')
+        .select('*')
+        .eq('business_id', businessId!)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!businessId,
+  });
+
   // Keep backward compat alias
   const mySalaryAssignment = mySalaryAssignments[0] || null;
 
@@ -326,7 +340,7 @@ const MyEmployment = () => {
           break;
         }
         case 'custom_mixed': {
-          const conditions = config.conditions || [];
+          const conditions = (salaryConfig?.conditions as unknown as any[]) || [];
           const matchedCondition = conditions.find((c: any) => c.positions === activeWorkersCount)
             || conditions
               .filter((c: any) => c.positions <= activeWorkersCount)
@@ -429,7 +443,7 @@ const MyEmployment = () => {
       commissionEarning: totalCommissionEarning,
       tipShare: myTipShare,
     };
-  }, [mySalaryAssignments, todayBranchServiceTotal, todaySalesTotal, activeWorkersCount, todaySaleItems, productCommissions, myJornada, myTipShare]);
+  }, [mySalaryAssignments, salaryConfig, todayBranchServiceTotal, todaySalesTotal, activeWorkersCount, todaySaleItems, productCommissions, myJornada, myTipShare]);
 
 
   const { data: branchAssignments = [] } = useQuery({
@@ -826,7 +840,7 @@ const MyEmployment = () => {
                     const config = assignment?.salary_modalities?.config || {};
                     const configOverride = assignment.config_override as Record<string, any> || {};
                     if (modType === 'custom_mixed') {
-                      const conditions = (config as any).conditions || [];
+                      const conditions = (salaryConfig?.conditions as unknown as any[]) || [];
                       const matched = conditions.find((c: any) => c.positions === activeWorkersCount)
                         || conditions.filter((c: any) => c.positions <= activeWorkersCount).sort((a: any, b: any) => b.positions - a.positions)[0]
                         || conditions.sort((a: any, b: any) => a.positions - b.positions)[0];
