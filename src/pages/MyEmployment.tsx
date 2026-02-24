@@ -814,47 +814,89 @@ const MyEmployment = () => {
             <Card className="border-primary/30">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm flex items-center gap-2">
-                  <DollarSign className="h-4 w-4" />
-                  Salario de Hoy
+                  💰 Salario de Hoy
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">Condición activa</span>
-                  <Badge variant="secondary" className="text-xs">{activeWorkersCount} puestos</Badge>
-                </div>
-                <div className="text-xs space-y-0.5">
-                  {dailySalary.serviceEarning > 0 && (
-                    <div className="flex justify-between">
-                      <span>Servicios</span>
-                      <span className="font-medium">${dailySalary.serviceEarning.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {dailySalary.commissionEarning > 0 && (
-                    <div className="flex justify-between">
-                      <span>Comisiones</span>
-                      <span className="font-medium">${dailySalary.commissionEarning.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {dailySalary.tipShare > 0 && (
-                    <div className="flex justify-between">
-                      <span>Propinas</span>
-                      <span className="font-medium">${dailySalary.tipShare.toFixed(2)}</span>
-                    </div>
-                  )}
-                  {dailySalary.base > 0 && (
-                    <div className="flex justify-between">
-                      <span>Salario base</span>
-                      <span className="font-medium">${dailySalary.base.toFixed(2)}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="flex justify-between pt-1 border-t font-bold text-sm">
-                  <span>Total del día</span>
-                  <span className="text-primary">${dailySalary.total.toFixed(2)}</span>
-                </div>
+                {(() => {
+                  // Find the active condition percentage for display
+                  let displayPercent = 0;
+                  for (const assignment of mySalaryAssignments) {
+                    const modType = assignment?.salary_modalities?.modality_type;
+                    const config = assignment?.salary_modalities?.config || {};
+                    const configOverride = assignment.config_override as Record<string, any> || {};
+                    if (modType === 'custom_mixed') {
+                      const conditions = (config as any).conditions || [];
+                      const matched = conditions.find((c: any) => c.positions === activeWorkersCount)
+                        || conditions.filter((c: any) => c.positions <= activeWorkersCount).sort((a: any, b: any) => b.positions - a.positions)[0]
+                        || conditions.sort((a: any, b: any) => a.positions - b.positions)[0];
+                      const presetId = configOverride?.preset_id;
+                      displayPercent = matched?.service_percent || 0;
+                      if (presetId) {
+                        const presets = assignment?.salary_modalities?.presets || [];
+                        const preset = (presets as any[]).find((p: any) => p.id === presetId);
+                        if (preset?.config?.service_percent_override != null) {
+                          displayPercent = preset.config.service_percent_override;
+                        }
+                      }
+                    } else if (modType === 'sales_percent_only' || modType === 'fixed_plus_sales_percent') {
+                      displayPercent = Number((config as any).sales_percent || (config as any).percent || 0);
+                    } else if (modType === 'profit_percent') {
+                      displayPercent = Number((config as any).profit_percent || (config as any).percent || 0);
+                    }
+                  }
+                  const totalIncome = todayBranchServiceTotal + todaySalesTotal;
+                  return (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Condición activa</span>
+                        <Badge variant="secondary" className="text-xs">
+                          {activeWorkersCount} puestos → {displayPercent}%
+                        </Badge>
+                      </div>
+                      <div className="text-xs space-y-0.5">
+                        <div className="flex justify-between">
+                          <span>Servicios ({displayPercent}% de ${totalIncome.toFixed(2)} ÷ {activeWorkersCount})</span>
+                          <span className="font-medium">${dailySalary.serviceEarning.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Comisiones (${(dailySalary.commissionEarning * activeWorkersCount).toFixed(2)} ÷ {activeWorkersCount})</span>
+                          <span className="font-medium">${dailySalary.commissionEarning.toFixed(2)}</span>
+                        </div>
+                        {dailySalary.tipShare > 0 && (
+                          <div className="flex justify-between">
+                            <span>Propinas</span>
+                            <span className="font-medium">${dailySalary.tipShare.toFixed(2)}</span>
+                          </div>
+                        )}
+                        {dailySalary.base > 0 && (
+                          <div className="flex justify-between">
+                            <span>Salario base</span>
+                            <span className="font-medium">${dailySalary.base.toFixed(2)}</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex justify-between pt-1 border-t font-bold text-sm">
+                        <span>Total del día</span>
+                        <span className="text-primary">${dailySalary.total.toFixed(2)}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </CardContent>
             </Card>
+          )}
+
+          {/* Contar y Cerrar Jornada button */}
+          {jornadaActiva && myJornada && (
+            <Button
+              className="w-full"
+              variant="destructive"
+              onClick={() => setContarYCerrarOpen(true)}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Contar y Cerrar Jornada
+            </Button>
           )}
 
 
