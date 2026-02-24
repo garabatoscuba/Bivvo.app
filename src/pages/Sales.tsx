@@ -57,6 +57,7 @@ const Sales = () => {
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const [searchParams] = useSearchParams();
   const isEmployeeContext = searchParams.get('ctx') === 'emp';
+  const isPrivileged = isOwner || isManager || isSuperAdmin;
 
   // Fetch employee record for employee context
   const { data: employeeRecord } = useQuery({
@@ -82,12 +83,16 @@ const Sales = () => {
     queryFn: async () => {
       const bizId = isEmployeeContext ? employeeRecord?.business_id : profile?.business_id;
       if (!bizId || !branchId) return [];
-      const { data } = await supabase
+      let query = supabase
         .from('service_entries')
         .select('*, service_categories(name)')
         .eq('business_id', bizId)
-        .eq('branch_id', branchId)
-        .order('created_at', { ascending: false });
+        .eq('branch_id', branchId);
+      // Employee context: only show own services
+      if (isEmployeeContext && profile?.user_id) {
+        query = query.eq('user_id', profile.user_id);
+      }
+      const { data } = await query.order('created_at', { ascending: false });
       return (data || []).map((s: any) => ({
         id: s.id,
         created_at: s.created_at,
@@ -105,13 +110,34 @@ const Sales = () => {
     enabled: !!branchId && !!(isEmployeeContext ? employeeRecord?.business_id : profile?.business_id),
   });
 
+  // For owner/manager: fetch employee list for filter
+  const { data: branchEmployees = [] } = useQuery({
+    queryKey: ['branch-employees-for-filter', branchId],
+    queryFn: async () => {
+      if (!branchId) return [];
+      // Get all unique user_ids from sales + their profile names
+      const userIds = [...new Set(sales.map((s: any) => s.user_id).filter(Boolean))];
+      if (!userIds.length) return [];
+      const { data } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds);
+      return data || [];
+    },
+    enabled: isPrivileged && sales.length > 0,
+  });
+
   // Merge sales + services into unified list
   const unifiedEntries = useMemo(() => {
-    const salesWithType = sales.map((s: any) => ({ ...s, _type: 'sale' as const }));
+    // Employee context: filter sales to only their own
+    const filteredSales = isEmployeeContext && profile?.user_id
+      ? sales.filter((s: any) => s.user_id === profile.user_id)
+      : sales;
+    const salesWithType = filteredSales.map((s: any) => ({ ...s, _type: 'sale' as const }));
     const merged = [...salesWithType, ...serviceEntries];
     merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return merged;
-  }, [sales, serviceEntries]);
+  }, [sales, serviceEntries, isEmployeeContext, profile?.user_id]);
 
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -122,6 +148,7 @@ const Sales = () => {
   const [dateTo, setDateTo] = useState('');
   const [filterPayment, setFilterPayment] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  const [filterEmployee, setFilterEmployee] = useState<string>('all');
 
   // Payment dialog
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -151,12 +178,13 @@ const Sales = () => {
     return unifiedEntries.filter((s: any) => {
       if (filterPayment !== 'all' && s.payment_type !== filterPayment) return false;
       if (filterStatus !== 'all' && s.status !== filterStatus) return false;
+      if (filterEmployee !== 'all' && s.user_id !== filterEmployee) return false;
       const saleDate = format(new Date(s.created_at), 'yyyy-MM-dd');
       if (dateFrom && saleDate < dateFrom) return false;
       if (dateTo && saleDate > dateTo) return false;
       return true;
     });
-  }, [unifiedEntries, filterPayment, filterStatus, dateFrom, dateTo]);
+  }, [unifiedEntries, filterPayment, filterStatus, filterEmployee, dateFrom, dateTo]);
 
   const pendingSales = useMemo(() => unifiedEntries.filter((s: any) => s.status === 'pending'), [unifiedEntries]);
 
@@ -357,7 +385,8 @@ const Sales = () => {
     </>
   );
 
-  const isPrivileged = isOwner || isManager || isSuperAdmin;
+
+
 
   if (!isPrivileged && jornadaLoading) {
     return <AppLayout title="Ventas"><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></AppLayout>;
@@ -446,6 +475,17 @@ const Sales = () => {
                 <SelectItem value="cancelled">Cancelada</SelectItem>
               </SelectContent>
             </Select>
+            {isPrivileged && branchEmployees.length > 0 && (
+              <Select value={filterEmployee} onValueChange={setFilterEmployee}>
+                <SelectTrigger className="md:w-44 text-sm"><SelectValue placeholder="Empleado" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {branchEmployees.map((emp: any) => (
+                    <SelectItem key={emp.user_id} value={emp.user_id}>{emp.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
           </div>
           {isLoadingSales ? (
             <p className="text-muted-foreground py-8 text-center">Cargando ventas...</p>

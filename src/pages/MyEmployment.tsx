@@ -805,28 +805,12 @@ const MyEmployment = () => {
             </Card>
           )}
 
-          {/* Daily salary preview */}
-          {jornadaActiva && dailySalary && (
-            <Card className="border-primary/20 bg-primary/5">
-              <CardContent className="py-3 px-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">Salario acumulado hoy</p>
-                    <p className="text-2xl font-bold text-primary">${dailySalary.total.toFixed(2)}</p>
-                  </div>
-                  <DollarSign className="h-8 w-8 text-primary/30" />
-                </div>
-                <div className="flex flex-wrap gap-3 mt-1 text-[10px] text-muted-foreground">
-                  {dailySalary.base > 0 && <span>Base: ${dailySalary.base.toFixed(2)}</span>}
-                  {dailySalary.serviceEarning > 0 && <span>% Serv+Ventas: ${dailySalary.serviceEarning.toFixed(2)}</span>}
-                  {dailySalary.commissionEarning > 0 && <span>Comisiones: ${dailySalary.commissionEarning.toFixed(2)}</span>}
-                  {dailySalary.tipShare > 0 && <span>Propinas: ${dailySalary.tipShare.toFixed(2)}</span>}
-                </div>
-                <p className="text-[10px] text-muted-foreground mt-0.5">
-                  👥 {activeWorkersCount} activo{activeWorkersCount > 1 ? 's' : ''}
-                </p>
-              </CardContent>
-            </Card>
+          {/* Salary view (moved from Cobros tab) */}
+          {myEmployeeRecord && jornadaActiva && (
+            <EmployeeSalaryView
+              employeeBusinessId={myEmployeeRecord.business_id}
+              employeeBranchId={myEmployeeRecord.branch_id ?? profile?.branch_id ?? null}
+            />
           )}
 
 
