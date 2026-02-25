@@ -4,7 +4,6 @@ import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
 
-// https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -20,9 +19,9 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "placeholder.svg", "robots.txt"],
       manifest: {
-        name: "SyncSales",
-        short_name: "SyncSales",
-        description: "Sistema de gestión de ventas e inventario",
+        name: "Bivoo",
+        short_name: "Bivoo",
+        description: "Plataforma de gestión para negocios",
         theme_color: "#0284c7",
         background_color: "#edf2f7",
         display: "standalone",
