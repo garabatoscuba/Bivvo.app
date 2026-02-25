@@ -13,7 +13,7 @@ const Install = () => {
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <div className="w-full max-w-md space-y-6 text-center">
         <div className="space-y-2">
-          <h1 className="text-3xl font-bold text-foreground">Instala Bivoo</h1>
+          <h1 className="text-3xl font-bold text-foreground">Instala Bivoo App</h1>
           <p className="text-muted-foreground">Úsala como una app nativa en tu teléfono, incluso sin internet.</p>
         </div>
 
