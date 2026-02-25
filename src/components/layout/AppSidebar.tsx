@@ -40,7 +40,6 @@ import {
   Receipt,
   Users,
   Settings,
-  Building2,
   Shield,
   LogOut,
   CreditCard,
@@ -346,10 +345,7 @@ const AppSidebar = () => {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Link to="/" className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <Building2 className="h-4 w-4 text-primary-foreground" />
-          </div>
+        <Link to="/" className="flex items-center">
           <span className="text-sm font-bold tracking-tight text-foreground">Bivoo</span>
         </Link>
       </SidebarHeader>
