@@ -30,6 +30,7 @@ import Nomina from "./pages/Nomina";
 import JornadaEntrada from "./pages/JornadaEntrada";
 import OnboardingEmpleado from "./pages/OnboardingEmpleado";
 import MyEmployment from "./pages/MyEmployment";
+import AuthCallback from "./pages/AuthCallback";
 
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => {
             <BrowserRouter>
               <Routes>
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
                 <Route
                   path="/"
                   element={
