@@ -100,8 +100,8 @@ const StoreSettingsPage = () => {
     }
   };
 
-  const storeUrl = business?.slug && activeBranch?.slug
-    ? `${window.location.origin}/tienda/${business.slug}/${activeBranch.slug}`
+  const storeUrl = business?.slug
+    ? `https://${business.slug}.bivoo.app`
     : null;
 
   // Settings state
