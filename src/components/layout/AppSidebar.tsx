@@ -1,39 +1,77 @@
-import { useState } from 'react';
-import { useLocation, Link, useNavigate } from 'react-router-dom';
-import { useTheme } from 'next-themes';
-import { useAuth } from '@/contexts/AuthContext';
-import { useBranches } from '@/hooks/useBranches';
-import { useSubscription } from '@/hooks/useSubscription';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useState } from "react";
+import { useLocation, Link, useNavigate } from "react-router-dom";
+import { useTheme } from "next-themes";
+import { useAuth } from "@/contexts/AuthContext";
+import { useBranches } from "@/hooks/useBranches";
+import { useSubscription } from "@/hooks/useSubscription";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
-  SidebarMenu, SidebarMenuButton, SidebarMenuItem, SidebarHeader, SidebarFooter,
-} from '@/components/ui/sidebar';
+  Sidebar,
+  SidebarContent,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarHeader,
+  SidebarFooter,
+} from "@/components/ui/sidebar";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
-} from '@/components/ui/dialog';
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
 import {
-  LayoutDashboard, Package, ShoppingCart, Receipt, Users, Settings,
-  Building2, Shield, LogOut, CreditCard, Download, Store,
-  ChevronDown, Dumbbell, Check, Settings2, Sun, Moon, ShoppingBag,
-  Plus, MapPin, Pencil, Wrench, DollarSign, Briefcase, FileText,
-} from 'lucide-react';
-import { useStoreSettings } from '@/hooks/useStoreSettings';
-import { useJornadaActiva } from '@/hooks/useJornadaActiva';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Separator } from '@/components/ui/separator';
-import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  Receipt,
+  Users,
+  Settings,
+  Building2,
+  Shield,
+  LogOut,
+  CreditCard,
+  Download,
+  Store,
+  ChevronDown,
+  Dumbbell,
+  Check,
+  Settings2,
+  Sun,
+  Moon,
+  ShoppingBag,
+  Plus,
+  MapPin,
+  Pencil,
+  Wrench,
+  DollarSign,
+  Briefcase,
+  FileText,
+} from "lucide-react";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { useJornadaActiva } from "@/hooks/useJornadaActiva";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
+import { useToast } from "@/hooks/use-toast";
 
 const AppSidebar = () => {
   const { settings: storeSettings } = useStoreSettings();
@@ -48,31 +86,36 @@ const AppSidebar = () => {
   const { theme, setTheme } = useTheme();
 
   const [newBizOpen, setNewBizOpen] = useState(false);
-  const [bizName, setBizName] = useState('');
-  const [bizType, setBizType] = useState('store');
+  const [bizName, setBizName] = useState("");
+  const [bizType, setBizType] = useState("store");
   const [editBizOpen, setEditBizOpen] = useState(false);
-  const [editBizId, setEditBizId] = useState('');
-  const [editBizName, setEditBizName] = useState('');
+  const [editBizId, setEditBizId] = useState("");
+  const [editBizName, setEditBizName] = useState("");
 
   // Branch dialog state
   const [branchDialogOpen, setBranchDialogOpen] = useState(false);
-  const [editingBranch, setEditingBranch] = useState<{ id: string; name: string; address: string | null; phone: string | null } | null>(null);
-  const [branchBizId, setBranchBizId] = useState('');
-  const [branchName, setBranchName] = useState('');
-  const [branchAddress, setBranchAddress] = useState('');
-  const [branchPhone, setBranchPhone] = useState('');
+  const [editingBranch, setEditingBranch] = useState<{
+    id: string;
+    name: string;
+    address: string | null;
+    phone: string | null;
+  } | null>(null);
+  const [branchBizId, setBranchBizId] = useState("");
+  const [branchName, setBranchName] = useState("");
+  const [branchAddress, setBranchAddress] = useState("");
+  const [branchPhone, setBranchPhone] = useState("");
 
-  const activeBranch = branches.find(b => b.id === profile?.branch_id);
+  const activeBranch = branches.find((b) => b.id === profile?.branch_id);
 
   // Check if user has an employee record (to show "Mi Empleo" in sidebar)
   const { data: employeeRecord = null } = useQuery({
-    queryKey: ['has-employee-record', profile?.email],
+    queryKey: ["has-employee-record", profile?.email],
     queryFn: async () => {
       if (!profile?.email) return null;
       const { data, error } = await supabase
-        .from('employees')
-        .select('id, business_id, businesses!employees_business_id_fkey(name, business_type)')
-        .eq('email', profile.email.toLowerCase())
+        .from("employees")
+        .select("id, business_id, businesses!employees_business_id_fkey(name, business_type)")
+        .eq("email", profile.email.toLowerCase())
         .limit(1)
         .maybeSingle();
       if (error || !data) return null;
@@ -81,41 +124,41 @@ const AppSidebar = () => {
     enabled: !!profile?.email,
   });
   const hasEmployeeRecord = !!employeeRecord;
-  const isEmployeeCopyShop = (employeeRecord as any)?.businesses?.business_type === 'copy_shop';
+  const isEmployeeCopyShop = (employeeRecord as any)?.businesses?.business_type === "copy_shop";
   const employerName = (employeeRecord as any)?.businesses?.name || null;
   const isPrivileged = isOwner || isManager || isSuperAdmin;
 
   // Jornada check for non-privileged employees — gate operational tools
   const { jornadaActiva, jornada: activeJornada } = useJornadaActiva();
-  const hasAuthorizedJornada = jornadaActiva && activeJornada?.metodo_apertura === 'manual_gerente';
+  const hasAuthorizedJornada = jornadaActiva && activeJornada?.metodo_apertura === "manual_gerente";
   // Employee can see operational tools when they have an authorized active shift
   // This applies even if they're also a business owner — the tools use ?ctx=emp for employer context
   const showEmployeeTools = hasEmployeeRecord && hasAuthorizedJornada;
 
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
-    queryKey: ['user-businesses-with-branches', profile?.user_id],
+    queryKey: ["user-businesses-with-branches", profile?.user_id],
     queryFn: async () => {
       if (!profile?.id) return [];
       const { data: bizList } = await supabase
-        .from('businesses')
-        .select('id, name, business_type')
-        .eq('owner_id', profile.id)
-        .order('created_at');
+        .from("businesses")
+        .select("id, name, business_type")
+        .eq("owner_id", profile.id)
+        .order("created_at");
       if (!bizList) return [];
 
       // Fetch branches for all businesses
-      const bizIds = bizList.map(b => b.id);
+      const bizIds = bizList.map((b) => b.id);
       const { data: allBranches } = await supabase
-        .from('branches')
-        .select('id, name, business_id, is_main, address, phone')
-        .in('business_id', bizIds)
-        .order('is_main', { ascending: false })
-        .order('name');
+        .from("branches")
+        .select("id, name, business_id, is_main, address, phone")
+        .in("business_id", bizIds)
+        .order("is_main", { ascending: false })
+        .order("name");
 
-      return bizList.map(biz => ({
+      return bizList.map((biz) => ({
         ...biz,
-        branches: (allBranches || []).filter(br => br.business_id === biz.id),
+        branches: (allBranches || []).filter((br) => br.business_id === biz.id),
       }));
     },
     enabled: !!profile?.id,
@@ -123,38 +166,41 @@ const AppSidebar = () => {
 
   const createBizMutation = useMutation({
     mutationFn: async ({ name, business_type }: { name: string; business_type: string }) => {
-      const { error } = await supabase.from('business_requests').insert({
+      const { error } = await supabase.from("business_requests").insert({
         user_id: profile!.user_id,
-        request_type: 'business',
+        request_type: "business",
         business_name: name,
         business_type,
       });
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
-      toast({ title: 'Solicitud enviada', description: 'Tu solicitud de nuevo negocio está pendiente de aprobación por el administrador.' });
+      queryClient.invalidateQueries({ queryKey: ["user-businesses-with-branches"] });
+      toast({
+        title: "Solicitud enviada",
+        description: "Tu solicitud de nuevo negocio está pendiente de aprobación por el administrador.",
+      });
       setNewBizOpen(false);
-      setBizName('');
-      setBizType('store');
+      setBizName("");
+      setBizType("store");
     },
     onError: (err: any) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const updateBizMutation = useMutation({
     mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from('businesses').update({ name }).eq('id', id);
+      const { error } = await supabase.from("businesses").update({ name }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
-      toast({ title: 'Negocio actualizado' });
+      queryClient.invalidateQueries({ queryKey: ["user-businesses-with-branches"] });
+      toast({ title: "Negocio actualizado" });
       setEditBizOpen(false);
     },
     onError: (err: any) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
@@ -163,19 +209,19 @@ const AppSidebar = () => {
       if (editingBranch) {
         // Editing existing branch - direct update (allowed)
         const { error } = await supabase
-          .from('branches')
+          .from("branches")
           .update({
             name: branchName.trim(),
             address: branchAddress.trim() || null,
             phone: branchPhone.trim() || null,
           })
-          .eq('id', editingBranch.id);
+          .eq("id", editingBranch.id);
         if (error) throw error;
       } else {
         // Creating new branch - submit request for approval
-        const { error } = await supabase.from('business_requests').insert({
+        const { error } = await supabase.from("business_requests").insert({
           user_id: profile!.user_id,
-          request_type: 'branch',
+          request_type: "branch",
           branch_name: branchName.trim(),
           branch_business_id: branchBizId,
         });
@@ -183,28 +229,31 @@ const AppSidebar = () => {
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
-      queryClient.invalidateQueries({ queryKey: ['branches'] });
-      toast({ title: editingBranch ? 'Sucursal actualizada' : 'Solicitud enviada', description: editingBranch ? undefined : 'Tu solicitud de nueva sucursal está pendiente de aprobación.' });
+      queryClient.invalidateQueries({ queryKey: ["user-businesses-with-branches"] });
+      queryClient.invalidateQueries({ queryKey: ["branches"] });
+      toast({
+        title: editingBranch ? "Sucursal actualizada" : "Solicitud enviada",
+        description: editingBranch ? undefined : "Tu solicitud de nueva sucursal está pendiente de aprobación.",
+      });
       setBranchDialogOpen(false);
     },
     onError: (err: any) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     },
   });
 
   const switchBusiness = async (bizId: string) => {
     const { data: bizBranches } = await supabase
-      .from('branches')
-      .select('id')
-      .eq('business_id', bizId)
-      .eq('is_main', true)
+      .from("branches")
+      .select("id")
+      .eq("business_id", bizId)
+      .eq("is_main", true)
       .limit(1);
     const mainBranchId = bizBranches?.[0]?.id || null;
     await supabase
-      .from('profiles')
+      .from("profiles")
       .update({ business_id: bizId, branch_id: mainBranchId })
-      .eq('user_id', profile!.user_id);
+      .eq("user_id", profile!.user_id);
     window.location.reload();
   };
 
@@ -212,16 +261,16 @@ const AppSidebar = () => {
     try {
       await switchBranch(branchId);
       queryClient.invalidateQueries();
-      toast({ title: 'Sucursal activa cambiada' });
+      toast({ title: "Sucursal activa cambiada" });
     } catch {
-      toast({ title: 'Error al cambiar de sucursal', variant: 'destructive' });
+      toast({ title: "Error al cambiar de sucursal", variant: "destructive" });
     }
   };
 
-  const handleAddBusiness = (type: 'store' | 'gym') => {
-    if (type === 'gym') return;
-    if (planType === 'free') {
-      navigate('/plans');
+  const handleAddBusiness = (type: "store" | "gym") => {
+    if (type === "gym") return;
+    if (planType === "free") {
+      navigate("/plans");
       return;
     }
     setNewBizOpen(true);
@@ -236,58 +285,63 @@ const AppSidebar = () => {
   const openCreateBranch = (bizId: string) => {
     setEditingBranch(null);
     setBranchBizId(bizId);
-    setBranchName('');
-    setBranchAddress('');
-    setBranchPhone('');
+    setBranchName("");
+    setBranchAddress("");
+    setBranchPhone("");
     setBranchDialogOpen(true);
   };
 
   const openEditBranch = (branch: { id: string; name: string; address: string | null; phone: string | null }) => {
     setEditingBranch(branch);
     setBranchName(branch.name);
-    setBranchAddress(branch.address || '');
-    setBranchPhone(branch.phone || '');
+    setBranchAddress(branch.address || "");
+    setBranchPhone(branch.phone || "");
     setBranchDialogOpen(true);
   };
 
   const superAdminItems = [
-    { title: 'Panel Admin', url: '/admin', icon: Shield },
-    { title: 'Usuarios', url: '/admin/users', icon: Users },
+    { title: "Panel Admin", url: "/admin", icon: Shield },
+    { title: "Usuarios", url: "/admin/users", icon: Users },
   ];
 
-  const activeBusiness = userBusinesses.find(b => b.id === profile?.business_id);
-  const isCopyShop = activeBusiness?.business_type === 'copy_shop';
+  const activeBusiness = userBusinesses.find((b) => b.id === profile?.business_id);
+  const isCopyShop = activeBusiness?.business_type === "copy_shop";
 
   const businessItems = [
-    { title: 'Dashboard', url: '/', icon: LayoutDashboard },
-    { title: 'Inventario', url: '/inventory', icon: Package },
-    { title: 'Punto de Venta', url: '/pos', icon: ShoppingCart },
-    { title: 'Servicios', url: '/services', icon: Wrench },
-    { title: 'Ventas', url: '/sales', icon: Receipt },
-    { title: 'Reportes', url: '/cobros', icon: FileText },
-    { title: 'Portal', url: '/store-settings', icon: ShoppingBag },
-    ...(storeSettings?.has_delivery ? [{ title: 'Pedidos', url: '/orders', icon: Receipt }] : []),
-    { title: 'Recursos Humanos', url: '/employees', icon: Users },
-    { title: 'Nómina', url: '/nomina', icon: DollarSign },
-    { title: 'Configuración', url: '/settings', icon: Settings },
-    { title: 'Planes', url: '/plans', icon: CreditCard },
+    { title: "Dashboard", url: "/", icon: LayoutDashboard },
+    { title: "Inventario", url: "/inventory", icon: Package },
+    { title: "Punto de Venta", url: "/pos", icon: ShoppingCart },
+    { title: "Servicios", url: "/services", icon: Wrench },
+    { title: "Ventas", url: "/sales", icon: Receipt },
+    { title: "Reportes", url: "/cobros", icon: FileText },
+    { title: "Portal", url: "/store-settings", icon: ShoppingBag },
+    ...(storeSettings?.has_delivery ? [{ title: "Pedidos", url: "/orders", icon: Receipt }] : []),
+    { title: "Recursos Humanos", url: "/employees", icon: Users },
+    { title: "Nómina", url: "/nomina", icon: DollarSign },
+    { title: "Configuración", url: "/settings", icon: Settings },
+    { title: "Planes", url: "/plans", icon: CreditCard },
   ];
 
-  const ctxParam = new URLSearchParams(location.search).get('ctx');
+  const ctxParam = new URLSearchParams(location.search).get("ctx");
   const isActive = (url: string) => {
     // If viewing in employee context (?ctx=emp), don't highlight the business menu items for overlapping paths
-    if (ctxParam === 'emp' && (url === '/pos' || url === '/sales' || url === '/services' || url === '/cobros')) {
+    if (ctxParam === "emp" && (url === "/pos" || url === "/sales" || url === "/services" || url === "/cobros")) {
       return false;
     }
-    if (url === '/') return location.pathname === '/';
+    if (url === "/") return location.pathname === "/";
     return location.pathname.startsWith(url);
   };
 
   const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2);
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
-  const isDark = theme === 'dark';
+  const isDark = theme === "dark";
 
   return (
     <Sidebar>
@@ -296,7 +350,7 @@ const AppSidebar = () => {
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
             <Building2 className="h-4 w-4 text-primary-foreground" />
           </div>
-          <span className="text-sm font-bold tracking-tight text-foreground">GestorPro</span>
+          <span className="text-sm font-bold tracking-tight text-foreground">Bivoo</span>
         </Link>
       </SidebarHeader>
 
@@ -305,7 +359,9 @@ const AppSidebar = () => {
       <SidebarContent className="pt-2">
         {isSuperAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">Admin</SidebarGroupLabel>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              Admin
+            </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
                 {superAdminItems.map((item) => (
@@ -337,7 +393,7 @@ const AppSidebar = () => {
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/mi-empleo')}>
+                  <SidebarMenuButton asChild isActive={isActive("/mi-empleo")}>
                     <Link to="/mi-empleo">
                       <Briefcase className="h-4 w-4" />
                       <span className="text-sm">Mi Empleo</span>
@@ -348,7 +404,12 @@ const AppSidebar = () => {
                 {showEmployeeTools && (
                   <>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={location.pathname === '/pos' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={
+                          location.pathname === "/pos" && new URLSearchParams(location.search).get("ctx") === "emp"
+                        }
+                      >
                         <Link to="/pos?ctx=emp">
                           <ShoppingCart className="h-4 w-4" />
                           <span className="text-sm">Punto de Venta</span>
@@ -356,7 +417,12 @@ const AppSidebar = () => {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={location.pathname === '/services' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={
+                          location.pathname === "/services" && new URLSearchParams(location.search).get("ctx") === "emp"
+                        }
+                      >
                         <Link to="/services?ctx=emp">
                           <Wrench className="h-4 w-4" />
                           <span className="text-sm">Servicios</span>
@@ -364,7 +430,12 @@ const AppSidebar = () => {
                       </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                      <SidebarMenuButton asChild isActive={location.pathname === '/sales' && new URLSearchParams(location.search).get('ctx') === 'emp'}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={
+                          location.pathname === "/sales" && new URLSearchParams(location.search).get("ctx") === "emp"
+                        }
+                      >
                         <Link to="/sales?ctx=emp">
                           <Receipt className="h-4 w-4" />
                           <span className="text-sm">Ventas</span>
@@ -381,10 +452,16 @@ const AppSidebar = () => {
         {/* Mis Negocios - owner's businesses */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
-            <span>{activeBusiness?.name || 'Mi Negocio'}</span>
+            <span>{activeBusiness?.name || "Mi Negocio"}</span>
             {activeBusiness?.business_type && (
               <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
-                {activeBusiness.business_type === 'store' ? 'Tienda' : activeBusiness.business_type === 'copy_shop' ? 'Punto de Copias' : activeBusiness.business_type === 'gym' ? 'Gym' : activeBusiness.business_type}
+                {activeBusiness.business_type === "store"
+                  ? "Tienda"
+                  : activeBusiness.business_type === "copy_shop"
+                    ? "Punto de Copias"
+                    : activeBusiness.business_type === "gym"
+                      ? "Gym"
+                      : activeBusiness.business_type}
               </span>
             )}
           </SidebarGroupLabel>
@@ -435,11 +512,17 @@ const AppSidebar = () => {
                                   <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                 )}
                                 <div className="flex flex-col min-w-0">
-                                  <span className={`truncate text-sm ${isSelectedBiz ? 'font-semibold' : ''}`}>
+                                  <span className={`truncate text-sm ${isSelectedBiz ? "font-semibold" : ""}`}>
                                     {biz.name}
                                   </span>
                                   <span className="text-[9px] text-muted-foreground/60">
-                                    {biz.business_type === 'store' ? 'Tienda' : biz.business_type === 'copy_shop' ? 'Punto de Copias' : biz.business_type === 'gym' ? 'Gym' : biz.business_type}
+                                    {biz.business_type === "store"
+                                      ? "Tienda"
+                                      : biz.business_type === "copy_shop"
+                                        ? "Punto de Copias"
+                                        : biz.business_type === "gym"
+                                          ? "Gym"
+                                          : biz.business_type}
                                   </span>
                                 </div>
                               </div>
@@ -491,7 +574,9 @@ const AppSidebar = () => {
                                         ) : (
                                           <MapPin className="h-3 w-3 text-muted-foreground/60 shrink-0" />
                                         )}
-                                        <span className={`truncate ${isBranchActive ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>
+                                        <span
+                                          className={`truncate ${isBranchActive ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                                        >
                                           {branch.name}
                                         </span>
                                         {branch.is_main && (
@@ -525,12 +610,12 @@ const AppSidebar = () => {
                         Sin negocios
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem className="gap-2" onSelect={() => handleAddBusiness('store')}>
+                    <DropdownMenuItem className="gap-2" onSelect={() => handleAddBusiness("store")}>
                       <Store className="h-3.5 w-3.5" />
                       <span>Nueva Tienda</span>
                     </DropdownMenuItem>
                     {isCuba && (
-                      <DropdownMenuItem className="gap-2" onSelect={() => handleAddBusiness('store')}>
+                      <DropdownMenuItem className="gap-2" onSelect={() => handleAddBusiness("store")}>
                         <FileText className="h-3.5 w-3.5" />
                         <span>Punto de Copias</span>
                       </DropdownMenuItem>
@@ -538,7 +623,9 @@ const AppSidebar = () => {
                     <DropdownMenuItem className="gap-2 opacity-50" disabled>
                       <Dumbbell className="h-3.5 w-3.5" />
                       <span>Gym</span>
-                      <Badge variant="secondary" className="ml-auto text-[9px] py-0">Próximamente</Badge>
+                      <Badge variant="secondary" className="ml-auto text-[9px] py-0">
+                        Próximamente
+                      </Badge>
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -547,13 +634,12 @@ const AppSidebar = () => {
           </SidebarGroupContent>
         </SidebarGroup>
 
-
         {!isInstalled && (
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
                 <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/install')}>
+                  <SidebarMenuButton asChild isActive={isActive("/install")}>
                     <Link to="/install">
                       <Download className="h-4 w-4" />
                       <span className="text-sm">Descargar App</span>
@@ -571,11 +657,11 @@ const AppSidebar = () => {
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2 text-muted-foreground">
             {isDark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
-            <span className="text-xs">{isDark ? 'Oscuro' : 'Claro'}</span>
+            <span className="text-xs">{isDark ? "Oscuro" : "Claro"}</span>
           </div>
           <Switch
             checked={isDark}
-            onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
+            onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
             className="scale-75"
           />
         </div>
@@ -584,13 +670,13 @@ const AppSidebar = () => {
 
         <div className="flex items-center gap-2.5">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatar_url || ''} />
+            <AvatarImage src={profile?.avatar_url || ""} />
             <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-              {profile?.full_name ? getInitials(profile.full_name) : 'U'}
+              {profile?.full_name ? getInitials(profile.full_name) : "U"}
             </AvatarFallback>
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium leading-tight">{profile?.full_name || 'Usuario'}</p>
+            <p className="truncate text-sm font-medium leading-tight">{profile?.full_name || "Usuario"}</p>
             <p className="truncate text-[11px] text-muted-foreground">{profile?.email}</p>
             {activeBranch && (
               <p className="truncate text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
@@ -615,11 +701,7 @@ const AppSidebar = () => {
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <Label className="text-sm">Nombre del negocio</Label>
-              <Input
-                placeholder="Ej: Mi Tienda"
-                value={bizName}
-                onChange={(e) => setBizName(e.target.value)}
-              />
+              <Input placeholder="Ej: Mi Tienda" value={bizName} onChange={(e) => setBizName(e.target.value)} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Tipo de negocio</Label>
@@ -630,18 +712,22 @@ const AppSidebar = () => {
               >
                 <option value="store">🏪 Tienda</option>
                 {isCuba && <option value="copy_shop">📄 Punto de Copias</option>}
-                <option value="gym" disabled>🏋️ Gym (próximamente)</option>
+                <option value="gym" disabled>
+                  🏋️ Gym (próximamente)
+                </option>
               </select>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setNewBizOpen(false)}>Cancelar</Button>
+            <Button variant="outline" size="sm" onClick={() => setNewBizOpen(false)}>
+              Cancelar
+            </Button>
             <Button
               size="sm"
               onClick={() => createBizMutation.mutate({ name: bizName, business_type: bizType })}
               disabled={!bizName.trim() || createBizMutation.isPending}
             >
-              {createBizMutation.isPending ? 'Enviando...' : 'Solicitar'}
+              {createBizMutation.isPending ? "Enviando..." : "Solicitar"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -657,20 +743,19 @@ const AppSidebar = () => {
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <Label className="text-sm">Nombre del negocio</Label>
-              <Input
-                value={editBizName}
-                onChange={(e) => setEditBizName(e.target.value)}
-              />
+              <Input value={editBizName} onChange={(e) => setEditBizName(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setEditBizOpen(false)}>Cancelar</Button>
+            <Button variant="outline" size="sm" onClick={() => setEditBizOpen(false)}>
+              Cancelar
+            </Button>
             <Button
               size="sm"
               onClick={() => updateBizMutation.mutate({ id: editBizId, name: editBizName })}
               disabled={!editBizName.trim() || updateBizMutation.isPending}
             >
-              {updateBizMutation.isPending ? 'Guardando...' : 'Guardar'}
+              {updateBizMutation.isPending ? "Guardando..." : "Guardar"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -680,9 +765,11 @@ const AppSidebar = () => {
       <Dialog open={branchDialogOpen} onOpenChange={setBranchDialogOpen}>
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
-            <DialogTitle>{editingBranch ? 'Editar Sucursal' : 'Nueva Sucursal'}</DialogTitle>
+            <DialogTitle>{editingBranch ? "Editar Sucursal" : "Nueva Sucursal"}</DialogTitle>
             <DialogDescription>
-              {editingBranch ? 'Actualiza los datos de la sucursal.' : 'Se enviará una solicitud de aprobación al administrador.'}
+              {editingBranch
+                ? "Actualiza los datos de la sucursal."
+                : "Se enviará una solicitud de aprobación al administrador."}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -704,21 +791,19 @@ const AppSidebar = () => {
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Teléfono</Label>
-              <Input
-                placeholder="Ej: 555-1234"
-                value={branchPhone}
-                onChange={(e) => setBranchPhone(e.target.value)}
-              />
+              <Input placeholder="Ej: 555-1234" value={branchPhone} onChange={(e) => setBranchPhone(e.target.value)} />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setBranchDialogOpen(false)}>Cancelar</Button>
+            <Button variant="outline" size="sm" onClick={() => setBranchDialogOpen(false)}>
+              Cancelar
+            </Button>
             <Button
               size="sm"
               onClick={() => branchMutation.mutate()}
               disabled={!branchName.trim() || branchMutation.isPending}
             >
-              {branchMutation.isPending ? 'Guardando...' : editingBranch ? 'Guardar' : 'Solicitar'}
+              {branchMutation.isPending ? "Guardando..." : editingBranch ? "Guardar" : "Solicitar"}
             </Button>
           </DialogFooter>
         </DialogContent>
