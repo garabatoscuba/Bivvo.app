@@ -1,33 +1,20 @@
+import { useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
-import { useAuth } from '@/contexts/AuthContext';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import AdminReportesTab from '@/components/cobro/AdminReportesTab';
-import CobrosResumen from '@/components/cobro/CobrosResumen';
+import { Button } from '@/components/ui/button';
+import { FileText } from 'lucide-react';
 
 const Cobros = () => {
-  const { profile } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <AppLayout>
-      <div className="space-y-4 md:space-y-6">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold">Reportes</h1>
-          <p className="text-sm text-muted-foreground">Reportes diarios y resumen de cobros</p>
-        </div>
-
-        <Tabs defaultValue="reportes" className="space-y-4">
-          <TabsList className="w-full grid grid-cols-2">
-            <TabsTrigger value="reportes">Reportes</TabsTrigger>
-            <TabsTrigger value="resumen">Resumen</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="reportes">
-            <AdminReportesTab businessId={profile?.business_id || ''} />
-          </TabsContent>
-          <TabsContent value="resumen">
-            <CobrosResumen />
-          </TabsContent>
-        </Tabs>
+      <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
+        <FileText className="h-12 w-12 text-muted-foreground" />
+        <h2 className="text-xl font-semibold">Próximamente</h2>
+        <p className="text-muted-foreground max-w-md">
+          El módulo de Reportes estará disponible con el plan Profesional. Consulta reportes diarios y resumen de cobros.
+        </p>
+        <Button onClick={() => navigate('/plans')}>Ver Planes</Button>
       </div>
     </AppLayout>
   );
