@@ -1,7 +1,7 @@
-import { usePWAInstall } from '@/hooks/usePWAInstall';
-import { Button } from '@/components/ui/button';
-import { Download, Share, Plus, Smartphone, CheckCircle, ArrowLeft, Monitor, Chrome } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { Button } from "@/components/ui/button";
+import { Download, Share, Plus, CheckCircle, ArrowLeft, Monitor, Chrome } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Install = () => {
   const { canInstall, isInstalled, promptInstall } = usePWAInstall();
@@ -13,22 +13,15 @@ const Install = () => {
     <div className="flex min-h-screen items-center justify-center bg-background p-6">
       <div className="w-full max-w-md space-y-6 text-center">
         <div className="space-y-2">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary">
-            <Smartphone className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-2xl font-bold text-foreground">Instala SyncSales</h1>
-          <p className="text-muted-foreground">
-            Úsala como una app nativa en tu teléfono, incluso sin internet.
-          </p>
+          <h1 className="text-3xl font-bold text-foreground">Instala Bivoo</h1>
+          <p className="text-muted-foreground">Úsala como una app nativa en tu teléfono, incluso sin internet.</p>
         </div>
 
         {isInstalled ? (
           <div className="rounded-lg border border-border bg-card p-6 space-y-3">
             <CheckCircle className="mx-auto h-10 w-10 text-primary" />
             <p className="font-medium text-foreground">¡App ya instalada!</p>
-            <p className="text-sm text-muted-foreground">
-              Búscala en tu pantalla de inicio.
-            </p>
+            <p className="text-sm text-muted-foreground">Búscala en tu pantalla de inicio.</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -53,7 +46,8 @@ const Install = () => {
                   </p>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Copia el enlace y ábrelo en <strong className="text-foreground">Chrome</strong> (Android) o <strong className="text-foreground">Safari</strong> (iPhone)
+                  Copia el enlace y ábrelo en <strong className="text-foreground">Chrome</strong> (Android) o{" "}
+                  <strong className="text-foreground">Safari</strong> (iPhone)
                 </p>
               </div>
             )}
@@ -71,16 +65,29 @@ const Install = () => {
               ) : (
                 <ol className="space-y-2.5 text-sm text-muted-foreground">
                   <li className="flex gap-2.5">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">1</span>
-                    <span>Abre esta página en <strong className="text-foreground">Chrome</strong></span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                      1
+                    </span>
+                    <span>
+                      Abre esta página en <strong className="text-foreground">Chrome</strong>
+                    </span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">2</span>
-                    <span>Toca el menú <strong className="text-foreground">⋮</strong> (tres puntos arriba a la derecha)</span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                      2
+                    </span>
+                    <span>
+                      Toca el menú <strong className="text-foreground">⋮</strong> (tres puntos arriba a la derecha)
+                    </span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">3</span>
-                    <span>Selecciona <strong className="text-foreground">"Instalar app"</strong> o <strong className="text-foreground">"Agregar a pantalla de inicio"</strong></span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                      3
+                    </span>
+                    <span>
+                      Selecciona <strong className="text-foreground">"Instalar app"</strong> o{" "}
+                      <strong className="text-foreground">"Agregar a pantalla de inicio"</strong>
+                    </span>
                   </li>
                 </ol>
               )}
@@ -94,26 +101,37 @@ const Install = () => {
               </div>
               <ol className="space-y-2.5 text-sm text-muted-foreground">
                 <li className="flex gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">1</span>
-                  <span>Abre esta página en <strong className="text-foreground">Safari</strong></span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    1
+                  </span>
+                  <span>
+                    Abre esta página en <strong className="text-foreground">Safari</strong>
+                  </span>
                 </li>
                 <li className="flex gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">2</span>
-                  <span>Toca el icono <Share className="inline h-3.5 w-3.5 -mt-0.5" /> <strong className="text-foreground">Compartir</strong></span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    2
+                  </span>
+                  <span>
+                    Toca el icono <Share className="inline h-3.5 w-3.5 -mt-0.5" />{" "}
+                    <strong className="text-foreground">Compartir</strong>
+                  </span>
                 </li>
                 <li className="flex gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">3</span>
-                  <span>Selecciona <Plus className="inline h-3.5 w-3.5 -mt-0.5" /> <strong className="text-foreground">"Agregar a pantalla de inicio"</strong></span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    3
+                  </span>
+                  <span>
+                    Selecciona <Plus className="inline h-3.5 w-3.5 -mt-0.5" />{" "}
+                    <strong className="text-foreground">"Agregar a pantalla de inicio"</strong>
+                  </span>
                 </li>
               </ol>
             </div>
           </div>
         )}
 
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-        >
+        <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
           <ArrowLeft className="h-4 w-4" />
           Volver al inicio
         </Link>
