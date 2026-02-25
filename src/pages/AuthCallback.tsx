@@ -7,13 +7,31 @@ const AuthCallback = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        navigate("/");
-      } else if (event === "SIGNED_OUT") {
+    const handleCallback = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error("Auth callback error:", error);
         navigate("/auth");
+        return;
       }
-    });
+
+      if (data.session) {
+        navigate("/");
+      } else {
+        // Espera un momento y vuelve a intentar
+        setTimeout(async () => {
+          const { data: retryData } = await supabase.auth.getSession();
+          if (retryData.session) {
+            navigate("/");
+          } else {
+            navigate("/auth");
+          }
+        }, 2000);
+      }
+    };
+
+    handleCallback();
   }, [navigate]);
 
   return (
