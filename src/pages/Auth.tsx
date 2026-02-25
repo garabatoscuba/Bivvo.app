@@ -110,10 +110,20 @@ const Auth = () => {
     }
   };
 
+  const getOAuthRedirectUri = () => {
+    // OAuth flow requires a Lovable-hosted domain for the ~oauth route
+    const lovableUrl = 'https://sync-sales-suite.lovable.app';
+    const origin = window.location.origin;
+    // If on a lovable domain (preview or published), use it directly
+    if (origin.includes('lovable.app')) return origin;
+    // Otherwise (custom domain like bivoo.app), redirect via the published lovable URL
+    return lovableUrl;
+  };
+
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: getOAuthRedirectUri(),
     });
     if (error) {
       toast({ title: 'Error', description: 'No se pudo iniciar sesión con Google. Intenta de nuevo.', variant: 'destructive' });
@@ -124,7 +134,7 @@ const Auth = () => {
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
+      redirect_uri: getOAuthRedirectUri(),
     });
     if (error) {
       toast({ title: 'Error', description: 'No se pudo iniciar sesión con Apple. Intenta de nuevo.', variant: 'destructive' });
