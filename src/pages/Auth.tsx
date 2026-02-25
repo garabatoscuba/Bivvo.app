@@ -1,85 +1,85 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { Loader2, Chrome, Apple } from 'lucide-react';
-import { z } from 'zod';
-import { lovable } from '@/integrations/lovable/index';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2, Chrome, Apple } from "lucide-react";
+import { z } from "zod";
+import { lovable } from "@/integrations/lovable/index";
 
-const emailSchema = z.string().email('Email inválido');
-const passwordSchema = z.string().min(6, 'La contraseña debe tener al menos 6 caracteres');
-const nameSchema = z.string().min(2, 'El nombre debe tener al menos 2 caracteres');
+const emailSchema = z.string().email("Email inválido");
+const passwordSchema = z.string().min(6, "La contraseña debe tener al menos 6 caracteres");
+const nameSchema = z.string().min(2, "El nombre debe tener al menos 2 caracteres");
 
 const Auth = () => {
   const navigate = useNavigate();
   const { signIn, signUp, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  
+
   const [isLoading, setIsLoading] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
-  const [signupName, setSignupName] = useState('');
-  const [signupEmail, setSignupEmail] = useState('');
-  const [signupPassword, setSignupPassword] = useState('');
-  const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+  const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
 
   // Show message from redirected auth issues
   useEffect(() => {
-    const msg = sessionStorage.getItem('auth_message');
+    const msg = sessionStorage.getItem("auth_message");
     if (msg) {
-      sessionStorage.removeItem('auth_message');
-      toast({ title: 'Aviso', description: msg, variant: 'destructive' });
+      sessionStorage.removeItem("auth_message");
+      toast({ title: "Aviso", description: msg, variant: "destructive" });
     }
   }, []);
 
-  const isAffiliateFlow = !!sessionStorage.getItem('affiliate_branch_id');
+  const isAffiliateFlow = !!sessionStorage.getItem("affiliate_branch_id");
 
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && user) {
-      const affiliateRedirect = sessionStorage.getItem('affiliate_redirect');
-      const affiliateBranchId = sessionStorage.getItem('affiliate_branch_id');
+      const affiliateRedirect = sessionStorage.getItem("affiliate_redirect");
+      const affiliateBranchId = sessionStorage.getItem("affiliate_branch_id");
 
       if (affiliateRedirect && affiliateBranchId) {
         const doAffiliate = async () => {
           try {
-            await supabase.functions.invoke('affiliate-join', {
+            await supabase.functions.invoke("affiliate-join", {
               body: { branch_id: affiliateBranchId },
             });
           } catch {
             // silent
           }
-          sessionStorage.removeItem('affiliate_redirect');
-          sessionStorage.removeItem('affiliate_branch_id');
+          sessionStorage.removeItem("affiliate_redirect");
+          sessionStorage.removeItem("affiliate_branch_id");
           navigate(affiliateRedirect);
         };
         doAffiliate();
         return;
       }
-      navigate('/');
+      navigate("/");
     }
   }, [user, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       emailSchema.parse(loginEmail);
       passwordSchema.parse(loginPassword);
     } catch (err) {
       if (err instanceof z.ZodError) {
         toast({
-          title: 'Error de validación',
+          title: "Error de validación",
           description: err.errors[0].message,
-          variant: 'destructive'
+          variant: "destructive",
         });
         return;
       }
@@ -90,34 +90,27 @@ const Auth = () => {
     setIsLoading(false);
 
     if (error) {
-      let message = 'Error al iniciar sesión';
-      if (error.message.includes('Invalid login credentials')) {
-        message = 'Credenciales inválidas. Verifica tu email y contraseña.';
-      } else if (error.message.includes('Email not confirmed')) {
-        message = 'Por favor confirma tu email antes de iniciar sesión.';
+      let message = "Error al iniciar sesión";
+      if (error.message.includes("Invalid login credentials")) {
+        message = "Credenciales inválidas. Verifica tu email y contraseña.";
+      } else if (error.message.includes("Email not confirmed")) {
+        message = "Por favor confirma tu email antes de iniciar sesión.";
       }
       toast({
-        title: 'Error',
+        title: "Error",
         description: message,
-        variant: 'destructive'
+        variant: "destructive",
       });
     } else {
       toast({
-        title: '¡Bienvenido!',
-        description: 'Has iniciado sesión correctamente.'
+        title: "¡Bienvenido!",
+        description: "Has iniciado sesión correctamente.",
       });
-      // Redirect is handled by the useEffect above
     }
   };
 
   const getOAuthRedirectUri = () => {
-    // OAuth flow requires a Lovable-hosted domain for the ~oauth route
-    const lovableUrl = 'https://sync-sales-suite.lovable.app';
-    const origin = window.location.origin;
-    // If on a lovable domain (preview or published), use it directly
-    if (origin.includes('lovable.app')) return origin;
-    // Otherwise (custom domain like bivoo.app), redirect via the published lovable URL
-    return lovableUrl;
+    return window.location.origin;
   };
 
   const handleGoogleSignIn = async () => {
@@ -126,7 +119,11 @@ const Auth = () => {
       redirect_uri: getOAuthRedirectUri(),
     });
     if (error) {
-      toast({ title: 'Error', description: 'No se pudo iniciar sesión con Google. Intenta de nuevo.', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "No se pudo iniciar sesión con Google. Intenta de nuevo.",
+        variant: "destructive",
+      });
       setGoogleLoading(false);
     }
   };
@@ -137,14 +134,18 @@ const Auth = () => {
       redirect_uri: getOAuthRedirectUri(),
     });
     if (error) {
-      toast({ title: 'Error', description: 'No se pudo iniciar sesión con Apple. Intenta de nuevo.', variant: 'destructive' });
+      toast({
+        title: "Error",
+        description: "No se pudo iniciar sesión con Apple. Intenta de nuevo.",
+        variant: "destructive",
+      });
       setAppleLoading(false);
     }
   };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     try {
       nameSchema.parse(signupName);
       emailSchema.parse(signupEmail);
@@ -152,9 +153,9 @@ const Auth = () => {
     } catch (err) {
       if (err instanceof z.ZodError) {
         toast({
-          title: 'Error de validación',
+          title: "Error de validación",
           description: err.errors[0].message,
-          variant: 'destructive'
+          variant: "destructive",
         });
         return;
       }
@@ -162,9 +163,9 @@ const Auth = () => {
 
     if (signupPassword !== signupConfirmPassword) {
       toast({
-        title: 'Error',
-        description: 'Las contraseñas no coinciden',
-        variant: 'destructive'
+        title: "Error",
+        description: "Las contraseñas no coinciden",
+        variant: "destructive",
       });
       return;
     }
@@ -174,19 +175,19 @@ const Auth = () => {
     setIsLoading(false);
 
     if (error) {
-      let message = 'Error al crear la cuenta';
-      if (error.message.includes('already registered')) {
-        message = 'Este email ya está registrado.';
+      let message = "Error al crear la cuenta";
+      if (error.message.includes("already registered")) {
+        message = "Este email ya está registrado.";
       }
       toast({
-        title: 'Error',
+        title: "Error",
         description: message,
-        variant: 'destructive'
+        variant: "destructive",
       });
     } else {
       toast({
-        title: '¡Cuenta creada!',
-        description: 'Revisa tu email para confirmar tu cuenta.'
+        title: "¡Cuenta creada!",
+        description: "Revisa tu email para confirmar tu cuenta.",
       });
     }
   };
@@ -203,41 +204,21 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            {isAffiliateFlow ? 'Únete como Afiliado' : 'Bienvenido'}
-          </CardTitle>
+          <CardTitle className="text-2xl font-bold">{isAffiliateFlow ? "Únete como Afiliado" : "Bienvenido"}</CardTitle>
           <CardDescription>
             {isAffiliateFlow
-              ? 'Crea una cuenta o inicia sesión para completar tu afiliación'
-              : 'Inicia sesión o crea una cuenta'}
+              ? "Crea una cuenta o inicia sesión para completar tu afiliación"
+              : "Inicia sesión o crea una cuenta"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-3 mb-6">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleGoogleSignIn}
-              disabled={googleLoading}
-            >
-              {googleLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Chrome className="mr-2 h-4 w-4" />
-              )}
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading}>
+              {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
               Continuar con Google
             </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleAppleSignIn}
-              disabled={appleLoading}
-            >
-              {appleLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Apple className="mr-2 h-4 w-4" />
-              )}
+            <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading}>
+              {appleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Apple className="mr-2 h-4 w-4" />}
               Continuar con Apple
             </Button>
           </div>
