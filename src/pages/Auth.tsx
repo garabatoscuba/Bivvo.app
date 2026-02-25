@@ -31,7 +31,6 @@ const Auth = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
 
-  // Show message from redirected auth issues
   useEffect(() => {
     const msg = sessionStorage.getItem("auth_message");
     if (msg) {
@@ -42,7 +41,6 @@ const Auth = () => {
 
   const isAffiliateFlow = !!sessionStorage.getItem("affiliate_branch_id");
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && user) {
       const affiliateRedirect = sessionStorage.getItem("affiliate_redirect");
@@ -110,7 +108,7 @@ const Auth = () => {
   };
 
   const getOAuthRedirectUri = () => {
-    return window.location.origin;
+    return "https://sync-sales-suite.lovable.app";
   };
 
   const handleGoogleSignIn = async () => {
