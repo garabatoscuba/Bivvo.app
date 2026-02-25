@@ -10,7 +10,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Chrome, Apple } from "lucide-react";
 import { z } from "zod";
-import { lovable } from "@/integrations/lovable/index";
 
 const emailSchema = z.string().email("Email inválido");
 const passwordSchema = z.string().min(6, "La contraseña debe tener al menos 6 caracteres");
@@ -107,14 +106,13 @@ const Auth = () => {
     }
   };
 
-  const getOAuthRedirectUri = () => {
-    return "https://sync-sales-suite.lovable.app";
-  };
-
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
-    const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: getOAuthRedirectUri(),
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin,
+      },
     });
     if (error) {
       toast({
@@ -128,8 +126,11 @@ const Auth = () => {
 
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
-    const { error } = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: getOAuthRedirectUri(),
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "apple",
+      options: {
+        redirectTo: window.location.origin,
+      },
     });
     if (error) {
       toast({
