@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -108,11 +109,8 @@ const Auth = () => {
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/~oauth/callback`,
-      },
+    const { error } = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
     });
     if (error) {
       toast({
@@ -120,17 +118,14 @@ const Auth = () => {
         description: "No se pudo iniciar sesión con Google. Intenta de nuevo.",
         variant: "destructive",
       });
-      setGoogleLoading(false);
     }
+    setGoogleLoading(false);
   };
 
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "apple",
-      options: {
-        redirectTo: `${window.location.origin}/~oauth/callback`,
-      },
+    const { error } = await lovable.auth.signInWithOAuth("apple", {
+      redirect_uri: window.location.origin,
     });
     if (error) {
       toast({
@@ -138,8 +133,8 @@ const Auth = () => {
         description: "No se pudo iniciar sesión con Apple. Intenta de nuevo.",
         variant: "destructive",
       });
-      setAppleLoading(false);
     }
+    setAppleLoading(false);
   };
 
   const handleSignup = async (e: React.FormEvent) => {
