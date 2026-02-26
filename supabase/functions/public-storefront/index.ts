@@ -181,8 +181,8 @@ serve(async (req) => {
     const bizSlug = url.searchParams.get("biz");
     const branchSlug = url.searchParams.get("branch");
 
-    if (!bizSlug || !branchSlug) {
-      return new Response(JSON.stringify({ error: "Missing biz or branch slug" }), {
+    if (!bizSlug) {
+      return new Response(JSON.stringify({ error: "Missing biz slug" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -196,13 +196,28 @@ serve(async (req) => {
       });
     }
 
-    // Step 2: Get branch (required for parallel queries)
-    const { data: branch, error: branchErr } = await supabase
-      .from("branches").select("id, name, slug, address, phone").eq("business_id", business.id).eq("slug", branchSlug).single();
+    // Step 2: Get branch - if branchSlug provided use it, otherwise get main branch
+    let branchQuery = supabase
+      .from("branches").select("id, name, slug, address, phone").eq("business_id", business.id);
+    if (branchSlug) {
+      branchQuery = branchQuery.eq("slug", branchSlug);
+    } else {
+      branchQuery = branchQuery.eq("is_main", true);
+    }
+    const { data: branch, error: branchErr } = await branchQuery.maybeSingle();
     if (branchErr || !branch) {
-      return new Response(JSON.stringify({ error: "Sucursal no encontrada" }), {
-        status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      // Fallback: get any branch if main not found
+      const { data: anyBranch } = await supabase
+        .from("branches").select("id, name, slug, address, phone").eq("business_id", business.id).limit(1).single();
+      if (!anyBranch) {
+        return new Response(JSON.stringify({ error: "Sucursal no encontrada" }), {
+          status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Use anyBranch as fallback
+      var resolvedBranch = anyBranch;
+    } else {
+      var resolvedBranch = branch;
     }
 
     // Step 3: Run ALL remaining queries in parallel
@@ -210,22 +225,22 @@ serve(async (req) => {
       supabase
         .from("store_settings")
         .select("is_active, has_delivery, schedule, accent_color, about_text, hero_image_url, hero_title, hero_subtitle, font_heading, font_body, social_instagram, social_facebook, social_tiktok, social_twitter, contact_email")
-        .eq("branch_id", branch.id)
+        .eq("branch_id", resolvedBranch.id)
         .maybeSingle(),
       supabase
         .from("branch_stock")
         .select("quantity, product:products(id, name, description, sale_price, image_url, code, status, category:categories(name, color))")
-        .eq("branch_id", branch.id)
+        .eq("branch_id", resolvedBranch.id)
         .gt("quantity", 0),
       supabase
         .from("reviews")
         .select("id, rating, comment, created_at, is_visible, affiliate:affiliates(name)")
-        .eq("branch_id", branch.id).eq("is_visible", true)
+        .eq("branch_id", resolvedBranch.id).eq("is_visible", true)
         .order("created_at", { ascending: false }).limit(50),
       supabase
         .from("announcements")
         .select("id, title, description, badge_text")
-        .eq("branch_id", branch.id).eq("is_active", true)
+        .eq("branch_id", resolvedBranch.id).eq("is_active", true)
         .order("created_at", { ascending: false }).limit(10),
     ]);
 
@@ -247,7 +262,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         business: { name: business.name, logo_url: business.logo_url },
-        branch: { id: branch.id, name: branch.name, address: branch.address, phone: branch.phone },
+        branch: { id: resolvedBranch.id, name: resolvedBranch.name, address: resolvedBranch.address, phone: resolvedBranch.phone },
         settings: {
           has_delivery: settings.has_delivery,
           schedule: settings.schedule,

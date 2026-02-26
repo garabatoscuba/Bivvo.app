@@ -101,7 +101,7 @@ const StoreSettingsPage = () => {
   };
 
   const storeUrl = business?.slug
-    ? `https://${business.slug}.bivoo.app`
+    ? `https://bivoo.app/s/${business.slug}`
     : null;
 
   // Settings state
