@@ -97,7 +97,7 @@ const FONT_MAP: Record<string, string> = {
 };
 
 const PublicStorefront = () => {
-  const { bizSlug, branchSlug } = useParams<{ bizSlug: string; branchSlug: string }>();
+  const { bizSlug, branchSlug } = useParams<{ bizSlug: string; branchSlug?: string }>();
   const [data, setData] = useState<StorefrontData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,8 +106,10 @@ const PublicStorefront = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const params = new URLSearchParams({ biz: bizSlug! });
+        if (branchSlug) params.set('branch', branchSlug);
         const response = await fetch(
-          `${API_BASE}/functions/v1/public-storefront?biz=${bizSlug}&branch=${branchSlug}`,
+          `${API_BASE}/functions/v1/public-storefront?${params}`,
           { headers: { 'apikey': API_KEY } }
         );
         const json = await response.json();
@@ -146,7 +148,7 @@ const PublicStorefront = () => {
 
   const open = isOpenNow(data.settings.schedule);
   const accent = data.settings.accent_color || '#18181b';
-  const portalPath = `/tienda/${bizSlug}/${branchSlug}`;
+  const portalPath = branchSlug ? `/tienda/${bizSlug}/${branchSlug}` : `/s/${bizSlug}`;
 
   const fontHeading = FONT_MAP[data.settings.font_heading] || FONT_MAP['Lora'];
   const fontBody = FONT_MAP[data.settings.font_body] || FONT_MAP['Work Sans'];

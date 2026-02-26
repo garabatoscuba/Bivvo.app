@@ -201,6 +201,7 @@ const App = () => {
                       <Route path="/install" element={<Install />} />
                       <Route path="/jornada/entrada" element={<JornadaEntrada />} />
                       <Route path="/onboarding/empleado" element={<OnboardingEmpleado />} />
+                      <Route path="/s/:bizSlug" element={<PublicStorefront />} />
                       <Route path="/tienda/:bizSlug/:branchSlug" element={<PublicStorefront />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
