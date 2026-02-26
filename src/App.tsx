@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,30 +10,41 @@ import { OfflineProvider } from "@/contexts/OfflineContext";
 import { SyncGate } from "@/components/layout/SyncGate";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { usePWAUpdate } from "@/hooks/usePWAUpdate";
+import { Loader2 } from "lucide-react";
+
+// Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
-import Dashboard from "./pages/Dashboard";
-import Inventory from "./pages/Inventory";
-import POS from "./pages/POS";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminUsers from "./pages/admin/AdminUsers";
-import Employees from "./pages/Employees";
-import Sales from "./pages/Sales";
-import Settings from "./pages/Settings";
-import Plans from "./pages/Plans";
-import NotFound from "./pages/NotFound";
-import Install from "./pages/Install";
-import StoreSettings from "./pages/StoreSettings";
-import PublicStorefront from "./pages/PublicStorefront";
-import Orders from "./pages/Orders";
-import Services from "./pages/Services";
-import Cobros from "./pages/Cobros";
-import Nomina from "./pages/Nomina";
-import JornadaEntrada from "./pages/JornadaEntrada";
-import OnboardingEmpleado from "./pages/OnboardingEmpleado";
-import MyEmployment from "./pages/MyEmployment";
+
+// Lazy loaded pages
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Inventory = lazy(() => import("./pages/Inventory"));
+const POS = lazy(() => import("./pages/POS"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const Employees = lazy(() => import("./pages/Employees"));
+const Sales = lazy(() => import("./pages/Sales"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Plans = lazy(() => import("./pages/Plans"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Install = lazy(() => import("./pages/Install"));
+const StoreSettings = lazy(() => import("./pages/StoreSettings"));
+const PublicStorefront = lazy(() => import("./pages/PublicStorefront"));
+const Orders = lazy(() => import("./pages/Orders"));
+const Services = lazy(() => import("./pages/Services"));
+const Cobros = lazy(() => import("./pages/Cobros"));
+const Nomina = lazy(() => import("./pages/Nomina"));
+const JornadaEntrada = lazy(() => import("./pages/JornadaEntrada"));
+const OnboardingEmpleado = lazy(() => import("./pages/OnboardingEmpleado"));
+const MyEmployment = lazy(() => import("./pages/MyEmployment"));
 
 const queryClient = new QueryClient();
+
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+  </div>
+);
 
 const App = () => {
   usePWAUpdate();
@@ -46,151 +58,153 @@ const App = () => {
                 <Toaster />
                 <Sonner />
                 <BrowserRouter>
-                  <Routes>
-                    <Route path="/auth" element={<Auth />} />
-                    <Route path="/auth/callback" element={<AuthCallback />} />
-                    <Route
-                      path="/"
-                      element={
-                        <ProtectedRoute>
-                          <Dashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin"
-                      element={
-                        <ProtectedRoute requireSuperAdmin>
-                          <AdminDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/inventory"
-                      element={
-                        <ProtectedRoute>
-                          <Inventory />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/pos"
-                      element={
-                        <ProtectedRoute>
-                          <POS />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/sales"
-                      element={
-                        <ProtectedRoute>
-                          <Sales />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/employees"
-                      element={
-                        <ProtectedRoute>
-                          <Employees />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/mi-empleo"
-                      element={
-                        <ProtectedRoute>
-                          <MyEmployment />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/settings"
-                      element={
-                        <ProtectedRoute>
-                          <Settings />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/plans"
-                      element={
-                        <ProtectedRoute>
-                          <Plans />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/store-settings"
-                      element={
-                        <ProtectedRoute>
-                          <StoreSettings />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/orders"
-                      element={
-                        <ProtectedRoute>
-                          <Orders />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/services"
-                      element={
-                        <ProtectedRoute>
-                          <Services />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/cobros"
-                      element={
-                        <ProtectedRoute>
-                          <Cobros />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/nomina"
-                      element={
-                        <ProtectedRoute>
-                          <Nomina />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/businesses"
-                      element={
-                        <ProtectedRoute requireSuperAdmin>
-                          <AdminDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/stats"
-                      element={
-                        <ProtectedRoute requireSuperAdmin>
-                          <AdminDashboard />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route
-                      path="/admin/users"
-                      element={
-                        <ProtectedRoute requireSuperAdmin>
-                          <AdminUsers />
-                        </ProtectedRoute>
-                      }
-                    />
-                    <Route path="/install" element={<Install />} />
-                    <Route path="/jornada/entrada" element={<JornadaEntrada />} />
-                    <Route path="/onboarding/empleado" element={<OnboardingEmpleado />} />
-                    <Route path="/tienda/:bizSlug/:branchSlug" element={<PublicStorefront />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
+                  <Suspense fallback={<PageLoader />}>
+                    <Routes>
+                      <Route path="/auth" element={<Auth />} />
+                      <Route path="/auth/callback" element={<AuthCallback />} />
+                      <Route
+                        path="/"
+                        element={
+                          <ProtectedRoute>
+                            <Dashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin"
+                        element={
+                          <ProtectedRoute requireSuperAdmin>
+                            <AdminDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/inventory"
+                        element={
+                          <ProtectedRoute>
+                            <Inventory />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/pos"
+                        element={
+                          <ProtectedRoute>
+                            <POS />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/sales"
+                        element={
+                          <ProtectedRoute>
+                            <Sales />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/employees"
+                        element={
+                          <ProtectedRoute>
+                            <Employees />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/mi-empleo"
+                        element={
+                          <ProtectedRoute>
+                            <MyEmployment />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/settings"
+                        element={
+                          <ProtectedRoute>
+                            <Settings />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/plans"
+                        element={
+                          <ProtectedRoute>
+                            <Plans />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/store-settings"
+                        element={
+                          <ProtectedRoute>
+                            <StoreSettings />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/orders"
+                        element={
+                          <ProtectedRoute>
+                            <Orders />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/services"
+                        element={
+                          <ProtectedRoute>
+                            <Services />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/cobros"
+                        element={
+                          <ProtectedRoute>
+                            <Cobros />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/nomina"
+                        element={
+                          <ProtectedRoute>
+                            <Nomina />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/businesses"
+                        element={
+                          <ProtectedRoute requireSuperAdmin>
+                            <AdminDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/stats"
+                        element={
+                          <ProtectedRoute requireSuperAdmin>
+                            <AdminDashboard />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/users"
+                        element={
+                          <ProtectedRoute requireSuperAdmin>
+                            <AdminUsers />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route path="/install" element={<Install />} />
+                      <Route path="/jornada/entrada" element={<JornadaEntrada />} />
+                      <Route path="/onboarding/empleado" element={<OnboardingEmpleado />} />
+                      <Route path="/tienda/:bizSlug/:branchSlug" element={<PublicStorefront />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                  </Suspense>
                 </BrowserRouter>
               </SyncGate>
             </OfflineProvider>

@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Cache-Control": "public, max-age=60, s-maxage=120",
 };
 
 serve(async (req) => {
@@ -92,7 +93,6 @@ serve(async (req) => {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        // Store as a notification for the business owner
         const { data: branch } = await supabase
           .from("branches").select("business_id").eq("id", branch_id).single();
         if (branch) {
@@ -127,39 +127,29 @@ serve(async (req) => {
 
         // Deduct stock for each item
         for (const item of items) {
-          const { error: stockErr } = await supabase
-            .from("branch_stock")
-            .update({ quantity: supabase.rpc ? undefined : undefined })
-            .eq("branch_id", branch_id)
-            .eq("product_id", item.product_id);
-
-          // Use raw SQL-style update to decrement
-          await supabase.rpc("get_server_now"); // just to confirm connection
-          const { error: decErr } = await supabase
+          const { data: stockData } = await supabase
             .from("branch_stock")
             .select("quantity")
             .eq("branch_id", branch_id)
             .eq("product_id", item.product_id)
-            .single()
-            .then(async ({ data: stockData }) => {
-              if (!stockData) return { error: null };
-              const newQty = Math.max(0, stockData.quantity - item.quantity);
-              return supabase
-                .from("branch_stock")
-                .update({ quantity: newQty, updated_at: new Date().toISOString() })
-                .eq("branch_id", branch_id)
-                .eq("product_id", item.product_id);
-            });
+            .single();
+
+          if (stockData) {
+            const newQty = Math.max(0, stockData.quantity - item.quantity);
+            await supabase
+              .from("branch_stock")
+              .update({ quantity: newQty, updated_at: new Date().toISOString() })
+              .eq("branch_id", branch_id)
+              .eq("product_id", item.product_id);
+          }
         }
 
-        // Build order detail text
         const itemLines = items.map((i: any) => `• ${i.quantity}x ${i.product_name} — Bs ${Number(i.total).toFixed(2)}`).join("\n");
         const deliveryLine = delivery_address ? `\n📍 Dirección: ${delivery_address}` : "\n🏪 Retiro en tienda";
         const notesLine = notes ? `\n📝 Notas: ${notes}` : "";
 
         const message = `Pedido de ${customer_name.trim()} (${customer_phone.trim()}):\n${itemLines}\n\n💰 Total: Bs ${Number(subtotal).toFixed(2)}${deliveryLine}${notesLine}`;
 
-        // Create notification for the business
         await supabase.from("notifications").insert({
           business_id: branch.business_id,
           branch_id,
@@ -197,6 +187,7 @@ serve(async (req) => {
       });
     }
 
+    // Step 1: Get business (required for branch lookup)
     const { data: business, error: bizErr } = await supabase
       .from("businesses").select("id, name, slug, logo_url").eq("slug", bizSlug).single();
     if (bizErr || !business) {
@@ -205,6 +196,7 @@ serve(async (req) => {
       });
     }
 
+    // Step 2: Get branch (required for parallel queries)
     const { data: branch, error: branchErr } = await supabase
       .from("branches").select("id, name, slug, address, phone").eq("business_id", business.id).eq("slug", branchSlug).single();
     if (branchErr || !branch) {
@@ -213,43 +205,44 @@ serve(async (req) => {
       });
     }
 
-    const { data: settings } = await supabase
-      .from("store_settings")
-      .select("is_active, has_delivery, schedule, accent_color, about_text, hero_image_url, hero_title, hero_subtitle, font_heading, font_body, social_instagram, social_facebook, social_tiktok, social_twitter, contact_email")
-      .eq("branch_id", branch.id)
-      .maybeSingle();
+    // Step 3: Run ALL remaining queries in parallel
+    const [settingsResult, stockResult, reviewsResult, announcementsResult] = await Promise.all([
+      supabase
+        .from("store_settings")
+        .select("is_active, has_delivery, schedule, accent_color, about_text, hero_image_url, hero_title, hero_subtitle, font_heading, font_body, social_instagram, social_facebook, social_tiktok, social_twitter, contact_email")
+        .eq("branch_id", branch.id)
+        .maybeSingle(),
+      supabase
+        .from("branch_stock")
+        .select("quantity, product:products(id, name, description, sale_price, image_url, code, status, category:categories(name, color))")
+        .eq("branch_id", branch.id)
+        .gt("quantity", 0),
+      supabase
+        .from("reviews")
+        .select("id, rating, comment, created_at, is_visible, affiliate:affiliates(name)")
+        .eq("branch_id", branch.id).eq("is_visible", true)
+        .order("created_at", { ascending: false }).limit(50),
+      supabase
+        .from("announcements")
+        .select("id, title, description, badge_text")
+        .eq("branch_id", branch.id).eq("is_active", true)
+        .order("created_at", { ascending: false }).limit(10),
+    ]);
 
+    const settings = settingsResult.data;
     if (!settings?.is_active) {
       return new Response(JSON.stringify({ error: "Tienda no disponible" }), {
         status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    const { data: stockItems } = await supabase
-      .from("branch_stock")
-      .select("quantity, product:products(id, name, description, sale_price, image_url, code, category:categories(name, color))")
-      .eq("branch_id", branch.id)
-      .gt("quantity", 0);
-
-    const products = (stockItems || [])
+    const products = (stockResult.data || [])
       .filter((s: any) => s.product && s.product.status !== "discontinued" && s.product.status !== "warehouse")
       .map((s: any) => ({
         id: s.product.id, name: s.product.name, description: s.product.description,
         price: s.product.sale_price, image_url: s.product.image_url, code: s.product.code,
         category: s.product.category?.name || null, category_color: s.product.category?.color || null, stock: s.quantity,
       }));
-
-    const { data: reviews } = await supabase
-      .from("reviews")
-      .select("id, rating, comment, created_at, is_visible, affiliate:affiliates(name)")
-      .eq("branch_id", branch.id).eq("is_visible", true)
-      .order("created_at", { ascending: false }).limit(50);
-
-    const { data: announcements } = await supabase
-      .from("announcements")
-      .select("id, title, description, badge_text")
-      .eq("branch_id", branch.id).eq("is_active", true)
-      .order("created_at", { ascending: false }).limit(10);
 
     return new Response(
       JSON.stringify({
@@ -272,11 +265,11 @@ serve(async (req) => {
           contact_email: settings.contact_email || null,
         },
         products,
-        reviews: (reviews || []).map((r: any) => ({
+        reviews: (reviewsResult.data || []).map((r: any) => ({
           id: r.id, rating: r.rating, comment: r.comment, created_at: r.created_at,
           author: r.affiliate?.name || 'Anónimo',
         })),
-        announcements: announcements || [],
+        announcements: announcementsResult.data || [],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
