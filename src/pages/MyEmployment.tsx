@@ -92,7 +92,7 @@ const MyEmployment = () => {
   const [contarYCerrarOpen, setContarYCerrarOpen] = useState(false);
 
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
-  const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
+  const [chartType, setChartType] = useState<'radar' | 'bar'>('bar');
   const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
   const [evalSkills, setEvalSkills] = useState<Skill[]>([]);
 
@@ -327,9 +327,7 @@ const MyEmployment = () => {
     }).sort((a, b) => a.change - b.change);
   }, [evalHistory]);
 
-  const getBarColor = (score: number) => {
-    if (score <= 4) return 'hsl(var(--destructive))';
-    if (score <= 6) return 'hsl(var(--warning, 40 96% 50%))';
+  const getBarColor = (_score: number) => {
     return 'hsl(var(--primary))';
   };
 
@@ -514,32 +512,34 @@ const MyEmployment = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="w-full h-[250px] sm:h-[300px]">
+                  <div className={`w-full ${chartType === 'bar' ? '' : 'h-[300px]'}`}
+                    style={chartType === 'bar' ? { height: Math.max(300, barData.length * 44) } : undefined}>
                     <ResponsiveContainer width="100%" height="100%">
                       {chartType === 'radar' ? (
                         <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="65%">
                           <PolarGrid />
-                          <PolarAngleAxis dataKey="skill" tick={{ fontSize: 9 }} />
+                          <PolarAngleAxis dataKey="skill" tick={{ fontSize: 11 }} />
                           <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} />
-                          <Tooltip contentStyle={{ fontSize: 11 }} />
+                          <Tooltip contentStyle={{ fontSize: 12 }} />
                           <Radar name="Mi evaluación" dataKey="score" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
                           {compareEvaluation && (
                             <Radar name="Comparación" dataKey="compare" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} />
                           )}
                         </RadarChart>
                       ) : (
-                        <BarChart data={barData} layout="vertical" margin={{ left: 60 }}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 10 }} />
-                          <YAxis type="category" dataKey="skill" tick={{ fontSize: 9 }} width={55} />
-                          <Tooltip contentStyle={{ fontSize: 11 }} />
-                          <Bar dataKey="score" name="Mi evaluación" radius={[0, 4, 4, 0]}>
+                        <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 15, top: 5, bottom: 5 }}
+                          barCategoryGap="30%">
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                          <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 12 }} />
+                          <YAxis type="category" dataKey="skill" tick={{ fontSize: 12 }} width={110} />
+                          <Tooltip contentStyle={{ fontSize: 12 }} />
+                          <Bar dataKey="score" name="Mi evaluación" radius={[0, 6, 6, 0]} barSize={16}>
                             {barData.map((entry, idx) => (
                               <Cell key={idx} fill={getBarColor(entry.score)} />
                             ))}
                           </Bar>
                           {compareEvaluation && (
-                            <Bar dataKey="compare" name="Comparación" fill="hsl(var(--destructive))" fillOpacity={0.5} radius={[0, 4, 4, 0]} />
+                            <Bar dataKey="compare" name="Comparación" fill="hsl(var(--destructive))" fillOpacity={0.5} radius={[0, 4, 4, 0]} barSize={10} />
                           )}
                         </BarChart>
                       )}
@@ -568,6 +568,32 @@ const MyEmployment = () => {
                   </CardContent>
                 </Card>
               )}
+
+              {/* Skill notes */}
+              {evalSkills.some(s => s.note && !s.hidden) && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      Notas del evaluador
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      {evalSkills.filter(s => s.note && !s.hidden).map(s => (
+                        <div key={s.name} className="rounded-lg border bg-muted/30 p-2.5">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-semibold">{s.name}</span>
+                            <Badge variant="secondary" className="text-[10px]">{s.score}/10</Badge>
+                          </div>
+                          <p className="text-xs text-muted-foreground leading-relaxed">{s.note}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
 
               {/* History trend */}
               {historyData.length > 1 && (
