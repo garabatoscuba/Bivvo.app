@@ -18,6 +18,7 @@ import { toast } from '@/hooks/use-toast';
 import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, TrendingUp, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft } from 'lucide-react';
 import { MovementsLog } from '@/components/inventory/MovementsLog';
 import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowDialog';
+import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
 import {
   Select,
   SelectContent,
@@ -107,12 +108,12 @@ const Inventory = () => {
   const [mainTab, setMainTab] = useState<string>('products');
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [stockEntryProduct, setStockEntryProduct] = useState<Product | null>(null);
-  const [stockQtyForSale, setStockQtyForSale] = useState(0);
-  const [stockQtyWarehouse, setStockQtyWarehouse] = useState(0);
-  const [addingStock, setAddingStock] = useState(false);
   const [transferQty, setTransferQty] = useState(0);
   const [transferring, setTransferring] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showReturnToWarehouse, setShowReturnToWarehouse] = useState(false);
+  const [returnQty, setReturnQty] = useState(0);
+  const [returningToWarehouse, setReturningToWarehouse] = useState(false);
   const [outflowProduct, setOutflowProduct] = useState<Product | null>(null);
 
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
@@ -226,66 +227,7 @@ const Inventory = () => {
     }
   };
 
-  const handleAddStock = async () => {
-    if (!stockEntryProduct || !profile?.user_id) return;
-    const totalQty = stockQtyForSale + stockQtyWarehouse;
-    if (totalQty <= 0) return;
-
-    setAddingStock(true);
-    try {
-      const branchId = selectedBranch || profile.branch_id || branches?.[0]?.id;
-      if (!branchId) return;
-
-      // Upsert branch_stock
-      const { data: existing } = await supabase
-        .from('branch_stock')
-        .select('id, quantity, warehouse_quantity')
-        .eq('branch_id', branchId)
-        .eq('product_id', stockEntryProduct.id)
-        .maybeSingle();
-
-      if (existing) {
-        await supabase
-          .from('branch_stock')
-          .update({ 
-            quantity: existing.quantity + stockQtyForSale,
-            warehouse_quantity: (existing.warehouse_quantity || 0) + stockQtyWarehouse,
-          })
-          .eq('id', existing.id);
-      } else {
-        await supabase
-          .from('branch_stock')
-          .insert({ 
-            branch_id: branchId, 
-            product_id: stockEntryProduct.id, 
-            quantity: stockQtyForSale,
-            warehouse_quantity: stockQtyWarehouse,
-          });
-      }
-
-      // Registrar movimiento
-      await supabase
-        .from('inventory_movements')
-        .insert({
-          branch_id: branchId,
-          product_id: stockEntryProduct.id,
-          user_id: profile.user_id,
-          movement_type: 'purchase' as const,
-          quantity: totalQty,
-          notes: `Entrada: ${stockQtyForSale} venta, ${stockQtyWarehouse} almacén`,
-        });
-
-      queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
-      toast({ title: `Entrada de ${totalQty} unidades registrada` });
-      setStockEntryProduct(null);
-      setStockQtyForSale(0);
-      setStockQtyWarehouse(0);
-    } catch (err: any) {
-      toast({ title: 'Error al dar entrada', description: err.message, variant: 'destructive' });
-    } finally {
-      setAddingStock(false);
-    }
-  };
+  // handleAddStock removed — now handled by StockEntryDialog component
 
   const handleTransferToSale = async () => {
     if (!selectedProduct || !profile?.user_id || transferQty <= 0) return;
@@ -342,6 +284,63 @@ const Inventory = () => {
       toast({ title: 'Error al transferir', description: err.message, variant: 'destructive' });
     } finally {
       setTransferring(false);
+    }
+  };
+
+  const handleReturnToWarehouse = async () => {
+    if (!selectedProduct || !profile?.user_id || returnQty <= 0) return;
+    setReturningToWarehouse(true);
+    try {
+      const branchId = selectedBranch || profile.branch_id || branches?.[0]?.id;
+      if (!branchId) return;
+
+      const { data: existing } = await supabase
+        .from('branch_stock')
+        .select('id, quantity, warehouse_quantity')
+        .eq('branch_id', branchId)
+        .eq('product_id', selectedProduct.id)
+        .maybeSingle();
+
+      if (!existing || existing.quantity < returnQty) {
+        toast({ title: 'No hay suficientes unidades en venta', variant: 'destructive' });
+        return;
+      }
+
+      await supabase
+        .from('branch_stock')
+        .update({
+          quantity: existing.quantity - returnQty,
+          warehouse_quantity: (existing.warehouse_quantity || 0) + returnQty,
+        })
+        .eq('id', existing.id);
+
+      await supabase.from('inventory_movements').insert([
+        {
+          branch_id: branchId,
+          product_id: selectedProduct.id,
+          user_id: profile.user_id,
+          movement_type: 'transfer_out' as const,
+          quantity: returnQty,
+          notes: 'Transferencia: venta → almacén',
+        },
+        {
+          branch_id: branchId,
+          product_id: selectedProduct.id,
+          user_id: profile.user_id,
+          movement_type: 'transfer_in' as const,
+          quantity: returnQty,
+          notes: 'Transferencia: venta → almacén',
+        },
+      ]);
+
+      queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
+      toast({ title: `${returnQty} unidades devueltas a almacén` });
+      setReturnQty(0);
+      setShowReturnToWarehouse(false);
+    } catch (err: any) {
+      toast({ title: 'Error al devolver', description: err.message, variant: 'destructive' });
+    } finally {
+      setReturningToWarehouse(false);
     }
   };
 
@@ -549,9 +548,10 @@ const Inventory = () => {
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
-                        onAddStock={() => { setStockEntryProduct(product); setStockQtyForSale(0); setStockQtyWarehouse(0); }}
+                        onAddStock={() => { setStockEntryProduct(product); }}
                         onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferQty(1); }}
                         onOutflow={() => setOutflowProduct(product)}
+                        onReturnToWarehouse={() => { setSelectedProduct(product); setShowReturnToWarehouse(true); setReturnQty(1); }}
                       />
                     ))}
                     <Separator className="my-2" />
@@ -569,9 +569,10 @@ const Inventory = () => {
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
-                        onAddStock={() => { setStockEntryProduct(product); setStockQtyForSale(0); setStockQtyWarehouse(0); }}
+                        onAddStock={() => { setStockEntryProduct(product); }}
                         onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferQty(1); }}
                         onOutflow={() => setOutflowProduct(product)}
+                        onReturnToWarehouse={() => { setSelectedProduct(product); setShowReturnToWarehouse(true); setReturnQty(1); }}
                       />
                     ))}
                   </div>
@@ -747,13 +748,11 @@ const Inventory = () => {
                       <Button 
                         variant="outline" 
                         className="w-full justify-start"
-                        onClick={() => {
-                          const prod = selectedProduct;
-                          setStockEntryProduct(prod);
-                          setStockQtyForSale(0);
-                          setStockQtyWarehouse(0);
-                          setSelectedProduct(null);
-                        }}
+                         onClick={() => {
+                           const prod = selectedProduct;
+                           setStockEntryProduct(prod);
+                           setSelectedProduct(null);
+                         }}
                       >
                         <PackagePlus className="mr-2 h-4 w-4" />
                         Dar entrada
@@ -779,52 +778,66 @@ const Inventory = () => {
                         >
                           <PackageX className="mr-2 h-4 w-4" />
                           Salida almacén
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="rounded-lg border p-3 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium">Almacén → Venta</p>
-                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowTransfer(false)}>
-                          <X className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Button 
-                          variant="outline" size="icon" className="h-8 w-8"
-                          onClick={() => setTransferQty(Math.max(1, transferQty - 1))}
-                          disabled={transferQty <= 1}
-                        >
-                          <span className="text-lg leading-none">−</span>
-                        </Button>
-                        <Input 
-                          type="number" 
-                          min={1} 
-                          max={selectedWarehouseStock}
-                          value={transferQty}
-                          onChange={(e) => setTransferQty(Math.min(selectedWarehouseStock, Math.max(1, parseInt(e.target.value) || 1)))}
-                          className="w-20 text-center"
-                        />
-                        <Button 
-                          variant="outline" size="icon" className="h-8 w-8"
-                          onClick={() => setTransferQty(Math.min(selectedWarehouseStock, transferQty + 1))}
-                          disabled={transferQty >= selectedWarehouseStock}
-                        >
-                          <span className="text-lg leading-none">+</span>
-                        </Button>
-                        <span className="text-xs text-muted-foreground">/ {selectedWarehouseStock}</span>
-                      </div>
-                      <Button 
-                        className="w-full" 
-                        onClick={handleTransferToSale}
-                        disabled={transferring || transferQty <= 0}
-                      >
-                        {transferring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Transferir {transferQty} unidad{transferQty !== 1 ? 'es' : ''}
-                      </Button>
-                    </div>
-                  )}
+                         </Button>
+                       )}
+                       {selectedStock > 0 && (
+                         <Button 
+                           variant="outline" 
+                           className="w-full justify-start"
+                           onClick={() => { setShowReturnToWarehouse(true); setReturnQty(1); }}
+                         >
+                           <ArrowRightLeft className="mr-2 h-4 w-4" />
+                           Devolver a almacén
+                         </Button>
+                       )}
+                     </div>
+                  ) : showTransfer ? (
+                     <div className="rounded-lg border p-3 space-y-3">
+                       <div className="flex items-center justify-between">
+                         <p className="text-sm font-medium">Almacén → Venta</p>
+                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowTransfer(false)}>
+                           <X className="h-3.5 w-3.5" />
+                         </Button>
+                       </div>
+                       <div className="flex items-center gap-3">
+                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setTransferQty(Math.max(1, transferQty - 1))} disabled={transferQty <= 1}>
+                           <span className="text-lg leading-none">−</span>
+                         </Button>
+                         <Input type="number" min={1} max={selectedWarehouseStock} value={transferQty} onChange={(e) => setTransferQty(Math.min(selectedWarehouseStock, Math.max(1, parseInt(e.target.value) || 1)))} className="w-20 text-center" />
+                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setTransferQty(Math.min(selectedWarehouseStock, transferQty + 1))} disabled={transferQty >= selectedWarehouseStock}>
+                           <span className="text-lg leading-none">+</span>
+                         </Button>
+                         <span className="text-xs text-muted-foreground">/ {selectedWarehouseStock}</span>
+                       </div>
+                       <Button className="w-full" onClick={handleTransferToSale} disabled={transferring || transferQty <= 0}>
+                         {transferring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                         Transferir {transferQty} unidad{transferQty !== 1 ? 'es' : ''}
+                       </Button>
+                     </div>
+                  ) : showReturnToWarehouse ? (
+                     <div className="rounded-lg border p-3 space-y-3">
+                       <div className="flex items-center justify-between">
+                         <p className="text-sm font-medium">Venta → Almacén</p>
+                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowReturnToWarehouse(false)}>
+                           <X className="h-3.5 w-3.5" />
+                         </Button>
+                       </div>
+                       <div className="flex items-center gap-3">
+                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setReturnQty(Math.max(1, returnQty - 1))} disabled={returnQty <= 1}>
+                           <span className="text-lg leading-none">−</span>
+                         </Button>
+                         <Input type="number" min={1} max={selectedStock} value={returnQty} onChange={(e) => setReturnQty(Math.min(selectedStock, Math.max(1, parseInt(e.target.value) || 1)))} className="w-20 text-center" />
+                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setReturnQty(Math.min(selectedStock, returnQty + 1))} disabled={returnQty >= selectedStock}>
+                           <span className="text-lg leading-none">+</span>
+                         </Button>
+                         <span className="text-xs text-muted-foreground">/ {selectedStock}</span>
+                       </div>
+                       <Button className="w-full" onClick={handleReturnToWarehouse} disabled={returningToWarehouse || returnQty <= 0}>
+                         {returningToWarehouse && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                         Devolver {returnQty} unidad{returnQty !== 1 ? 'es' : ''}
+                       </Button>
+                     </div>
+                  ) : null}
                 </div>
               )}
 
@@ -898,46 +911,12 @@ const Inventory = () => {
       </AlertDialog>
 
       {/* Stock Entry Dialog */}
-      <AlertDialog open={!!stockEntryProduct} onOpenChange={(open) => { if (!open) { setStockEntryProduct(null); setStockQtyForSale(0); setStockQtyWarehouse(0); } }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Dar entrada — {stockEntryProduct?.name}</AlertDialogTitle>
-            <AlertDialogDescription>
-              Ingresa las cantidades a agregar al inventario.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="grid grid-cols-2 gap-4 py-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">En venta</label>
-              <Input 
-                type="number" 
-                min="0" 
-                value={stockQtyForSale} 
-                onChange={(e) => setStockQtyForSale(Math.max(0, parseInt(e.target.value) || 0))} 
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium">En almacén</label>
-              <Input 
-                type="number" 
-                min="0" 
-                value={stockQtyWarehouse} 
-                onChange={(e) => setStockQtyWarehouse(Math.max(0, parseInt(e.target.value) || 0))} 
-              />
-            </div>
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleAddStock} 
-              disabled={addingStock || (stockQtyForSale + stockQtyWarehouse) <= 0}
-            >
-              {addingStock ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-              Dar entrada ({stockQtyForSale + stockQtyWarehouse})
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <StockEntryDialog
+        open={!!stockEntryProduct}
+        onOpenChange={(open) => { if (!open) setStockEntryProduct(null); }}
+        product={stockEntryProduct}
+        branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
+      />
       {/* Warehouse Outflow Dialog */}
       <WarehouseOutflowDialog
         open={!!outflowProduct}
@@ -962,10 +941,11 @@ interface ProductRowProps {
   onDelete: () => void;
   onAddStock: () => void;
   onTransferToSale: () => void;
+  onReturnToWarehouse: () => void;
   onOutflow: () => void;
 }
 
-const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onOutflow }: ProductRowProps) => {
+const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow }: ProductRowProps) => {
   const bgColor = colorMap[color] || colorMap.blue;
   const isLow = stock <= product.min_stock;
 
@@ -1002,6 +982,11 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
           {warehouseStock > 0 && (
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onOutflow} title="Salida almacén">
               <PackageX className="h-3.5 w-3.5" />
+            </Button>
+          )}
+          {stock > 0 && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onReturnToWarehouse} title="Devolver a almacén">
+              <ArrowRightLeft className="h-3.5 w-3.5" />
             </Button>
           )}
           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={onDelete} title="Eliminar">
