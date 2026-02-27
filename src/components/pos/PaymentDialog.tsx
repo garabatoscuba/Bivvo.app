@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -49,7 +49,14 @@ export const PaymentDialog = ({
   const total = subtotal - discount;
 
   const [paymentType, setPaymentType] = useState<PaymentType>('cash');
-  const [amountPaid, setAmountPaid] = useState<string>(total.toFixed(2));
+  const [amountPaid, setAmountPaid] = useState<string>('0');
+
+  useEffect(() => {
+    if (open) {
+      setPaymentType('cash');
+      setAmountPaid('0');
+    }
+  }, [open]);
 
   const change = paymentType !== 'credit' ?
   Math.max(0, Number(amountPaid) - total) :
