@@ -198,7 +198,7 @@ const Employees = () => {
       if (!businessId) return [];
       const { data, error } = await supabase
         .from('salary_modalities')
-        .select('id, name, modality_type, presets, context')
+        .select('id, name, modality_type, presets, saved_configs, context')
         .eq('business_id', businessId)
         .eq('is_active', true)
         .order('name');
@@ -1201,12 +1201,27 @@ const Employees = () => {
                           <Label className="text-xs">Preset</Label>
                           <Select
                             value={assignment.preset_id || 'none'}
-                            onValueChange={(v) => setForm(prev => ({
-                              ...prev,
-                              salary_assignments: prev.salary_assignments.map((a, i) =>
-                                i === idx ? { ...a, preset_id: v === 'none' ? '' : v } : a
-                              ),
-                            }))}
+                            onValueChange={(v) => {
+                              const presetId = v === 'none' ? '' : v;
+                              const preset = modPresets.find((p: any) => p.id === presetId);
+                              setForm(prev => ({
+                                ...prev,
+                                salary_assignments: prev.salary_assignments.map((a, i) => {
+                                  if (i !== idx) return a;
+                                  const updated = { ...a, preset_id: presetId };
+                                  if (preset?.config) {
+                                    // Auto-fill base_salary from preset config
+                                    if (preset.config.base_salary !== undefined) {
+                                      updated.base_salary = String(preset.config.base_salary);
+                                    }
+                                    if (preset.config.hourly_rate !== undefined) {
+                                      updated.base_salary = String(preset.config.hourly_rate);
+                                    }
+                                  }
+                                  return updated;
+                                }),
+                              }));
+                            }}
                           >
                             <SelectTrigger className="h-8 text-xs">
                               <SelectValue placeholder="Sin preset" />
@@ -1214,7 +1229,12 @@ const Employees = () => {
                             <SelectContent>
                               <SelectItem value="none">Sin preset</SelectItem>
                               {modPresets.map((p: any) => (
-                                <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>
+                                <SelectItem key={p.id} value={p.id}>
+                                  {p.name}
+                                  {p.config?.base_salary !== undefined && ` — $${p.config.base_salary}`}
+                                  {p.config?.hourly_rate !== undefined && ` — $${p.config.hourly_rate}/h`}
+                                  {p.config?.percent !== undefined && ` — ${p.config.percent}%`}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
