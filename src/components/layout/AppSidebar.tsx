@@ -743,7 +743,9 @@ const AppSidebar = () => {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Nuevo Negocio</DialogTitle>
-            <DialogDescription>Se enviará una solicitud de aprobación al administrador.</DialogDescription>
+            <DialogDescription>
+              Al agregar un nuevo negocio se añadirá un cargo adicional a tu cuenta según tu plan activo. El monto de tu suscripción aumentará proporcionalmente. Espera la confirmación del administrador antes de poder utilizarlo.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
