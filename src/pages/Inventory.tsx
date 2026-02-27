@@ -15,7 +15,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, TrendingUp, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft } from 'lucide-react';
+import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft } from 'lucide-react';
 import { MovementsLog } from '@/components/inventory/MovementsLog';
 import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowDialog';
 import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
@@ -111,9 +111,7 @@ const Inventory = () => {
   const [transferQty, setTransferQty] = useState(0);
   const [transferring, setTransferring] = useState(false);
   const [showTransfer, setShowTransfer] = useState(false);
-  const [showReturnToWarehouse, setShowReturnToWarehouse] = useState(false);
-  const [returnQty, setReturnQty] = useState(0);
-  const [returningToWarehouse, setReturningToWarehouse] = useState(false);
+  const [transferDirection, setTransferDirection] = useState<'toSale' | 'toWarehouse'>('toSale');
   const [outflowProduct, setOutflowProduct] = useState<Product | null>(null);
 
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
@@ -288,8 +286,8 @@ const Inventory = () => {
   };
 
   const handleReturnToWarehouse = async () => {
-    if (!selectedProduct || !profile?.user_id || returnQty <= 0) return;
-    setReturningToWarehouse(true);
+    if (!selectedProduct || !profile?.user_id || transferQty <= 0) return;
+    setTransferring(true);
     try {
       const branchId = selectedBranch || profile.branch_id || branches?.[0]?.id;
       if (!branchId) return;
@@ -301,7 +299,7 @@ const Inventory = () => {
         .eq('product_id', selectedProduct.id)
         .maybeSingle();
 
-      if (!existing || existing.quantity < returnQty) {
+      if (!existing || existing.quantity < transferQty) {
         toast({ title: 'No hay suficientes unidades en venta', variant: 'destructive' });
         return;
       }
@@ -309,8 +307,8 @@ const Inventory = () => {
       await supabase
         .from('branch_stock')
         .update({
-          quantity: existing.quantity - returnQty,
-          warehouse_quantity: (existing.warehouse_quantity || 0) + returnQty,
+          quantity: existing.quantity - transferQty,
+          warehouse_quantity: (existing.warehouse_quantity || 0) + transferQty,
         })
         .eq('id', existing.id);
 
@@ -320,7 +318,7 @@ const Inventory = () => {
           product_id: selectedProduct.id,
           user_id: profile.user_id,
           movement_type: 'transfer_out' as const,
-          quantity: returnQty,
+          quantity: transferQty,
           notes: 'Transferencia: venta → almacén',
         },
         {
@@ -328,19 +326,19 @@ const Inventory = () => {
           product_id: selectedProduct.id,
           user_id: profile.user_id,
           movement_type: 'transfer_in' as const,
-          quantity: returnQty,
+          quantity: transferQty,
           notes: 'Transferencia: venta → almacén',
         },
       ]);
 
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
-      toast({ title: `${returnQty} unidades devueltas a almacén` });
-      setReturnQty(0);
-      setShowReturnToWarehouse(false);
+      toast({ title: `${transferQty} unidades devueltas a almacén` });
+      setTransferQty(0);
+      setShowTransfer(false);
     } catch (err: any) {
       toast({ title: 'Error al devolver', description: err.message, variant: 'destructive' });
     } finally {
-      setReturningToWarehouse(false);
+      setTransferring(false);
     }
   };
 
@@ -549,9 +547,9 @@ const Inventory = () => {
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
                         onAddStock={() => { setStockEntryProduct(product); }}
-                        onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferQty(1); }}
+                        onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
                         onOutflow={() => setOutflowProduct(product)}
-                        onReturnToWarehouse={() => { setSelectedProduct(product); setShowReturnToWarehouse(true); setReturnQty(1); }}
+                        onReturnToWarehouse={() => { setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
                       />
                     ))}
                     <Separator className="my-2" />
@@ -570,9 +568,9 @@ const Inventory = () => {
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
                         onAddStock={() => { setStockEntryProduct(product); }}
-                        onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferQty(1); }}
+                        onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
                         onOutflow={() => setOutflowProduct(product)}
-                        onReturnToWarehouse={() => { setSelectedProduct(product); setShowReturnToWarehouse(true); setReturnQty(1); }}
+                        onReturnToWarehouse={() => { setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
                       />
                     ))}
                   </div>
@@ -757,14 +755,19 @@ const Inventory = () => {
                         <PackagePlus className="mr-2 h-4 w-4" />
                         Dar entrada
                       </Button>
-                      {selectedWarehouseStock > 0 && (
+                      {(selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
-                          onClick={() => { setShowTransfer(true); setTransferQty(1); }}
+                          onClick={() => {
+                            const dir = selectedWarehouseStock > 0 ? 'toSale' : 'toWarehouse';
+                            setTransferDirection(dir);
+                            setShowTransfer(true);
+                            setTransferQty(1);
+                          }}
                         >
-                          <TrendingUp className="mr-2 h-4 w-4" />
-                          Pasar a venta
+                          <ArrowRightLeft className="mr-2 h-4 w-4" />
+                          {selectedWarehouseStock > 0 ? 'Almacén → Venta' : 'Venta → Almacén'}
                         </Button>
                       )}
                       {selectedWarehouseStock > 0 && (
@@ -780,64 +783,60 @@ const Inventory = () => {
                           Salida almacén
                          </Button>
                        )}
-                       {selectedStock > 0 && (
-                         <Button 
-                           variant="outline" 
-                           className="w-full justify-start"
-                           onClick={() => { setShowReturnToWarehouse(true); setReturnQty(1); }}
-                         >
-                           <ArrowRightLeft className="mr-2 h-4 w-4" />
-                           Devolver a almacén
-                         </Button>
-                       )}
                      </div>
-                  ) : showTransfer ? (
-                     <div className="rounded-lg border p-3 space-y-3">
-                       <div className="flex items-center justify-between">
-                         <p className="text-sm font-medium">Almacén → Venta</p>
-                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowTransfer(false)}>
-                           <X className="h-3.5 w-3.5" />
-                         </Button>
-                       </div>
-                       <div className="flex items-center gap-3">
-                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setTransferQty(Math.max(1, transferQty - 1))} disabled={transferQty <= 1}>
-                           <span className="text-lg leading-none">−</span>
-                         </Button>
-                         <Input type="number" min={1} max={selectedWarehouseStock} value={transferQty} onChange={(e) => setTransferQty(Math.min(selectedWarehouseStock, Math.max(1, parseInt(e.target.value) || 1)))} className="w-20 text-center" />
-                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setTransferQty(Math.min(selectedWarehouseStock, transferQty + 1))} disabled={transferQty >= selectedWarehouseStock}>
-                           <span className="text-lg leading-none">+</span>
-                         </Button>
-                         <span className="text-xs text-muted-foreground">/ {selectedWarehouseStock}</span>
-                       </div>
-                       <Button className="w-full" onClick={handleTransferToSale} disabled={transferring || transferQty <= 0}>
-                         {transferring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                         Transferir {transferQty} unidad{transferQty !== 1 ? 'es' : ''}
-                       </Button>
-                     </div>
-                  ) : showReturnToWarehouse ? (
-                     <div className="rounded-lg border p-3 space-y-3">
-                       <div className="flex items-center justify-between">
-                         <p className="text-sm font-medium">Venta → Almacén</p>
-                         <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowReturnToWarehouse(false)}>
-                           <X className="h-3.5 w-3.5" />
-                         </Button>
-                       </div>
-                       <div className="flex items-center gap-3">
-                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setReturnQty(Math.max(1, returnQty - 1))} disabled={returnQty <= 1}>
-                           <span className="text-lg leading-none">−</span>
-                         </Button>
-                         <Input type="number" min={1} max={selectedStock} value={returnQty} onChange={(e) => setReturnQty(Math.min(selectedStock, Math.max(1, parseInt(e.target.value) || 1)))} className="w-20 text-center" />
-                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setReturnQty(Math.min(selectedStock, returnQty + 1))} disabled={returnQty >= selectedStock}>
-                           <span className="text-lg leading-none">+</span>
-                         </Button>
-                         <span className="text-xs text-muted-foreground">/ {selectedStock}</span>
-                       </div>
-                       <Button className="w-full" onClick={handleReturnToWarehouse} disabled={returningToWarehouse || returnQty <= 0}>
-                         {returningToWarehouse && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                         Devolver {returnQty} unidad{returnQty !== 1 ? 'es' : ''}
-                       </Button>
-                     </div>
-                  ) : null}
+                  ) : (
+                     (() => {
+                       const isToSale = transferDirection === 'toSale';
+                       const maxQty = isToSale ? selectedWarehouseStock : selectedStock;
+                       const canFlip = isToSale ? selectedStock > 0 : selectedWarehouseStock > 0;
+                       return (
+                         <div className="rounded-lg border p-3 space-y-3">
+                           <div className="flex items-center justify-between">
+                             <div className="flex items-center gap-2">
+                               <p className="text-sm font-medium">
+                                 {isToSale ? 'Almacén → Venta' : 'Venta → Almacén'}
+                               </p>
+                               {canFlip && (
+                                 <Button
+                                   variant="ghost"
+                                   size="icon"
+                                   className="h-6 w-6"
+                                   onClick={() => {
+                                     setTransferDirection(isToSale ? 'toWarehouse' : 'toSale');
+                                     setTransferQty(1);
+                                   }}
+                                   title="Cambiar dirección"
+                                 >
+                                   <ArrowRightLeft className="h-3.5 w-3.5" />
+                                 </Button>
+                               )}
+                             </div>
+                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowTransfer(false)}>
+                               <X className="h-3.5 w-3.5" />
+                             </Button>
+                           </div>
+                           <div className="flex items-center gap-3">
+                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setTransferQty(Math.max(1, transferQty - 1))} disabled={transferQty <= 1}>
+                               <span className="text-lg leading-none">−</span>
+                             </Button>
+                             <Input type="number" min={1} max={maxQty} value={transferQty} onChange={(e) => setTransferQty(Math.min(maxQty, Math.max(1, parseInt(e.target.value) || 1)))} className="w-20 text-center" />
+                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setTransferQty(Math.min(maxQty, transferQty + 1))} disabled={transferQty >= maxQty}>
+                               <span className="text-lg leading-none">+</span>
+                             </Button>
+                             <span className="text-xs text-muted-foreground">/ {maxQty}</span>
+                           </div>
+                           <Button
+                             className="w-full"
+                             onClick={isToSale ? handleTransferToSale : handleReturnToWarehouse}
+                             disabled={transferring || transferQty <= 0 || transferQty > maxQty}
+                           >
+                             {transferring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                             {isToSale ? 'Transferir' : 'Devolver'} {transferQty} unidad{transferQty !== 1 ? 'es' : ''}
+                           </Button>
+                         </div>
+                       );
+                     })()
+                  )}
                 </div>
               )}
 
@@ -974,19 +973,14 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onAddStock} title="Dar entrada">
             <PackagePlus className="h-3.5 w-3.5" />
           </Button>
-          {warehouseStock > 0 && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onTransferToSale} title="Pasar a venta">
-              <TrendingUp className="h-3.5 w-3.5" />
+          {(warehouseStock > 0 || stock > 0) && (
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={warehouseStock > 0 ? onTransferToSale : onReturnToWarehouse} title="Transferir stock">
+              <ArrowRightLeft className="h-3.5 w-3.5" />
             </Button>
           )}
           {warehouseStock > 0 && (
             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onOutflow} title="Salida almacén">
               <PackageX className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          {stock > 0 && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onReturnToWarehouse} title="Devolver a almacén">
-              <ArrowRightLeft className="h-3.5 w-3.5" />
             </Button>
           )}
           <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={onDelete} title="Eliminar">
