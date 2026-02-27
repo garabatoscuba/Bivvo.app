@@ -5,12 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
 import { useProducts, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
-import { useDashboardStats, type Period } from '@/hooks/useDashboardStats';
+import { useDashboardStats } from '@/hooks/useDashboardStats';
+import { PeriodFilter, type Period } from '@/components/ui/period-filter';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Button as DialogButton } from '@/components/ui/button';
@@ -23,18 +24,12 @@ import {
 import {
   ShoppingCart, Package, TrendingUp, AlertTriangle,
   Users, DollarSign, Hash, CreditCard,
-  Calendar, CalendarDays, CalendarRange, CalendarClock,
   ArrowUpRight, ArrowDownRight, Minus } from
 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import PerformanceWidget from '@/components/dashboard/PerformanceWidget';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 
-const PERIOD_OPTIONS: {value: Period;label: string;icon: typeof Calendar;}[] = [
-{ value: 'today', label: 'Hoy', icon: Calendar },
-{ value: 'week', label: 'Semana', icon: CalendarDays },
-{ value: 'month', label: 'Mes', icon: CalendarRange },
-{ value: 'year', label: 'Año', icon: CalendarClock }];
 
 const formatCurrency = (n: number) =>
 new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n);
@@ -192,19 +187,7 @@ const Dashboard = () => {
               'Comienza configurando tu negocio'}
             </p>
           </div>
-          <ToggleGroup
-            type="single"
-            value={period}
-            onValueChange={(v) => v && setPeriod(v as Period)}
-            className="border border-border bg-card w-full sm:w-auto">
-
-            {PERIOD_OPTIONS.map((opt) =>
-            <ToggleGroupItem key={opt.value} value={opt.value} className="gap-1 text-xs px-2.5 flex-1 sm:flex-none sm:px-3">
-                <opt.icon className="h-3.5 w-3.5" />
-                {opt.label}
-              </ToggleGroupItem>
-            )}
-          </ToggleGroup>
+          <PeriodFilter value={period} onChange={setPeriod} className="w-full sm:w-auto" />
         </div>
 
         {/* KPI Cards */}
