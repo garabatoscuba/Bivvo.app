@@ -25,7 +25,9 @@ export function getDateRange(period: Period): DateRange {
 }
 
 export function isInPeriod(dateStr: string, period: Period): boolean {
-  const date = new Date(dateStr);
+  if (!dateStr) return false;
+  const ts = new Date(dateStr).getTime();
+  if (isNaN(ts)) return false;
   const range = getDateRange(period);
-  return date >= range.start && date <= range.end;
+  return ts >= range.start.getTime() && ts <= range.end.getTime();
 }
