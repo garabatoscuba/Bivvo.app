@@ -64,6 +64,7 @@ const PAYMENT_COLORS: Record<string, string> = {
   card: 'hsl(199, 55%, 62%)',
   transfer: 'hsl(270, 40%, 66%)',
   credit: 'hsl(38, 70%, 48%)',
+  mixed: 'hsl(320, 45%, 55%)',
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -71,6 +72,7 @@ const PAYMENT_LABELS: Record<string, string> = {
   card: 'Tarjeta',
   transfer: 'Transferencia',
   credit: 'Crédito',
+  mixed: 'Mixto',
 };
 
 function buildTimeLabels(period: Period, range: DateRange): string[] {
