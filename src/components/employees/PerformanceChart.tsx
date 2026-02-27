@@ -144,7 +144,7 @@ export default function PerformanceChart({
 }: PerformanceChartProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
+  const [chartType, setChartType] = useState<'radar' | 'bar'>('bar');
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [skills, setSkills] = useState<Skill[]>([]);
   const [initialized, setInitialized] = useState(false);
@@ -472,9 +472,7 @@ export default function PerformanceChart({
   }, [history]);
 
   // Color for bar based on weak point threshold
-  const getBarColor = (score: number) => {
-    if (score <= 4) return 'hsl(var(--destructive))';
-    if (score <= 6) return 'hsl(var(--warning, 40 96% 50%))';
+  const getBarColor = (_score: number) => {
     return 'hsl(var(--primary))';
   };
 
@@ -547,7 +545,8 @@ export default function PerformanceChart({
                 </Badge>
               </div>
 
-              <div className="w-full h-[320px] sm:h-[420px]">
+              <div className={`w-full ${chartType === 'bar' ? '' : 'h-[320px] sm:h-[420px]'}`}
+                style={chartType === 'bar' ? { height: Math.max(320, barData.length * 44) } : undefined}>
                 {chartType === 'radar' ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <RadarChart data={radarData} cx="50%" cy="50%" outerRadius="45%">
@@ -580,21 +579,21 @@ export default function PerformanceChart({
                   </ResponsiveContainer>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 10 }}
-                      barCategoryGap="35%">
+                    <BarChart data={barData} layout="vertical" margin={{ left: 10, right: 15, top: 5, bottom: 5 }}
+                      barCategoryGap="30%">
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                      <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 12 }} />
-                      <YAxis type="category" dataKey="skill" tick={{ fontSize: 12 }} width={120} />
-                      <Tooltip contentStyle={{ fontSize: 12 }} />
+                      <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 13 }} />
+                      <YAxis type="category" dataKey="skill" tick={{ fontSize: 13 }} width={130} />
+                      <Tooltip contentStyle={{ fontSize: 13 }} />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
-                      <Bar dataKey="score" name={employeeName} radius={[0, 4, 4, 0]} barSize={12}>
+                      <Bar dataKey="score" name={employeeName} radius={[0, 6, 6, 0]} barSize={16}>
                         {barData.map((entry, i) => (
                           <Cell key={i} fill={getBarColor(entry.score)} />
                         ))}
                       </Bar>
                       {compareEmployeeId && (
                         <Bar dataKey="compare" name="Comparación"
-                          fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={8} />
+                          fill="hsl(var(--destructive))" radius={[0, 4, 4, 0]} barSize={10} />
                       )}
                     </BarChart>
                   </ResponsiveContainer>
