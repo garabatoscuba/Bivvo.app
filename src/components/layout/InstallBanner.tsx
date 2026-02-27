@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
+import { usePWAInstallContext } from '@/contexts/PWAInstallContext';
 import { Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -14,7 +14,7 @@ function isDismissed(): boolean {
 }
 
 const InstallBanner = () => {
-  const { canInstall, isInstalled, isMobile, promptInstall } = usePWAInstall();
+  const { canInstall, isInstalled, isMobile, promptInstall } = usePWAInstallContext();
   const [dismissed, setDismissed] = useState(isDismissed);
 
   if (isInstalled || dismissed || !isMobile || !canInstall) return null;
@@ -31,19 +31,10 @@ const InstallBanner = () => {
         <span>Instala la app para usar sin internet</span>
       </div>
       <div className="flex items-center gap-1">
-        <Button
-          size="sm"
-          variant="secondary"
-          className="h-7 text-xs"
-          onClick={promptInstall}
-        >
+        <Button size="sm" variant="secondary" className="h-7 text-xs" onClick={promptInstall}>
           Instalar
         </Button>
-        <button
-          onClick={handleDismiss}
-          className="rounded p-1 hover:bg-primary-foreground/20"
-          aria-label="Cerrar"
-        >
+        <button onClick={handleDismiss} className="rounded p-1 hover:bg-primary-foreground/20" aria-label="Cerrar">
           <X className="h-4 w-4" />
         </button>
       </div>
