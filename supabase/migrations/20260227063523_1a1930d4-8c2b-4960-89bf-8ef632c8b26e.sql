@@ -1,0 +1,1 @@
+ALTER TABLE public.salary_modalities ADD COLUMN IF NOT EXISTS saved_configs jsonb NOT NULL DEFAULT '[]'::jsonb;

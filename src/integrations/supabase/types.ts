@@ -1655,6 +1655,7 @@ export type Database = {
           modality_type: Database["public"]["Enums"]["salary_modality_type"]
           name: string
           presets: Json
+          saved_configs: Json
           updated_at: string
         }
         Insert: {
@@ -1668,6 +1669,7 @@ export type Database = {
           modality_type: Database["public"]["Enums"]["salary_modality_type"]
           name: string
           presets?: Json
+          saved_configs?: Json
           updated_at?: string
         }
         Update: {
@@ -1681,6 +1683,7 @@ export type Database = {
           modality_type?: Database["public"]["Enums"]["salary_modality_type"]
           name?: string
           presets?: Json
+          saved_configs?: Json
           updated_at?: string
         }
         Relationships: [
