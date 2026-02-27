@@ -1749,6 +1749,7 @@ export type Database = {
           amount_paid: number
           branch_id: string
           cancellation_reason: string | null
+          cash_amount: number
           created_at: string
           customer_id: string | null
           discount: number
@@ -1759,6 +1760,7 @@ export type Database = {
           status: Database["public"]["Enums"]["sale_status"]
           subtotal: number
           total: number
+          transfer_amount: number
           updated_at: string
           user_id: string
         }
@@ -1766,6 +1768,7 @@ export type Database = {
           amount_paid?: number
           branch_id: string
           cancellation_reason?: string | null
+          cash_amount?: number
           created_at?: string
           customer_id?: string | null
           discount?: number
@@ -1776,6 +1779,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal?: number
           total?: number
+          transfer_amount?: number
           updated_at?: string
           user_id: string
         }
@@ -1783,6 +1787,7 @@ export type Database = {
           amount_paid?: number
           branch_id?: string
           cancellation_reason?: string | null
+          cash_amount?: number
           created_at?: string
           customer_id?: string | null
           discount?: number
@@ -1793,6 +1798,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["sale_status"]
           subtotal?: number
           total?: number
+          transfer_amount?: number
           updated_at?: string
           user_id?: string
         }
@@ -2155,7 +2161,7 @@ export type Database = {
         | "adjustment"
         | "return"
       pay_frequency: "daily" | "weekly" | "biweekly" | "monthly"
-      payment_type: "cash" | "credit" | "card" | "transfer"
+      payment_type: "cash" | "credit" | "card" | "transfer" | "mixed"
       product_status: "for_sale" | "warehouse" | "discontinued"
       salary_modality_type:
         | "fixed"
@@ -2313,7 +2319,7 @@ export const Constants = {
         "return",
       ],
       pay_frequency: ["daily", "weekly", "biweekly", "monthly"],
-      payment_type: ["cash", "credit", "card", "transfer"],
+      payment_type: ["cash", "credit", "card", "transfer", "mixed"],
       product_status: ["for_sale", "warehouse", "discontinued"],
       salary_modality_type: [
         "fixed",

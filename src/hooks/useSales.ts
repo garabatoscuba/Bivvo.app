@@ -14,6 +14,8 @@ interface CreateSaleParams {
   amountPaid: number;
   customerId?: string;
   notes?: string;
+  cashAmount?: number;
+  transferAmount?: number;
 }
 
 export const useSales = (branchId?: string | null) => {
@@ -125,7 +127,7 @@ export const useSales = (branchId?: string | null) => {
 
   // Mutation: create sale (offline-capable)
   const createSale = useMutation({
-    mutationFn: async ({ branchId, items, paymentType, discount, amountPaid, customerId, notes }: CreateSaleParams) => {
+    mutationFn: async ({ branchId, items, paymentType, discount, amountPaid, customerId, notes, cashAmount, transferAmount }: CreateSaleParams) => {
       if (!user?.id) throw new Error('No hay usuario autenticado');
 
       if (isOnline) {
@@ -151,6 +153,8 @@ export const useSales = (branchId?: string | null) => {
             status: paymentType === 'credit' ? 'pending' : 'completed',
             amount_paid: amountPaid,
             notes: notes || null,
+            cash_amount: cashAmount || 0,
+            transfer_amount: transferAmount || 0,
           })
           .select()
           .single();
