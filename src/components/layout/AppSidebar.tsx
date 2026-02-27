@@ -370,7 +370,6 @@ const AppSidebar = () => {
       url: moduleUrlMap[m.name] || '/',
       icon: ICON_MAP[m.icon] || Package,
     })),
-    ...(storeSettings?.has_delivery ? [{ title: 'Pedidos', url: '/orders', icon: Receipt }] : []),
     { title: 'Configuración', url: '/settings', icon: Settings },
     { title: 'Planes', url: '/plans', icon: CreditCard },
   ];
