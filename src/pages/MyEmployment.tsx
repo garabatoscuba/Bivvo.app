@@ -143,9 +143,9 @@ const MyEmployment = () => {
     refetchInterval: 30000,
   });
 
-  // Fetch today's sales commissions for salary preview
+  // Fetch today's sales total for THIS EMPLOYEE only (for individual modalities)
   const { data: todaySalesTotal = 0 } = useQuery({
-    queryKey: ['my-today-sales-total', myJornada?.sucursal_id, todayStr],
+    queryKey: ['my-today-sales-total', myJornada?.sucursal_id, profile?.user_id, todayStr],
     queryFn: async () => {
       const startOfDay = todayStr + 'T00:00:00';
       const endOfDay = todayStr + 'T23:59:59';
@@ -160,6 +160,25 @@ const MyEmployment = () => {
       return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
     },
     enabled: !!myJornada?.sucursal_id && !!profile?.user_id && !!jornadaActiva,
+    refetchInterval: 30000,
+  });
+
+  // Fetch today's sales total for the ENTIRE BRANCH (shared pool for custom_mixed)
+  const { data: todayBranchSalesTotal = 0 } = useQuery({
+    queryKey: ['my-today-branch-sales-total', myJornada?.sucursal_id, todayStr],
+    queryFn: async () => {
+      const startOfDay = todayStr + 'T00:00:00';
+      const endOfDay = todayStr + 'T23:59:59';
+      const { data } = await supabase
+        .from('sales')
+        .select('total')
+        .eq('branch_id', myJornada!.sucursal_id)
+        .eq('status', 'completed')
+        .gte('created_at', startOfDay)
+        .lte('created_at', endOfDay);
+      return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
+    },
+    enabled: !!myJornada?.sucursal_id && !!jornadaActiva,
     refetchInterval: 30000,
   });
 
@@ -321,8 +340,10 @@ const MyEmployment = () => {
     },
     onError: (err: any) => sonnerToast.error(err.message),
   });
-  // Helper to calculate earnings from a set of assignments against a given income base
-  const calcAssignmentEarnings = (assignments: any[], incomeBase: number, label: string) => {
+  // Helper to calculate earnings from assignments
+  // sharedIncome = branch-wide total (services + all sales) for shared modalities
+  // individualIncome = employee's own sales for individual modalities
+  const calcAssignmentEarnings = (assignments: any[], sharedIncome: number, individualIncome: number) => {
     let base = 0;
     let earning = 0;
 
@@ -340,6 +361,7 @@ const MyEmployment = () => {
           break;
         }
         case 'custom_mixed': {
+          // Uses branch-wide shared pool divided by workers
           const conditions = (salaryConfig?.conditions as unknown as any[]) || [];
           const matchedCondition = conditions.find((c: any) => c.positions === activeWorkersCount)
             || conditions
@@ -358,25 +380,27 @@ const MyEmployment = () => {
             }
           }
 
-          earning += (incomeBase * (servicePercent / 100)) / activeWorkersCount;
+          earning += (sharedIncome * (servicePercent / 100)) / activeWorkersCount;
           break;
         }
         case 'fixed_plus_sales_percent': {
+          // Fixed base + percentage of employee's OWN sales
           const freq = assignment.pay_frequency;
           const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
           base += baseSalary / days;
           const salesPct = Number(config.sales_percent || 0);
-          if (salesPct > 0) earning += incomeBase * (salesPct / 100);
+          if (salesPct > 0) earning += individualIncome * (salesPct / 100);
           break;
         }
         case 'sales_percent_only': {
+          // Percentage of employee's OWN sales
           const pct = Number(config.sales_percent || config.percent || 0);
-          if (pct > 0) earning += incomeBase * (pct / 100);
+          if (pct > 0) earning += individualIncome * (pct / 100);
           break;
         }
         case 'profit_percent': {
           const profitPct = Number(config.profit_percent || config.percent || 0);
-          if (profitPct > 0) earning += incomeBase * (profitPct / 100);
+          if (profitPct > 0) earning += individualIncome * (profitPct / 100);
           break;
         }
         case 'hourly': {
@@ -390,7 +414,7 @@ const MyEmployment = () => {
         default: {
           base += baseSalary;
           const pct = Number(config.service_percent || config.percent || 0);
-          if (pct > 0) earning += incomeBase * (pct / 100);
+          if (pct > 0) earning += sharedIncome * (pct / 100);
         }
       }
     }
@@ -399,11 +423,11 @@ const MyEmployment = () => {
 
   // Calculate running daily salary
   const dailySalary = useMemo(() => {
-    // Show salary card for ALL employees, even without assignments (shows tips/commissions only)
-
-    // All modalities apply to services + sales
-    const generalBase = todayBranchServiceTotal + todaySalesTotal;
-    const generalResult = calcAssignmentEarnings(mySalaryAssignments, generalBase, 'general');
+    // Shared pool = branch-wide services + branch-wide sales (for custom_mixed)
+    const sharedIncome = todayBranchServiceTotal + todayBranchSalesTotal;
+    // Individual = employee's own sales (for sales_percent, profit_percent, etc.)
+    const individualIncome = todaySalesTotal;
+    const generalResult = calcAssignmentEarnings(mySalaryAssignments, sharedIncome, individualIncome);
 
     // Product commissions - only if any assignment has commissions_enabled
     const hasCommissions = mySalaryAssignments.some((a: any) => {
@@ -442,8 +466,9 @@ const MyEmployment = () => {
       serviceEarning: generalResult.earning,
       commissionEarning: totalCommissionEarning,
       tipShare: myTipShare,
+      sharedIncome,
     };
-  }, [mySalaryAssignments, salaryConfig, todayBranchServiceTotal, todaySalesTotal, activeWorkersCount, todaySaleItems, productCommissions, myJornada, myTipShare]);
+  }, [mySalaryAssignments, salaryConfig, todayBranchServiceTotal, todayBranchSalesTotal, todaySalesTotal, activeWorkersCount, todaySaleItems, productCommissions, myJornada, myTipShare]);
 
 
   const { data: branchAssignments = [] } = useQuery({
@@ -812,11 +837,11 @@ const MyEmployment = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs text-muted-foreground flex items-center gap-1"><ShoppingCart className="h-3 w-3" /> Venta del día</p>
-                    <p className="text-xl font-bold">${(todayBranchServiceTotal + todaySalesTotal).toFixed(2)}</p>
+                    <p className="text-xl font-bold">${(todayBranchServiceTotal + todayBranchSalesTotal).toFixed(2)}</p>
                   </div>
                   <div className="text-right text-[10px] text-muted-foreground space-y-0.5">
                     <p>Servicios: ${todayBranchServiceTotal.toFixed(0)}</p>
-                    <p>Productos: ${todaySalesTotal.toFixed(0)}</p>
+                    <p>Productos: ${todayBranchSalesTotal.toFixed(0)}</p>
                   </div>
                 </div>
               </CardContent>
@@ -859,7 +884,7 @@ const MyEmployment = () => {
                       displayPercent = Number((config as any).profit_percent || (config as any).percent || 0);
                     }
                   }
-                  const totalIncome = todayBranchServiceTotal + todaySalesTotal;
+                  const totalIncome = dailySalary.sharedIncome;
                   return (
                     <>
                       <div className="flex items-center justify-between">
