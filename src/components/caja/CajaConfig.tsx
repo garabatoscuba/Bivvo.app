@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
-import { Settings2 } from "lucide-react";
+import { Settings2, Wallet } from "lucide-react";
 
 const CajaConfig = () => {
   const { profile } = useAuth();
@@ -22,6 +22,8 @@ const CajaConfig = () => {
   const [openingType, setOpeningType] = useState("fixed");
   const [fixedAmount, setFixedAmount] = useState("0");
   const [minAlert, setMinAlert] = useState("100");
+  const [nextDayFundMode, setNextDayFundMode] = useState("none");
+  const [nextDayFundAmount, setNextDayFundAmount] = useState("0");
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["cash-register-config", branchId],
@@ -43,6 +45,8 @@ const CajaConfig = () => {
       setOpeningType(config.opening_type);
       setFixedAmount(String(config.fixed_opening_amount));
       setMinAlert(String(config.petty_cash_min_alert));
+      setNextDayFundMode((config as any).next_day_fund_mode || "none");
+      setNextDayFundAmount(String((config as any).next_day_fund_amount || 0));
     }
   }, [config]);
 
@@ -55,18 +59,20 @@ const CajaConfig = () => {
         opening_type: openingType,
         fixed_opening_amount: Number(fixedAmount) || 0,
         petty_cash_min_alert: Number(minAlert) || 100,
+        next_day_fund_mode: nextDayFundMode,
+        next_day_fund_amount: Number(nextDayFundAmount) || 0,
       };
 
       if (config) {
         const { error } = await supabase
           .from("cash_register_config")
-          .update(payload)
+          .update(payload as any)
           .eq("id", config.id);
         if (error) throw error;
       } else {
         const { error } = await supabase
           .from("cash_register_config")
-          .insert(payload);
+          .insert(payload as any);
         if (error) throw error;
       }
     },
@@ -80,81 +86,135 @@ const CajaConfig = () => {
   if (isLoading) return <div className="py-8 text-center text-sm text-muted-foreground">Cargando...</div>;
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <Settings2 className="h-4 w-4" /> Configuración de caja
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Mode */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Modo de caja</Label>
-          <RadioGroup value={mode} onValueChange={setMode} className="space-y-1">
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="branch" id="mode-branch" />
-              <Label htmlFor="mode-branch" className="text-sm cursor-pointer">
-                Por sucursal <span className="text-muted-foreground">(una caja para todos)</span>
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="employee" id="mode-employee" />
-              <Label htmlFor="mode-employee" className="text-sm cursor-pointer">
-                Por empleado <span className="text-muted-foreground">(cada uno gestiona la suya)</span>
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Settings2 className="h-4 w-4" /> Configuración de caja
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Mode */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Modo de caja</Label>
+            <RadioGroup value={mode} onValueChange={setMode} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="branch" id="mode-branch" />
+                <Label htmlFor="mode-branch" className="text-sm cursor-pointer">
+                  Por sucursal <span className="text-muted-foreground">(una caja para todos)</span>
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="employee" id="mode-employee" />
+                <Label htmlFor="mode-employee" className="text-sm cursor-pointer">
+                  Por empleado <span className="text-muted-foreground">(cada uno gestiona la suya)</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
 
-        {/* Opening type */}
-        <div className="space-y-2">
-          <Label className="text-sm font-medium">Tipo de apertura</Label>
-          <RadioGroup value={openingType} onValueChange={setOpeningType} className="space-y-1">
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="fixed" id="open-fixed" />
-              <Label htmlFor="open-fixed" className="text-sm cursor-pointer">
-                Monto fijo
-              </Label>
-            </div>
-            <div className="flex items-center gap-2">
-              <RadioGroupItem value="small_bills" id="open-small" />
-              <Label htmlFor="open-small" className="text-sm cursor-pointer">
-                Conteo de billetes chicos <span className="text-muted-foreground">(1, 3, 5, 10)</span>
-              </Label>
-            </div>
-          </RadioGroup>
-        </div>
+          {/* Opening type */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">Tipo de apertura</Label>
+            <RadioGroup value={openingType} onValueChange={setOpeningType} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="fixed" id="open-fixed" />
+                <Label htmlFor="open-fixed" className="text-sm cursor-pointer">
+                  Monto fijo
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="small_bills" id="open-small" />
+                <Label htmlFor="open-small" className="text-sm cursor-pointer">
+                  Conteo de billetes chicos <span className="text-muted-foreground">(1, 3, 5, 10)</span>
+                </Label>
+              </div>
+            </RadioGroup>
+          </div>
 
-        {openingType === "fixed" && (
+          {openingType === "fixed" && (
+            <div className="space-y-1">
+              <Label className="text-sm">Monto fijo de apertura</Label>
+              <Input
+                type="number"
+                min={0}
+                value={fixedAmount}
+                onChange={(e) => setFixedAmount(e.target.value)}
+                className="max-w-xs"
+              />
+            </div>
+          )}
+
+          {/* Petty cash alert */}
           <div className="space-y-1">
-            <Label className="text-sm">Monto fijo de apertura</Label>
+            <Label className="text-sm">Alerta caja chica (saldo mínimo)</Label>
             <Input
               type="number"
               min={0}
-              value={fixedAmount}
-              onChange={(e) => setFixedAmount(e.target.value)}
+              value={minAlert}
+              onChange={(e) => setMinAlert(e.target.value)}
               className="max-w-xs"
             />
           </div>
-        )}
 
-        {/* Petty cash alert */}
-        <div className="space-y-1">
-          <Label className="text-sm">Alerta caja chica (saldo mínimo)</Label>
-          <Input
-            type="number"
-            min={0}
-            value={minAlert}
-            onChange={(e) => setMinAlert(e.target.value)}
-            className="max-w-xs"
-          />
-        </div>
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            Guardar configuración
+          </Button>
+        </CardContent>
+      </Card>
 
-        <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
-          Guardar configuración
-        </Button>
-      </CardContent>
-    </Card>
+      {/* Next-day fund config */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base flex items-center gap-2">
+            <Wallet className="h-4 w-4" /> Fondo para el día siguiente
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Al cerrar caja, el sistema separará automáticamente un fondo para la apertura del día siguiente. Este monto no cuenta como recaudación del día.
+          </p>
+
+          <RadioGroup value={nextDayFundMode} onValueChange={setNextDayFundMode} className="space-y-2">
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="none" id="fund-none" />
+              <Label htmlFor="fund-none" className="text-sm cursor-pointer">
+                Sin fondo automático
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="fixed" id="fund-fixed" />
+              <Label htmlFor="fund-fixed" className="text-sm cursor-pointer">
+                Monto fijo <span className="text-muted-foreground">(el dueño define la cantidad)</span>
+              </Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <RadioGroupItem value="low_bills" id="fund-low-bills" />
+              <Label htmlFor="fund-low-bills" className="text-sm cursor-pointer">
+                Billetes bajos <span className="text-muted-foreground">(suma de billetes $1, $2, $5, $10 contados al cierre)</span>
+              </Label>
+            </div>
+          </RadioGroup>
+
+          {nextDayFundMode === "fixed" && (
+            <div className="space-y-1">
+              <Label className="text-sm">Monto fijo del fondo</Label>
+              <Input
+                type="number"
+                min={0}
+                value={nextDayFundAmount}
+                onChange={(e) => setNextDayFundAmount(e.target.value)}
+                className="max-w-xs"
+              />
+            </div>
+          )}
+
+          <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+            Guardar configuración
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
