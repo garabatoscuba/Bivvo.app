@@ -55,7 +55,7 @@ const ChangeIndicator = ({ value }: {value: number;}) => {
 };
 
 const Dashboard = () => {
-  const { profile, roles, isAffiliated, isCuba } = useAuth();
+  const { profile, roles, isAffiliated, isCuba, isOwner, isManager, isSuperAdmin, isBivooAccount } = useAuth();
   const { products } = useProducts();
   const { data: branches } = useBranches();
   const currentBranch = profile?.branch_id || branches?.[0]?.id;
@@ -65,6 +65,15 @@ const Dashboard = () => {
   const { toast } = useToast();
 
   const navigate = useNavigate();
+  const isEmployee = !isOwner && !isManager && !isSuperAdmin;
+
+  // Redirect employees to Mi Empleo — they don't see the owner dashboard
+  useEffect(() => {
+    if (isEmployee || isBivooAccount) {
+      navigate('/mi-empleo', { replace: true });
+    }
+  }, [isEmployee, isBivooAccount, navigate]);
+
   const [period, setPeriod] = useState<Period>('today');
   const [newPlanPopup, setNewPlanPopup] = useState(false);
   const [newBizName, setNewBizName] = useState('');
@@ -73,17 +82,19 @@ const Dashboard = () => {
   const [showWelcome, setShowWelcome] = useState(false);
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
 
-  // Show welcome dialog for first-time users (onboarding not completed)
+  // Show welcome dialog for first-time OWNER users only (never for employees)
   useEffect(() => {
     if (!profile?.user_id) return;
+    if (isEmployee || isBivooAccount) return; // Skip onboarding for employees
     if (!profile.country || !(profile as any).onboarding_completed) {
       setShowWelcome(true);
     }
-  }, [profile?.user_id, profile?.country, (profile as any)?.onboarding_completed]);
+  }, [profile?.user_id, profile?.country, (profile as any)?.onboarding_completed, isEmployee, isBivooAccount]);
 
   // Show popup reactively when plan changes from free to paid/trial
   useEffect(() => {
     const checkBizName = async () => {
+      if (isEmployee || isBivooAccount) return; // Skip for employees
       if (!profile?.business_id || planType === 'free') return;
       if (subStatus === 'blocked') return;
       const { data } = await supabase
