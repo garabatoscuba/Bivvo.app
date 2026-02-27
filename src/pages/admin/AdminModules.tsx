@@ -19,6 +19,7 @@ import {
 import {
   Package, Puzzle, DollarSign, Plus, Pencil, Loader2, Trash2, Tag, Building2,
 } from 'lucide-react';
+import IconSelector from '@/components/services/IconSelector';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -245,8 +246,7 @@ const ModulesTab = () => {
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Inventario" />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">Ícono (nombre Lucide)</Label>
-              <Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="Package" />
+              <IconSelector value={form.icon} onChange={(icon) => setForm(f => ({ ...f, icon }))} />
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Nombre en sidebar</Label>
