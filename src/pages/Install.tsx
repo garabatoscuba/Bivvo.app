@@ -1,10 +1,10 @@
-import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { usePWAInstallContext } from "@/contexts/PWAInstallContext";
 import { Button } from "@/components/ui/button";
 import { Download, Share, Plus, CheckCircle, ArrowLeft, Monitor, Chrome } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Install = () => {
-  const { canInstall, isInstalled, promptInstall } = usePWAInstall();
+  const { canInstall, isInstalled, promptInstall } = usePWAInstallContext();
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
   const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
   const isDesktop = !isMobile;
@@ -25,15 +25,13 @@ const Install = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Direct install button - most prominent */}
             {canInstall && (
               <Button size="lg" className="w-full gap-2 text-base" onClick={promptInstall}>
                 <Download className="h-5 w-5" />
-                Instalar App Ahora
+                Instalar ahora
               </Button>
             )}
 
-            {/* Desktop message */}
             {isDesktop && (
               <div className="rounded-lg border border-border bg-card p-5 space-y-3">
                 <Monitor className="mx-auto h-8 w-8 text-muted-foreground" />
@@ -52,7 +50,6 @@ const Install = () => {
               </div>
             )}
 
-            {/* Android instructions */}
             <div className="rounded-lg border border-border bg-card p-5 text-left space-y-3">
               <div className="flex items-center gap-2">
                 <Chrome className="h-5 w-5 text-primary" />
@@ -60,40 +57,26 @@ const Install = () => {
               </div>
               {canInstall ? (
                 <p className="text-sm text-muted-foreground">
-                  ¡Toca el botón <strong className="text-foreground">"Instalar App Ahora"</strong> de arriba y confirma!
+                  ¡Toca el botón <strong className="text-foreground">"Instalar ahora"</strong> de arriba y confirma!
                 </p>
               ) : (
                 <ol className="space-y-2.5 text-sm text-muted-foreground">
                   <li className="flex gap-2.5">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                      1
-                    </span>
-                    <span>
-                      Abre esta página en <strong className="text-foreground">Chrome</strong>
-                    </span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">1</span>
+                    <span>Abre esta página en <strong className="text-foreground">Chrome</strong></span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                      2
-                    </span>
-                    <span>
-                      Toca el menú <strong className="text-foreground">⋮</strong> (tres puntos arriba a la derecha)
-                    </span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">2</span>
+                    <span>Toca el menú <strong className="text-foreground">⋮</strong> (tres puntos arriba a la derecha)</span>
                   </li>
                   <li className="flex gap-2.5">
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                      3
-                    </span>
-                    <span>
-                      Selecciona <strong className="text-foreground">"Instalar app"</strong> o{" "}
-                      <strong className="text-foreground">"Agregar a pantalla de inicio"</strong>
-                    </span>
+                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">3</span>
+                    <span>Selecciona <strong className="text-foreground">"Instalar app"</strong> o <strong className="text-foreground">"Agregar a pantalla de inicio"</strong></span>
                   </li>
                 </ol>
               )}
             </div>
 
-            {/* iOS instructions */}
             <div className="rounded-lg border border-border bg-card p-5 text-left space-y-3">
               <div className="flex items-center gap-2">
                 <Share className="h-5 w-5 text-primary" />
@@ -101,30 +84,16 @@ const Install = () => {
               </div>
               <ol className="space-y-2.5 text-sm text-muted-foreground">
                 <li className="flex gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                    1
-                  </span>
-                  <span>
-                    Abre esta página en <strong className="text-foreground">Safari</strong>
-                  </span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">1</span>
+                  <span>Abre esta página en <strong className="text-foreground">Safari</strong></span>
                 </li>
                 <li className="flex gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                    2
-                  </span>
-                  <span>
-                    Toca el icono <Share className="inline h-3.5 w-3.5 -mt-0.5" />{" "}
-                    <strong className="text-foreground">Compartir</strong>
-                  </span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">2</span>
+                  <span>Toca el icono <Share className="inline h-3.5 w-3.5 -mt-0.5" /> <strong className="text-foreground">Compartir</strong></span>
                 </li>
                 <li className="flex gap-2.5">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
-                    3
-                  </span>
-                  <span>
-                    Selecciona <Plus className="inline h-3.5 w-3.5 -mt-0.5" />{" "}
-                    <strong className="text-foreground">"Agregar a pantalla de inicio"</strong>
-                  </span>
+                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">3</span>
+                  <span>Selecciona <Plus className="inline h-3.5 w-3.5 -mt-0.5" /> <strong className="text-foreground">"Agregar a pantalla de inicio"</strong></span>
                 </li>
               </ol>
             </div>

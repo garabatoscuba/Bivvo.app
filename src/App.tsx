@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { OfflineProvider } from "@/contexts/OfflineContext";
+import { PWAInstallProvider } from "@/contexts/PWAInstallContext";
 import { SyncGate } from "@/components/layout/SyncGate";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { usePWAUpdate } from "@/hooks/usePWAUpdate";
@@ -56,9 +57,10 @@ const App = () => {
       <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
         <TooltipProvider>
           <AuthProvider>
-            <OfflineProvider>
-              <SyncGate>
-                <Toaster />
+            <PWAInstallProvider>
+              <OfflineProvider>
+                <SyncGate>
+                  <Toaster />
                 <Sonner />
                 <BrowserRouter>
                   <Suspense fallback={<PageLoader />}>
@@ -228,7 +230,8 @@ const App = () => {
                   </Suspense>
                 </BrowserRouter>
               </SyncGate>
-            </OfflineProvider>
+              </OfflineProvider>
+            </PWAInstallProvider>
           </AuthProvider>
         </TooltipProvider>
       </ThemeProvider>
