@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -6,7 +6,6 @@ import { useBranches } from "@/hooks/useBranches";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { icons as lucideIcons } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -308,77 +307,73 @@ const AppSidebar = () => {
   const activeBusiness = userBusinesses.find((b) => b.id === profile?.business_id);
   const isCopyShop = activeBusiness?.business_type === "copy_shop";
 
-  // Route map: module name → URL path
-  const MODULE_ROUTE_MAP: Record<string, string> = {
-    "Dashboard": "/",
-    "Inventario": "/inventory",
-    "Punto de Venta": "/pos",
-    "Servicios": "/services",
-    "Ventas": "/sales",
-    "Reportes": "/cobros",
-    "Portal": "/store-settings",
-    "Pedidos": "/orders",
-    "Recursos Humanos": "/employees",
-    "Nómina": "/nomina",
-  };
-
-  // Fetch dynamic modules from business_type_configs + platform_modules
-  const { data: dynamicModules = [] } = useQuery({
-    queryKey: ["sidebar-modules", activeBusiness?.business_type],
+  // Fetch dynamic sidebar modules
+  const { data: sidebarModules = [] } = useQuery({
+    queryKey: ['sidebar-modules', activeBusiness?.business_type],
     queryFn: async () => {
       if (!activeBusiness?.business_type) return [];
-
-      // 1. Get the business_type_config to find module_ids
-      const { data: typeConfig } = await supabase
-        .from("business_type_configs")
-        .select("module_ids")
-        .eq("key", activeBusiness.business_type)
-        .eq("is_active", true)
+      const { data: btConfig } = await supabase
+        .from('business_type_configs')
+        .select('module_ids')
+        .eq('key', activeBusiness.business_type)
+        .eq('is_active', true)
         .maybeSingle();
-
-      if (!typeConfig?.module_ids?.length) return [];
-
-      // 2. Get active platform_modules matching those ids
-      const { data: modules } = await supabase
-        .from("platform_modules")
-        .select("id, name, icon, sidebar_label, sort_order")
-        .in("id", typeConfig.module_ids)
-        .eq("is_active", true)
-        .order("sort_order");
-
-      return modules || [];
+      if (!btConfig?.module_ids?.length) return [];
+      const { data: mods } = await supabase
+        .from('platform_modules')
+        .select('id, name, sidebar_label, icon')
+        .in('id', btConfig.module_ids)
+        .eq('is_active', true)
+        .order('sort_order');
+      return mods || [];
     },
     enabled: !!activeBusiness?.business_type,
   });
 
-  // Build businessItems dynamically
-  const businessItems = useMemo(() => {
-    const FallbackIcon = lucideIcons["Package"];
+  // Fetch available business types for "new business" dropdown/dialog
+  const { data: availableBusinessTypes = [] } = useQuery({
+    queryKey: ['available-business-types', isCuba],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('business_type_configs')
+        .select('key, name, icon, country')
+        .eq('is_active', true)
+        .order('sort_order');
+      return (data || []).filter(bt =>
+        !bt.country || bt.country === 'cuba' ? isCuba : true
+      );
+    },
+  });
 
-    const moduleItems = dynamicModules
-      .filter((m) => {
-        // Pedidos only if delivery is enabled
-        if (m.name === "Pedidos" && !storeSettings?.has_delivery) return false;
-        return true;
-      })
-      .map((m) => {
-        const IconComponent = lucideIcons[m.icon as keyof typeof lucideIcons] || FallbackIcon;
-        const url = MODULE_ROUTE_MAP[m.name] || "/";
-        return {
-          title: m.sidebar_label || m.name,
-          url,
-          icon: IconComponent,
-        };
-      });
+  const moduleUrlMap: Record<string, string> = {
+    'Dashboard': '/',
+    'Inventario': '/inventory',
+    'Punto de Venta': '/pos',
+    'Servicios': '/services',
+    'Ventas': '/sales',
+    'Reportes': '/cobros',
+    'Portal': '/store-settings',
+    'Pedidos': '/orders',
+    'Recursos Humanos': '/employees',
+    'Nómina': '/nomina',
+    'Impresiones2': '/impresiones',
+  };
 
-    // Always-fixed items at the end
-    const fixedItems = [
-      { title: "Configuración", url: "/settings", icon: lucideIcons["Settings"] },
-      { title: "Planes", url: "/plans", icon: lucideIcons["CreditCard"] },
-    ];
+  const ICON_MAP: Record<string, any> = {
+    LayoutDashboard, Package, ShoppingCart, Receipt, Users, Settings,
+    CreditCard, ShoppingBag, Wrench, DollarSign, FileText, Store, Shield,
+  };
 
-    return [...moduleItems, ...fixedItems];
-  }, [dynamicModules, storeSettings?.has_delivery]);
+  const businessItems = [
+    ...sidebarModules.map(m => ({
+      title: m.sidebar_label,
+      url: moduleUrlMap[m.name] || '/',
+      icon: ICON_MAP[m.icon] || Package,
+    })),
+    ...(storeSettings?.has_delivery ? [{ title: 'Pedidos', url: '/orders', icon: Receipt }] : []),
+    { title: 'Configuración', url: '/settings', icon: Settings },
+    { title: 'Planes', url: '/plans', icon: CreditCard },
+  ];
 
   const ctxParam = new URLSearchParams(location.search).get("ctx");
   const isActive = (url: string) => {
@@ -669,23 +664,16 @@ const AppSidebar = () => {
                         Sin negocios
                       </DropdownMenuItem>
                     )}
-                    <DropdownMenuItem className="gap-2" onSelect={() => handleAddBusiness("store")}>
-                      <Store className="h-3.5 w-3.5" />
-                      <span>Nueva Tienda</span>
-                    </DropdownMenuItem>
-                    {isCuba && (
-                      <DropdownMenuItem className="gap-2" onSelect={() => handleAddBusiness("store")}>
-                        <FileText className="h-3.5 w-3.5" />
-                        <span>Punto de Copias</span>
+                    {availableBusinessTypes.map(bt => (
+                      <DropdownMenuItem
+                        key={bt.key}
+                        className="gap-2"
+                        onSelect={() => { setBizType(bt.key); setNewBizOpen(true); }}
+                      >
+                        <Store className="h-3.5 w-3.5" />
+                        <span>{bt.name}</span>
                       </DropdownMenuItem>
-                    )}
-                    <DropdownMenuItem className="gap-2 opacity-50" disabled>
-                      <Dumbbell className="h-3.5 w-3.5" />
-                      <span>Gym</span>
-                      <Badge variant="secondary" className="ml-auto text-[9px] py-0">
-                        Próximamente
-                      </Badge>
-                    </DropdownMenuItem>
+                    ))}
                   </DropdownMenuContent>
                 </DropdownMenu>
               </SidebarMenuItem>
@@ -769,11 +757,9 @@ const AppSidebar = () => {
                 onChange={(e) => setBizType(e.target.value)}
                 className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                <option value="store">🏪 Tienda</option>
-                {isCuba && <option value="copy_shop">📄 Punto de Copias</option>}
-                <option value="gym" disabled>
-                  🏋️ Gym (próximamente)
-                </option>
+                {availableBusinessTypes.map(bt => (
+                  <option key={bt.key} value={bt.key}>{bt.name}</option>
+                ))}
               </select>
             </div>
           </div>
