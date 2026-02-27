@@ -24,11 +24,10 @@ import {
   Store, Search, Loader2, Building2,
   Settings, Users, Package, ShoppingCart, DollarSign,
   BarChart3, Activity, Trash2, FileText, Check, X,
-  Pencil, Power, MapPin, Phone, Tag,
+  Pencil, MapPin, Tag,
   ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -36,15 +35,56 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid } from 'recharts';
 
-type BizSortKey = 'name' | 'owner_name' | 'owner_plan' | 'is_active' | 'branch_count' | 'product_count' | 'created_at';
-type ReqSortKey = 'user_name' | 'plan_type' | 'months' | 'total_amount' | 'status' | 'created_at';
-type BizReqSortKey = 'user_name' | 'request_type' | 'name' | 'status' | 'created_at';
 type SortDir = 'asc' | 'desc';
+
+// Generic sortable header
+const SortHead = ({ label, sortKey: sk, currentKey, currentDir, onToggle, className }: {
+  label: string; sortKey: string; currentKey: string; currentDir: SortDir;
+  onToggle: (k: any) => void; className?: string;
+}) => (
+  <TableHead
+    className={`cursor-pointer select-none hover:text-foreground text-[11px] uppercase tracking-wide ${className || ''}`}
+    onClick={() => onToggle(sk)}
+  >
+    <span className="inline-flex items-center gap-1">
+      {label}
+      {currentKey === sk
+        ? (currentDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />)
+        : <ArrowUpDown className="h-3 w-3 opacity-30" />
+      }
+    </span>
+  </TableHead>
+);
+
+// Generic sort toggle hook
+function useSortToggle<K extends string>(defaultKey: K) {
+  const [key, setKey] = useState<K>(defaultKey);
+  const [dir, setDir] = useState<SortDir>('desc');
+  const toggle = useCallback((k: K) => {
+    setKey(prev => {
+      if (prev === k) { setDir(d => d === 'asc' ? 'desc' : 'asc'); return k; }
+      setDir('desc'); return k;
+    });
+  }, []);
+  return { key, dir, toggle } as const;
+}
+
+// Generic sort function
+function sortData<T>(arr: T[], key: string, dir: SortDir, numericKeys: string[] = [], dateKeys: string[] = []): T[] {
+  return [...arr].sort((a: any, b: any) => {
+    let va: any, vb: any;
+    if (dateKeys.includes(key)) { va = new Date(a[key]).getTime(); vb = new Date(b[key]).getTime(); }
+    else if (numericKeys.includes(key)) { va = Number(a[key] || 0); vb = Number(b[key] || 0); }
+    else { va = (a[key] || '').toString().toLowerCase(); vb = (b[key] || '').toString().toLowerCase(); }
+    if (va < vb) return dir === 'asc' ? -1 : 1;
+    if (va > vb) return dir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
 
 const AdminDashboard = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [search, setSearch] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [editBiz, setEditBiz] = useState<any>(null);
   const [editName, setEditName] = useState('');
@@ -53,33 +93,21 @@ const AdminDashboard = () => {
   const [deleteBranchTarget, setDeleteBranchTarget] = useState<{ id: string; name: string } | null>(null);
 
   // Business filters
-  const [bizFilterStatus, setBizFilterStatus] = useState<string>('all');
-  const [bizFilterPlan, setBizFilterPlan] = useState<string>('all');
-  const [bizSortKey, setBizSortKey] = useState<BizSortKey>('created_at');
-  const [bizSortDir, setBizSortDir] = useState<SortDir>('desc');
+  const [bizSearch, setBizSearch] = useState('');
+  const [bizFilterStatus, setBizFilterStatus] = useState('all');
+  const [bizFilterPlan, setBizFilterPlan] = useState('all');
+  const bizSort = useSortToggle<string>('created_at');
 
   // Plan request filters
   const [reqSearch, setReqSearch] = useState('');
-  const [reqFilterStatus, setReqFilterStatus] = useState<string>('all');
-  const [reqSortKey, setReqSortKey] = useState<ReqSortKey>('created_at');
-  const [reqSortDir, setReqSortDir] = useState<SortDir>('desc');
+  const [reqFilterStatus, setReqFilterStatus] = useState('all');
+  const reqSort = useSortToggle<string>('created_at');
 
   // Business request filters
   const [bizReqSearch, setBizReqSearch] = useState('');
-  const [bizReqFilterStatus, setBizReqFilterStatus] = useState<string>('all');
-  const [bizReqFilterType, setBizReqFilterType] = useState<string>('all');
-  const [bizReqSortKey, setBizReqSortKey] = useState<BizReqSortKey>('created_at');
-  const [bizReqSortDir, setBizReqSortDir] = useState<SortDir>('desc');
-
-  const toggleBizSort = useCallback((key: BizSortKey) => {
-    setBizSortKey(prev => { if (prev === key) { setBizSortDir(d => d === 'asc' ? 'desc' : 'asc'); return key; } setBizSortDir('desc'); return key; });
-  }, []);
-  const toggleReqSort = useCallback((key: ReqSortKey) => {
-    setReqSortKey(prev => { if (prev === key) { setReqSortDir(d => d === 'asc' ? 'desc' : 'asc'); return key; } setReqSortDir('desc'); return key; });
-  }, []);
-  const toggleBizReqSort = useCallback((key: BizReqSortKey) => {
-    setBizReqSortKey(prev => { if (prev === key) { setBizReqSortDir(d => d === 'asc' ? 'desc' : 'asc'); return key; } setBizReqSortDir('desc'); return key; });
-  }, []);
+  const [bizReqFilterStatus, setBizReqFilterStatus] = useState('all');
+  const [bizReqFilterType, setBizReqFilterType] = useState('all');
+  const bizReqSort = useSortToggle<string>('created_at');
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-all-data'],
@@ -106,15 +134,13 @@ const AdminDashboard = () => {
 
       const enriched = biz.map(b => {
         const owner = allProfiles.find(p => p.id === (b.owner_id ?? ''));
-        const branchCount = allBranches.filter(br => br.business_id === b.id).length;
-        const productCount = allProducts.filter(p => p.business_id === b.id).length;
         return {
           ...b,
           owner_name: owner?.full_name || 'Sin dueño',
           owner_email: owner?.email || '',
           owner_plan: owner?.plan_type || 'free',
-          branch_count: branchCount,
-          product_count: productCount,
+          branch_count: allBranches.filter(br => br.business_id === b.id).length,
+          product_count: allProducts.filter(p => p.business_id === b.id).length,
         };
       });
 
@@ -124,26 +150,21 @@ const AdminDashboard = () => {
         const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
         const monthEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         const label = d.toLocaleDateString('es-ES', { month: 'short', year: '2-digit' });
-        const bizCount = biz.filter(b => new Date(b.created_at) >= d && new Date(b.created_at) <= monthEnd).length;
-        const salesCount = completedSales.filter(s => new Date(s.created_at) >= d && new Date(s.created_at) <= monthEnd).length;
-        const revenue = completedSales
-          .filter(s => new Date(s.created_at) >= d && new Date(s.created_at) <= monthEnd)
-          .reduce((sum, s) => sum + Number(s.total), 0);
-        monthlyData.push({ name: label, negocios: bizCount, ventas: salesCount, ingresos: revenue });
+        monthlyData.push({
+          name: label,
+          negocios: biz.filter(b => new Date(b.created_at) >= d && new Date(b.created_at) <= monthEnd).length,
+          ventas: completedSales.filter(s => new Date(s.created_at) >= d && new Date(s.created_at) <= monthEnd).length,
+          ingresos: completedSales.filter(s => new Date(s.created_at) >= d && new Date(s.created_at) <= monthEnd).reduce((sum, s) => sum + Number(s.total), 0),
+        });
       }
 
-      const enrichedRequests = allPlanRequests.map((r: any) => {
+      const enrichReqs = (reqs: any[]) => reqs.map((r: any) => {
         const prof = allProfiles.find(p => (p as any).user_id === r.user_id);
         return { ...r, user_name: prof?.full_name || 'Desconocido', user_email: prof?.email || '' };
       });
 
-      const enrichedBizRequests = allBusinessRequests.map((r: any) => {
-        const prof = allProfiles.find(p => (p as any).user_id === r.user_id);
-        return { ...r, user_name: prof?.full_name || 'Desconocido', user_email: prof?.email || '' };
-      });
-
-      const pendingRequests = enrichedRequests.filter((r: any) => r.status === 'pending');
-      const pendingBizRequests = enrichedBizRequests.filter((r: any) => r.status === 'pending');
+      const enrichedRequests = enrichReqs(allPlanRequests);
+      const enrichedBizRequests = enrichReqs(allBusinessRequests);
 
       return {
         businesses: enriched,
@@ -155,94 +176,59 @@ const AdminDashboard = () => {
         totalRevenue,
         monthlyData,
         planRequests: enrichedRequests,
-        pendingRequests,
+        pendingRequests: enrichedRequests.filter((r: any) => r.status === 'pending'),
         businessRequests: enrichedBizRequests,
-        pendingBizRequests,
+        pendingBizRequests: enrichedBizRequests.filter((r: any) => r.status === 'pending'),
       };
     },
   });
 
-
+  // Mutations
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from('businesses').delete().eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
-      toast({ title: 'Negocio eliminado' });
-      setDeleteTarget(null);
-    },
-    onError: (err: any) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-      setDeleteTarget(null);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-all-data'] }); toast({ title: 'Negocio eliminado' }); setDeleteTarget(null); },
+    onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); setDeleteTarget(null); },
   });
 
   const approveMutation = useMutation({
     mutationFn: async ({ requestId, action, customEndDate }: { requestId: string; action: 'approved' | 'rejected'; customEndDate?: string }) => {
       const request = data?.planRequests?.find((r: any) => r.id === requestId);
       if (!request) throw new Error('Solicitud no encontrada');
-
       const updates: any = { status: action, approved_at: new Date().toISOString() };
       if (customEndDate) updates.custom_end_date = customEndDate;
-
       const { error: reqError } = await supabase.from('plan_requests').update(updates).eq('id', requestId);
       if (reqError) throw reqError;
-
       if (action === 'approved') {
-        const endDate = customEndDate
-          ? new Date(customEndDate)
-          : new Date(Date.now() + (request as any).months * 30 * 24 * 60 * 60 * 1000);
-
-        const { error: profError } = await supabase
-          .from('profiles')
-          .update({
-            plan_type: (request as any).plan_type,
-            subscription_status: 'active',
-            subscription_ends_at: endDate.toISOString(),
-            trial_ends_at: null,
-          })
-          .eq('user_id', (request as any).user_id);
+        const endDate = customEndDate ? new Date(customEndDate) : new Date(Date.now() + (request as any).months * 30 * 24 * 60 * 60 * 1000);
+        const { error: profError } = await supabase.from('profiles').update({
+          plan_type: (request as any).plan_type, subscription_status: 'active',
+          subscription_ends_at: endDate.toISOString(), trial_ends_at: null,
+        }).eq('user_id', (request as any).user_id);
         if (profError) throw profError;
       }
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
-      toast({ title: 'Solicitud procesada' });
-    },
-    onError: (err: any) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-all-data'] }); toast({ title: 'Solicitud procesada' }); },
+    onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); },
   });
 
   const approveBizRequestMutation = useMutation({
     mutationFn: async ({ requestId, action }: { requestId: string; action: 'approved' | 'rejected' }) => {
-      const { data, error } = await supabase.functions.invoke('approve-business-request', {
-        body: { request_id: requestId, action },
-      });
+      const { data, error } = await supabase.functions.invoke('approve-business-request', { body: { request_id: requestId, action } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
-      toast({ title: 'Solicitud procesada' });
-    },
-    onError: (err: any) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-all-data'] }); toast({ title: 'Solicitud procesada' }); },
+    onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); },
   });
 
   const openEditBiz = async (biz: any) => {
     setEditBiz(biz);
     setEditName(biz.name);
     setEditType(biz.business_type || 'store');
-    const { data: branchData } = await supabase
-      .from('branches')
-      .select('*')
-      .eq('business_id', biz.id)
-      .order('is_main', { ascending: false })
-      .order('name');
+    const { data: branchData } = await supabase.from('branches').select('*').eq('business_id', biz.id).order('is_main', { ascending: false }).order('name');
     setEditBranches(branchData || []);
   };
 
@@ -251,14 +237,8 @@ const AdminDashboard = () => {
       const { error } = await supabase.from('businesses').update({ name, business_type, is_active } as any).eq('id', id);
       if (error) throw error;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
-      toast({ title: 'Negocio actualizado' });
-      setEditBiz(null);
-    },
-    onError: (err: any) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-all-data'] }); toast({ title: 'Negocio actualizado' }); setEditBiz(null); },
+    onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); },
   });
 
   const deleteBranchMutation = useMutation({
@@ -269,13 +249,9 @@ const AdminDashboard = () => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-all-data'] });
       setEditBranches(prev => prev.filter(b => b.id !== deleteBranchTarget?.id));
-      toast({ title: 'Sucursal eliminada' });
-      setDeleteBranchTarget(null);
+      toast({ title: 'Sucursal eliminada' }); setDeleteBranchTarget(null);
     },
-    onError: (err: any) => {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-      setDeleteBranchTarget(null);
-    },
+    onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); setDeleteBranchTarget(null); },
   });
 
   const getPlanLabel = (plan: string | null) => {
@@ -284,75 +260,39 @@ const AdminDashboard = () => {
     return 'Gratuito';
   };
 
-  const filtered = useMemo(() => {
+  // Filtered + sorted data
+  const filteredBiz = useMemo(() => {
     let list = data?.businesses || [];
-    const q = search.toLowerCase().trim();
-    if (q) list = list.filter((b) => b.name.toLowerCase().includes(q) || b.owner_name.toLowerCase().includes(q) || b.owner_email.toLowerCase().includes(q));
-    if (bizFilterStatus !== 'all') list = list.filter((b) => bizFilterStatus === 'active' ? b.is_active !== false : b.is_active === false);
-    if (bizFilterPlan !== 'all') list = list.filter((b) => b.owner_plan === bizFilterPlan);
-    const sorted = [...list].sort((a, b) => {
-      let va: any, vb: any;
-      switch (bizSortKey) {
-        case 'branch_count': case 'product_count': va = Number(a[bizSortKey]); vb = Number(b[bizSortKey]); break;
-        case 'created_at': va = new Date(a.created_at).getTime(); vb = new Date(b.created_at).getTime(); break;
-        case 'is_active': va = a.is_active !== false ? 1 : 0; vb = b.is_active !== false ? 1 : 0; break;
-        default: va = (a[bizSortKey] || '').toString().toLowerCase(); vb = (b[bizSortKey] || '').toString().toLowerCase(); break;
-      }
-      if (va < vb) return bizSortDir === 'asc' ? -1 : 1;
-      if (va > vb) return bizSortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
-    return sorted;
-  }, [data?.businesses, search, bizFilterStatus, bizFilterPlan, bizSortKey, bizSortDir]);
+    const q = bizSearch.toLowerCase().trim();
+    if (q) list = list.filter(b => b.name.toLowerCase().includes(q) || b.owner_name.toLowerCase().includes(q) || b.owner_email.toLowerCase().includes(q));
+    if (bizFilterStatus !== 'all') list = list.filter(b => bizFilterStatus === 'active' ? b.is_active !== false : b.is_active === false);
+    if (bizFilterPlan !== 'all') list = list.filter(b => b.owner_plan === bizFilterPlan);
+    return sortData(list, bizSort.key, bizSort.dir, ['branch_count', 'product_count'], ['created_at']);
+  }, [data?.businesses, bizSearch, bizFilterStatus, bizFilterPlan, bizSort.key, bizSort.dir]);
 
-  const filteredPlanRequests = useMemo(() => {
+  const filteredPlanReqs = useMemo(() => {
     let list = data?.planRequests || [];
     const q = reqSearch.toLowerCase().trim();
     if (q) list = list.filter((r: any) => r.user_name.toLowerCase().includes(q) || r.user_email.toLowerCase().includes(q));
     if (reqFilterStatus !== 'all') list = list.filter((r: any) => r.status === reqFilterStatus);
-    const sorted = [...list].sort((a: any, b: any) => {
-      let va: any, vb: any;
-      switch (reqSortKey) {
-        case 'months': case 'total_amount': va = Number(a[reqSortKey]); vb = Number(b[reqSortKey]); break;
-        case 'created_at': va = new Date(a.created_at).getTime(); vb = new Date(b.created_at).getTime(); break;
-        default: va = (a[reqSortKey] || '').toString().toLowerCase(); vb = (b[reqSortKey] || '').toString().toLowerCase(); break;
-      }
-      if (va < vb) return reqSortDir === 'asc' ? -1 : 1;
-      if (va > vb) return reqSortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
-    return sorted;
-  }, [data?.planRequests, reqSearch, reqFilterStatus, reqSortKey, reqSortDir]);
+    return sortData(list, reqSort.key, reqSort.dir, ['months', 'total_amount'], ['created_at']);
+  }, [data?.planRequests, reqSearch, reqFilterStatus, reqSort.key, reqSort.dir]);
 
-  const filteredBizRequests = useMemo(() => {
+  const filteredBizReqs = useMemo(() => {
     let list = data?.businessRequests || [];
     const q = bizReqSearch.toLowerCase().trim();
     if (q) list = list.filter((r: any) => r.user_name.toLowerCase().includes(q) || r.user_email.toLowerCase().includes(q) || (r.business_name || r.branch_name || '').toLowerCase().includes(q));
     if (bizReqFilterStatus !== 'all') list = list.filter((r: any) => r.status === bizReqFilterStatus);
     if (bizReqFilterType !== 'all') list = list.filter((r: any) => r.request_type === bizReqFilterType);
-    const sorted = [...list].sort((a: any, b: any) => {
-      let va: any, vb: any;
-      switch (bizReqSortKey) {
-        case 'created_at': va = new Date(a.created_at).getTime(); vb = new Date(b.created_at).getTime(); break;
-        case 'name': va = (a.business_name || a.branch_name || '').toLowerCase(); vb = (b.business_name || b.branch_name || '').toLowerCase(); break;
-        default: va = (a[bizReqSortKey] || '').toString().toLowerCase(); vb = (b[bizReqSortKey] || '').toString().toLowerCase(); break;
-      }
-      if (va < vb) return bizReqSortDir === 'asc' ? -1 : 1;
-      if (va > vb) return bizReqSortDir === 'asc' ? 1 : -1;
-      return 0;
-    });
-    return sorted;
-  }, [data?.businessRequests, bizReqSearch, bizReqFilterStatus, bizReqFilterType, bizReqSortKey, bizReqSortDir]);
+    return sortData(list, bizReqSort.key, bizReqSort.dir, [], ['created_at']);
+  }, [data?.businessRequests, bizReqSearch, bizReqFilterStatus, bizReqFilterType, bizReqSort.key, bizReqSort.dir]);
 
-  // Sortable header helper
-  const SortHead = ({ label, sortKey: sk, currentKey, currentDir, onToggle, className }: { label: string; sortKey: string; currentKey: string; currentDir: SortDir; onToggle: (k: any) => void; className?: string }) => (
-    <TableHead className={`cursor-pointer select-none hover:text-foreground text-[11px] uppercase tracking-wide ${className || ''}`} onClick={() => onToggle(sk)}>
-      <span className="inline-flex items-center gap-1">
-        {label}
-        {currentKey === sk ? (currentDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}
-      </span>
-    </TableHead>
-  );
+  if (isLoading) {
+    return (
+      <AppLayout title="Panel de Administración">
+        <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      </AppLayout>
+    );
   }
 
   const kpiItems = [
@@ -362,36 +302,46 @@ const AdminDashboard = () => {
     { title: 'Ingresos', value: `$${(data?.totalRevenue || 0).toLocaleString('es-ES', { minimumFractionDigits: 2 })}`, icon: DollarSign, sub: 'total facturado' },
   ];
 
+  const statusBadge = (status: string) => (
+    <Badge variant={status === 'approved' ? 'default' : status === 'rejected' ? 'destructive' : 'secondary'} className="text-[11px]">
+      {status === 'approved' ? 'Aprobado' : status === 'rejected' ? 'Rechazado' : 'Pendiente'}
+    </Badge>
+  );
+
+  // Filter bar component
+  const FilterBar = ({ children }: { children: React.ReactNode }) => (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">{children}</div>
+  );
+
+  const SearchInput = ({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder: string }) => (
+    <div className="relative flex-1 max-w-xs">
+      <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+      <Input placeholder={placeholder} value={value} onChange={(e) => onChange(e.target.value)} className="pl-8 h-9 text-sm" />
+    </div>
+  );
+
+  const ResultCount = ({ count, label = 'resultado' }: { count: number; label?: string }) => (
+    <span className="text-xs text-muted-foreground ml-auto">{count} {label}{count !== 1 ? 's' : ''}</span>
+  );
+
   return (
     <AppLayout title="Panel de Administración">
       <div className="space-y-6">
         <Tabs defaultValue="overview" className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="overflow-x-auto">
             <TabsList className="bg-muted/60">
-              <TabsTrigger value="overview" className="gap-1.5 text-xs">
-                <Activity className="h-3.5 w-3.5" /> Resumen
-              </TabsTrigger>
-              <TabsTrigger value="businesses" className="gap-1.5 text-xs">
-                <Store className="h-3.5 w-3.5" /> Negocios
-              </TabsTrigger>
-              <TabsTrigger value="stats" className="gap-1.5 text-xs">
-                <BarChart3 className="h-3.5 w-3.5" /> Estadísticas
-              </TabsTrigger>
+              <TabsTrigger value="overview" className="gap-1.5 text-xs"><Activity className="h-3.5 w-3.5" /> Resumen</TabsTrigger>
+              <TabsTrigger value="businesses" className="gap-1.5 text-xs"><Store className="h-3.5 w-3.5" /> Negocios</TabsTrigger>
+              <TabsTrigger value="stats" className="gap-1.5 text-xs"><BarChart3 className="h-3.5 w-3.5" /> Estadísticas</TabsTrigger>
               <TabsTrigger value="requests" className="gap-1.5 text-xs">
-                <FileText className="h-3.5 w-3.5" /> Solicitudes Planes
-                {(data?.pendingRequests?.length || 0) > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{data?.pendingRequests?.length}</Badge>
-                )}
+                <FileText className="h-3.5 w-3.5" /> Sol. Planes
+                {(data?.pendingRequests?.length || 0) > 0 && <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{data?.pendingRequests?.length}</Badge>}
               </TabsTrigger>
               <TabsTrigger value="biz-requests" className="gap-1.5 text-xs">
-                <Building2 className="h-3.5 w-3.5" /> Solicitudes Negocios
-                {(data?.pendingBizRequests?.length || 0) > 0 && (
-                  <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{data?.pendingBizRequests?.length}</Badge>
-                )}
+                <Building2 className="h-3.5 w-3.5" /> Sol. Negocios
+                {(data?.pendingBizRequests?.length || 0) > 0 && <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{data?.pendingBizRequests?.length}</Badge>}
               </TabsTrigger>
-              <TabsTrigger value="offers" className="gap-1.5 text-xs">
-                <Tag className="h-3.5 w-3.5" /> Ofertas
-              </TabsTrigger>
+              <TabsTrigger value="offers" className="gap-1.5 text-xs"><Tag className="h-3.5 w-3.5" /> Ofertas</TabsTrigger>
             </TabsList>
           </div>
 
@@ -411,7 +361,6 @@ const AdminDashboard = () => {
                 </Card>
               ))}
             </div>
-
             <Card className="border-border/60">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-medium">Tendencia de Ingresos</CardTitle>
@@ -423,25 +372,14 @@ const AdminDashboard = () => {
                     <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                     <XAxis dataKey="name" tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                     <YAxis tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
-                    <Tooltip
-                      formatter={(v: number) => `$${v.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`}
-                      contentStyle={{
-                        background: 'hsl(var(--card))',
-                        border: '1px solid hsl(var(--border))',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                      }}
-                    />
+                    <Tooltip formatter={(v: number) => `$${v.toLocaleString('es-ES', { minimumFractionDigits: 2 })}`} contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px', fontSize: '12px' }} />
                     <Area type="monotone" dataKey="ingresos" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.08)" strokeWidth={2} />
                   </AreaChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-
             <Card className="border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Últimos Registros</CardTitle>
-              </CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Últimos Registros</CardTitle></CardHeader>
               <CardContent className="pt-0">
                 <div className="divide-y divide-border/60">
                   {data?.businesses.slice(0, 5).map((b) => (
@@ -450,9 +388,7 @@ const AdminDashboard = () => {
                         <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">{b.name}</p>
-                          <p className="text-[11px] text-muted-foreground truncate">
-                            {b.owner_name} · {format(new Date(b.created_at), "d MMM yyyy", { locale: es })}
-                          </p>
+                          <p className="text-[11px] text-muted-foreground truncate">{b.owner_name} · {format(new Date(b.created_at), "d MMM yyyy", { locale: es })}</p>
                         </div>
                       </div>
                       <Badge variant="outline" className="text-[11px] ml-2 shrink-0">{getPlanLabel(b.owner_plan)}</Badge>
@@ -465,66 +401,58 @@ const AdminDashboard = () => {
 
           {/* BUSINESSES */}
           <TabsContent value="businesses" className="space-y-4 mt-0">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Buscar negocio o dueño..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-9 text-sm" />
-              </div>
+            <FilterBar>
+              <SearchInput value={bizSearch} onChange={setBizSearch} placeholder="Buscar negocio, dueño..." />
               <Select value={bizFilterStatus} onValueChange={setBizFilterStatus}>
-                <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectTrigger className="w-[140px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="all">Estado: Todos</SelectItem>
                   <SelectItem value="active">Activos</SelectItem>
                   <SelectItem value="inactive">Inactivos</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={bizFilterPlan} onValueChange={setBizFilterPlan}>
-                <SelectTrigger className="w-[140px] h-9 text-sm"><SelectValue placeholder="Plan" /></SelectTrigger>
+                <SelectTrigger className="w-[150px] h-9 text-sm"><SelectValue placeholder="Plan" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los planes</SelectItem>
+                  <SelectItem value="all">Plan: Todos</SelectItem>
                   <SelectItem value="free">Gratuito</SelectItem>
                   <SelectItem value="basic">Básico</SelectItem>
                   <SelectItem value="professional">Profesional</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-xs text-muted-foreground ml-auto">{filtered.length} resultado{filtered.length !== 1 ? 's' : ''}</span>
-            </div>
-
+              <ResultCount count={filteredBiz.length} />
+            </FilterBar>
             <Card className="border-border/60">
               <CardContent className="p-0">
-                {filtered.length > 0 ? (
+                {filteredBiz.length > 0 ? (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <SortHead label="Negocio" sortKey="name" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} />
-                          <SortHead label="Dueño" sortKey="owner_name" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} />
-                          <SortHead label="Plan" sortKey="owner_plan" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} />
-                          <SortHead label="Estado" sortKey="is_active" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} className="text-center" />
-                          <SortHead label="Suc." sortKey="branch_count" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} className="text-center" />
-                          <SortHead label="Prod." sortKey="product_count" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} className="text-center" />
+                          <SortHead label="Negocio" sortKey="name" currentKey={bizSort.key} currentDir={bizSort.dir} onToggle={bizSort.toggle} />
+                          <SortHead label="Dueño" sortKey="owner_name" currentKey={bizSort.key} currentDir={bizSort.dir} onToggle={bizSort.toggle} />
+                          <SortHead label="Plan" sortKey="owner_plan" currentKey={bizSort.key} currentDir={bizSort.dir} onToggle={bizSort.toggle} />
+                          <SortHead label="Estado" sortKey="is_active" currentKey={bizSort.key} currentDir={bizSort.dir} onToggle={bizSort.toggle} className="text-center" />
+                          <SortHead label="Suc." sortKey="branch_count" currentKey={bizSort.key} currentDir={bizSort.dir} onToggle={bizSort.toggle} className="text-center" />
+                          <SortHead label="Prod." sortKey="product_count" currentKey={bizSort.key} currentDir={bizSort.dir} onToggle={bizSort.toggle} className="text-center" />
+                          <SortHead label="Fecha" sortKey="created_at" currentKey={bizSort.key} currentDir={bizSort.dir} onToggle={bizSort.toggle} />
                           <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filtered.map((b) => (
+                        {filteredBiz.map((b) => (
                           <TableRow key={b.id}>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <div>
-                                  <span className="text-sm font-medium">{b.name}</span>
-                                  <p className="text-[10px] text-muted-foreground">{format(new Date(b.created_at), "d MMM yy", { locale: es })}</p>
-                                </div>
+                                <span className="text-sm font-medium">{b.name}</span>
                               </div>
                             </TableCell>
                             <TableCell>
                               <p className="text-sm">{b.owner_name}</p>
                               <p className="text-[11px] text-muted-foreground">{b.owner_email}</p>
                             </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[11px]">{getPlanLabel(b.owner_plan)}</Badge>
-                            </TableCell>
+                            <TableCell><Badge variant="outline" className="text-[11px]">{getPlanLabel(b.owner_plan)}</Badge></TableCell>
                             <TableCell className="text-center">
                               <Badge variant={b.is_active !== false ? 'default' : 'secondary'} className="text-[11px]">
                                 {b.is_active !== false ? 'Activo' : 'Inactivo'}
@@ -532,14 +460,11 @@ const AdminDashboard = () => {
                             </TableCell>
                             <TableCell className="text-center text-sm">{b.branch_count}</TableCell>
                             <TableCell className="text-center text-sm">{b.product_count}</TableCell>
+                            <TableCell className="text-[11px] text-muted-foreground">{format(new Date(b.created_at), "d MMM yy", { locale: es })}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditBiz(b)}>
-                                  <Pencil className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget({ id: b.id, name: b.name })}>
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditBiz(b)}><Pencil className="h-3.5 w-3.5" /></Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget({ id: b.id, name: b.name })}><Trash2 className="h-3.5 w-3.5" /></Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -576,11 +501,8 @@ const AdminDashboard = () => {
                 </Card>
               ))}
             </div>
-
             <Card className="border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Registros y Ventas Mensuales</CardTitle>
-              </CardHeader>
+              <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Registros y Ventas Mensuales</CardTitle></CardHeader>
               <CardContent className="pt-0">
                 <ResponsiveContainer width="100%" height={260}>
                   <BarChart data={data?.monthlyData || []} barGap={2}>
@@ -598,71 +520,52 @@ const AdminDashboard = () => {
 
           {/* PLAN REQUESTS */}
           <TabsContent value="requests" className="space-y-4 mt-0">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Buscar usuario..." value={reqSearch} onChange={(e) => setReqSearch(e.target.value)} className="pl-8 h-9 text-sm" />
-              </div>
+            <FilterBar>
+              <SearchInput value={reqSearch} onChange={setReqSearch} placeholder="Buscar usuario..." />
               <Select value={reqFilterStatus} onValueChange={setReqFilterStatus}>
-                <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectTrigger className="w-[150px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="all">Estado: Todos</SelectItem>
                   <SelectItem value="pending">Pendientes</SelectItem>
                   <SelectItem value="approved">Aprobados</SelectItem>
                   <SelectItem value="rejected">Rechazados</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-xs text-muted-foreground ml-auto">{filteredPlanRequests.length} solicitud{filteredPlanRequests.length !== 1 ? 'es' : ''}</span>
-            </div>
-
+              <ResultCount count={filteredPlanReqs.length} label="solicitud" />
+            </FilterBar>
             <Card className="border-border/60">
               <CardContent className="p-0">
-                {filteredPlanRequests.length > 0 ? (
+                {filteredPlanReqs.length > 0 ? (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <SortHead label="Usuario" sortKey="user_name" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
-                          <SortHead label="Plan" sortKey="plan_type" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
-                          <SortHead label="Meses" sortKey="months" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
-                          <SortHead label="Total" sortKey="total_amount" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
-                          <SortHead label="Estado" sortKey="status" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
-                          <SortHead label="Fecha" sortKey="created_at" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
+                          <SortHead label="Usuario" sortKey="user_name" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
+                          <SortHead label="Plan" sortKey="plan_type" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
+                          <SortHead label="Meses" sortKey="months" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
+                          <SortHead label="Total" sortKey="total_amount" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
+                          <SortHead label="Estado" sortKey="status" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
+                          <SortHead label="Fecha" sortKey="created_at" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
                           <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredPlanRequests.map((r: any) => (
+                        {filteredPlanReqs.map((r: any) => (
                           <TableRow key={r.id}>
                             <TableCell>
                               <p className="text-sm font-medium">{r.user_name}</p>
                               <p className="text-[11px] text-muted-foreground">{r.user_email}</p>
                             </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[11px]">{getPlanLabel(r.plan_type)}</Badge>
-                            </TableCell>
+                            <TableCell><Badge variant="outline" className="text-[11px]">{getPlanLabel(r.plan_type)}</Badge></TableCell>
                             <TableCell className="text-sm">{r.months}m</TableCell>
                             <TableCell className="text-sm font-medium">${Number(r.total_amount).toFixed(2)}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={r.status === 'approved' ? 'default' : r.status === 'rejected' ? 'destructive' : 'secondary'}
-                                className="text-[11px]"
-                              >
-                                {r.status === 'approved' ? 'Aprobado' : r.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-[11px] text-muted-foreground">
-                              {format(new Date(r.created_at), "d MMM yy", { locale: es })}
-                            </TableCell>
+                            <TableCell>{statusBadge(r.status)}</TableCell>
+                            <TableCell className="text-[11px] text-muted-foreground">{format(new Date(r.created_at), "d MMM yy", { locale: es })}</TableCell>
                             <TableCell className="text-right">
                               {r.status === 'pending' && (
                                 <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'approved' })}>
-                                    <Check className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'rejected' })}>
-                                    <X className="h-4 w-4" />
-                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'approved' })}><Check className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'rejected' })}><X className="h-4 w-4" /></Button>
                                 </div>
                               )}
                             </TableCell>
@@ -680,48 +583,44 @@ const AdminDashboard = () => {
 
           {/* BUSINESS REQUESTS */}
           <TabsContent value="biz-requests" className="space-y-4 mt-0">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
-              <div className="relative flex-1 max-w-xs">
-                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Buscar solicitante..." value={bizReqSearch} onChange={(e) => setBizReqSearch(e.target.value)} className="pl-8 h-9 text-sm" />
-              </div>
+            <FilterBar>
+              <SearchInput value={bizReqSearch} onChange={setBizReqSearch} placeholder="Buscar solicitante, nombre..." />
               <Select value={bizReqFilterStatus} onValueChange={setBizReqFilterStatus}>
-                <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectTrigger className="w-[150px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="all">Estado: Todos</SelectItem>
                   <SelectItem value="pending">Pendientes</SelectItem>
                   <SelectItem value="approved">Aprobados</SelectItem>
                   <SelectItem value="rejected">Rechazados</SelectItem>
                 </SelectContent>
               </Select>
               <Select value={bizReqFilterType} onValueChange={setBizReqFilterType}>
-                <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectTrigger className="w-[140px] h-9 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="all">Tipo: Todos</SelectItem>
                   <SelectItem value="business">Negocio</SelectItem>
                   <SelectItem value="branch">Sucursal</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-xs text-muted-foreground ml-auto">{filteredBizRequests.length} solicitud{filteredBizRequests.length !== 1 ? 'es' : ''}</span>
-            </div>
-
+              <ResultCount count={filteredBizReqs.length} label="solicitud" />
+            </FilterBar>
             <Card className="border-border/60">
               <CardContent className="p-0">
-                {filteredBizRequests.length > 0 ? (
+                {filteredBizReqs.length > 0 ? (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <SortHead label="Solicitante" sortKey="user_name" currentKey={bizReqSortKey} currentDir={bizReqSortDir} onToggle={toggleBizReqSort} />
-                          <SortHead label="Tipo" sortKey="request_type" currentKey={bizReqSortKey} currentDir={bizReqSortDir} onToggle={toggleBizReqSort} />
-                          <SortHead label="Nombre" sortKey="name" currentKey={bizReqSortKey} currentDir={bizReqSortDir} onToggle={toggleBizReqSort} />
-                          <SortHead label="Estado" sortKey="status" currentKey={bizReqSortKey} currentDir={bizReqSortDir} onToggle={toggleBizReqSort} />
-                          <SortHead label="Fecha" sortKey="created_at" currentKey={bizReqSortKey} currentDir={bizReqSortDir} onToggle={toggleBizReqSort} />
+                          <SortHead label="Solicitante" sortKey="user_name" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
+                          <SortHead label="Tipo" sortKey="request_type" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
+                          <SortHead label="Nombre" sortKey="business_name" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
+                          <SortHead label="Estado" sortKey="status" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
+                          <SortHead label="Fecha" sortKey="created_at" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
                           <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredBizRequests.map((r: any) => (
+                        {filteredBizReqs.map((r: any) => (
                           <TableRow key={r.id}>
                             <TableCell>
                               <p className="text-sm font-medium">{r.user_name}</p>
@@ -733,26 +632,13 @@ const AdminDashboard = () => {
                               </Badge>
                             </TableCell>
                             <TableCell className="text-sm">{r.business_name || r.branch_name}</TableCell>
-                            <TableCell>
-                              <Badge
-                                variant={r.status === 'approved' ? 'default' : r.status === 'rejected' ? 'destructive' : 'secondary'}
-                                className="text-[11px]"
-                              >
-                                {r.status === 'approved' ? 'Aprobado' : r.status === 'rejected' ? 'Rechazado' : 'Pendiente'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-[11px] text-muted-foreground">
-                              {format(new Date(r.created_at), "d MMM yy", { locale: es })}
-                            </TableCell>
+                            <TableCell>{statusBadge(r.status)}</TableCell>
+                            <TableCell className="text-[11px] text-muted-foreground">{format(new Date(r.created_at), "d MMM yy", { locale: es })}</TableCell>
                             <TableCell className="text-right">
                               {r.status === 'pending' && (
                                 <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'approved' })} disabled={approveBizRequestMutation.isPending}>
-                                    <Check className="h-4 w-4" />
-                                  </Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'rejected' })} disabled={approveBizRequestMutation.isPending}>
-                                    <X className="h-4 w-4" />
-                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'approved' })} disabled={approveBizRequestMutation.isPending}><Check className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'rejected' })} disabled={approveBizRequestMutation.isPending}><X className="h-4 w-4" /></Button>
                                 </div>
                               )}
                             </TableCell>
@@ -790,11 +676,9 @@ const AdminDashboard = () => {
 
         {/* Edit Business Dialog */}
         <Dialog open={!!editBiz} onOpenChange={(open) => !open && setEditBiz(null)}>
-          <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogContent className="max-w-lg max-h-[85dvh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Settings className="h-4 w-4" /> Editar Negocio
-              </DialogTitle>
+              <DialogTitle className="flex items-center gap-2"><Settings className="h-4 w-4" /> Editar Negocio</DialogTitle>
               <DialogDescription>Modifica los datos, estado y sucursales del negocio.</DialogDescription>
             </DialogHeader>
             <div className="space-y-5">
@@ -802,26 +686,17 @@ const AdminDashboard = () => {
                 <Label>Nombre</Label>
                 <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
               </div>
-
               <div className="space-y-2">
                 <Label>Tipo de negocio</Label>
                 <Input value={editType} onChange={(e) => setEditType(e.target.value)} placeholder="store, restaurant, etc." />
               </div>
-
               <div className="flex items-center justify-between rounded-lg border border-border p-3">
                 <div>
                   <p className="text-sm font-medium">Estado del negocio</p>
-                  <p className="text-[11px] text-muted-foreground">
-                    {editBiz?.is_active !== false ? 'El negocio está activo' : 'El negocio está desactivado'}
-                  </p>
+                  <p className="text-[11px] text-muted-foreground">{editBiz?.is_active !== false ? 'El negocio está activo' : 'El negocio está desactivado'}</p>
                 </div>
-                <Switch
-                  checked={editBiz?.is_active !== false}
-                  onCheckedChange={(checked) => setEditBiz((prev: any) => prev ? { ...prev, is_active: checked } : null)}
-                />
+                <Switch checked={editBiz?.is_active !== false} onCheckedChange={(checked) => setEditBiz((prev: any) => prev ? { ...prev, is_active: checked } : null)} />
               </div>
-
-              {/* Branches */}
               <div className="space-y-2">
                 <Label>Sucursales ({editBranches.length})</Label>
                 <div className="space-y-2 max-h-48 overflow-y-auto">
@@ -833,38 +708,23 @@ const AdminDashboard = () => {
                           <span className="text-sm font-medium truncate">{br.name}</span>
                           {br.is_main && <Badge variant="secondary" className="text-[10px] ml-1">Principal</Badge>}
                         </div>
-                        {br.address && (
-                          <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1">
-                            <MapPin className="h-3 w-3" /> {br.address}
-                          </p>
-                        )}
+                        {br.address && <p className="text-[11px] text-muted-foreground mt-0.5 flex items-center gap-1"><MapPin className="h-3 w-3" /> {br.address}</p>}
                       </div>
                       {!br.is_main && (
-                        <Button
-                          variant="ghost" size="icon"
-                          className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0"
-                          onClick={() => setDeleteBranchTarget({ id: br.id, name: br.name })}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10 shrink-0" onClick={() => setDeleteBranchTarget({ id: br.id, name: br.name })}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>
                   ))}
-                  {editBranches.length === 0 && (
-                    <p className="text-sm text-muted-foreground py-2 text-center">Sin sucursales</p>
-                  )}
+                  {editBranches.length === 0 && <p className="text-sm text-muted-foreground py-2 text-center">Sin sucursales</p>}
                 </div>
               </div>
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setEditBiz(null)}>Cancelar</Button>
               <Button
-                onClick={() => editBiz && updateBizMutation.mutate({
-                  id: editBiz.id,
-                  name: editName.trim(),
-                  business_type: editType.trim(),
-                  is_active: editBiz.is_active !== false,
-                })}
+                onClick={() => editBiz && updateBizMutation.mutate({ id: editBiz.id, name: editName.trim(), business_type: editType.trim(), is_active: editBiz.is_active !== false })}
                 disabled={!editName.trim() || updateBizMutation.isPending}
               >
                 {updateBizMutation.isPending ? 'Guardando...' : 'Guardar cambios'}
@@ -878,13 +738,11 @@ const AdminDashboard = () => {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>¿Eliminar sucursal "{deleteBranchTarget?.name}"?</AlertDialogTitle>
-              <AlertDialogDescription>Se eliminarán todos los datos asociados a esta sucursal (stock, ventas, movimientos).</AlertDialogDescription>
+              <AlertDialogDescription>Se eliminarán todos los datos asociados a esta sucursal.</AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteBranchTarget && deleteBranchMutation.mutate(deleteBranchTarget.id)}>
-                Eliminar
-              </AlertDialogAction>
+              <AlertDialogAction onClick={() => deleteBranchTarget && deleteBranchMutation.mutate(deleteBranchTarget.id)}>Eliminar</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
