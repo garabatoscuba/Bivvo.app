@@ -1,11 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
   ShoppingCart, Wrench, Package, DollarSign, Clock, TrendingUp,
-  LogOut, Trophy, AlertTriangle,
+  LogOut, Trophy, AlertTriangle, Sun, AlertCircle, ThumbsUp,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -18,6 +18,29 @@ import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { DailySalaryBreakdown } from '@/hooks/useDailySalary';
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
+
+const DAY_KEYS = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+
+function getArrivalMessage(aperturaAt: string, schedule: any): { text: string; icon: 'early' | 'ontime' | 'late' } | null {
+  if (!schedule) return null;
+  const arrival = new Date(aperturaAt);
+  const dayKey = DAY_KEYS[arrival.getDay()];
+  const daySchedule = schedule[dayKey];
+  if (!daySchedule?.enabled || !daySchedule?.open) return null;
+
+  const [openH, openM] = daySchedule.open.split(':').map(Number);
+  const scheduledMs = openH * 60 + openM;
+  const arrivalMs = arrival.getHours() * 60 + arrival.getMinutes();
+  const diff = scheduledMs - arrivalMs; // positive = early
+
+  if (diff >= 10) {
+    return { text: `¡Llegaste ${diff} min temprano! Tienes tiempo para organizarte antes de abrir.`, icon: 'early' };
+  } else if (diff >= 0) {
+    return { text: 'Llegaste raspando. Lo ideal es llegar 10 minutos antes para estar listo para la hora de apertura.', icon: 'ontime' };
+  } else {
+    return { text: `Llegaste ${Math.abs(diff)} min tarde. Intenta llegar al menos 10 minutos antes.`, icon: 'late' };
+  }
+}
 
 interface MyEmploymentDashboardProps {
   businessId: string;
@@ -57,6 +80,42 @@ const MyEmploymentDashboard = ({
   const entryTime = myJornada?.apertura_at
     ? new Date(myJornada.apertura_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' })
     : '--:--';
+
+  // Welcome message (shows once per jornada)
+  const [welcomeMsg, setWelcomeMsg] = useState<{ text: string; icon: 'early' | 'ontime' | 'late' } | null>(null);
+  const shownJornadaRef = useRef<string | null>(null);
+
+  const { data: branchSchedule } = useQuery({
+    queryKey: ['branch-schedule', branchId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('store_settings')
+        .select('schedule')
+        .eq('branch_id', branchId)
+        .maybeSingle();
+      return data?.schedule ?? null;
+    },
+    enabled: !!branchId,
+    staleTime: Infinity,
+  });
+
+  useEffect(() => {
+    if (!jornadaActiva || !myJornada?.id || !myJornada?.apertura_at || !branchSchedule) return;
+    if (shownJornadaRef.current === myJornada.id) return;
+    const storageKey = `welcome_shown_${myJornada.id}`;
+    if (sessionStorage.getItem(storageKey)) {
+      shownJornadaRef.current = myJornada.id;
+      return;
+    }
+    const msg = getArrivalMessage(myJornada.apertura_at, branchSchedule);
+    if (msg) {
+      setWelcomeMsg(msg);
+      shownJornadaRef.current = myJornada.id;
+      sessionStorage.setItem(storageKey, '1');
+      const timer = setTimeout(() => setWelcomeMsg(null), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [jornadaActiva, myJornada?.id, myJornada?.apertura_at, branchSchedule]);
 
   // Last 7 days sales
   const { data: weekSales = [] } = useQuery({
@@ -162,6 +221,28 @@ const MyEmploymentDashboard = ({
 
   return (
     <div className="space-y-3">
+      {/* Welcome message */}
+      {welcomeMsg && (
+        <div
+          className={`flex items-start gap-3 rounded-lg border px-4 py-3 text-sm animate-in fade-in slide-in-from-top-2 duration-500 ${
+            welcomeMsg.icon === 'early'
+              ? 'bg-primary/5 border-primary/20 text-primary'
+              : welcomeMsg.icon === 'ontime'
+              ? 'bg-warning/10 border-warning/30 text-warning-foreground'
+              : 'bg-destructive/5 border-destructive/20 text-destructive'
+          }`}
+        >
+          {welcomeMsg.icon === 'early' ? (
+            <ThumbsUp className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          ) : welcomeMsg.icon === 'ontime' ? (
+            <Sun className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          ) : (
+            <AlertCircle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+          )}
+          <p className="leading-snug">{welcomeMsg.text}</p>
+        </div>
+      )}
+
       {/* Active team */}
       {businessId && (
         <EquipoActivoSection
