@@ -28,6 +28,7 @@ import {
 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import PerformanceWidget from '@/components/dashboard/PerformanceWidget';
+import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 
 const PERIOD_OPTIONS: {value: Period;label: string;icon: typeof Calendar;}[] = [
 { value: 'today', label: 'Hoy', icon: Calendar },
@@ -75,16 +76,15 @@ const Dashboard = () => {
   const [newBizType, setNewBizType] = useState('store');
   const [creatingBiz, setCreatingBiz] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
-  const [selectedCountry, setSelectedCountry] = useState('');
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
 
-  // Show welcome dialog for first-time users (no country set)
+  // Show welcome dialog for first-time users (onboarding not completed)
   useEffect(() => {
     if (!profile?.user_id) return;
-    if (!profile.country) {
+    if (!profile.country || !(profile as any).onboarding_completed) {
       setShowWelcome(true);
     }
-  }, [profile?.user_id, profile?.country]);
+  }, [profile?.user_id, profile?.country, (profile as any)?.onboarding_completed]);
 
   // Show popup reactively when plan changes from free to paid/trial
   useEffect(() => {
@@ -427,71 +427,17 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Welcome Dialog for first-time users — requires country */}
-      <Dialog open={showWelcome} onOpenChange={() => {}}>
-        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
-          <DialogHeader>
-            <DialogTitle className="text-xl">🎉 ¡Bienvenido a GestorPro!</DialogTitle>
-            <DialogDescription className="text-base pt-2">
-              Tu herramienta todo-en-uno para gestionar tu negocio. Primero, dinos en qué parte del mundo te encuentras.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">¿Dónde te encuentras?</label>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { value: 'cuba', label: '🇨🇺 Cuba' },
-                  { value: 'usa', label: '🇺🇸 Estados Unidos' },
-                  { value: 'americas', label: '🌎 Américas' },
-                  { value: 'europe', label: '🇪🇺 Europa' },
-                  { value: 'asia', label: '🌏 Asia' },
-                  { value: 'africa', label: '🌍 África' },
-                ].map(opt => (
-                  <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => setSelectedCountry(opt.value)}
-                    className={`flex items-center justify-center rounded-lg border p-3 text-sm font-medium transition-colors ${
-                      selectedCountry === opt.value
-                        ? 'border-primary bg-primary/10 ring-1 ring-primary text-foreground'
-                        : 'hover:bg-muted/50 text-muted-foreground'
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="rounded-lg border bg-muted/50 p-3 space-y-2">
-              <p className="text-sm font-medium">Primeros pasos:</p>
-              <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
-                <li>📦 Agrega tus productos desde <strong>Inventario</strong></li>
-                <li>🛒 Realiza tu primera venta en el <strong>Punto de Venta</strong></li>
-                <li>📊 Consulta tus métricas en el <strong>Dashboard</strong></li>
-                <li>⚙️ Personaliza tu negocio en <strong>Ajustes</strong></li>
-              </ol>
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Empiezas con un plan gratuito. Puedes probar planes superiores por 7 días sin compromiso desde la sección de <strong>Planes</strong>.
-            </p>
-          </div>
-          <DialogFooter>
-            <DialogButton
-              className="w-full"
-              disabled={!selectedCountry}
-              onClick={async () => {
-                if (!selectedCountry || !profile?.user_id) return;
-                await supabase.from('profiles').update({ country: selectedCountry } as any).eq('user_id', profile.user_id);
-                setShowWelcome(false);
-                window.location.reload();
-              }}
-            >
-              {selectedCountry ? '¡Empezar!' : 'Selecciona tu ubicación'}
-            </DialogButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Onboarding Wizard for first-time users */}
+      {showWelcome && profile && (
+        <OnboardingWizard
+          open={showWelcome}
+          profile={{
+            user_id: profile.user_id,
+            business_id: profile.business_id,
+            country: profile.country,
+          }}
+        />
+      )}
 
       {/* New Plan — Create Business Popup */}
       <Dialog open={newPlanPopup} onOpenChange={setNewPlanPopup}>

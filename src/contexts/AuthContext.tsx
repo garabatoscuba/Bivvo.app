@@ -22,6 +22,7 @@ interface Profile {
   deletion_scheduled_at: string | null;
   user_type: string;
   country: string | null;
+  onboarding_completed: boolean;
 }
 
 interface AuthContextType {
