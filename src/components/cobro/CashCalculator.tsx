@@ -59,7 +59,7 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId, onTipSurplusChan
       const endOfDay = todayStr + 'T23:59:59';
       const { data, error } = await supabase
         .from('sales')
-        .select('id, payment_type, total')
+        .select('id, payment_type, total, cash_amount, transfer_amount')
         .eq('branch_id', branchId!)
         .eq('status', 'completed')
         .gte('created_at', startOfDay)
@@ -93,9 +93,21 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId, onTipSurplusChan
     const serviceTransfer = todayServices.filter(s => s.payment_type === 'transfer').reduce((sum, s) => sum + Number(s.amount), 0);
     const serviceTotal = serviceCash + serviceTransfer;
 
-    const salesCash = todaySales.filter(s => s.payment_type === 'cash').reduce((sum, s) => sum + Number(s.total), 0);
-    const salesTransfer = todaySales.filter(s => s.payment_type === 'transfer').reduce((sum, s) => sum + Number(s.total), 0);
-    const salesTotal = salesCash + salesTransfer;
+    // Include mixed payments: their cash_amount goes to cash, transfer_amount goes to transfer
+    const salesCash = todaySales.reduce((sum, s) => {
+      if (s.payment_type === 'cash') return sum + Number(s.total);
+      if (s.payment_type === 'mixed') return sum + Number((s as any).cash_amount || 0);
+      return sum;
+    }, 0);
+    const salesTransfer = todaySales.reduce((sum, s) => {
+      if (s.payment_type === 'transfer') return sum + Number(s.total);
+      if (s.payment_type === 'mixed') return sum + Number((s as any).transfer_amount || 0);
+      return sum;
+    }, 0);
+    const salesTotal = todaySales.reduce((sum, s) => {
+      if (['cash', 'transfer', 'mixed'].includes(s.payment_type)) return sum + Number(s.total);
+      return sum;
+    }, 0);
 
     const totalAllTransfers = serviceTransfer + salesTransfer;
     const totalExpectedCash = serviceCash + salesCash;
