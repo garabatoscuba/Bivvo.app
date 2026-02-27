@@ -330,6 +330,7 @@ export type Database = {
       }
       businesses: {
         Row: {
+          base_currency: string
           business_type: string
           created_at: string
           id: string
@@ -341,6 +342,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          base_currency?: string
           business_type?: string
           created_at?: string
           id?: string
@@ -352,6 +354,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          base_currency?: string
           business_type?: string
           created_at?: string
           id?: string
@@ -1491,6 +1494,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          onboarding_completed: boolean
           phone: string | null
           plan_type: string
           subscription_ends_at: string | null
@@ -1511,6 +1515,7 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          onboarding_completed?: boolean
           phone?: string | null
           plan_type?: string
           subscription_ends_at?: string | null
@@ -1531,6 +1536,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          onboarding_completed?: boolean
           phone?: string | null
           plan_type?: string
           subscription_ends_at?: string | null
