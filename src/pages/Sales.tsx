@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2, Wrench } from 'lucide-react';
+import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2, Wrench, Search, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { PeriodFilter, type Period } from '@/components/ui/period-filter';
 import { isInPeriod } from '@/lib/periodUtils';
 import AppLayout from '@/components/layout/AppLayout';
@@ -56,6 +56,9 @@ const statusColors: Record<SaleStatus, string> = {
   cancelled: 'bg-destructive/15 text-destructive',
 };
 
+type SortKey = 'created_at' | 'total' | 'sale_number' | 'seller_name' | 'payment_type' | 'status' | 'product_names' | 'item_count' | '_type';
+type SortDir = 'asc' | 'desc';
+
 const Sales = () => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
@@ -81,6 +84,17 @@ const Sales = () => {
   const branchId = effectiveBranchId;
   const { sales, isLoadingSales, useSaleItems, cancelSale, registerPayment } = useSales(branchId);
 
+  // Fetch branch name
+  const { data: branchName } = useQuery({
+    queryKey: ['branch-name', branchId],
+    queryFn: async () => {
+      if (!branchId) return '';
+      const { data } = await supabase.from('branches').select('name').eq('id', branchId).single();
+      return data?.name || '';
+    },
+    enabled: !!branchId,
+  });
+
   // Fetch service entries for the branch
   const { data: serviceEntries = [], isLoading: isLoadingServices } = useQuery({
     queryKey: ['branch-service-entries', branchId, employeeRecord?.business_id, profile?.business_id],
@@ -92,7 +106,6 @@ const Sales = () => {
         .select('*, service_categories(name)')
         .eq('business_id', bizId)
         .eq('branch_id', branchId);
-      // Employee context: only show own services
       if (isEmployeeContext && profile?.user_id) {
         query = query.eq('user_id', profile.user_id);
       }
@@ -110,26 +123,25 @@ const Sales = () => {
         _type: 'service' as const,
         description: s.description,
         user_id: s.user_id,
+        item_count: 1,
+        cash_amount: 0,
+        transfer_amount: 0,
       }));
     },
     enabled: !!branchId && !!(isEmployeeContext ? employeeRecord?.business_id : profile?.business_id),
   });
 
-  // Build seller name map from employees table (avoids RLS issues with profiles)
+  // Build seller name map from employees table
   const { data: sellerNameMap = new Map<string, string>() } = useQuery({
     queryKey: ['seller-name-map', isEmployeeContext ? employeeRecord?.business_id : profile?.business_id],
     queryFn: async () => {
       const bizId = isEmployeeContext ? employeeRecord?.business_id : profile?.business_id;
       if (!bizId) return new Map<string, string>();
-
-      // Get all employees for the business
       const { data: employees } = await supabase
         .from('employees')
         .select('full_name, email')
         .eq('business_id', bizId);
-
       const map = new Map<string, string>();
-
       if (employees?.length) {
         const emails = employees.map(e => e.email).filter(Boolean) as string[];
         if (emails.length) {
@@ -142,27 +154,22 @@ const Sales = () => {
           });
         }
       }
-
-      // Add current user (owner/manager)
       if (profile) {
         if (!map.has(profile.user_id)) {
           map.set(profile.user_id, profile.full_name);
         }
       }
-
       return map;
     },
     enabled: !!(isEmployeeContext ? employeeRecord?.business_id : profile?.business_id),
   });
 
-  // Build seller list for filter dropdown (owner/manager only)
   const sellerList = useMemo(() => {
     return Array.from(sellerNameMap.entries()).map(([userId, name]) => ({ user_id: userId, full_name: name }));
   }, [sellerNameMap]);
 
-  // Merge sales + services into unified list, resolving seller names
+  // Merge sales + services into unified list
   const unifiedEntries = useMemo(() => {
-    // Employee context: filter sales to only their own
     const filteredSales = isEmployeeContext && profile?.user_id
       ? sales.filter((s: any) => s.user_id === profile.user_id)
       : sales;
@@ -185,12 +192,27 @@ const Sales = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   // Filters
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
   const [filterPayment, setFilterPayment] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
   const [metricsPeriod, setMetricsPeriod] = useState<Period>('today');
+
+  // Sorting
+  const [sortKey, setSortKey] = useState<SortKey>('created_at');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
+
+  const toggleSort = useCallback((key: SortKey) => {
+    setSortKey(prev => {
+      if (prev === key) {
+        setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+        return key;
+      }
+      setSortDir('desc');
+      return key;
+    });
+  }, []);
 
   // Payment dialog
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -209,20 +231,46 @@ const Sales = () => {
   const entriesInPeriod = useMemo(() => unifiedEntries.filter((s: any) => s.status !== 'cancelled' && isInPeriod(s.created_at, metricsPeriod)), [unifiedEntries, metricsPeriod]);
   const totalInPeriod = entriesInPeriod.reduce((sum: number, s: any) => sum + Number(s.total), 0);
   const avgTicket = entriesInPeriod.length > 0 ? totalInPeriod / entriesInPeriod.length : 0;
-  const pendingTotal = useMemo(() => unifiedEntries.filter((s: any) => s.status === 'pending').reduce((sum: number, s: any) => sum + (Number(s.total) - Number(s.amount_paid || 0)), 0), [unifiedEntries]);
+  const pendingInPeriod = useMemo(() => unifiedEntries.filter((s: any) => s.status === 'pending' && isInPeriod(s.created_at, metricsPeriod)), [unifiedEntries, metricsPeriod]);
+  const pendingTotal = pendingInPeriod.reduce((sum: number, s: any) => sum + (Number(s.total) - Number(s.amount_paid || 0)), 0);
 
-  // Filtered entries (unified)
+  // Filtered entries (unified) — now also filtered by period, search, and type
   const filteredEntries = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
     return unifiedEntries.filter((s: any) => {
+      // Period filter
+      if (!isInPeriod(s.created_at, metricsPeriod)) return false;
+      // Type filter
+      if (filterType !== 'all' && s._type !== filterType) return false;
       if (filterPayment !== 'all' && s.payment_type !== filterPayment) return false;
       if (filterStatus !== 'all' && s.status !== filterStatus) return false;
       if (filterEmployee !== 'all' && s.user_id !== filterEmployee) return false;
-      const saleDate = format(new Date(s.created_at), 'yyyy-MM-dd');
-      if (dateFrom && saleDate < dateFrom) return false;
-      if (dateTo && saleDate > dateTo) return false;
+      // Search
+      if (q) {
+        const haystack = [s.sale_number, s.product_names, s.seller_name, s.description].filter(Boolean).join(' ').toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
       return true;
     });
-  }, [unifiedEntries, filterPayment, filterStatus, filterEmployee, dateFrom, dateTo]);
+  }, [unifiedEntries, filterType, filterPayment, filterStatus, filterEmployee, searchQuery, metricsPeriod]);
+
+  // Sorted entries
+  const sortedEntries = useMemo(() => {
+    const arr = [...filteredEntries];
+    arr.sort((a, b) => {
+      let va: any, vb: any;
+      switch (sortKey) {
+        case 'created_at': va = new Date(a.created_at).getTime(); vb = new Date(b.created_at).getTime(); break;
+        case 'total': va = Number(a.total); vb = Number(b.total); break;
+        case 'item_count': va = Number(a.item_count || 0); vb = Number(b.item_count || 0); break;
+        default: va = (a[sortKey] || '').toString().toLowerCase(); vb = (b[sortKey] || '').toString().toLowerCase(); break;
+      }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return arr;
+  }, [filteredEntries, sortKey, sortDir]);
 
   const pendingSales = useMemo(() => unifiedEntries.filter((s: any) => s.status === 'pending'), [unifiedEntries]);
 
@@ -236,34 +284,19 @@ const Sales = () => {
   };
   const toggleSelectAll = (entries: any[]) => {
     const allSelected = entries.every(e => selectedIds.has(e.id));
-    if (allSelected) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(entries.map(e => e.id)));
-    }
+    if (allSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(entries.map(e => e.id)));
   };
-  const selectedTotal = useMemo(() => {
-    return filteredEntries.filter(e => selectedIds.has(e.id)).reduce((sum, e) => sum + Number(e.total), 0);
-  }, [filteredEntries, selectedIds]);
-  const selectedCount = useMemo(() => {
-    return filteredEntries.filter(e => selectedIds.has(e.id)).length;
-  }, [filteredEntries, selectedIds]);
+  const selectedTotal = useMemo(() => sortedEntries.filter(e => selectedIds.has(e.id)).reduce((sum, e) => sum + Number(e.total), 0), [sortedEntries, selectedIds]);
+  const selectedCount = useMemo(() => sortedEntries.filter(e => selectedIds.has(e.id)).length, [sortedEntries, selectedIds]);
 
-  const openDetail = (saleId: string) => {
-    setSelectedSaleId(saleId);
-    setSheetOpen(true);
-  };
-
+  const openDetail = (saleId: string) => { setSelectedSaleId(saleId); setSheetOpen(true); };
   const canCancel = isOwner || isManager || isSuperAdmin;
 
   const handleCancel = () => {
     if (!selectedSaleId || !cancelReason.trim()) return;
     cancelSale.mutate({ saleId: selectedSaleId, reason: cancelReason.trim() }, {
-      onSuccess: () => {
-        setSheetOpen(false);
-        setCancelDialogOpen(false);
-        setCancelReason('');
-      },
+      onSuccess: () => { setSheetOpen(false); setCancelDialogOpen(false); setCancelReason(''); },
     });
   };
 
@@ -277,24 +310,53 @@ const Sales = () => {
       paymentAmount: amount,
       total: Number(selectedSale.total),
     }, {
-      onSuccess: () => {
-        setPaymentDialogOpen(false);
-        setPaymentAmount('');
-      },
+      onSuccess: () => { setPaymentDialogOpen(false); setPaymentAmount(''); },
     });
+  };
+
+  // Sortable header component
+  const SortableHead = ({ label, sortKeyName, className }: { label: string; sortKeyName: SortKey; className?: string }) => (
+    <TableHead className={`cursor-pointer select-none hover:text-foreground ${className || ''}`} onClick={() => toggleSort(sortKeyName)}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {sortKey === sortKeyName ? (
+          sortDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-30" />
+        )}
+      </span>
+    </TableHead>
+  );
+
+  // Payment display with mixed breakdown
+  const PaymentDisplay = ({ sale }: { sale: any }) => {
+    if (sale.payment_type === 'mixed' && (Number(sale.cash_amount) > 0 || Number(sale.transfer_amount) > 0)) {
+      return (
+        <div className="space-y-0.5">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${paymentColors.mixed}`}>
+            Mixto
+          </span>
+          <div className="text-[10px] text-muted-foreground leading-tight">
+            ${Number(sale.cash_amount).toFixed(2)} efvo + ${Number(sale.transfer_amount).toFixed(2)} transf
+          </div>
+        </div>
+      );
+    }
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${paymentColors[sale.payment_type as PaymentType]}`}>
+        {paymentLabels[sale.payment_type as PaymentType]}
+      </span>
+    );
   };
 
   const SalesTable = ({ data }: { data: any[] }) => (
     <>
-      {/* Selection summary bar */}
       {selectedCount > 0 && (
         <div className="flex items-center justify-between bg-primary/10 border border-primary/20 rounded-lg px-4 py-2 mb-3">
           <span className="text-sm font-medium">{selectedCount} seleccionado{selectedCount > 1 ? 's' : ''}</span>
           <div className="flex items-center gap-3">
             <span className="text-sm font-bold">Total: ${selectedTotal.toFixed(2)}</span>
-            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-xs h-7">
-              Limpiar
-            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="text-xs h-7">Limpiar</Button>
           </div>
         </div>
       )}
@@ -305,16 +367,9 @@ const Sales = () => {
           <p className="text-center text-muted-foreground py-8">No hay registros para mostrar</p>
         ) : (
           data.map((sale: any) => (
-            <div
-              key={sale.id}
-              className={`border rounded-lg p-3 space-y-2 cursor-pointer ${selectedIds.has(sale.id) ? 'border-primary bg-primary/5' : 'active:bg-accent/50'}`}
-            >
+            <div key={sale.id} className={`border rounded-lg p-3 space-y-2 cursor-pointer ${selectedIds.has(sale.id) ? 'border-primary bg-primary/5' : 'active:bg-accent/50'}`}>
               <div className="flex items-center gap-2">
-                <Checkbox
-                  checked={selectedIds.has(sale.id)}
-                  onCheckedChange={() => toggleSelect(sale.id)}
-                  onClick={(e) => e.stopPropagation()}
-                />
+                <Checkbox checked={selectedIds.has(sale.id)} onCheckedChange={() => toggleSelect(sale.id)} onClick={(e) => e.stopPropagation()} />
                 <div className="flex-1" onClick={() => openDetail(sale.id)}>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
@@ -329,9 +384,7 @@ const Sales = () => {
                   <div className="flex items-center justify-between mt-1">
                     <span className="font-semibold text-base">${Number(sale.total).toFixed(2)}</span>
                     <div className="flex gap-1.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${paymentColors[sale.payment_type as PaymentType]}`}>
-                        {paymentLabels[sale.payment_type as PaymentType]}
-                      </span>
+                      <PaymentDisplay sale={sale} />
                       {sale._type !== 'service' && (
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusColors[sale.status as SaleStatus]}`}>
                           {statusLabels[sale.status as SaleStatus]}
@@ -339,9 +392,8 @@ const Sales = () => {
                       )}
                     </div>
                   </div>
-                  {sale.product_names && (
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">{sale.product_names}</p>
-                  )}
+                  {sale.seller_name && <p className="text-[10px] text-muted-foreground">{sale.seller_name}</p>}
+                  {sale.product_names && <p className="text-xs text-muted-foreground truncate mt-0.5">{sale.product_names}</p>}
                 </div>
               </div>
             </div>
@@ -355,37 +407,29 @@ const Sales = () => {
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">
-                <Checkbox
-                  checked={data.length > 0 && data.every(e => selectedIds.has(e.id))}
-                  onCheckedChange={() => toggleSelectAll(data)}
-                />
+                <Checkbox checked={data.length > 0 && data.every(e => selectedIds.has(e.id))} onCheckedChange={() => toggleSelectAll(data)} />
               </TableHead>
-              <TableHead>Tipo</TableHead>
-              <TableHead>Ref.</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Descripción</TableHead>
-              <TableHead>Pago</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead>Estado</TableHead>
+              <SortableHead label="Tipo" sortKeyName="_type" />
+              <SortableHead label="Ref." sortKeyName="sale_number" />
+              <SortableHead label="Fecha" sortKeyName="created_at" />
+              <SortableHead label="Descripción" sortKeyName="product_names" />
+              <SortableHead label="Empleado" sortKeyName="seller_name" />
+              <SortableHead label="Ítems" sortKeyName="item_count" className="text-center" />
+              <SortableHead label="Pago" sortKeyName="payment_type" />
+              <SortableHead label="Total" sortKeyName="total" className="text-right" />
+              <SortableHead label="Estado" sortKeyName="status" />
               <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {data.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
-                  No hay registros para mostrar
-                </TableCell>
+                <TableCell colSpan={11} className="text-center text-muted-foreground py-8">No hay registros para mostrar</TableCell>
               </TableRow>
             ) : (
               data.map((sale: any) => (
                 <TableRow key={sale.id} className={selectedIds.has(sale.id) ? 'bg-primary/5' : ''}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selectedIds.has(sale.id)}
-                      onCheckedChange={() => toggleSelect(sale.id)}
-                    />
-                  </TableCell>
+                  <TableCell><Checkbox checked={selectedIds.has(sale.id)} onCheckedChange={() => toggleSelect(sale.id)} /></TableCell>
                   <TableCell>
                     {sale._type === 'service' ? (
                       <Badge variant="outline" className="text-[10px] gap-0.5"><Wrench className="h-3 w-3" />Servicio</Badge>
@@ -396,11 +440,9 @@ const Sales = () => {
                   <TableCell className="font-mono text-sm">{sale.sale_number || '—'}</TableCell>
                   <TableCell className="text-sm">{format(new Date(sale.created_at), "dd/MM/yy HH:mm", { locale: es })}</TableCell>
                   <TableCell className="text-sm max-w-[150px] truncate">{sale.product_names || sale.description || '—'}</TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${paymentColors[sale.payment_type as PaymentType]}`}>
-                      {paymentLabels[sale.payment_type as PaymentType]}
-                    </span>
-                  </TableCell>
+                  <TableCell className="text-sm">{sale.seller_name || '—'}</TableCell>
+                  <TableCell className="text-sm text-center">{sale.item_count ?? '—'}</TableCell>
+                  <TableCell><PaymentDisplay sale={sale} /></TableCell>
                   <TableCell className="text-right font-medium">${Number(sale.total).toFixed(2)}</TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[sale.status as SaleStatus]}`}>
@@ -408,9 +450,7 @@ const Sales = () => {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Button variant="ghost" size="icon" onClick={() => openDetail(sale.id)}>
-                      <Eye className="h-4 w-4" />
-                    </Button>
+                    <Button variant="ghost" size="icon" onClick={() => openDetail(sale.id)}><Eye className="h-4 w-4" /></Button>
                   </TableCell>
                 </TableRow>
               ))
@@ -420,9 +460,6 @@ const Sales = () => {
       </div>
     </>
   );
-
-
-
 
   if (!isPrivileged && jornadaLoading) {
     return <AppLayout title="Ventas"><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></AppLayout>;
@@ -476,7 +513,7 @@ const Sales = () => {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-lg md:text-2xl font-bold">${pendingTotal.toFixed(2)}</div>
-            <p className="text-[10px] md:text-xs text-muted-foreground">{pendingSales.length} ventas</p>
+            <p className="text-[10px] md:text-xs text-muted-foreground">{pendingInPeriod.length} ventas</p>
           </CardContent>
         </Card>
       </div>
@@ -489,24 +526,40 @@ const Sales = () => {
         </TabsList>
 
         <TabsContent value="history">
-          {/* Filters */}
+          {/* Search + Filters */}
           <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-3 mb-3 md:mb-4">
-            <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="md:w-40 text-sm" placeholder="Desde" />
-            <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="md:w-40 text-sm" placeholder="Hasta" />
-            <Select value={filterPayment} onValueChange={setFilterPayment}>
-              <SelectTrigger className="md:w-40 text-sm"><SelectValue placeholder="Pago" /></SelectTrigger>
+            <div className="relative col-span-2 md:w-56">
+              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar referencia, descripción, empleado..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9 text-sm"
+              />
+            </div>
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="md:w-36 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Tipo: Todos</SelectItem>
+                <SelectItem value="sale">Venta</SelectItem>
+                <SelectItem value="service">Servicio</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterPayment} onValueChange={setFilterPayment}>
+              <SelectTrigger className="md:w-40 text-sm"><SelectValue placeholder="Método de Pago" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Pago: Todos</SelectItem>
                 <SelectItem value="cash">Efectivo</SelectItem>
                 <SelectItem value="card">Tarjeta</SelectItem>
                 <SelectItem value="transfer">Transferencia</SelectItem>
                 <SelectItem value="credit">Crédito</SelectItem>
+                <SelectItem value="mixed">Mixto</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
               <SelectTrigger className="md:w-40 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
+                <SelectItem value="all">Estado: Todos</SelectItem>
                 <SelectItem value="completed">Completada</SelectItem>
                 <SelectItem value="pending">Pendiente</SelectItem>
                 <SelectItem value="cancelled">Cancelada</SelectItem>
@@ -516,7 +569,7 @@ const Sales = () => {
               <Select value={filterEmployee} onValueChange={setFilterEmployee}>
                 <SelectTrigger className="md:w-44 text-sm"><SelectValue placeholder="Vendedor" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="all">Vendedor: Todos</SelectItem>
                   {sellerList.map((emp: any) => (
                     <SelectItem key={emp.user_id} value={emp.user_id}>{emp.full_name}</SelectItem>
                   ))}
@@ -527,7 +580,7 @@ const Sales = () => {
           {isLoadingSales ? (
             <p className="text-muted-foreground py-8 text-center">Cargando ventas...</p>
           ) : (
-            <SalesTable data={filteredEntries} />
+            <SalesTable data={sortedEntries} />
           )}
         </TabsContent>
 
@@ -565,9 +618,7 @@ const Sales = () => {
                 </div>
                 <div className="text-muted-foreground">Estado</div>
                 <div>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors['completed']}`}>
-                    Completada
-                  </span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors['completed']}`}>Completada</span>
                 </div>
                 {selectedEntry.description && (
                   <>
@@ -588,7 +639,6 @@ const Sales = () => {
 
           {!isServiceDetail && selectedSale && (
             <div className="mt-4 space-y-4">
-              {/* General info */}
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-muted-foreground">Fecha</div>
                 <div>{format(new Date(selectedSale.created_at), "dd/MM/yyyy HH:mm", { locale: es })}</div>
@@ -596,12 +646,14 @@ const Sales = () => {
                 <div>{selectedSale.seller_name}</div>
                 <div className="text-muted-foreground">Cliente</div>
                 <div>{selectedSale.customer_name}</div>
+                {branchName && (
+                  <>
+                    <div className="text-muted-foreground">Sucursal</div>
+                    <div>{branchName}</div>
+                  </>
+                )}
                 <div className="text-muted-foreground">Pago</div>
-                <div>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${paymentColors[selectedSale.payment_type as PaymentType]}`}>
-                    {paymentLabels[selectedSale.payment_type as PaymentType]}
-                  </span>
-                </div>
+                <div><PaymentDisplay sale={selectedSale} /></div>
                 <div className="text-muted-foreground">Estado</div>
                 <div>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[selectedSale.status as SaleStatus]}`}>
@@ -618,7 +670,6 @@ const Sales = () => {
 
               <Separator />
 
-              {/* Items table */}
               <div>
                 <h4 className="font-medium mb-2 text-sm">Productos</h4>
                 {isLoadingItems ? (
@@ -651,7 +702,6 @@ const Sales = () => {
 
               <Separator />
 
-              {/* Summary */}
               <div className="space-y-1 text-sm">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Subtotal</span>
@@ -685,28 +735,23 @@ const Sales = () => {
 
               <Separator />
 
-              {/* Actions */}
               <div className="flex gap-2">
                 {selectedSale.status === 'pending' && (
                   <Button onClick={() => { setPaymentAmount(''); setPaymentDialogOpen(true); }} className="flex-1">
-                    <Banknote className="mr-2 h-4 w-4" />
-                    Registrar pago
+                    <Banknote className="mr-2 h-4 w-4" />Registrar pago
                   </Button>
                 )}
                 {canCancel && selectedSale.status !== 'cancelled' && (
                   <Button variant="destructive" onClick={() => { setCancelReason(''); setCancelDialogOpen(true); }}>
-                    <X className="mr-2 h-4 w-4" />
-                    Cancelar venta
+                    <X className="mr-2 h-4 w-4" />Cancelar venta
                   </Button>
                 )}
               </div>
 
-              {/* Show cancellation reason if cancelled */}
               {selectedSale.status === 'cancelled' && (selectedSale as any).cancellation_reason && (
                 <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-1">
                   <div className="flex items-center gap-2 text-destructive text-sm font-medium">
-                    <AlertTriangle className="h-4 w-4" />
-                    Motivo de cancelación
+                    <AlertTriangle className="h-4 w-4" />Motivo de cancelación
                   </div>
                   <p className="text-sm text-muted-foreground">{(selectedSale as any).cancellation_reason}</p>
                 </div>
@@ -721,25 +766,15 @@ const Sales = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Cancelar venta</DialogTitle>
-            <DialogDescription>
-              Explica el motivo de la cancelación. Los productos se devolverán al inventario automáticamente.
-            </DialogDescription>
+            <DialogDescription>Explica el motivo de la cancelación. Los productos se devolverán al inventario automáticamente.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="cancel-reason">Motivo de cancelación *</Label>
-            <Textarea
-              id="cancel-reason"
-              placeholder="Ej: Error en el cobro, cliente solicitó devolución..."
-              value={cancelReason}
-              onChange={(e) => setCancelReason(e.target.value)}
-              rows={3}
-            />
+            <Textarea id="cancel-reason" placeholder="Ej: Error en el cobro, cliente solicitó devolución..." value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} rows={3} />
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>Volver</Button>
-            <Button variant="destructive" onClick={handleCancel} disabled={!cancelReason.trim() || cancelSale.isPending}>
-              Confirmar cancelación
-            </Button>
+            <Button variant="destructive" onClick={handleCancel} disabled={!cancelReason.trim() || cancelSale.isPending}>Confirmar cancelación</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -749,23 +784,12 @@ const Sales = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Registrar pago</DialogTitle>
-            <DialogDescription>
-              Saldo pendiente: ${selectedSale ? (Number(selectedSale.total) - Number(selectedSale.amount_paid)).toFixed(2) : '0.00'}
-            </DialogDescription>
+            <DialogDescription>Saldo pendiente: ${selectedSale ? (Number(selectedSale.total) - Number(selectedSale.amount_paid)).toFixed(2) : '0.00'}</DialogDescription>
           </DialogHeader>
-          <Input
-            type="number"
-            min="0.01"
-            step="0.01"
-            placeholder="Monto a abonar"
-            value={paymentAmount}
-            onChange={(e) => setPaymentAmount(e.target.value)}
-          />
+          <Input type="number" min="0.01" step="0.01" placeholder="Monto a abonar" value={paymentAmount} onChange={(e) => setPaymentAmount(e.target.value)} />
           <DialogFooter>
             <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
-            <Button onClick={handleRegisterPayment} disabled={registerPayment.isPending}>
-              Confirmar pago
-            </Button>
+            <Button onClick={handleRegisterPayment} disabled={registerPayment.isPending}>Confirmar pago</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
