@@ -346,7 +346,11 @@ const AppSidebar = () => {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link to="/" className="flex items-center">
-          <span className="text-sm font-bold tracking-tight text-foreground">Bivoo</span>
+          <img
+            src={isDark ? "/logo-dark.png" : "/logo-light.png"}
+            alt="Bivoo"
+            className="h-6 w-auto"
+          />
         </Link>
       </SidebarHeader>
 
