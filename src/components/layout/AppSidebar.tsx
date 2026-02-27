@@ -301,6 +301,7 @@ const AppSidebar = () => {
   const superAdminItems = [
     { title: "Panel Admin", url: "/admin", icon: Shield },
     { title: "Usuarios", url: "/admin/users", icon: Users },
+    { title: "Módulos y Plugins", url: "/admin/modules", icon: Settings2 },
   ];
 
   const activeBusiness = userBusinesses.find((b) => b.id === profile?.business_id);
