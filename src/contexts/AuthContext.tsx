@@ -42,6 +42,7 @@ interface AuthContextType {
   isAccountant: boolean;
   isAffiliated: boolean;
   isCuba: boolean;
+  isBivooAccount: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -243,6 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isAccountant: roles.includes('accountant'),
     isAffiliated: profile?.user_type === 'affiliated',
     isCuba: profile?.country === 'cuba',
+    isBivooAccount: profile?.email?.endsWith('@bivoo.app') || false,
   };
 
   return (

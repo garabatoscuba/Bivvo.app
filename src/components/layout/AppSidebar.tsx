@@ -126,6 +126,9 @@ const AppSidebar = () => {
   const isEmployeeCopyShop = (employeeRecord as any)?.businesses?.business_type === "copy_shop";
   const employerName = (employeeRecord as any)?.businesses?.name || null;
   const isPrivileged = isOwner || isManager || isSuperAdmin;
+  const isBivooAccount = profile?.email?.endsWith('@bivoo.app') || false;
+  // Pure sellers and @bivoo.app accounts never see "Mis Negocios"
+  const showBusinessSection = isPrivileged && !isBivooAccount;
 
   // Jornada check for non-privileged employees — gate operational tools
   const { jornadaActiva, jornada: activeJornada } = useJornadaActiva();
@@ -502,8 +505,8 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-        {/* Mis Negocios - owner's businesses */}
-        <SidebarGroup>
+        {/* Mis Negocios - owner's businesses (hidden for pure sellers and @bivoo.app) */}
+        {showBusinessSection && <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
             <span>{activeBusiness?.name || "Mi Negocio"}</span>
             {activeBusiness?.business_type && (
@@ -678,7 +681,7 @@ const AppSidebar = () => {
               </SidebarMenuItem>
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup>}
 
         {!isInstalled && (
           <SidebarGroup>
