@@ -155,14 +155,34 @@ const POS = () => {
   const handlePayment = async (paymentType: PaymentType, amountPaid: number, mixedAmounts?: { cash: number; transfer: number }) => {
     if (!currentBranch) return;
 
+    const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
+    const total = subtotal - discount;
+
+    // Derive cash_amount and transfer_amount for ALL payment types
+    let cashAmount = 0;
+    let transferAmount = 0;
+    if (mixedAmounts) {
+      cashAmount = mixedAmounts.cash;
+      transferAmount = mixedAmounts.transfer;
+    } else if (paymentType === 'cash') {
+      cashAmount = total;
+      transferAmount = 0;
+    } else if (paymentType === 'transfer') {
+      cashAmount = 0;
+      transferAmount = total;
+    } else if (paymentType === 'card') {
+      cashAmount = 0;
+      transferAmount = total;
+    }
+
     await createSale.mutateAsync({
       branchId: currentBranch,
       items: cart,
       paymentType,
       discount,
       amountPaid,
-      cashAmount: mixedAmounts?.cash,
-      transferAmount: mixedAmounts?.transfer,
+      cashAmount,
+      transferAmount,
     });
 
     setPaymentOpen(false);
