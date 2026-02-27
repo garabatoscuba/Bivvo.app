@@ -59,15 +59,21 @@ export const useSales = (branchId?: string | null) => {
             .in('sale_id', saleIds);
 
           const saleProductMap = new Map<string, string>();
+          const saleItemCountMap = new Map<string, number>();
           if (allItems) {
             const grouped: Record<string, string[]> = {};
+            const countMap: Record<string, number> = {};
             for (const item of allItems) {
               if (!grouped[item.sale_id]) grouped[item.sale_id] = [];
+              countMap[item.sale_id] = (countMap[item.sale_id] || 0) + 1;
               const name = (item as any).products?.name;
               if (name) grouped[item.sale_id].push(name);
             }
             for (const [saleId, names] of Object.entries(grouped)) {
               saleProductMap.set(saleId, names.join(', '));
+            }
+            for (const [saleId, count] of Object.entries(countMap)) {
+              saleItemCountMap.set(saleId, count);
             }
           }
 
@@ -76,6 +82,7 @@ export const useSales = (branchId?: string | null) => {
             seller_name: profileMap.get(s.user_id) ?? 'Desconocido',
             customer_name: s.customers?.name ?? 'Público general',
             product_names: saleProductMap.get(s.id) ?? '',
+            item_count: saleItemCountMap.get(s.id) ?? 0,
           }));
 
           // Cache to IndexedDB
