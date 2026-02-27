@@ -59,6 +59,10 @@ import {
   DollarSign,
   Briefcase,
   FileText,
+  TrendingUp,
+  BarChart3,
+  ClipboardList,
+  Wallet,
 } from "lucide-react";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useJornadaActiva } from "@/hooks/useJornadaActiva";
@@ -366,6 +370,7 @@ const AppSidebar = () => {
   const ICON_MAP: Record<string, any> = {
     LayoutDashboard, Package, ShoppingCart, Receipt, Users, Settings,
     CreditCard, ShoppingBag, Wrench, DollarSign, FileText, Store, Shield,
+    TrendingUp, BarChart3, ClipboardList, Wallet,
   };
 
   const businessItems = [
