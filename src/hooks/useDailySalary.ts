@@ -292,7 +292,7 @@ export const useDailySalary = ({
           }
 
           displayPercent = servicePercent;
-          earning += (sharedIncome * (servicePercent / 100)) / activeWorkersCount;
+          earning += sharedIncome * (servicePercent / 100);
           break;
         }
         case 'fixed_plus_sales_percent': {
