@@ -1224,6 +1224,38 @@ export type Database = {
           },
         ]
       }
+      module_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          module_id: string
+          target_id: string
+          target_type: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          module_id: string
+          target_id: string
+          target_type: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          module_id?: string
+          target_id?: string
+          target_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "module_assignments_module_id_fkey"
+            columns: ["module_id"]
+            isOneToOne: false
+            referencedRelation: "platform_modules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_plugin_pricing: {
         Row: {
           availability: string

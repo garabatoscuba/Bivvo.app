@@ -17,8 +17,10 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Package, Puzzle, DollarSign, Plus, Pencil, Loader2, Trash2, Tag, Building2,
+  Package, Puzzle, DollarSign, Plus, Pencil, Loader2, Trash2, Tag, Building2, X, Search, Users, Store,
 } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
 import IconSelector from '@/components/services/IconSelector';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -36,6 +38,14 @@ interface PlatformModule {
   countries: string[];
   is_active: boolean;
   sort_order: number;
+}
+
+interface ModuleAssignment {
+  id: string;
+  module_id: string;
+  target_type: 'user' | 'business';
+  target_id: string;
+  created_at: string;
 }
 
 interface PlatformPlugin {
@@ -112,6 +122,8 @@ const ModulesTab = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<PlatformModule | null>(null);
   const [form, setForm] = useState({ name: '', icon: 'Package', description: '', sidebar_label: '', business_types: ['store'] as string[], countries: [] as string[] });
+  const [assignSearch, setAssignSearch] = useState('');
+  const [assignTab, setAssignTab] = useState<'user' | 'business'>('user');
 
   const { data: modules = [], isLoading } = useQuery({
     queryKey: ['platform-modules'],
@@ -120,6 +132,64 @@ const ModulesTab = () => {
       if (error) throw error;
       return (data || []) as PlatformModule[];
     },
+  });
+
+  // Fetch assignments for current editing module
+  const { data: assignments = [] } = useQuery({
+    queryKey: ['module-assignments', editing?.id],
+    queryFn: async () => {
+      if (!editing?.id) return [];
+      const { data, error } = await supabase.from('module_assignments').select('*').eq('module_id', editing.id);
+      if (error) throw error;
+      return (data || []) as ModuleAssignment[];
+    },
+    enabled: !!editing?.id,
+  });
+
+  // Fetch all profiles for user search
+  const { data: allProfiles = [] } = useQuery({
+    queryKey: ['admin-profiles-for-assign'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').order('full_name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: dialogOpen && !!editing,
+  });
+
+  // Fetch all businesses for business search
+  const { data: allBusinesses = [] } = useQuery({
+    queryKey: ['admin-businesses-for-assign'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('businesses').select('id, name').order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: dialogOpen && !!editing,
+  });
+
+  const addAssignment = useMutation({
+    mutationFn: async ({ target_type, target_id }: { target_type: string; target_id: string }) => {
+      const { error } = await supabase.from('module_assignments').insert({ module_id: editing!.id, target_type, target_id } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['module-assignments', editing?.id] });
+      toast({ title: 'Asignación agregada' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const removeAssignment = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('module_assignments').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['module-assignments', editing?.id] });
+      toast({ title: 'Asignación eliminada' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 
   const saveMutation = useMutation({
@@ -165,13 +235,28 @@ const ModulesTab = () => {
   const openEdit = (m: PlatformModule) => {
     setEditing(m);
     setForm({ name: m.name, icon: m.icon, description: m.description || '', sidebar_label: m.sidebar_label, business_types: m.business_types, countries: m.countries });
+    setAssignSearch('');
     setDialogOpen(true);
   };
 
   const toggleArrayItem = (arr: string[], item: string) =>
     arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item];
 
-  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+  // Filter search results for assignments
+  const assignedUserIds = assignments.filter(a => a.target_type === 'user').map(a => a.target_id);
+  const assignedBizIds = assignments.filter(a => a.target_type === 'business').map(a => a.target_id);
+
+  const filteredUsers = allProfiles.filter(p =>
+    !assignedUserIds.includes(p.user_id) &&
+    (assignSearch === '' || p.full_name.toLowerCase().includes(assignSearch.toLowerCase()) || p.email.toLowerCase().includes(assignSearch.toLowerCase()))
+  );
+
+  const filteredBusinesses = allBusinesses.filter(b =>
+    !assignedBizIds.includes(b.id) &&
+    (assignSearch === '' || b.name.toLowerCase().includes(assignSearch.toLowerCase()))
+  );
+
+
 
   return (
     <div className="space-y-4">
@@ -235,7 +320,7 @@ const ModulesTab = () => {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editing ? 'Editar módulo' : 'Nuevo módulo'}</DialogTitle>
             <DialogDescription>Configura los detalles del módulo.</DialogDescription>
@@ -284,6 +369,103 @@ const ModulesTab = () => {
                 ))}
               </div>
             </div>
+
+            {/* ─── Asignaciones a usuarios / negocios ─── */}
+            {editing && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <Label className="text-sm font-semibold">Asignar a usuarios o negocios específicos</Label>
+                  <p className="text-[11px] text-muted-foreground -mt-1">Si no se asigna a nadie, el módulo estará disponible para todos según su configuración global.</p>
+
+                  {/* Tabs user / business */}
+                  <div className="flex gap-1 rounded-lg bg-muted p-0.5">
+                    <button
+                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${assignTab === 'user' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                      onClick={() => { setAssignTab('user'); setAssignSearch(''); }}
+                    >
+                      <Users className="h-3.5 w-3.5" /> Usuarios
+                    </button>
+                    <button
+                      className={`flex-1 flex items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${assignTab === 'business' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                      onClick={() => { setAssignTab('business'); setAssignSearch(''); }}
+                    >
+                      <Store className="h-3.5 w-3.5" /> Negocios
+                    </button>
+                  </div>
+
+                  {/* Current assignments */}
+                  {assignments.filter(a => a.target_type === assignTab).length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {assignments.filter(a => a.target_type === assignTab).map(a => {
+                        const label = assignTab === 'user'
+                          ? allProfiles.find(p => p.user_id === a.target_id)?.full_name || a.target_id.slice(0, 8)
+                          : allBusinesses.find(b => b.id === a.target_id)?.name || a.target_id.slice(0, 8);
+                        return (
+                          <Badge key={a.id} variant="secondary" className="text-xs gap-1 pr-1">
+                            {label}
+                            <button
+                              className="ml-0.5 rounded-full hover:bg-destructive/20 p-0.5"
+                              onClick={() => removeAssignment.mutate(a.id)}
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </Badge>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Search + add */}
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      value={assignSearch}
+                      onChange={e => setAssignSearch(e.target.value)}
+                      placeholder={assignTab === 'user' ? 'Buscar usuario por nombre o email...' : 'Buscar negocio por nombre...'}
+                      className="pl-8 h-9 text-sm"
+                    />
+                  </div>
+
+                  {assignSearch.trim().length > 0 && (
+                    <ScrollArea className="max-h-36 border rounded-md">
+                      <div className="p-1">
+                        {assignTab === 'user' ? (
+                          filteredUsers.length === 0
+                            ? <p className="text-xs text-muted-foreground text-center py-3">Sin resultados</p>
+                            : filteredUsers.slice(0, 20).map(p => (
+                              <button
+                                key={p.user_id}
+                                className="w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-left"
+                                onClick={() => addAssignment.mutate({ target_type: 'user', target_id: p.user_id })}
+                              >
+                                <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <div className="min-w-0">
+                                  <p className="text-sm font-medium truncate">{p.full_name}</p>
+                                  <p className="text-[11px] text-muted-foreground truncate">{p.email}</p>
+                                </div>
+                              </button>
+                            ))
+                        ) : (
+                          filteredBusinesses.length === 0
+                            ? <p className="text-xs text-muted-foreground text-center py-3">Sin resultados</p>
+                            : filteredBusinesses.slice(0, 20).map(b => (
+                              <button
+                                key={b.id}
+                                className="w-full flex items-center gap-2 rounded-sm px-2 py-1.5 text-sm hover:bg-accent text-left"
+                                onClick={() => addAssignment.mutate({ target_type: 'business', target_id: b.id })}
+                              >
+                                <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                <p className="text-sm font-medium truncate">{b.name}</p>
+                              </button>
+                            ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                  )}
+                </div>
+              </>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
