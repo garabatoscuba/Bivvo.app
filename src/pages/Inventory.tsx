@@ -113,6 +113,7 @@ const Inventory = () => {
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferDirection, setTransferDirection] = useState<'toSale' | 'toWarehouse'>('toSale');
   const [outflowProduct, setOutflowProduct] = useState<Product | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string | null>(null);
 
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
 
@@ -138,8 +139,21 @@ const Inventory = () => {
     const matchesSearch = !search || 
       product.name.toLowerCase().includes(search.toLowerCase()) ||
       product.code.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch && product.status !== 'discontinued';
-  }), [products, search]);
+    if (!matchesSearch || product.status === 'discontinued') return false;
+    
+    if (!activeFilter) return true;
+    
+    const stock = stockMap.get(product.id) || 0;
+    const wStock = warehouseStockMap.get(product.id) || 0;
+    
+    switch (activeFilter) {
+      case 'forSale': return product.status === 'for_sale';
+      case 'warehouse': return wStock > 0;
+      case 'lowStock': return stock <= product.min_stock && stock > 0 && product.status === 'for_sale';
+      case 'outOfStock': return stock <= 0 && product.status === 'for_sale';
+      default: return true;
+    }
+  }), [products, search, activeFilter, stockMap, warehouseStockMap]);
 
   // Group products by category
   const groupedProducts = useMemo(() => {
@@ -166,6 +180,16 @@ const Inventory = () => {
   }, [filteredProducts]);
 
   const [expandedStat, setExpandedStat] = useState<string | null>(null);
+
+  const handleStatClick = (key: string) => {
+    if (activeFilter === key) {
+      setActiveFilter(null);
+      setExpandedStat(null);
+    } else {
+      setActiveFilter(key);
+      setExpandedStat(key);
+    }
+  };
 
   // Stats
   const stats = useMemo(() => {
@@ -461,13 +485,14 @@ const Inventory = () => {
           {/* ─── Products Tab ─── */}
           <TabsContent value="products" className="mt-4 space-y-4">
             {/* Quick stats bar */}
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-4 gap-1.5">
               <StatPill 
                 icon={Package} 
                 label="En venta" 
                 value={stats.forSale} 
+                active={activeFilter === 'forSale'}
                 expanded={expandedStat === 'forSale'}
-                onToggle={() => setExpandedStat(expandedStat === 'forSale' ? null : 'forSale')}
+                onToggle={() => handleStatClick('forSale')}
                 details={[
                   { label: 'Unidades en venta', value: `${stats.totalStock}` },
                   { label: 'Valor inventario', value: `$${stats.totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
@@ -477,8 +502,9 @@ const Inventory = () => {
                 icon={BarChart3} 
                 label="Almacén" 
                 value={stats.warehouse}
+                active={activeFilter === 'warehouse'}
                 expanded={expandedStat === 'warehouse'}
-                onToggle={() => setExpandedStat(expandedStat === 'warehouse' ? null : 'warehouse')}
+                onToggle={() => handleStatClick('warehouse')}
                 details={[
                   { label: 'Unidades en almacén', value: `${stats.totalWarehouseStock}` },
                   { label: 'Costo total', value: `$${stats.costValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
@@ -489,8 +515,9 @@ const Inventory = () => {
                 label="Stock bajo" 
                 value={stats.lowStock} 
                 alert={stats.lowStock > 0}
+                active={activeFilter === 'lowStock'}
                 expanded={expandedStat === 'lowStock'}
-                onToggle={() => setExpandedStat(expandedStat === 'lowStock' ? null : 'lowStock')}
+                onToggle={() => handleStatClick('lowStock')}
                 details={[
                   { label: 'Requieren reabastecimiento pronto', value: '' },
                 ]}
@@ -500,8 +527,9 @@ const Inventory = () => {
                 label="Sin stock" 
                 value={stats.outOfStock} 
                 alert={stats.outOfStock > 0}
+                active={activeFilter === 'outOfStock'}
                 expanded={expandedStat === 'outOfStock'}
-                onToggle={() => setExpandedStat(expandedStat === 'outOfStock' ? null : 'outOfStock')}
+                onToggle={() => handleStatClick('outOfStock')}
                 details={[
                   { label: 'No disponibles para venta', value: '' },
                 ]}
@@ -997,32 +1025,41 @@ interface StatPillProps {
   label: string;
   value: number;
   alert?: boolean;
+  active?: boolean;
   expanded?: boolean;
   onToggle?: () => void;
   details?: { label: string; value: string }[];
 }
 
-const StatPill = ({ icon: Icon, label, value, alert, expanded, onToggle, details }: StatPillProps) => (
+const StatPill = ({ icon: Icon, label, value, alert, active, expanded, onToggle, details }: StatPillProps) => (
   <div className="flex flex-col min-w-0">
     <button
       type="button"
       onClick={onToggle}
       className={cn(
-        'flex flex-col items-center rounded-lg border p-1.5 text-center transition-colors w-full',
-        alert && 'border-warning/50 bg-warning/5',
-        expanded && !alert && 'border-primary/50 bg-primary/5',
+        'flex flex-col items-center rounded-lg border p-2 text-center transition-all w-full gap-0.5',
+        alert && !active && 'border-warning/40 bg-warning/5',
+        alert && active && 'border-warning bg-warning/15',
+        !alert && active && 'border-primary bg-primary/10',
+        !alert && !active && 'border-border hover:border-muted-foreground/30',
       )}
     >
-      <Icon className={cn('h-3 w-3 mb-0.5', alert ? 'text-warning' : 'text-muted-foreground')} />
-      <span className="text-sm font-bold leading-none">{value}</span>
-      <span className="text-[8px] text-muted-foreground mt-0.5 leading-tight truncate w-full">{label}</span>
+      <Icon className={cn('h-3.5 w-3.5', alert ? 'text-warning' : active ? 'text-primary' : 'text-muted-foreground')} />
+      <span className={cn(
+        'text-lg font-bold leading-none',
+        alert ? 'text-warning' : active ? 'text-primary' : 'text-foreground',
+      )}>{value}</span>
+      <span className={cn(
+        'text-[10px] leading-tight truncate w-full',
+        active ? 'text-foreground/80 font-medium' : 'text-muted-foreground',
+      )}>{label}</span>
     </button>
     {expanded && details && details.length > 0 && (
-      <div className="mt-1 rounded-md border bg-muted/30 px-1.5 py-1 space-y-0.5">
+      <div className="mt-1 rounded-md border bg-muted/40 px-2 py-1.5 space-y-0.5">
         {details.map((d, i) => (
           <div key={i} className="flex justify-between items-center gap-1">
-            <span className="text-[9px] text-muted-foreground truncate">{d.label}</span>
-            {d.value && <span className="text-[9px] font-semibold shrink-0">{d.value}</span>}
+            <span className="text-[10px] text-muted-foreground truncate">{d.label}</span>
+            {d.value && <span className="text-[10px] font-semibold text-foreground shrink-0">{d.value}</span>}
           </div>
         ))}
       </div>
