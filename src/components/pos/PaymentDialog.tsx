@@ -20,6 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import { CreditCard, Banknote, Smartphone, Loader2, CheckCircle } from 'lucide-react';
 import type { CartItem, PaymentType } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { RotateCcw } from 'lucide-react';
 
 interface PaymentDialogProps {
   open: boolean;
@@ -69,7 +70,7 @@ export const PaymentDialog = ({
   };
 
   // Quick cash amounts
-  const quickAmounts = [20, 50, 100, 200, 500];
+  const quickAmounts = [0, 1, 5, 10, 20, 50, 100, 200, 500, 1000];
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,8 +142,7 @@ export const PaymentDialog = ({
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={() => setAmountPaid(amount.toString())}>
-
+                onClick={() => setAmountPaid((prev) => (Number(prev) + amount).toString())}>
                       ${amount}
                     </Button>
               )}
@@ -151,8 +151,14 @@ export const PaymentDialog = ({
                 variant="outline"
                 size="sm"
                 onClick={() => setAmountPaid(total.toFixed(2))}>
-
                     Exacto
+                  </Button>
+                  <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setAmountPaid('0')}>
+                    <RotateCcw className="h-3.5 w-3.5" />
                   </Button>
                 </div>
             }
