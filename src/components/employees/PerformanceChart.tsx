@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -6,6 +6,7 @@ import { Slider } from '@/components/ui/slider';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -22,7 +23,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   BarChart3, Activity, Plus, Eye, EyeOff, Save, Loader2, ChevronLeft, ChevronRight, Users,
-  AlertTriangle, TrendingUp, Globe, Lock,
+  AlertTriangle, TrendingUp, Globe, Lock, Pencil, Trash2, ArrowUp, ArrowDown, ArrowRightLeft,
+  MessageSquare, Settings2, ChevronDown, ChevronUp, FolderPlus,
 } from 'lucide-react';
 import { format, startOfMonth, subMonths, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -46,6 +48,13 @@ export interface Skill {
   score: number;
   hidden?: boolean;
   custom?: boolean;
+  note?: string;
+}
+
+export interface CategoryDef {
+  name: string;
+  hidden?: boolean;
+  skills: { name: string; hidden?: boolean }[];
 }
 
 export const DEFAULT_ATTITUDE_SKILLS: Skill[] = [
@@ -72,18 +81,40 @@ export const DEFAULT_LEADERSHIP_SKILLS: Skill[] = [
   { category: 'Liderazgo', name: 'Resolución de conflictos', score: 5 },
 ];
 
+const DEFAULT_CATEGORIES: CategoryDef[] = [
+  { name: 'Actitud', skills: DEFAULT_ATTITUDE_SKILLS.map(s => ({ name: s.name })) },
+  { name: 'Desempeño', skills: DEFAULT_PERFORMANCE_SKILLS.map(s => ({ name: s.name })) },
+  { name: 'Liderazgo', skills: DEFAULT_LEADERSHIP_SKILLS.map(s => ({ name: s.name })) },
+];
+
 export function getDefaultSkills(position: string): Skill[] {
   const base = [...DEFAULT_ATTITUDE_SKILLS, ...DEFAULT_PERFORMANCE_SKILLS];
   if (position === 'manager') return [...base, ...DEFAULT_LEADERSHIP_SKILLS];
   return base;
 }
 
+function getDefaultSkillsFromTemplate(categories: CategoryDef[], position: string): Skill[] {
+  const skills: Skill[] = [];
+  for (const cat of categories) {
+    if (cat.hidden) continue;
+    // Skip leadership for non-managers unless template explicitly includes it
+    for (const s of cat.skills) {
+      if (s.hidden) continue;
+      skills.push({ category: cat.name, name: s.name, score: 5 });
+    }
+  }
+  return skills;
+}
+
 const CATEGORY_COLORS: Record<string, string> = {
   Actitud: 'hsl(var(--primary))',
   Desempeño: 'hsl(var(--accent-foreground))',
   Liderazgo: 'hsl(var(--destructive))',
-  Personalizada: 'hsl(var(--secondary-foreground))',
 };
+
+function getCategoryColor(name: string): string {
+  return CATEGORY_COLORS[name] || 'hsl(var(--secondary-foreground))';
+}
 
 /** Get weak points (bottom 3 skills) */
 export function getWeakPoints(skills: Skill[]): Skill[] {
@@ -118,11 +149,47 @@ export default function PerformanceChart({
   const [skills, setSkills] = useState<Skill[]>([]);
   const [initialized, setInitialized] = useState(false);
   const [newSkillName, setNewSkillName] = useState('');
+  const [newSkillCategory, setNewSkillCategory] = useState('');
   const [saving, setSaving] = useState(false);
   const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
   const [isPublic, setIsPublic] = useState(false);
 
+  // Category management state
+  const [editingCategoryIdx, setEditingCategoryIdx] = useState<number | null>(null);
+  const [editCategoryName, setEditCategoryName] = useState('');
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [showTemplateSettings, setShowTemplateSettings] = useState(false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
+
+  // Note expansion state
+  const [expandedNoteIdx, setExpandedNoteIdx] = useState<number | null>(null);
+
+  // Moving skill state
+  const [movingSkillIdx, setMovingSkillIdx] = useState<number | null>(null);
+
   const monthKey = formatLocalMonthKey(selectedMonth);
+
+  // Fetch business template
+  const { data: templateData } = useQuery({
+    queryKey: ['evaluation-template', businessId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('evaluation_templates')
+        .select('*')
+        .eq('business_id', businessId)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!businessId,
+  });
+
+  const templateCategories: CategoryDef[] = useMemo(() => {
+    if (templateData?.categories) {
+      return templateData.categories as unknown as CategoryDef[];
+    }
+    return DEFAULT_CATEGORIES;
+  }, [templateData]);
 
   // Fetch evaluation for selected month
   const { data: evaluation, isLoading } = useQuery({
@@ -190,7 +257,8 @@ export default function PerformanceChart({
     if (evaluation?.skills) {
       setSkills(evaluation.skills as unknown as Skill[]);
     } else {
-      setSkills(getDefaultSkills(position));
+      // Use template if available, otherwise defaults
+      setSkills(getDefaultSkillsFromTemplate(templateCategories, position));
     }
     if (evaluation?.notes === '__public__') setIsPublic(true);
     setInitialized(true);
@@ -209,10 +277,101 @@ export default function PerformanceChart({
     setSkills(prev => prev.map((s, i) => i === index ? { ...s, hidden: !s.hidden } : s));
   };
 
+  const updateSkillNote = (index: number, note: string) => {
+    setSkills(prev => prev.map((s, i) => i === index ? { ...s, note: note || undefined } : s));
+  };
+
   const addCustomSkill = () => {
     if (!newSkillName.trim()) return;
-    setSkills(prev => [...prev, { category: 'Personalizada', name: newSkillName.trim(), score: 5, custom: true }]);
+    const category = newSkillCategory || categories[0] || 'Personalizada';
+    setSkills(prev => [...prev, { category, name: newSkillName.trim(), score: 5, custom: true }]);
     setNewSkillName('');
+  };
+
+  // Move skill up/down within its category
+  const moveSkill = (index: number, direction: 'up' | 'down') => {
+    setSkills(prev => {
+      const arr = [...prev];
+      const skill = arr[index];
+      // Find siblings in same category
+      const categoryIndices = arr.map((s, i) => s.category === skill.category ? i : -1).filter(i => i >= 0);
+      const posInCat = categoryIndices.indexOf(index);
+      if (direction === 'up' && posInCat <= 0) return prev;
+      if (direction === 'down' && posInCat >= categoryIndices.length - 1) return prev;
+      const swapIdx = direction === 'up' ? categoryIndices[posInCat - 1] : categoryIndices[posInCat + 1];
+      [arr[index], arr[swapIdx]] = [arr[swapIdx], arr[index]];
+      return arr;
+    });
+  };
+
+  // Move skill to different category
+  const moveSkillToCategory = (index: number, newCategory: string) => {
+    setSkills(prev => prev.map((s, i) => i === index ? { ...s, category: newCategory } : s));
+    setMovingSkillIdx(null);
+  };
+
+  // Category management
+  const categories = [...new Set(skills.map(s => s.category))];
+
+  const renameCategory = (oldName: string, newName: string) => {
+    if (!newName.trim() || newName === oldName) return;
+    setSkills(prev => prev.map(s => s.category === oldName ? { ...s, category: newName.trim() } : s));
+    setEditingCategoryIdx(null);
+    setEditCategoryName('');
+  };
+
+  const addCategory = () => {
+    if (!newCategoryName.trim()) return;
+    if (categories.includes(newCategoryName.trim())) {
+      toast.error('Esta categoría ya existe');
+      return;
+    }
+    // Add a placeholder skill so the category appears
+    setSkills(prev => [...prev, { category: newCategoryName.trim(), name: 'Nueva habilidad', score: 5 }]);
+    setNewCategoryName('');
+  };
+
+  const toggleCategoryVisibility = (catName: string) => {
+    setSkills(prev => {
+      const allHidden = prev.filter(s => s.category === catName).every(s => s.hidden);
+      return prev.map(s => s.category === catName ? { ...s, hidden: !allHidden } : s);
+    });
+  };
+
+  // Save template for the business
+  const handleSaveTemplate = async () => {
+    setSavingTemplate(true);
+    try {
+      const cats: CategoryDef[] = categories.map(catName => {
+        const catSkills = skills.filter(s => s.category === catName);
+        const allHidden = catSkills.every(s => s.hidden);
+        return {
+          name: catName,
+          hidden: allHidden,
+          skills: catSkills.map(s => ({ name: s.name, hidden: s.hidden })),
+        };
+      });
+
+      if (templateData) {
+        const { error } = await supabase
+          .from('evaluation_templates')
+          .update({ categories: cats as any })
+          .eq('id', templateData.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('evaluation_templates')
+          .insert({ business_id: businessId, categories: cats as any });
+        if (error) throw error;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['evaluation-template', businessId] });
+      toast.success('Plantilla guardada para futuras evaluaciones');
+    } catch (err: any) {
+      toast.error(err.message || 'Error al guardar plantilla');
+    } finally {
+      setSavingTemplate(false);
+    }
   };
 
   const handleSave = async () => {
@@ -243,7 +402,6 @@ export default function PerformanceChart({
 
       queryClient.invalidateQueries({ queryKey: ['evaluation', employeeId, monthKey] });
       queryClient.invalidateQueries({ queryKey: ['evaluation-history', employeeId] });
-      // Also invalidate employee's own dashboard queries
       queryClient.invalidateQueries({ queryKey: ['my-evaluation'] });
       queryClient.invalidateQueries({ queryKey: ['my-evaluation-history'] });
       queryClient.invalidateQueries({ queryKey: ['my-latest-evaluation'] });
@@ -284,7 +442,7 @@ export default function PerformanceChart({
     return base;
   });
 
-  // History chart data with per-skill trends
+  // History chart data
   const historyData = history.map(h => {
     const hSkills = h.skills as unknown as Skill[];
     const visible = hSkills.filter(s => !s.hidden);
@@ -312,8 +470,6 @@ export default function PerformanceChart({
       return { name, latest, first, change: latest - first };
     }).sort((a, b) => a.change - b.change);
   }, [history]);
-
-  const categories = [...new Set(skills.map(s => s.category))];
 
   // Color for bar based on weak point threshold
   const getBarColor = (score: number) => {
@@ -478,43 +634,175 @@ export default function PerformanceChart({
                 </div>
               )}
 
-              {categories.map(cat => (
-                <div key={cat} className="space-y-2">
-                  <h4 className="font-semibold text-xs sm:text-sm flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: CATEGORY_COLORS[cat] || CATEGORY_COLORS.Personalizada }} />
-                    {cat}
-                  </h4>
-                  <div className="space-y-2">
-                    {skills.map((skill, idx) => {
-                      if (skill.category !== cat) return null;
-                      return (
-                        <div key={`${skill.name}-${idx}`}
-                          className={`flex items-center gap-3 p-2 rounded-lg border ${skill.hidden ? 'opacity-40' : ''}`}>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center justify-between">
-                              <span className="text-xs sm:text-sm font-medium truncate">{skill.name}</span>
-                              <div className="flex items-center gap-1">
-                                <span className="text-xs sm:text-sm font-bold w-6 text-center">{skill.score}</span>
-                                {canEdit && (
-                                  <Button variant="ghost" size="icon" className="h-6 w-6"
-                                    onClick={() => toggleSkillVisibility(idx)}>
-                                    {skill.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              {/* Template settings toggle */}
+              {canEdit && (
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => setShowTemplateSettings(!showTemplateSettings)}>
+                  <Settings2 className="h-4 w-4" />
+                  Gestionar categorías
+                  {showTemplateSettings ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                </Button>
+              )}
+
+              {/* Category management panel */}
+              {canEdit && showTemplateSettings && (
+                <div className="rounded-lg border bg-muted/20 p-3 space-y-3">
+                  <p className="text-xs text-muted-foreground">
+                    Renombra, oculta o añade categorías. Los cambios se guardan como plantilla del negocio.
+                  </p>
+
+                  {categories.map((cat, catIdx) => {
+                    const allHidden = skills.filter(s => s.category === cat).every(s => s.hidden);
+                    return (
+                      <div key={cat} className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: getCategoryColor(cat) }} />
+                        {editingCategoryIdx === catIdx ? (
+                          <Input
+                            value={editCategoryName}
+                            onChange={e => setEditCategoryName(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') renameCategory(cat, editCategoryName); if (e.key === 'Escape') setEditingCategoryIdx(null); }}
+                            onBlur={() => renameCategory(cat, editCategoryName)}
+                            className="h-7 text-xs flex-1"
+                            autoFocus
+                          />
+                        ) : (
+                          <span className={`text-xs sm:text-sm font-medium flex-1 ${allHidden ? 'line-through text-muted-foreground' : ''}`}>{cat}</span>
+                        )}
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => { setEditingCategoryIdx(catIdx); setEditCategoryName(cat); }}>
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => toggleCategoryVisibility(cat)}>
+                          {allHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+                        </Button>
+                      </div>
+                    );
+                  })}
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <Input placeholder="Nueva categoría" value={newCategoryName}
+                      onChange={e => setNewCategoryName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && addCategory()}
+                      className="h-7 text-xs flex-1" />
+                    <Button size="sm" variant="outline" onClick={addCategory} disabled={!newCategoryName.trim()} className="h-7 text-xs gap-1">
+                      <FolderPlus className="h-3 w-3" /> Añadir
+                    </Button>
+                  </div>
+
+                  <Button size="sm" variant="secondary" onClick={handleSaveTemplate} disabled={savingTemplate} className="w-full gap-2">
+                    {savingTemplate ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    Guardar como plantilla del negocio
+                  </Button>
+                </div>
+              )}
+
+              {/* Skills by category */}
+              {categories.map(cat => {
+                const catSkills = skills.map((s, i) => ({ ...s, _idx: i })).filter(s => s.category === cat);
+                const allHidden = catSkills.every(s => s.hidden);
+                if (allHidden && !showTemplateSettings) return null;
+
+                return (
+                  <div key={cat} className="space-y-2">
+                    <h4 className={`font-semibold text-xs sm:text-sm flex items-center gap-2 ${allHidden ? 'opacity-40' : ''}`}>
+                      <div className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: getCategoryColor(cat) }} />
+                      {cat}
+                      {allHidden && <Badge variant="outline" className="text-[10px]">Oculta</Badge>}
+                    </h4>
+                    <div className="space-y-2">
+                      {catSkills.map((skill, posInCat) => {
+                        const idx = skill._idx;
+                        return (
+                          <div key={`${skill.name}-${idx}`}
+                            className={`rounded-lg border p-2 ${skill.hidden ? 'opacity-40' : ''}`}>
+                            <div className="flex items-center gap-2">
+                              {/* Reorder buttons */}
+                              {canEdit && !skill.hidden && (
+                                <div className="flex flex-col gap-0.5">
+                                  <Button variant="ghost" size="icon" className="h-5 w-5"
+                                    onClick={() => moveSkill(idx, 'up')} disabled={posInCat === 0}>
+                                    <ArrowUp className="h-3 w-3" />
                                   </Button>
+                                  <Button variant="ghost" size="icon" className="h-5 w-5"
+                                    onClick={() => moveSkill(idx, 'down')} disabled={posInCat === catSkills.length - 1}>
+                                    <ArrowDown className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              )}
+
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between">
+                                  <span className="text-xs sm:text-sm font-medium truncate">{skill.name}</span>
+                                  <div className="flex items-center gap-1">
+                                    <span className="text-xs sm:text-sm font-bold w-6 text-center">{skill.score}</span>
+                                    {canEdit && (
+                                      <>
+                                        {/* Move to category */}
+                                        {categories.length > 1 && (
+                                          <Button variant="ghost" size="icon" className="h-6 w-6"
+                                            onClick={() => setMovingSkillIdx(movingSkillIdx === idx ? null : idx)}>
+                                            <ArrowRightLeft className="h-3 w-3" />
+                                          </Button>
+                                        )}
+                                        {/* Note toggle */}
+                                        <Button variant="ghost" size="icon" className="h-6 w-6"
+                                          onClick={() => setExpandedNoteIdx(expandedNoteIdx === idx ? null : idx)}>
+                                          <MessageSquare className={`h-3 w-3 ${skill.note ? 'text-primary' : ''}`} />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6"
+                                          onClick={() => toggleSkillVisibility(idx)}>
+                                          {skill.hidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                                {canEdit && !skill.hidden && (
+                                  <Slider value={[skill.score]} onValueChange={([v]) => updateSkillScore(idx, v)}
+                                    min={1} max={10} step={1} className="mt-1" />
                                 )}
                               </div>
                             </div>
-                            {canEdit && !skill.hidden && (
-                              <Slider value={[skill.score]} onValueChange={([v]) => updateSkillScore(idx, v)}
-                                min={1} max={10} step={1} className="mt-1" />
+
+                            {/* Move to category selector */}
+                            {canEdit && movingSkillIdx === idx && (
+                              <div className="mt-2 flex items-center gap-2 pl-8">
+                                <span className="text-xs text-muted-foreground">Mover a:</span>
+                                {categories.filter(c => c !== cat).map(c => (
+                                  <Button key={c} variant="outline" size="sm" className="h-6 text-[10px]"
+                                    onClick={() => moveSkillToCategory(idx, c)}>
+                                    {c}
+                                  </Button>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Note field */}
+                            {expandedNoteIdx === idx && (
+                              <div className="mt-2 pl-8">
+                                <Textarea
+                                  placeholder="Nota sobre esta puntuación..."
+                                  value={skill.note || ''}
+                                  onChange={e => updateSkillNote(idx, e.target.value)}
+                                  className="text-xs min-h-[60px] resize-none"
+                                  rows={2}
+                                />
+                              </div>
+                            )}
+
+                            {/* Show note indicator when collapsed */}
+                            {skill.note && expandedNoteIdx !== idx && (
+                              <p className="text-[10px] text-muted-foreground mt-1 pl-8 truncate italic">
+                                "{skill.note}"
+                              </p>
                             )}
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {canEdit && (
                 <div className="flex items-end gap-2 pt-2">
@@ -524,6 +812,16 @@ export default function PerformanceChart({
                       onChange={e => setNewSkillName(e.target.value)}
                       onKeyDown={e => e.key === 'Enter' && addCustomSkill()} />
                   </div>
+                  <Select value={newSkillCategory || categories[0] || ''} onValueChange={setNewSkillCategory}>
+                    <SelectTrigger className="w-[120px] h-10 text-xs">
+                      <SelectValue placeholder="Categoría" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(c => (
+                        <SelectItem key={c} value={c} className="text-xs">{c}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button size="sm" onClick={addCustomSkill} disabled={!newSkillName.trim()}>
                     <Plus className="h-4 w-4" />
                   </Button>

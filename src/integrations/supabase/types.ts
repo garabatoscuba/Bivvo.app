@@ -1081,6 +1081,38 @@ export type Database = {
           },
         ]
       }
+      evaluation_templates: {
+        Row: {
+          business_id: string
+          categories: Json
+          created_at: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          categories?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          categories?: Json
+          created_at?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evaluation_templates_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_movements: {
         Row: {
           branch_id: string
