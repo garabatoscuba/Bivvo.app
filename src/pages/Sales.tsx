@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2, Wrench } from 'lucide-react';
+import { PeriodFilter, type Period } from '@/components/ui/period-filter';
+import { isInPeriod } from '@/lib/periodUtils';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSales } from '@/hooks/useSales';
@@ -188,6 +190,7 @@ const Sales = () => {
   const [filterPayment, setFilterPayment] = useState<string>('all');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
+  const [metricsPeriod, setMetricsPeriod] = useState<Period>('today');
 
   // Payment dialog
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
@@ -202,16 +205,10 @@ const Sales = () => {
   const isServiceDetail = selectedEntry?._type === 'service';
   const { data: saleItems = [], isLoading: isLoadingItems } = useSaleItems(isServiceDetail ? null : selectedSaleId);
 
-  // Metrics
-  const today = new Date();
-  const todayStr = format(today, 'yyyy-MM-dd');
-  const monthStart = format(new Date(today.getFullYear(), today.getMonth(), 1), 'yyyy-MM-dd');
-
-  const entriesToday = useMemo(() => unifiedEntries.filter((s: any) => s.status !== 'cancelled' && format(new Date(s.created_at), 'yyyy-MM-dd') === todayStr), [unifiedEntries, todayStr]);
-  const entriesMonth = useMemo(() => unifiedEntries.filter((s: any) => s.status !== 'cancelled' && format(new Date(s.created_at), 'yyyy-MM-dd') >= monthStart), [unifiedEntries, monthStart]);
-  const totalToday = entriesToday.reduce((sum: number, s: any) => sum + Number(s.total), 0);
-  const totalMonth = entriesMonth.reduce((sum: number, s: any) => sum + Number(s.total), 0);
-  const avgTicket = entriesMonth.length > 0 ? totalMonth / entriesMonth.length : 0;
+  // Metrics — respond to period filter
+  const entriesInPeriod = useMemo(() => unifiedEntries.filter((s: any) => s.status !== 'cancelled' && isInPeriod(s.created_at, metricsPeriod)), [unifiedEntries, metricsPeriod]);
+  const totalInPeriod = entriesInPeriod.reduce((sum: number, s: any) => sum + Number(s.total), 0);
+  const avgTicket = entriesInPeriod.length > 0 ? totalInPeriod / entriesInPeriod.length : 0;
   const pendingTotal = useMemo(() => unifiedEntries.filter((s: any) => s.status === 'pending').reduce((sum: number, s: any) => sum + (Number(s.total) - Number(s.amount_paid || 0)), 0), [unifiedEntries]);
 
   // Filtered entries (unified)
@@ -439,26 +436,28 @@ const Sales = () => {
 
   return (
     <AppLayout title="Ventas">
-      {/* KPI Cards */}
+      {/* Period Filter + KPI Cards */}
+      <div className="flex justify-end mb-3">
+        <PeriodFilter value={metricsPeriod} onChange={setMetricsPeriod} />
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-4 mb-4 md:mb-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Ventas hoy</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Total Ventas</CardTitle>
             <ShoppingCart className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-            <div className="text-lg md:text-2xl font-bold">${totalToday.toFixed(2)}</div>
-            <p className="text-[10px] md:text-xs text-muted-foreground">{entriesToday.length} registros</p>
+            <div className="text-lg md:text-2xl font-bold">${totalInPeriod.toFixed(2)}</div>
+            <p className="text-[10px] md:text-xs text-muted-foreground">{entriesInPeriod.length} registros</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6">
-            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Ventas mes</CardTitle>
+            <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">Transacciones</CardTitle>
             <DollarSign className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-            <div className="text-lg md:text-2xl font-bold">${totalMonth.toFixed(2)}</div>
-            <p className="text-[10px] md:text-xs text-muted-foreground">{entriesMonth.length} registros</p>
+            <div className="text-lg md:text-2xl font-bold">{entriesInPeriod.length}</div>
           </CardContent>
         </Card>
         <Card>
@@ -468,7 +467,6 @@ const Sales = () => {
           </CardHeader>
           <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
             <div className="text-lg md:text-2xl font-bold">${avgTicket.toFixed(2)}</div>
-            <p className="text-[10px] md:text-xs text-muted-foreground">Este mes</p>
           </CardContent>
         </Card>
         <Card>

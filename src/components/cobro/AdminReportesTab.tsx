@@ -5,38 +5,26 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Loader2, DollarSign, Users, Calendar, TrendingUp, Banknote } from 'lucide-react';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
-
-type FilterPeriod = 'today' | 'week' | 'month' | 'year';
+import { Loader2, DollarSign, Users, TrendingUp, Banknote } from 'lucide-react';
+import { PeriodFilter, type Period } from '@/components/ui/period-filter';
+import { getDateRange } from '@/lib/periodUtils';
+import { format } from 'date-fns';
 
 const AdminReportesTab = ({ businessId }: { businessId: string }) => {
   const { profile } = useAuth();
   const branchId = profile?.branch_id;
 
   const todayStr = new Date().toISOString().split('T')[0];
-  const [filterPeriod, setFilterPeriod] = useState<FilterPeriod>('today');
+  const [filterPeriod, setFilterPeriod] = useState<Period>('today');
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
   const dateRange = useMemo(() => {
-    const now = new Date();
-    let start: string, end: string;
-    if (filterPeriod === 'today') {
-      start = todayStr; end = todayStr;
-    } else if (filterPeriod === 'week') {
-      const dayOfWeek = now.getDay();
-      const monday = new Date(now);
-      monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-      start = monday.toISOString().split('T')[0]; end = todayStr;
-    } else if (filterPeriod === 'month') {
-      start = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`; end = todayStr;
-    } else {
-      start = `${now.getFullYear()}-01-01`; end = todayStr;
-    }
-    return { start, end };
-  }, [filterPeriod, todayStr]);
+    const range = getDateRange(filterPeriod);
+    return {
+      start: format(range.start, 'yyyy-MM-dd'),
+      end: format(range.end, 'yyyy-MM-dd'),
+    };
+  }, [filterPeriod]);
 
   // Fetch reports for the range
   const { data: reports = [], isLoading } = useQuery({
@@ -109,18 +97,7 @@ const AdminReportesTab = ({ businessId }: { businessId: string }) => {
       {/* Filter */}
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-lg font-bold">Reportes de Cierre</h2>
-        <Select value={filterPeriod} onValueChange={(v) => setFilterPeriod(v as FilterPeriod)}>
-          <SelectTrigger className="w-36">
-            <Calendar className="h-4 w-4 mr-1" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="today">Hoy</SelectItem>
-            <SelectItem value="week">Semana</SelectItem>
-            <SelectItem value="month">Mes</SelectItem>
-            <SelectItem value="year">Año</SelectItem>
-          </SelectContent>
-        </Select>
+        <PeriodFilter value={filterPeriod} onChange={setFilterPeriod} />
       </div>
 
       {/* Summary cards */}
@@ -212,7 +189,6 @@ const AdminReportesTab = ({ businessId }: { businessId: string }) => {
                   </div>
                   <div className="space-y-1 text-sm">
                     <div className="flex justify-between"><span className="text-muted-foreground">Servicios</span><span>${Number(r.total_services).toFixed(2)}</span></div>
-                    
                     <div className="flex justify-between"><span className="text-muted-foreground">Comisiones</span><span>${Number(r.total_commissions).toFixed(2)}</span></div>
                     <div className="flex justify-between"><span className="text-muted-foreground">Venta total</span><span>${Number(r.total_sales_day).toFixed(2)}</span></div>
                   </div>

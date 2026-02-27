@@ -1,13 +1,12 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, DollarSign, TrendingUp, Calendar } from 'lucide-react';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from '@/components/ui/select';
+import { Loader2, DollarSign, TrendingUp } from 'lucide-react';
+import { PeriodFilter, type Period } from '@/components/ui/period-filter';
+import { isInPeriod } from '@/lib/periodUtils';
 
 const paymentLabels: Record<string, string> = {
   cash: 'Efectivo',
@@ -20,8 +19,7 @@ const CobrosResumen = () => {
   const businessId = profile?.business_id;
   const branchId = profile?.branch_id;
 
-  const now = new Date();
-  const [filterMonth, setFilterMonth] = useState(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`);
+  const [period, setPeriod] = useState<Period>('today');
 
   const { data: entries = [], isLoading } = useQuery({
     queryKey: ['service-entries-cobros', businessId, branchId],
@@ -38,11 +36,7 @@ const CobrosResumen = () => {
     enabled: !!businessId && !!branchId,
   });
 
-  const filtered = entries.filter(e => {
-    const d = new Date(e.created_at);
-    const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    return m === filterMonth;
-  });
+  const filtered = useMemo(() => entries.filter(e => isInPeriod(e.created_at, period)), [entries, period]);
 
   const byCat = filtered.reduce<Record<string, { name: string; total: number; count: number }>>((acc, e) => {
     const catName = (e as any).service_categories?.name || 'Sin categoría';
@@ -61,30 +55,12 @@ const CobrosResumen = () => {
     return acc;
   }, {});
 
-  const months = [];
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const val = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    const label = d.toLocaleString('es', { month: 'long', year: 'numeric' });
-    months.push({ val, label: label.charAt(0).toUpperCase() + label.slice(1) });
-  }
-
   if (isLoading) return <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>;
 
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Select value={filterMonth} onValueChange={setFilterMonth}>
-          <SelectTrigger className="w-44">
-            <Calendar className="h-4 w-4 mr-1" />
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {months.map(m => (
-              <SelectItem key={m.val} value={m.val}>{m.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <PeriodFilter value={period} onChange={setPeriod} />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -134,7 +110,7 @@ const CobrosResumen = () => {
         </CardHeader>
         <CardContent>
           {categoryTotals.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-2">Sin datos este mes</p>
+            <p className="text-sm text-muted-foreground text-center py-2">Sin datos en este período</p>
           ) : (
             <div className="space-y-3">
               {categoryTotals.map(cat => (
@@ -157,7 +133,7 @@ const CobrosResumen = () => {
         </CardHeader>
         <CardContent>
           {filtered.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">Sin cobros este mes</p>
+            <p className="text-sm text-muted-foreground text-center py-4">Sin cobros en este período</p>
           ) : (
             <div className="space-y-2 max-h-[50vh] overflow-y-auto">
               {filtered.map(entry => (
