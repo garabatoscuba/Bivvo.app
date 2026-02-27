@@ -17,7 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Package, Puzzle, DollarSign, Plus, Pencil, Loader2, Trash2, Tag,
+  Package, Puzzle, DollarSign, Plus, Pencil, Loader2, Trash2, Tag, Building2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,6 +44,19 @@ interface PlatformPlugin {
   module_ids: string[];
   countries: string[];
   is_active: boolean;
+  sort_order: number;
+}
+
+interface BusinessTypeConfig {
+  id: string;
+  key: string;
+  name: string;
+  description: string | null;
+  icon: string;
+  country: string | null;
+  is_active: boolean;
+  module_ids: string[];
+  config: Record<string, any>;
   sort_order: number;
 }
 
@@ -774,6 +787,270 @@ const PricingTab = () => {
   );
 };
 
+// ─── Business Types Tab ──────────────────────────────────────────────
+const COPY_SHOP_MODES = [
+  { value: 1, label: 'Solo Servicios', desc: 'El módulo Impresiones no aparece. Solo servicios.' },
+  { value: 2, label: 'Solo Impresiones', desc: 'Solo el módulo de impresiones, sin servicios.' },
+  { value: 3, label: 'Ambos — Contabilidad conjunta', desc: 'Servicios e Impresiones con contabilidad unificada.' },
+  { value: 4, label: 'Ambos — Contabilidad separada', desc: 'Servicios e Impresiones con contabilidad independiente.' },
+];
+
+const EMPLOYEE_STATIONS = [
+  { value: 'prints', label: 'Solo Impresiones' },
+  { value: 'services', label: 'Solo Servicios' },
+  { value: 'both', label: 'Ambos' },
+];
+
+const DEFAULT_PRINT_CATEGORIES = [
+  'Hojas', 'Fotos Carnet', 'Cartulinas', 'Micas Completas',
+  'Micas por Tramos', 'Files', 'Carpetas Plásticas', 'Trabajos Digitales',
+];
+
+const BusinessTypesTab = () => {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [editing, setEditing] = useState<BusinessTypeConfig | null>(null);
+  const [form, setForm] = useState({
+    key: '', name: '', description: '', icon: 'Store', country: '' as string,
+    module_ids: [] as string[], config: {} as Record<string, any>,
+  });
+
+  const { data: modules = [] } = useQuery({
+    queryKey: ['platform-modules'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('platform_modules').select('*').order('sort_order');
+      if (error) throw error;
+      return (data || []) as PlatformModule[];
+    },
+  });
+
+  const { data: businessTypes = [], isLoading } = useQuery({
+    queryKey: ['business-type-configs'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('business_type_configs').select('*').order('sort_order');
+      if (error) throw error;
+      return (data || []) as BusinessTypeConfig[];
+    },
+  });
+
+  const { data: printCategories = [] } = useQuery({
+    queryKey: ['print-categories-defaults'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('print_categories').select('*').is('business_id', null).order('sort_order');
+      if (error) throw error;
+      return data || [];
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        key: form.key,
+        name: form.name,
+        icon: form.icon,
+        description: form.description || null,
+        country: form.country || null,
+        module_ids: form.module_ids,
+        config: form.config,
+      };
+      if (editing) {
+        const { error } = await supabase.from('business_type_configs').update(payload as any).eq('id', editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('business_type_configs').insert(payload as any);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['business-type-configs'] });
+      toast({ title: editing ? 'Tipo actualizado' : 'Tipo creado' });
+      setDialogOpen(false);
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const toggleMutation = useMutation({
+    mutationFn: async ({ id, is_active }: { id: string; is_active: boolean }) => {
+      const { error } = await supabase.from('business_type_configs').update({ is_active } as any).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['business-type-configs'] }),
+  });
+
+  const openCreate = () => {
+    setEditing(null);
+    setForm({ key: '', name: '', description: '', icon: 'Store', country: '', module_ids: [], config: {} });
+    setDialogOpen(true);
+  };
+
+  const openEdit = (bt: BusinessTypeConfig) => {
+    setEditing(bt);
+    setForm({
+      key: bt.key, name: bt.name, description: bt.description || '', icon: bt.icon,
+      country: bt.country || '', module_ids: bt.module_ids, config: bt.config || {},
+    });
+    setDialogOpen(true);
+  };
+
+  const toggleArrayItem = (arr: string[], item: string) =>
+    arr.includes(item) ? arr.filter(x => x !== item) : [...arr, item];
+
+  if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">Define los tipos de negocio disponibles y qué módulos incluye cada uno.</p>
+        <Button size="sm" onClick={openCreate}><Plus className="h-3.5 w-3.5 mr-1.5" />Nuevo tipo</Button>
+      </div>
+
+      {/* Business Types List */}
+      <div className="space-y-4">
+        {businessTypes.map(bt => (
+          <Card key={bt.id} className="border-border/60">
+            <CardHeader className="py-3 px-4">
+              <CardTitle className="text-sm font-medium flex items-center gap-2">
+                <Building2 className="h-4 w-4" />
+                {bt.name}
+                {bt.country && <Badge variant="secondary" className="text-[10px]">{COUNTRIES.find(c => c.value === bt.country)?.label || bt.country}</Badge>}
+                <div className="ml-auto flex items-center gap-2">
+                  <Switch checked={bt.is_active} onCheckedChange={v => toggleMutation.mutate({ id: bt.id, is_active: v })} />
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(bt)}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-4 pt-0 space-y-3">
+              {bt.description && <p className="text-xs text-muted-foreground">{bt.description}</p>}
+              
+              <div>
+                <p className="text-[11px] font-medium text-muted-foreground mb-1">Módulos asignados</p>
+                <div className="flex gap-1 flex-wrap">
+                  {bt.module_ids.length === 0
+                    ? <span className="text-[11px] text-muted-foreground italic">Ninguno asignado</span>
+                    : bt.module_ids.map(mid => {
+                        const mod = modules.find(m => m.id === mid);
+                        return <Badge key={mid} variant="outline" className="text-[10px]">{mod?.name || 'Desconocido'}</Badge>;
+                      })
+                  }
+                </div>
+              </div>
+
+              {/* Copy Shop specific info */}
+              {bt.key === 'copy_shop' && (
+                <div className="rounded-lg border border-border/60 p-3 space-y-2 bg-muted/30">
+                  <p className="text-xs font-medium">Configuración Punto de Copias</p>
+                  <div className="space-y-1">
+                    <p className="text-[11px] text-muted-foreground font-medium">Modos de operación:</p>
+                    {COPY_SHOP_MODES.map(m => (
+                      <div key={m.value} className="flex items-start gap-2 text-[11px]">
+                        <Badge variant="secondary" className="text-[9px] mt-0.5 shrink-0">Modo {m.value}</Badge>
+                        <span className="text-muted-foreground">{m.label} — {m.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[11px] text-muted-foreground font-medium">Puestos de empleados:</p>
+                    <div className="flex gap-1">
+                      {EMPLOYEE_STATIONS.map(s => (
+                        <Badge key={s.value} variant="outline" className="text-[10px]">{s.label}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[11px] text-muted-foreground font-medium">Categorías base de Impresiones:</p>
+                    <div className="flex gap-1 flex-wrap">
+                      {printCategories.map((pc: any) => (
+                        <Badge key={pc.id} variant="secondary" className="text-[10px]">{pc.name}</Badge>
+                      ))}
+                      {printCategories.length === 0 && DEFAULT_PRINT_CATEGORIES.map(c => (
+                        <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+        {businessTypes.length === 0 && (
+          <Card className="border-border/60">
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              No hay tipos de negocio configurados.
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editing ? 'Editar tipo de negocio' : 'Nuevo tipo de negocio'}</DialogTitle>
+            <DialogDescription>Define qué módulos ve el dueño en su sidebar.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-sm">Clave (key)</Label>
+                <Input value={form.key} onChange={e => setForm(f => ({ ...f, key: e.target.value }))} placeholder="store" disabled={!!editing} />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-sm">Ícono (Lucide)</Label>
+                <Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} placeholder="Store" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Nombre</Label>
+              <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Tienda" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Descripción</Label>
+              <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">País exclusivo (vacío = global)</Label>
+              <Select value={form.country} onValueChange={v => setForm(f => ({ ...f, country: v === '_none' ? '' : v }))}>
+                <SelectTrigger className="h-9 text-sm"><SelectValue placeholder="Global" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="_none" className="text-sm">Global (todos)</SelectItem>
+                  {COUNTRIES.map(c => (
+                    <SelectItem key={c.value} value={c.value} className="text-sm">{c.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Módulos incluidos</Label>
+              <div className="flex flex-wrap gap-3 pt-1">
+                {modules.map(m => (
+                  <label key={m.id} className="flex items-center gap-1.5 text-sm">
+                    <Checkbox
+                      checked={form.module_ids.includes(m.id)}
+                      onCheckedChange={() => setForm(f => ({ ...f, module_ids: toggleArrayItem(f.module_ids, m.id) }))}
+                    />
+                    {m.name}
+                  </label>
+                ))}
+                {modules.length === 0 && <span className="text-[11px] text-muted-foreground">Crea módulos primero.</span>}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={!form.key.trim() || !form.name.trim() || saveMutation.isPending}>
+              {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1.5" /> : null}
+              {editing ? 'Guardar' : 'Crear'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+};
+
 // ─── Main Page ───────────────────────────────────────────────────────
 const AdminModules = () => {
   return (
@@ -789,6 +1066,9 @@ const AdminModules = () => {
           <TabsTrigger value="pricing" className="gap-1.5 text-xs">
             <DollarSign className="h-3.5 w-3.5" /> Precios
           </TabsTrigger>
+          <TabsTrigger value="business-types" className="gap-1.5 text-xs">
+            <Building2 className="h-3.5 w-3.5" /> Tipos de Negocio
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="modules" className="mt-0">
@@ -799,6 +1079,9 @@ const AdminModules = () => {
         </TabsContent>
         <TabsContent value="pricing" className="mt-0">
           <PricingTab />
+        </TabsContent>
+        <TabsContent value="business-types" className="mt-0">
+          <BusinessTypesTab />
         </TabsContent>
       </Tabs>
     </AppLayout>

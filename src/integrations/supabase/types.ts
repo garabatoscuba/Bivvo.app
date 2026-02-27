@@ -283,6 +283,51 @@ export type Database = {
           },
         ]
       }
+      business_type_configs: {
+        Row: {
+          config: Json
+          country: string | null
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          key: string
+          module_ids: string[]
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          module_ids?: string[]
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          country?: string | null
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          module_ids?: string[]
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       businesses: {
         Row: {
           business_type: string
@@ -360,6 +405,38 @@ export type Database = {
             foreignKeyName: "categories_business_id_fkey"
             columns: ["business_id"]
             isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      copy_shop_config: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          mode: number
+          updated_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          mode?: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          mode?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "copy_shop_config_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: true
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
@@ -818,6 +895,7 @@ export type Database = {
           license_number: string | null
           position: string
           start_date: string
+          station: string
           updated_at: string
         }
         Insert: {
@@ -834,6 +912,7 @@ export type Database = {
           license_number?: string | null
           position?: string
           start_date?: string
+          station?: string
           updated_at?: string
         }
         Update: {
@@ -850,6 +929,7 @@ export type Database = {
           license_number?: string | null
           position?: string
           start_date?: string
+          station?: string
           updated_at?: string
         }
         Relationships: [
@@ -1237,6 +1317,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      print_categories: {
+        Row: {
+          business_id: string | null
+          created_at: string
+          id: string
+          is_default: boolean
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          business_id?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          business_id?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_categories_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       product_commissions: {
         Row: {
