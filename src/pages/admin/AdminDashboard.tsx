@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import AdminOffersTab from '@/components/admin/AdminOffersTab';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -18,10 +18,14 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from '@/components/ui/select';
+import {
   Store, Search, Loader2, Building2,
   Settings, Users, Package, ShoppingCart, DollarSign,
   BarChart3, Activity, Trash2, FileText, Check, X,
   Pencil, Power, MapPin, Phone, Tag,
+  ArrowUp, ArrowDown, ArrowUpDown,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,6 +35,11 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, AreaChart, Area, CartesianGrid } from 'recharts';
+
+type BizSortKey = 'name' | 'owner_name' | 'owner_plan' | 'is_active' | 'branch_count' | 'product_count' | 'created_at';
+type ReqSortKey = 'user_name' | 'plan_type' | 'months' | 'total_amount' | 'status' | 'created_at';
+type BizReqSortKey = 'user_name' | 'request_type' | 'name' | 'status' | 'created_at';
+type SortDir = 'asc' | 'desc';
 
 const AdminDashboard = () => {
   const { toast } = useToast();
@@ -42,6 +51,35 @@ const AdminDashboard = () => {
   const [editType, setEditType] = useState('');
   const [editBranches, setEditBranches] = useState<any[]>([]);
   const [deleteBranchTarget, setDeleteBranchTarget] = useState<{ id: string; name: string } | null>(null);
+
+  // Business filters
+  const [bizFilterStatus, setBizFilterStatus] = useState<string>('all');
+  const [bizFilterPlan, setBizFilterPlan] = useState<string>('all');
+  const [bizSortKey, setBizSortKey] = useState<BizSortKey>('created_at');
+  const [bizSortDir, setBizSortDir] = useState<SortDir>('desc');
+
+  // Plan request filters
+  const [reqSearch, setReqSearch] = useState('');
+  const [reqFilterStatus, setReqFilterStatus] = useState<string>('all');
+  const [reqSortKey, setReqSortKey] = useState<ReqSortKey>('created_at');
+  const [reqSortDir, setReqSortDir] = useState<SortDir>('desc');
+
+  // Business request filters
+  const [bizReqSearch, setBizReqSearch] = useState('');
+  const [bizReqFilterStatus, setBizReqFilterStatus] = useState<string>('all');
+  const [bizReqFilterType, setBizReqFilterType] = useState<string>('all');
+  const [bizReqSortKey, setBizReqSortKey] = useState<BizReqSortKey>('created_at');
+  const [bizReqSortDir, setBizReqSortDir] = useState<SortDir>('desc');
+
+  const toggleBizSort = useCallback((key: BizSortKey) => {
+    setBizSortKey(prev => { if (prev === key) { setBizSortDir(d => d === 'asc' ? 'desc' : 'asc'); return key; } setBizSortDir('desc'); return key; });
+  }, []);
+  const toggleReqSort = useCallback((key: ReqSortKey) => {
+    setReqSortKey(prev => { if (prev === key) { setReqSortDir(d => d === 'asc' ? 'desc' : 'asc'); return key; } setReqSortDir('desc'); return key; });
+  }, []);
+  const toggleBizReqSort = useCallback((key: BizReqSortKey) => {
+    setBizReqSortKey(prev => { if (prev === key) { setBizReqSortDir(d => d === 'asc' ? 'desc' : 'asc'); return key; } setBizReqSortDir('desc'); return key; });
+  }, []);
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-all-data'],
@@ -246,20 +284,75 @@ const AdminDashboard = () => {
     return 'Gratuito';
   };
 
-  const filtered = data?.businesses?.filter((b) =>
-    b.name.toLowerCase().includes(search.toLowerCase()) ||
-    b.owner_name.toLowerCase().includes(search.toLowerCase()) ||
-    b.owner_email.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = useMemo(() => {
+    let list = data?.businesses || [];
+    const q = search.toLowerCase().trim();
+    if (q) list = list.filter((b) => b.name.toLowerCase().includes(q) || b.owner_name.toLowerCase().includes(q) || b.owner_email.toLowerCase().includes(q));
+    if (bizFilterStatus !== 'all') list = list.filter((b) => bizFilterStatus === 'active' ? b.is_active !== false : b.is_active === false);
+    if (bizFilterPlan !== 'all') list = list.filter((b) => b.owner_plan === bizFilterPlan);
+    const sorted = [...list].sort((a, b) => {
+      let va: any, vb: any;
+      switch (bizSortKey) {
+        case 'branch_count': case 'product_count': va = Number(a[bizSortKey]); vb = Number(b[bizSortKey]); break;
+        case 'created_at': va = new Date(a.created_at).getTime(); vb = new Date(b.created_at).getTime(); break;
+        case 'is_active': va = a.is_active !== false ? 1 : 0; vb = b.is_active !== false ? 1 : 0; break;
+        default: va = (a[bizSortKey] || '').toString().toLowerCase(); vb = (b[bizSortKey] || '').toString().toLowerCase(); break;
+      }
+      if (va < vb) return bizSortDir === 'asc' ? -1 : 1;
+      if (va > vb) return bizSortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [data?.businesses, search, bizFilterStatus, bizFilterPlan, bizSortKey, bizSortDir]);
 
-  if (isLoading) {
-    return (
-      <AppLayout title="Panel de Administración">
-        <div className="flex items-center justify-center py-20">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      </AppLayout>
-    );
+  const filteredPlanRequests = useMemo(() => {
+    let list = data?.planRequests || [];
+    const q = reqSearch.toLowerCase().trim();
+    if (q) list = list.filter((r: any) => r.user_name.toLowerCase().includes(q) || r.user_email.toLowerCase().includes(q));
+    if (reqFilterStatus !== 'all') list = list.filter((r: any) => r.status === reqFilterStatus);
+    const sorted = [...list].sort((a: any, b: any) => {
+      let va: any, vb: any;
+      switch (reqSortKey) {
+        case 'months': case 'total_amount': va = Number(a[reqSortKey]); vb = Number(b[reqSortKey]); break;
+        case 'created_at': va = new Date(a.created_at).getTime(); vb = new Date(b.created_at).getTime(); break;
+        default: va = (a[reqSortKey] || '').toString().toLowerCase(); vb = (b[reqSortKey] || '').toString().toLowerCase(); break;
+      }
+      if (va < vb) return reqSortDir === 'asc' ? -1 : 1;
+      if (va > vb) return reqSortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [data?.planRequests, reqSearch, reqFilterStatus, reqSortKey, reqSortDir]);
+
+  const filteredBizRequests = useMemo(() => {
+    let list = data?.businessRequests || [];
+    const q = bizReqSearch.toLowerCase().trim();
+    if (q) list = list.filter((r: any) => r.user_name.toLowerCase().includes(q) || r.user_email.toLowerCase().includes(q) || (r.business_name || r.branch_name || '').toLowerCase().includes(q));
+    if (bizReqFilterStatus !== 'all') list = list.filter((r: any) => r.status === bizReqFilterStatus);
+    if (bizReqFilterType !== 'all') list = list.filter((r: any) => r.request_type === bizReqFilterType);
+    const sorted = [...list].sort((a: any, b: any) => {
+      let va: any, vb: any;
+      switch (bizReqSortKey) {
+        case 'created_at': va = new Date(a.created_at).getTime(); vb = new Date(b.created_at).getTime(); break;
+        case 'name': va = (a.business_name || a.branch_name || '').toLowerCase(); vb = (b.business_name || b.branch_name || '').toLowerCase(); break;
+        default: va = (a[bizReqSortKey] || '').toString().toLowerCase(); vb = (b[bizReqSortKey] || '').toString().toLowerCase(); break;
+      }
+      if (va < vb) return bizReqSortDir === 'asc' ? -1 : 1;
+      if (va > vb) return bizReqSortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return sorted;
+  }, [data?.businessRequests, bizReqSearch, bizReqFilterStatus, bizReqFilterType, bizReqSortKey, bizReqSortDir]);
+
+  // Sortable header helper
+  const SortHead = ({ label, sortKey: sk, currentKey, currentDir, onToggle, className }: { label: string; sortKey: string; currentKey: string; currentDir: SortDir; onToggle: (k: any) => void; className?: string }) => (
+    <TableHead className={`cursor-pointer select-none hover:text-foreground text-[11px] uppercase tracking-wide ${className || ''}`} onClick={() => onToggle(sk)}>
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {currentKey === sk ? (currentDir === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />) : <ArrowUpDown className="h-3 w-3 opacity-30" />}
+      </span>
+    </TableHead>
+  );
   }
 
   const kpiItems = [
@@ -372,26 +465,44 @@ const AdminDashboard = () => {
 
           {/* BUSINESSES */}
           <TabsContent value="businesses" className="space-y-4 mt-0">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
               <div className="relative flex-1 max-w-xs">
                 <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input placeholder="Buscar negocio..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-9 text-sm" />
+                <Input placeholder="Buscar negocio o dueño..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-8 h-9 text-sm" />
               </div>
+              <Select value={bizFilterStatus} onValueChange={setBizFilterStatus}>
+                <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="active">Activos</SelectItem>
+                  <SelectItem value="inactive">Inactivos</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={bizFilterPlan} onValueChange={setBizFilterPlan}>
+                <SelectTrigger className="w-[140px] h-9 text-sm"><SelectValue placeholder="Plan" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos los planes</SelectItem>
+                  <SelectItem value="free">Gratuito</SelectItem>
+                  <SelectItem value="basic">Básico</SelectItem>
+                  <SelectItem value="professional">Profesional</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground ml-auto">{filtered.length} resultado{filtered.length !== 1 ? 's' : ''}</span>
             </div>
 
             <Card className="border-border/60">
               <CardContent className="p-0">
-                {filtered && filtered.length > 0 ? (
+                {filtered.length > 0 ? (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-[11px] uppercase tracking-wide">Negocio</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Dueño</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Plan (usuario)</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide text-center">Estado</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide text-center">Suc.</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide text-center">Prod.</TableHead>
+                          <SortHead label="Negocio" sortKey="name" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} />
+                          <SortHead label="Dueño" sortKey="owner_name" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} />
+                          <SortHead label="Plan" sortKey="owner_plan" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} />
+                          <SortHead label="Estado" sortKey="is_active" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} className="text-center" />
+                          <SortHead label="Suc." sortKey="branch_count" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} className="text-center" />
+                          <SortHead label="Prod." sortKey="product_count" currentKey={bizSortKey} currentDir={bizSortDir} onToggle={toggleBizSort} className="text-center" />
                           <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -401,7 +512,10 @@ const AdminDashboard = () => {
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                <span className="text-sm font-medium">{b.name}</span>
+                                <div>
+                                  <span className="text-sm font-medium">{b.name}</span>
+                                  <p className="text-[10px] text-muted-foreground">{format(new Date(b.created_at), "d MMM yy", { locale: es })}</p>
+                                </div>
                               </div>
                             </TableCell>
                             <TableCell>
@@ -420,18 +534,10 @@ const AdminDashboard = () => {
                             <TableCell className="text-center text-sm">{b.product_count}</TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Button
-                                  variant="ghost" size="icon"
-                                  className="h-7 w-7"
-                                  onClick={() => openEditBiz(b)}
-                                >
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditBiz(b)}>
                                   <Pencil className="h-3.5 w-3.5" />
                                 </Button>
-                                <Button
-                                  variant="ghost" size="icon"
-                                  className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10"
-                                  onClick={() => setDeleteTarget({ id: b.id, name: b.name })}
-                                >
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget({ id: b.id, name: b.name })}>
                                   <Trash2 className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
@@ -483,7 +589,7 @@ const AdminDashboard = () => {
                     <YAxis allowDecimals={false} tick={{ fontSize: 11 }} stroke="hsl(var(--muted-foreground))" />
                     <Tooltip contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '6px', fontSize: '12px' }} />
                     <Bar dataKey="negocios" name="Negocios" fill="hsl(var(--primary))" radius={[3, 3, 0, 0]} />
-                    <Bar dataKey="ventas" name="Ventas" fill="hsl(142, 71%, 45%)" radius={[3, 3, 0, 0]} />
+                    <Bar dataKey="ventas" name="Ventas" fill="hsl(var(--primary) / 0.6)" radius={[3, 3, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
@@ -492,27 +598,41 @@ const AdminDashboard = () => {
 
           {/* PLAN REQUESTS */}
           <TabsContent value="requests" className="space-y-4 mt-0">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Buscar usuario..." value={reqSearch} onChange={(e) => setReqSearch(e.target.value)} className="pl-8 h-9 text-sm" />
+              </div>
+              <Select value={reqFilterStatus} onValueChange={setReqFilterStatus}>
+                <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pending">Pendientes</SelectItem>
+                  <SelectItem value="approved">Aprobados</SelectItem>
+                  <SelectItem value="rejected">Rechazados</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground ml-auto">{filteredPlanRequests.length} solicitud{filteredPlanRequests.length !== 1 ? 'es' : ''}</span>
+            </div>
+
             <Card className="border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Solicitudes de Plan</CardTitle>
-              </CardHeader>
               <CardContent className="p-0">
-                {data?.planRequests && data.planRequests.length > 0 ? (
+                {filteredPlanRequests.length > 0 ? (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-[11px] uppercase tracking-wide">Usuario</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Plan</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Meses</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Total</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Estado</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Fecha</TableHead>
+                          <SortHead label="Usuario" sortKey="user_name" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
+                          <SortHead label="Plan" sortKey="plan_type" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
+                          <SortHead label="Meses" sortKey="months" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
+                          <SortHead label="Total" sortKey="total_amount" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
+                          <SortHead label="Estado" sortKey="status" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
+                          <SortHead label="Fecha" sortKey="created_at" currentKey={reqSortKey} currentDir={reqSortDir} onToggle={toggleReqSort} />
                           <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {data.planRequests.map((r: any) => (
+                        {filteredPlanRequests.map((r: any) => (
                           <TableRow key={r.id}>
                             <TableCell>
                               <p className="text-sm font-medium">{r.user_name}</p>
@@ -537,18 +657,10 @@ const AdminDashboard = () => {
                             <TableCell className="text-right">
                               {r.status === 'pending' && (
                                 <div className="flex items-center justify-end gap-1">
-                                  <Button
-                                    variant="ghost" size="icon"
-                                    className="h-7 w-7 text-green-600 hover:bg-green-50"
-                                    onClick={() => approveMutation.mutate({ requestId: r.id, action: 'approved' })}
-                                  >
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'approved' })}>
                                     <Check className="h-4 w-4" />
                                   </Button>
-                                  <Button
-                                    variant="ghost" size="icon"
-                                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                                    onClick={() => approveMutation.mutate({ requestId: r.id, action: 'rejected' })}
-                                  >
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'rejected' })}>
                                     <X className="h-4 w-4" />
                                   </Button>
                                 </div>
@@ -568,27 +680,48 @@ const AdminDashboard = () => {
 
           {/* BUSINESS REQUESTS */}
           <TabsContent value="biz-requests" className="space-y-4 mt-0">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input placeholder="Buscar solicitante..." value={bizReqSearch} onChange={(e) => setBizReqSearch(e.target.value)} className="pl-8 h-9 text-sm" />
+              </div>
+              <Select value={bizReqFilterStatus} onValueChange={setBizReqFilterStatus}>
+                <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pending">Pendientes</SelectItem>
+                  <SelectItem value="approved">Aprobados</SelectItem>
+                  <SelectItem value="rejected">Rechazados</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={bizReqFilterType} onValueChange={setBizReqFilterType}>
+                <SelectTrigger className="w-[130px] h-9 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="business">Negocio</SelectItem>
+                  <SelectItem value="branch">Sucursal</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-xs text-muted-foreground ml-auto">{filteredBizRequests.length} solicitud{filteredBizRequests.length !== 1 ? 'es' : ''}</span>
+            </div>
+
             <Card className="border-border/60">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Solicitudes de Negocios y Sucursales</CardTitle>
-                <CardDescription className="text-xs">Aprueba o rechaza las solicitudes de creación</CardDescription>
-              </CardHeader>
               <CardContent className="p-0">
-                {data?.businessRequests && data.businessRequests.length > 0 ? (
+                {filteredBizRequests.length > 0 ? (
                   <div className="overflow-x-auto">
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
-                          <TableHead className="text-[11px] uppercase tracking-wide">Solicitante</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Tipo</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Nombre</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Estado</TableHead>
-                          <TableHead className="text-[11px] uppercase tracking-wide">Fecha</TableHead>
+                          <SortHead label="Solicitante" sortKey="user_name" currentKey={bizReqSortKey} currentDir={bizReqSortDir} onToggle={toggleBizReqSort} />
+                          <SortHead label="Tipo" sortKey="request_type" currentKey={bizReqSortKey} currentDir={bizReqSortDir} onToggle={toggleBizReqSort} />
+                          <SortHead label="Nombre" sortKey="name" currentKey={bizReqSortKey} currentDir={bizReqSortDir} onToggle={toggleBizReqSort} />
+                          <SortHead label="Estado" sortKey="status" currentKey={bizReqSortKey} currentDir={bizReqSortDir} onToggle={toggleBizReqSort} />
+                          <SortHead label="Fecha" sortKey="created_at" currentKey={bizReqSortKey} currentDir={bizReqSortDir} onToggle={toggleBizReqSort} />
                           <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {data.businessRequests.map((r: any) => (
+                        {filteredBizRequests.map((r: any) => (
                           <TableRow key={r.id}>
                             <TableCell>
                               <p className="text-sm font-medium">{r.user_name}</p>
@@ -614,20 +747,10 @@ const AdminDashboard = () => {
                             <TableCell className="text-right">
                               {r.status === 'pending' && (
                                 <div className="flex items-center justify-end gap-1">
-                                  <Button
-                                    variant="ghost" size="icon"
-                                    className="h-7 w-7 text-primary hover:bg-primary/10"
-                                    onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'approved' })}
-                                    disabled={approveBizRequestMutation.isPending}
-                                  >
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'approved' })} disabled={approveBizRequestMutation.isPending}>
                                     <Check className="h-4 w-4" />
                                   </Button>
-                                  <Button
-                                    variant="ghost" size="icon"
-                                    className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                                    onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'rejected' })}
-                                    disabled={approveBizRequestMutation.isPending}
-                                  >
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'rejected' })} disabled={approveBizRequestMutation.isPending}>
                                     <X className="h-4 w-4" />
                                   </Button>
                                 </div>
