@@ -204,3 +204,9 @@
     display: none;
   }
 }
+
+/* Global: modal/sheet/drawer content scrolls between header & footer */
+[role="dialog"] > *:not([class*="shrink-0"]):not(button) {
+  overflow-y: auto;
+  min-height: 0;
+}
