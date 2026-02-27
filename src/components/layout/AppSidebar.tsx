@@ -34,7 +34,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  LayoutDashboard,
   Package,
   ShoppingCart,
   Receipt,
@@ -59,11 +58,8 @@ import {
   DollarSign,
   Briefcase,
   FileText,
-  TrendingUp,
-  BarChart3,
-  ClipboardList,
-  Wallet,
 } from "lucide-react";
+import { getIconComponent } from "@/components/services/IconSelector";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { useJornadaActiva } from "@/hooks/useJornadaActiva";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
@@ -367,17 +363,11 @@ const AppSidebar = () => {
     'Impresiones2': '/impresiones',
   };
 
-  const ICON_MAP: Record<string, any> = {
-    LayoutDashboard, Package, ShoppingCart, Receipt, Users, Settings,
-    CreditCard, ShoppingBag, Wrench, DollarSign, FileText, Store, Shield,
-    TrendingUp, BarChart3, ClipboardList, Wallet,
-  };
-
   const businessItems = [
     ...sidebarModules.map(m => ({
       title: m.sidebar_label,
       url: moduleUrlMap[m.name] || '/',
-      icon: ICON_MAP[m.icon] || Package,
+      icon: getIconComponent(m.icon),
     })),
     { title: 'Configuración', url: '/settings', icon: Settings },
     { title: 'Planes', url: '/plans', icon: CreditCard },
