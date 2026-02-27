@@ -1414,6 +1414,54 @@ export type Database = {
           },
         ]
       }
+      plan_offers: {
+        Row: {
+          applies_to_plans: string[]
+          created_at: string
+          description: string | null
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          name: string
+          starts_at: string
+          target_type: string
+          target_user_ids: string[]
+          updated_at: string
+        }
+        Insert: {
+          applies_to_plans?: string[]
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          starts_at?: string
+          target_type?: string
+          target_user_ids?: string[]
+          updated_at?: string
+        }
+        Update: {
+          applies_to_plans?: string[]
+          created_at?: string
+          description?: string | null
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          starts_at?: string
+          target_type?: string
+          target_user_ids?: string[]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       plan_requests: {
         Row: {
           admin_notes: string | null

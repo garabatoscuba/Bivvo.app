@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import AdminOffersTab from '@/components/admin/AdminOffersTab';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,7 +21,7 @@ import {
   Store, Search, Loader2, Building2,
   Settings, Users, Package, ShoppingCart, DollarSign,
   BarChart3, Activity, Trash2, FileText, Check, X,
-  Pencil, Power, MapPin, Phone,
+  Pencil, Power, MapPin, Phone, Tag,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
@@ -294,6 +295,9 @@ const AdminDashboard = () => {
                 {(data?.pendingBizRequests?.length || 0) > 0 && (
                   <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{data?.pendingBizRequests?.length}</Badge>
                 )}
+              </TabsTrigger>
+              <TabsTrigger value="offers" className="gap-1.5 text-xs">
+                <Tag className="h-3.5 w-3.5" /> Ofertas
               </TabsTrigger>
             </TabsList>
           </div>
@@ -639,6 +643,11 @@ const AdminDashboard = () => {
                 )}
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* OFFERS */}
+          <TabsContent value="offers" className="mt-0">
+            <AdminOffersTab />
           </TabsContent>
         </Tabs>
 

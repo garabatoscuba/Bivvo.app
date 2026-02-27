@@ -4,7 +4,7 @@ import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Check, Crown, MessageCircle, CalendarDays, Building2, DollarSign, Star, Send, Loader2, Clock } from 'lucide-react';
+import { Check, Crown, MessageCircle, CalendarDays, Building2, DollarSign, Star, Send, Loader2, Clock, Tag } from 'lucide-react';
 import { useSubscription, PlanType } from '@/hooks/useSubscription';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
@@ -14,7 +14,7 @@ import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 const WHATSAPP_NUMBER = '5352514878';
 const WHATSAPP_URL = (msg: string) => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`;
@@ -61,6 +61,28 @@ const Plans = () => {
     }
   }, [searchParams, planType, setSearchParams]);
 
+  // Fetch active offers applicable to this user
+  const { data: activeOffers } = useQuery({
+    queryKey: ['plan-offers-active', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('plan_offers')
+        .select('*')
+        .eq('is_active', true)
+        .lte('starts_at', new Date().toISOString());
+      // Filter: not expired and targets this user (or all)
+      return (data || []).filter((o: any) => {
+        if (o.expires_at && new Date(o.expires_at) < new Date()) return false;
+        if (o.target_type === 'specific' && !o.target_user_ids?.includes(user?.id)) return false;
+        return true;
+      });
+    },
+    enabled: !!user,
+  });
+
+  // Find the best offer for the selected plan
+  const bestOffer = activeOffers?.find((o: any) => o.applies_to_plans?.includes(selectedPlan));
+
   const expirationDate = subscriptionEndsAt || trialEndsAt;
 
   const months = parseInt(selectedMonths);
@@ -68,8 +90,19 @@ const Plans = () => {
   const pricePerBranch = PRICE_PER_BRANCH[selectedPlan];
   const branchCount = Math.max(1, totalBranches);
   const subtotal = pricePerBranch * branchCount * months;
-  const discountAmount = subtotal * (durationOpt.discount / 100);
-  const requestTotal = subtotal - discountAmount;
+  const durationDiscount = subtotal * (durationOpt.discount / 100);
+  const afterDuration = subtotal - durationDiscount;
+
+  // Apply offer discount on top
+  let offerDiscount = 0;
+  if (bestOffer) {
+    if (bestOffer.discount_type === 'percentage') {
+      offerDiscount = afterDuration * (Number(bestOffer.discount_value) / 100);
+    } else {
+      offerDiscount = Math.min(Number(bestOffer.discount_value), afterDuration);
+    }
+  }
+  const requestTotal = afterDuration - offerDiscount;
 
   // Trial activation
   const trialMutation = useMutation({
@@ -219,6 +252,31 @@ const Plans = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Active offers banner */}
+        {activeOffers && activeOffers.length > 0 && (
+          <div className="space-y-2">
+            {activeOffers.map((offer: any) => (
+              <Card key={offer.id} className="border-primary/30 bg-primary/5">
+                <CardContent className="flex items-center gap-3 py-3 px-4">
+                  <Tag className="h-5 w-5 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-primary">{offer.name}</p>
+                    {offer.description && <p className="text-xs text-muted-foreground">{offer.description}</p>}
+                  </div>
+                  <Badge className="shrink-0">
+                    {offer.discount_type === 'percentage' ? `${offer.discount_value}% OFF` : `$${Number(offer.discount_value).toFixed(2)} OFF`}
+                  </Badge>
+                  {offer.expires_at && (
+                    <span className="text-[10px] text-muted-foreground shrink-0">
+                      Hasta {format(new Date(offer.expires_at), "d MMM", { locale: es })}
+                    </span>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
 
         {/* Plan cards */}
         <div className="grid gap-6 md:grid-cols-3">
@@ -408,10 +466,19 @@ const Plans = () => {
                     <span>${subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Descuento ({durationOpt.discount}%)</span>
-                    <span>-${discountAmount.toFixed(2)}</span>
+                    <span>Descuento duración ({durationOpt.discount}%)</span>
+                    <span>-${durationDiscount.toFixed(2)}</span>
                   </div>
                 </>
+              )}
+              {bestOffer && offerDiscount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span className="flex items-center gap-1">
+                    <Tag className="h-3 w-3" />
+                    {bestOffer.name} ({bestOffer.discount_type === 'percentage' ? `${bestOffer.discount_value}%` : `$${Number(bestOffer.discount_value).toFixed(2)}`})
+                  </span>
+                  <span>-${offerDiscount.toFixed(2)}</span>
+                </div>
               )}
               <div className="flex justify-between text-base font-bold border-t pt-2">
                 <span>Total a pagar</span>
