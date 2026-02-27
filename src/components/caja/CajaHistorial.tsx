@@ -156,6 +156,11 @@ const CajaHistorial = () => {
                   {r.notes && (
                     <p className="text-[10px] text-muted-foreground italic">{r.notes}</p>
                   )}
+                  {Number((r as any).next_day_fund || 0) > 0 && (
+                    <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                      💰 Fondo dejado para el día siguiente: ${Number((r as any).next_day_fund).toFixed(2)}
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             );

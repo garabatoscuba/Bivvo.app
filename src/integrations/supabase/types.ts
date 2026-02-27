@@ -383,6 +383,8 @@ export type Database = {
           fixed_opening_amount: number
           id: string
           mode: string
+          next_day_fund_amount: number
+          next_day_fund_mode: string
           opening_type: string
           petty_cash_min_alert: number
           updated_at: string
@@ -394,6 +396,8 @@ export type Database = {
           fixed_opening_amount?: number
           id?: string
           mode?: string
+          next_day_fund_amount?: number
+          next_day_fund_mode?: string
           opening_type?: string
           petty_cash_min_alert?: number
           updated_at?: string
@@ -405,6 +409,8 @@ export type Database = {
           fixed_opening_amount?: number
           id?: string
           mode?: string
+          next_day_fund_amount?: number
+          next_day_fund_mode?: string
           opening_type?: string
           petty_cash_min_alert?: number
           updated_at?: string
@@ -436,6 +442,7 @@ export type Database = {
           difference: number | null
           expected_cash: number
           id: string
+          next_day_fund: number
           notes: string | null
           opened_at: string
           opening_amount: number
@@ -456,6 +463,7 @@ export type Database = {
           difference?: number | null
           expected_cash?: number
           id?: string
+          next_day_fund?: number
           notes?: string | null
           opened_at?: string
           opening_amount?: number
@@ -476,6 +484,7 @@ export type Database = {
           difference?: number | null
           expected_cash?: number
           id?: string
+          next_day_fund?: number
           notes?: string | null
           opened_at?: string
           opening_amount?: number

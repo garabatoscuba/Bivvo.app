@@ -16,10 +16,10 @@ import {
   TrendingUp,
   TrendingDown,
   ArrowUpRight,
-  ArrowDownRight,
   Wallet,
   CreditCard,
   Lock,
+  Banknote,
 } from "lucide-react";
 import {
   Dialog,
@@ -28,9 +28,11 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const DENOMINATIONS_SMALL = [1, 3, 5, 10];
-const DENOMINATIONS_ALL = [1, 3, 5, 10, 20, 50, 100, 200, 500, 1000];
+const DENOMINATIONS_LOW = [1, 2, 5, 10];
+const DENOMINATIONS_ALL = [1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000];
 
 const CajaActiva = () => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
@@ -59,6 +61,30 @@ const CajaActiva = () => {
       return data;
     },
     enabled: !!branchId,
+  });
+
+  // Fetch last closed register to get next_day_fund
+  const { data: lastClosedFund } = useQuery({
+    queryKey: ["last-closed-fund", branchId, profile?.user_id],
+    queryFn: async () => {
+      if (!branchId) return 0;
+      const mode = config?.mode || "branch";
+      let query = supabase
+        .from("cash_registers")
+        .select("next_day_fund")
+        .eq("branch_id", branchId)
+        .eq("status", "closed")
+        .order("closed_at", { ascending: false })
+        .limit(1);
+
+      if (mode === "employee") {
+        query = query.eq("user_id", profile!.user_id);
+      }
+
+      const { data } = await query.maybeSingle();
+      return Number((data as any)?.next_day_fund || 0);
+    },
+    enabled: !!branchId && config !== undefined,
   });
 
   // Fetch active cash register
@@ -133,11 +159,29 @@ const CajaActiva = () => {
     return DENOMINATIONS_ALL.reduce((sum, d) => sum + d * (billCounts[d] || 0), 0);
   }, [billCounts]);
 
+  // Calculate next-day fund based on config
+  const nextDayFund = useMemo(() => {
+    const fundMode = (config as any)?.next_day_fund_mode || "none";
+    if (fundMode === "none") return 0;
+    if (fundMode === "fixed") return Number((config as any)?.next_day_fund_amount || 0);
+    if (fundMode === "low_bills") {
+      return DENOMINATIONS_LOW.reduce((sum, d) => sum + d * (billCounts[d] || 0), 0);
+    }
+    return 0;
+  }, [config, billCounts]);
+
+  const fundMode = (config as any)?.next_day_fund_mode || "none";
+
+  // Determine auto-opening amount
+  const autoOpeningAmount = lastClosedFund && lastClosedFund > 0 ? lastClosedFund : null;
+
   // Open register
   const openMutation = useMutation({
     mutationFn: async () => {
       let amount = Number(openingAmount) || 0;
-      if (config?.opening_type === "small_bills") {
+      if (autoOpeningAmount && autoOpeningAmount > 0) {
+        amount = autoOpeningAmount;
+      } else if (config?.opening_type === "small_bills") {
         amount = DENOMINATIONS_SMALL.reduce((s, d) => s + d * (billCounts[d] || 0), 0);
       } else if (config?.opening_type === "fixed") {
         amount = Number(config.fixed_opening_amount) || 0;
@@ -152,6 +196,7 @@ const CajaActiva = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
+      queryClient.invalidateQueries({ queryKey: ["last-closed-fund"] });
       toast({ title: "Caja abierta" });
       setOpeningAmount("");
       setBillCounts({});
@@ -176,13 +221,15 @@ const CajaActiva = () => {
           total_services_transfer: servicesData?.transfer || 0,
           notes: closeNotes || null,
           closed_at: new Date().toISOString(),
-        })
+          next_day_fund: nextDayFund,
+        } as any)
         .eq("id", activeRegister!.id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
       queryClient.invalidateQueries({ queryKey: ["cash-register-history"] });
+      queryClient.invalidateQueries({ queryKey: ["last-closed-fund"] });
       setShowCloseDialog(false);
       setBillCounts({});
       setCloseNotes("");
@@ -203,7 +250,21 @@ const CajaActiva = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {config?.opening_type === "small_bills" ? (
+          {/* Auto-load from previous fund */}
+          {autoOpeningAmount && autoOpeningAmount > 0 ? (
+            <div className="space-y-2">
+              <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-1">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                  <Banknote className="h-4 w-4 text-primary" />
+                  Fondo del día anterior
+                </div>
+                <p className="text-2xl font-bold text-primary">${autoOpeningAmount.toFixed(2)}</p>
+                <p className="text-xs text-muted-foreground">
+                  Este monto fue separado en el cierre anterior y se usa como apertura automática.
+                </p>
+              </div>
+            </div>
+          ) : config?.opening_type === "small_bills" ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
                 Cuenta los billetes de denominaciones 1–10:
@@ -261,6 +322,7 @@ const CajaActiva = () => {
 
   // Active register → show dashboard
   const difference = countedTotal - expectedCash;
+  const netToDeliver = countedTotal - nextDayFund;
 
   return (
     <>
@@ -337,62 +399,98 @@ const CajaActiva = () => {
 
       {/* Close dialog with bill counting */}
       <Dialog open={showCloseDialog} onOpenChange={setShowCloseDialog}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="max-h-[90vh] p-0 sm:max-w-lg">
+          <DialogHeader className="px-6 pt-6 pb-2">
             <DialogTitle>Cerrar caja</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">Cuenta el efectivo en caja:</p>
-            <div className="grid grid-cols-2 gap-2">
-              {DENOMINATIONS_ALL.map((d) => (
-                <div key={d} className="flex items-center gap-2">
-                  <Label className="w-12 text-right text-sm font-mono">${d}</Label>
-                  <Input
-                    type="number"
-                    min={0}
-                    className="h-8 text-sm"
-                    value={billCounts[d] || ""}
-                    onChange={(e) =>
-                      setBillCounts((p) => ({ ...p, [d]: parseInt(e.target.value) || 0 }))
-                    }
-                    placeholder="0"
-                  />
-                  <span className="text-xs text-muted-foreground w-14">
-                    ${d * (billCounts[d] || 0)}
-                  </span>
+          <ScrollArea className="max-h-[65vh] px-6">
+            <div className="space-y-4 pb-4">
+              <p className="text-sm text-muted-foreground">Cuenta el efectivo en caja:</p>
+              <div className="grid grid-cols-2 gap-2">
+                {DENOMINATIONS_ALL.map((d) => (
+                  <div key={d} className="flex items-center gap-2">
+                    <Label className="w-12 text-right text-sm font-mono">${d}</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="h-8 text-sm"
+                      value={billCounts[d] || ""}
+                      onChange={(e) =>
+                        setBillCounts((p) => ({ ...p, [d]: parseInt(e.target.value) || 0 }))
+                      }
+                      placeholder="0"
+                    />
+                    <span className="text-xs text-muted-foreground w-14">
+                      ${d * (billCounts[d] || 0)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t pt-3 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Contado:</span>
+                  <span className="font-bold">${countedTotal.toFixed(2)}</span>
                 </div>
-              ))}
-            </div>
+                <div className="flex justify-between text-sm">
+                  <span>Esperado:</span>
+                  <span className="font-medium">${expectedCash.toFixed(2)}</span>
+                </div>
+                <div className={`flex justify-between text-sm font-bold ${difference >= 0 ? "text-green-600" : "text-red-600"}`}>
+                  <span className="flex items-center gap-1">
+                    {difference >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                    Diferencia:
+                  </span>
+                  <span>{difference >= 0 ? "+" : ""}{difference.toFixed(2)}</span>
+                </div>
+              </div>
 
-            <div className="border-t pt-3 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Contado:</span>
-                <span className="font-bold">${countedTotal.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span>Esperado:</span>
-                <span className="font-medium">${expectedCash.toFixed(2)}</span>
-              </div>
-              <div className={`flex justify-between text-sm font-bold ${difference >= 0 ? "text-green-600" : "text-red-600"}`}>
-                <span className="flex items-center gap-1">
-                  {difference >= 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
-                  Diferencia:
-                </span>
-                <span>{difference >= 0 ? "+" : ""}{difference.toFixed(2)}</span>
-              </div>
-            </div>
+              {/* Next-day fund section */}
+              {fundMode !== "none" && (
+                <div className="border-t pt-3 space-y-2">
+                  <h4 className="text-sm font-semibold flex items-center gap-1.5">
+                    <Banknote className="h-4 w-4 text-primary" />
+                    Fondo para el día siguiente
+                  </h4>
+                  {fundMode === "fixed" && (
+                    <p className="text-xs text-muted-foreground">
+                      Monto fijo configurado por el dueño.
+                    </p>
+                  )}
+                  {fundMode === "low_bills" && (
+                    <p className="text-xs text-muted-foreground">
+                      Suma automática de billetes de $1, $2, $5 y $10 contados arriba.
+                    </p>
+                  )}
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-3 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Fondo a dejar:</span>
+                      <span className="font-bold text-primary">${nextDayFund.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Total recaudado:</span>
+                      <span className="font-medium">${countedTotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm font-bold border-t pt-1.5">
+                      <span>Neto a entregar al dueño:</span>
+                      <span>${Math.max(0, netToDeliver).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
-            <div>
-              <Label className="text-sm">Notas (opcional)</Label>
-              <Textarea
-                value={closeNotes}
-                onChange={(e) => setCloseNotes(e.target.value)}
-                placeholder="Observaciones del cierre..."
-                rows={2}
-              />
+              <div>
+                <Label className="text-sm">Notas (opcional)</Label>
+                <Textarea
+                  value={closeNotes}
+                  onChange={(e) => setCloseNotes(e.target.value)}
+                  placeholder="Observaciones del cierre..."
+                  rows={2}
+                />
+              </div>
             </div>
-          </div>
-          <DialogFooter>
+          </ScrollArea>
+          <DialogFooter className="px-6 pb-6 pt-3 border-t">
             <Button variant="outline" onClick={() => setShowCloseDialog(false)}>Cancelar</Button>
             <Button variant="destructive" onClick={() => closeMutation.mutate()} disabled={closeMutation.isPending}>
               Confirmar cierre
