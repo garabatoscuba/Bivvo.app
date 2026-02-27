@@ -17,6 +17,7 @@ interface DailySalaryBreakdown {
   serviceEarning: number;
   commissionEarning: number;
   tipShare: number;
+  [key: string]: any;
 }
 
 interface ContarYCerrarModalProps {

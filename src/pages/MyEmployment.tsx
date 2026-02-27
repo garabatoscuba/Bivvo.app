@@ -24,7 +24,6 @@ import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
 import ContarYCerrarModal from '@/components/employees/ContarYCerrarModal';
 import { toast as sonnerToast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
-import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
 import CerrarJornadaGerenteModal from '@/components/employees/CerrarJornadaGerenteModal';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import {
@@ -39,6 +38,8 @@ import { es } from 'date-fns/locale';
 import { BarChart3, ChevronLeft, ChevronRight } from 'lucide-react';
 import PayrollHistory from '@/components/nomina/PayrollHistory';
 import EmployeeSalaryView from '@/components/cobro/EmployeeSalaryView';
+import MyEmploymentDashboard from '@/components/employees/MyEmploymentDashboard';
+import { useDailySalary } from '@/hooks/useDailySalary';
 
 /** Parse 'YYYY-MM-DD' as local date (avoids UTC shift) */
 function parseLocalDate(dateStr: string): Date {
@@ -85,14 +86,10 @@ const MyEmployment = () => {
   const navigate = useNavigate();
   const { data: branches = [] } = useBranches();
   const { jornadaActiva, jornada: myJornada, isLoading: jornadaLoading2 } = useJornadaActiva();
-  const canManage = false;
 
   const [jornadaCerrarTarget, setJornadaCerrarTarget] = useState<{ jornada: any; name: string } | null>(null);
-  const [jornadaLoading, setJornadaLoading] = useState<string | null>(null);
   const [cerrarMiJornadaOpen, setCerrarMiJornadaOpen] = useState(false);
   const [contarYCerrarOpen, setContarYCerrarOpen] = useState(false);
-  const [manualTipOpen, setManualTipOpen] = useState(false);
-  const [manualTipAmount, setManualTipAmount] = useState('');
 
   const [selectedMonth, setSelectedMonth] = useState(startOfMonth(new Date()));
   const [chartType, setChartType] = useState<'radar' | 'bar'>('radar');
@@ -116,361 +113,19 @@ const MyEmployment = () => {
     enabled: !!profile?.email,
   });
 
-  // CRITICAL: Use the EMPLOYER's business_id, NOT the user's own business
   const businessId = myEmployeeRecord?.business_id || null;
   const monthKey = formatLocalMonthKey(selectedMonth);
 
-  const hasAuthorizedJornada = jornadaActiva && myJornada?.metodo_apertura === 'manual_gerente';
-
-  const todayStr = new Date().toISOString().split('T')[0];
-
-  // Fetch today's service earnings for the BRANCH (shared pool for salary calc)
-  const { data: todayBranchServiceTotal = 0 } = useQuery({
-    queryKey: ['my-today-branch-services', businessId, myJornada?.sucursal_id, todayStr],
-    queryFn: async () => {
-      const startOfDay = todayStr + 'T00:00:00';
-      const endOfDay = todayStr + 'T23:59:59';
-      const { data } = await supabase
-        .from('service_entries')
-        .select('amount')
-        .eq('business_id', businessId!)
-        .eq('branch_id', myJornada!.sucursal_id)
-        .gte('created_at', startOfDay)
-        .lte('created_at', endOfDay);
-      return data?.reduce((sum, s) => sum + Number(s.amount), 0) || 0;
-    },
-    enabled: !!businessId && !!myJornada?.sucursal_id && !!jornadaActiva,
-    refetchInterval: 30000,
+  // Use the shared salary hook
+  const dailySalary = useDailySalary({
+    businessId,
+    branchId: myJornada?.sucursal_id || null,
+    employeeId: myEmployeeRecord?.id || null,
+    jornadaActiva: !!jornadaActiva,
+    jornadaAperturaAt: myJornada?.apertura_at,
   });
 
-  // Fetch today's sales total for THIS EMPLOYEE only (for individual modalities)
-  const { data: todaySalesTotal = 0 } = useQuery({
-    queryKey: ['my-today-sales-total', myJornada?.sucursal_id, profile?.user_id, todayStr],
-    queryFn: async () => {
-      const startOfDay = todayStr + 'T00:00:00';
-      const endOfDay = todayStr + 'T23:59:59';
-      const { data } = await supabase
-        .from('sales')
-        .select('total')
-        .eq('branch_id', myJornada!.sucursal_id)
-        .eq('user_id', profile!.user_id)
-        .eq('status', 'completed')
-        .gte('created_at', startOfDay)
-        .lte('created_at', endOfDay);
-      return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
-    },
-    enabled: !!myJornada?.sucursal_id && !!profile?.user_id && !!jornadaActiva,
-    refetchInterval: 30000,
-  });
-
-  // Fetch today's sales total for the ENTIRE BRANCH (shared pool for custom_mixed)
-  const { data: todayBranchSalesTotal = 0 } = useQuery({
-    queryKey: ['my-today-branch-sales-total', myJornada?.sucursal_id, todayStr],
-    queryFn: async () => {
-      const startOfDay = todayStr + 'T00:00:00';
-      const endOfDay = todayStr + 'T23:59:59';
-      const { data } = await supabase
-        .from('sales')
-        .select('total')
-        .eq('branch_id', myJornada!.sucursal_id)
-        .eq('status', 'completed')
-        .gte('created_at', startOfDay)
-        .lte('created_at', endOfDay);
-      return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
-    },
-    enabled: !!myJornada?.sucursal_id && !!jornadaActiva,
-    refetchInterval: 30000,
-  });
-
-  // Fetch today's sale items for product commission calculation
-  const { data: todaySaleItems = [] } = useQuery({
-    queryKey: ['my-today-sale-items', myJornada?.sucursal_id, todayStr],
-    queryFn: async () => {
-      const startOfDay = todayStr + 'T00:00:00';
-      const endOfDay = todayStr + 'T23:59:59';
-      // Get today's completed sale IDs first
-      const { data: sales } = await supabase
-        .from('sales')
-        .select('id')
-        .eq('branch_id', myJornada!.sucursal_id)
-        .eq('user_id', profile!.user_id)
-        .eq('status', 'completed')
-        .gte('created_at', startOfDay)
-        .lte('created_at', endOfDay);
-      if (!sales?.length) return [];
-      const saleIds = sales.map(s => s.id);
-      const { data: items } = await supabase
-        .from('sale_items')
-        .select('product_id, quantity, unit_price, cost_price, total')
-        .in('sale_id', saleIds);
-      return items || [];
-    },
-    enabled: !!myJornada?.sucursal_id && !!profile?.user_id && !!jornadaActiva,
-    refetchInterval: 30000,
-  });
-
-  // Fetch product commissions config
-  const { data: productCommissions = [] } = useQuery({
-    queryKey: ['my-product-commissions', businessId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('product_commissions')
-        .select('product_id, commission_type, commission_value, split_type')
-        .eq('business_id', businessId!);
-      return data || [];
-    },
-    enabled: !!businessId && !!jornadaActiva,
-  });
-
-  // Fetch active workers count in my branch today
-  const { data: activeWorkersCount = 1 } = useQuery({
-    queryKey: ['active-workers-count', myJornada?.sucursal_id, todayStr],
-    queryFn: async () => {
-      const startOfDay = todayStr + 'T00:00:00';
-      const endOfDay = todayStr + 'T23:59:59';
-      const { data } = await supabase
-        .from('jornadas')
-        .select('empleado_id')
-        .eq('sucursal_id', myJornada!.sucursal_id)
-        .gte('apertura_at', startOfDay)
-        .lte('apertura_at', endOfDay);
-      const unique = new Set(data?.map(j => j.empleado_id) || []);
-      return Math.max(1, unique.size);
-    },
-    enabled: !!myJornada?.sucursal_id && !!jornadaActiva,
-    refetchInterval: 30000,
-  });
-
-  // Fetch salary assignments (multiple) for display
-  const { data: mySalaryAssignments = [] } = useQuery({
-    queryKey: ['my-salary-assignments', myEmployeeRecord?.id],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('employee_salary_assignments')
-        .select('*, salary_modalities(name, modality_type, config, presets, context)')
-        .eq('employee_id', myEmployeeRecord!.id)
-        .eq('is_active', true);
-      return data || [];
-    },
-    enabled: !!myEmployeeRecord?.id,
-  });
-
-  // Fetch salary_config (conditions for custom_mixed are stored here, NOT in salary_modalities.config)
-  const { data: salaryConfig } = useQuery({
-    queryKey: ['salary-config', businessId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('salary_config')
-        .select('*')
-        .eq('business_id', businessId!)
-        .maybeSingle();
-      return data;
-    },
-    enabled: !!businessId,
-  });
-
-  // Keep backward compat alias
-  const mySalaryAssignment = mySalaryAssignments[0] || null;
-
-  // Fetch tip config for the business
-  const { data: tipConfig } = useQuery({
-    queryKey: ['tip-config', businessId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tip_config')
-        .select('*')
-        .eq('business_id', businessId!)
-        .maybeSingle();
-      if (error) return null;
-      return data;
-    },
-    enabled: !!businessId,
-  });
-
-  // Fetch today's manual tips for this branch
-  const { data: todayTipEntries = [] } = useQuery({
-    queryKey: ['my-today-tips', businessId, myJornada?.sucursal_id, todayStr],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('tip_entries')
-        .select('amount, tip_type')
-        .eq('business_id', businessId!)
-        .eq('branch_id', myJornada!.sucursal_id)
-        .eq('date', todayStr);
-      return data || [];
-    },
-    enabled: !!businessId && !!myJornada?.sucursal_id && !!jornadaActiva,
-    refetchInterval: 30000,
-  });
-
-  const todayManualTips = todayTipEntries.reduce((sum, t) => sum + Number(t.amount), 0);
-
-  // Calculate my tip share
-  const myTipShare = useMemo(() => {
-    if (!tipConfig || !todayManualTips) return 0;
-    const ownerPct = Number(tipConfig.owner_percent) || 0;
-    const afterOwner = todayManualTips * ((100 - ownerPct) / 100);
-    const conditions = (tipConfig.conditions as unknown as { positions: number; tip_percent: number }[]) || [];
-    const matched = conditions.find(c => c.positions === activeWorkersCount)
-      || conditions.filter(c => c.positions <= activeWorkersCount).sort((a, b) => b.positions - a.positions)[0]
-      || conditions.sort((a, b) => a.positions - b.positions)[0];
-    if (!matched) return afterOwner / Math.max(1, activeWorkersCount);
-    return afterOwner * (matched.tip_percent / 100);
-  }, [tipConfig, todayManualTips, activeWorkersCount]);
-
-  // Mutation to add manual tip
-  const addTipMutation = useMutation({
-    mutationFn: async (amount: number) => {
-      const { error } = await supabase.from('tip_entries').insert({
-        business_id: businessId!,
-        branch_id: myJornada!.sucursal_id,
-        user_id: user!.id,
-        amount,
-        tip_type: 'manual',
-        jornada_id: myJornada!.id,
-        date: todayStr,
-      } as any);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-today-tips'] });
-      sonnerToast.success('Propina registrada');
-      setManualTipOpen(false);
-      setManualTipAmount('');
-    },
-    onError: (err: any) => sonnerToast.error(err.message),
-  });
-  // Helper to calculate earnings from assignments
-  // sharedIncome = branch-wide total (services + all sales) for shared modalities
-  // individualIncome = employee's own sales for individual modalities
-  const calcAssignmentEarnings = (assignments: any[], sharedIncome: number, individualIncome: number) => {
-    let base = 0;
-    let earning = 0;
-
-    for (const assignment of assignments) {
-      const modType = assignment?.salary_modalities?.modality_type;
-      const config = assignment?.salary_modalities?.config || {};
-      const baseSalary = Number(assignment.base_salary || 0);
-      const configOverride = assignment.config_override as Record<string, any> || {};
-
-      switch (modType) {
-        case 'fixed': {
-          const freq = assignment.pay_frequency;
-          const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
-          base += baseSalary / days;
-          break;
-        }
-        case 'custom_mixed': {
-          // Uses branch-wide shared pool divided by workers
-          const conditions = (salaryConfig?.conditions as unknown as any[]) || [];
-          const matchedCondition = conditions.find((c: any) => c.positions === activeWorkersCount)
-            || conditions
-              .filter((c: any) => c.positions <= activeWorkersCount)
-              .sort((a: any, b: any) => b.positions - a.positions)[0]
-            || conditions.sort((a: any, b: any) => a.positions - b.positions)[0];
-
-          const presetId = configOverride?.preset_id;
-          let servicePercent = matchedCondition?.service_percent || 0;
-
-          if (presetId) {
-            const presets = assignment?.salary_modalities?.presets || [];
-            const preset = presets.find((p: any) => p.id === presetId);
-            if (preset?.config?.service_percent_override != null) {
-              servicePercent = preset.config.service_percent_override;
-            }
-          }
-
-          earning += (sharedIncome * (servicePercent / 100)) / activeWorkersCount;
-          break;
-        }
-        case 'fixed_plus_sales_percent': {
-          // Fixed base + percentage of employee's OWN sales
-          const freq = assignment.pay_frequency;
-          const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
-          base += baseSalary / days;
-          const salesPct = Number(config.sales_percent || 0);
-          if (salesPct > 0) earning += individualIncome * (salesPct / 100);
-          break;
-        }
-        case 'sales_percent_only': {
-          // Percentage of employee's OWN sales
-          const pct = Number(config.sales_percent || config.percent || 0);
-          if (pct > 0) earning += individualIncome * (pct / 100);
-          break;
-        }
-        case 'profit_percent': {
-          const profitPct = Number(config.profit_percent || config.percent || 0);
-          if (profitPct > 0) earning += individualIncome * (profitPct / 100);
-          break;
-        }
-        case 'hourly': {
-          if (myJornada) {
-            const hoursWorked = (Date.now() - new Date(myJornada.apertura_at).getTime()) / 3600000;
-            const hourlyRate = Number(config.hourly_rate || baseSalary || 0);
-            base += hourlyRate * hoursWorked;
-          }
-          break;
-        }
-        default: {
-          base += baseSalary;
-          const pct = Number(config.service_percent || config.percent || 0);
-          if (pct > 0) earning += sharedIncome * (pct / 100);
-        }
-      }
-    }
-    return { base, earning };
-  };
-
-  // Calculate running daily salary
-  const dailySalary = useMemo(() => {
-    // Shared pool = branch-wide services + branch-wide sales (for custom_mixed)
-    const sharedIncome = todayBranchServiceTotal + todayBranchSalesTotal;
-    // Individual = employee's own sales (for sales_percent, profit_percent, etc.)
-    const individualIncome = todaySalesTotal;
-    const generalResult = calcAssignmentEarnings(mySalaryAssignments, sharedIncome, individualIncome);
-
-    // Product commissions - only if any assignment has commissions_enabled
-    const hasCommissions = mySalaryAssignments.some((a: any) => {
-      const override = a.config_override as Record<string, any> || {};
-      return override.commissions_enabled;
-    });
-
-    let totalCommissionEarning = 0;
-    if (hasCommissions) {
-      for (const item of todaySaleItems) {
-        const commConfig = productCommissions.find((c: any) => c.product_id === item.product_id);
-        if (!commConfig || Number(commConfig.commission_value) === 0) continue;
-
-        let commAmount = 0;
-        if (commConfig.commission_type === 'fixed') {
-          commAmount = Number(commConfig.commission_value) * Number(item.quantity);
-        } else if (commConfig.commission_type === 'percent') {
-          commAmount = Number(item.total) * (Number(commConfig.commission_value) / 100);
-        } else if (commConfig.commission_type === 'profit_percent') {
-          const itemProfit = (Number(item.unit_price) - Number(item.cost_price)) * Number(item.quantity);
-          commAmount = itemProfit * (Number(commConfig.commission_value) / 100);
-        }
-
-        if (commConfig.split_type === 'shared' && activeWorkersCount > 1) {
-          commAmount = commAmount / activeWorkersCount;
-        }
-        totalCommissionEarning += commAmount;
-      }
-    }
-
-    const total = generalResult.base + generalResult.earning + totalCommissionEarning + myTipShare;
-
-    return {
-      total,
-      base: generalResult.base,
-      serviceEarning: generalResult.earning,
-      commissionEarning: totalCommissionEarning,
-      tipShare: myTipShare,
-      sharedIncome,
-    };
-  }, [mySalaryAssignments, salaryConfig, todayBranchServiceTotal, todayBranchSalesTotal, todaySalesTotal, activeWorkersCount, todaySaleItems, productCommissions, myJornada, myTipShare]);
-
-
+  // Fetch branch assignments for info tab
   const { data: branchAssignments = [] } = useQuery({
     queryKey: ['my-employee-branch-assignments', myEmployeeRecord?.id],
     queryFn: async () => {
@@ -485,55 +140,23 @@ const MyEmployment = () => {
     enabled: !!myEmployeeRecord,
   });
 
-  // Fetch HR employees (for managers)
-  const { data: hrEmployees = [] } = useQuery({
-    queryKey: ['hr-employees', businessId],
+  // Fetch salary assignment for info tab display
+  const { data: mySalaryAssignment = null } = useQuery({
+    queryKey: ['my-salary-assignment-info', myEmployeeRecord?.id],
     queryFn: async () => {
-      if (!businessId) return [];
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('business_id', businessId)
-        .order('full_name');
-      if (error) return [];
-      return data as Employee[];
+      const { data } = await supabase
+        .from('employee_salary_assignments')
+        .select('*, salary_modalities(name, modality_type, config)')
+        .eq('employee_id', myEmployeeRecord!.id)
+        .eq('is_active', true)
+        .limit(1)
+        .maybeSingle();
+      return data;
     },
-    enabled: !!businessId && canManage,
+    enabled: !!myEmployeeRecord?.id,
   });
 
-  // Fetch active jornadas
-  const { data: activeJornadas = [] } = useQuery({
-    queryKey: ['jornadas-activas-business', businessId],
-    queryFn: async () => {
-      if (!businessId) return [];
-      const { data: bizBranches } = await supabase
-        .from('branches').select('id').eq('business_id', businessId);
-      if (!bizBranches?.length) return [];
-      const { data, error } = await supabase
-        .from('jornadas').select('*')
-        .in('sucursal_id', bizBranches.map(b => b.id))
-        .is('cierre_at', null);
-      if (error) return [];
-      return data || [];
-    },
-    enabled: !!businessId && canManage,
-    refetchInterval: 60000,
-  });
-
-  // Fetch employee profiles
-  const employeeEmails = hrEmployees.filter(e => e.email).map(e => e.email!.toLowerCase());
-  const { data: employeeProfiles = [] } = useQuery({
-    queryKey: ['employee-profiles-by-email', employeeEmails.sort().join(',')],
-    queryFn: async () => {
-      if (!employeeEmails.length) return [];
-      const { data, error } = await supabase.rpc('get_profiles_by_emails', { emails: employeeEmails });
-      if (error) return [];
-      return data || [];
-    },
-    enabled: employeeEmails.length > 0 && canManage,
-  });
-
-  // Fetch my jornada history (full for activity tab)
+  // Fetch my jornada history (for activity tab)
   const { data: myJornadaHistory = [] } = useQuery({
     queryKey: ['my-jornada-history', profile?.id],
     queryFn: async () => {
@@ -653,10 +276,7 @@ const MyEmployment = () => {
     setSelectedMonth(prev => direction === 'prev' ? subMonths(prev, 1) : addMonths(prev, 1));
   };
 
-  const mySkills = useMemo(() => {
-    return evalSkills.filter(s => !s.hidden);
-  }, [evalSkills]);
-
+  const mySkills = useMemo(() => evalSkills.filter(s => !s.hidden), [evalSkills]);
   const myAvg = useMemo(() => getAvgScore(evalSkills), [evalSkills]);
   const myWeak = useMemo(() => getWeakPoints(evalSkills), [evalSkills]);
 
@@ -713,17 +333,6 @@ const MyEmployment = () => {
     return 'hsl(var(--primary))';
   };
 
-  const getProfileForEmployee = (emp: Employee) => {
-    if (!emp.email) return null;
-    return employeeProfiles.find(p => p.email.toLowerCase() === emp.email!.toLowerCase()) || null;
-  };
-
-  const getEmployeeJornada = (emp: Employee) => {
-    const prof = getProfileForEmployee(emp);
-    if (!prof) return null;
-    return activeJornadas.find((j: any) => j.empleado_id === prof.id) || null;
-  };
-
   const getJornadaElapsed = (aperturaAt: string) => {
     const diffMs = Date.now() - new Date(aperturaAt).getTime();
     const m = Math.floor(diffMs / 60000);
@@ -738,33 +347,9 @@ const MyEmployment = () => {
       .filter(Boolean);
   };
 
-  const handleStartJornada = async (emp: Employee) => {
-    const prof = getProfileForEmployee(emp);
-    if (!prof) { sonnerToast.error('Este empleado no tiene cuenta vinculada'); return; }
-    const branchId = emp.branch_id || profile?.branch_id;
-    if (!branchId) { sonnerToast.error('No se puede determinar la sucursal'); return; }
-    setJornadaLoading(emp.id);
-    const { error } = await supabase.from('jornadas').insert({
-      empleado_id: prof.id, sucursal_id: branchId, metodo_apertura: 'manual_gerente',
-    });
-    setJornadaLoading(null);
-    if (error) { sonnerToast.error(error.message); }
-    else {
-      sonnerToast.success(`Jornada iniciada para ${emp.full_name}`);
-      queryClient.invalidateQueries({ queryKey: ['jornadas-activas-business'] });
-      queryClient.invalidateQueries({ queryKey: ['equipo-activo'] });
-    }
-  };
-
-  const handleStopJornada = (emp: Employee) => {
-    const jornada = getEmployeeJornada(emp);
-    if (jornada) setJornadaCerrarTarget({ jornada, name: emp.full_name });
-  };
-
   // Punctuality stats from jornada history
   const puntualidadStats = useMemo(() => {
     if (!myJornadaHistory.length) return { total: 0, late: 0, onTime: 0, incidents: 0 };
-    // Consider "late" if apertura_at hour >= 09:00 (configurable placeholder)
     let late = 0;
     let incidents = 0;
     myJornadaHistory.forEach((j: any) => {
@@ -818,236 +403,27 @@ const MyEmployment = () => {
           </TabsTrigger>
         </TabsList>
 
-        {/* ===== TAB 1: DASHBOARD LABORAL ===== */}
-        <TabsContent value="dashboard" className="space-y-4">
-          {/* Equipo activo with personal jornada info */}
-          {businessId && (
-            <EquipoActivoSection
-              onlyActive
-              businessIdOverride={businessId}
+        {/* ===== TAB 1: DASHBOARD ===== */}
+        <TabsContent value="dashboard">
+          {businessId && myJornada?.sucursal_id && (
+            <MyEmploymentDashboard
+              businessId={businessId}
+              branchId={myJornada.sucursal_id}
+              jornadaActiva={!!jornadaActiva}
               myJornada={myJornada}
-              jornadaActiva={jornadaActiva}
+              dailySalary={dailySalary}
+              onOpenContarYCerrar={() => setContarYCerrarOpen(true)}
             />
           )}
-
-          {/* Daily sales indicator */}
-          {jornadaActiva && (
-            <Card>
-              <CardContent className="py-3 px-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1"><ShoppingCart className="h-3 w-3" /> Venta del día</p>
-                    <p className="text-xl font-bold">${(todayBranchServiceTotal + todayBranchSalesTotal).toFixed(2)}</p>
-                  </div>
-                  <div className="text-right text-[10px] text-muted-foreground space-y-0.5">
-                    <p>Servicios: ${todayBranchServiceTotal.toFixed(0)}</p>
-                    <p>Productos: ${todayBranchSalesTotal.toFixed(0)}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Simple Salary Today card */}
-          {jornadaActiva && (
-            <Card className="border-primary/30">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-sm flex items-center gap-2">
-                  💰 Salario de Hoy
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {(() => {
-                  // Find the active condition percentage for display
-                  let displayPercent = 0;
-                  for (const assignment of mySalaryAssignments) {
-                    const modType = assignment?.salary_modalities?.modality_type;
-                    const config = assignment?.salary_modalities?.config || {};
-                    const configOverride = assignment.config_override as Record<string, any> || {};
-                    if (modType === 'custom_mixed') {
-                      const conditions = (salaryConfig?.conditions as unknown as any[]) || [];
-                      const matched = conditions.find((c: any) => c.positions === activeWorkersCount)
-                        || conditions.filter((c: any) => c.positions <= activeWorkersCount).sort((a: any, b: any) => b.positions - a.positions)[0]
-                        || conditions.sort((a: any, b: any) => a.positions - b.positions)[0];
-                      const presetId = configOverride?.preset_id;
-                      displayPercent = matched?.service_percent || 0;
-                      if (presetId) {
-                        const presets = assignment?.salary_modalities?.presets || [];
-                        const preset = (presets as any[]).find((p: any) => p.id === presetId);
-                        if (preset?.config?.service_percent_override != null) {
-                          displayPercent = preset.config.service_percent_override;
-                        }
-                      }
-                    } else if (modType === 'sales_percent_only' || modType === 'fixed_plus_sales_percent') {
-                      displayPercent = Number((config as any).sales_percent || (config as any).percent || 0);
-                    } else if (modType === 'profit_percent') {
-                      displayPercent = Number((config as any).profit_percent || (config as any).percent || 0);
-                    }
-                  }
-                  const totalIncome = dailySalary.sharedIncome;
-                  return (
-                    <>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Condición activa</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {activeWorkersCount} puestos → {displayPercent}%
-                        </Badge>
-                      </div>
-                      <div className="text-xs space-y-0.5">
-                        <div className="flex justify-between">
-                          <span>Servicios ({displayPercent}% de ${totalIncome.toFixed(2)} ÷ {activeWorkersCount})</span>
-                          <span className="font-medium">${dailySalary.serviceEarning.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Comisiones (${(dailySalary.commissionEarning * activeWorkersCount).toFixed(2)} ÷ {activeWorkersCount})</span>
-                          <span className="font-medium">${dailySalary.commissionEarning.toFixed(2)}</span>
-                        </div>
-                        {dailySalary.tipShare > 0 && (
-                          <div className="flex justify-between">
-                            <span>Propinas</span>
-                            <span className="font-medium">${dailySalary.tipShare.toFixed(2)}</span>
-                          </div>
-                        )}
-                        {dailySalary.base > 0 && (
-                          <div className="flex justify-between">
-                            <span>Salario base</span>
-                            <span className="font-medium">${dailySalary.base.toFixed(2)}</span>
-                          </div>
-                        )}
-                      </div>
-                      <div className="flex justify-between pt-1 border-t font-bold text-sm">
-                        <span>Total del día</span>
-                        <span className="text-primary">${dailySalary.total.toFixed(2)}</span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Contar y Cerrar Jornada button */}
-          {jornadaActiva && myJornada && (
-            <Button
-              className="w-full"
-              variant="destructive"
-              onClick={() => setContarYCerrarOpen(true)}
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Contar y Cerrar Jornada
-            </Button>
-          )}
-
-
-
-          {/* Manager: employee table */}
-          {canManage && hrEmployees.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="flex items-center gap-2 text-sm">
-                  <Users className="h-4 w-4" />
-                  Empleados ({hrEmployees.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {/* Mobile cards */}
-                <div className="space-y-2 md:hidden">
-                  {hrEmployees.map((emp) => {
-                    const empJornada = getEmployeeJornada(emp);
-                    const empProfile = getProfileForEmployee(emp);
-                    return (
-                      <div key={emp.id} className="border rounded-lg p-2.5 flex items-center justify-between">
-                        <div>
-                          <span className="font-medium text-xs">{emp.full_name}</span>
-                          <div className="flex items-center gap-1 mt-0.5">
-                            <Badge variant="secondary" className="text-[10px]">
-                              {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
-                            </Badge>
-                            {empJornada && (
-                              <Badge variant="outline" className="border-primary/30 text-primary text-[10px] gap-1">
-                                <span className="relative flex h-1.5 w-1.5">
-                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
-                                </span>
-                                {getJornadaElapsed(empJornada.apertura_at)}
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        {empProfile && (
-                          empJornada ? (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleStopJornada(emp)}>
-                              <Square className="h-3.5 w-3.5" />
-                            </Button>
-                          ) : (
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-primary" onClick={() => handleStartJornada(emp)} disabled={jornadaLoading === emp.id}>
-                              {jornadaLoading === emp.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
-                            </Button>
-                          )
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Desktop table */}
-                <div className="overflow-x-auto hidden md:block">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nombre</TableHead>
-                        <TableHead>Puesto</TableHead>
-                        <TableHead>Jornada</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {hrEmployees.map((emp) => {
-                        const empJornada = getEmployeeJornada(emp);
-                        const empProfile = getProfileForEmployee(emp);
-                        return (
-                          <TableRow key={emp.id}>
-                            <TableCell className="font-medium">{emp.full_name}</TableCell>
-                            <TableCell>
-                              <Badge variant="secondary">
-                                {POSITION_OPTIONS.find(p => p.value === emp.position)?.label || emp.position}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {empJornada ? (
-                                <Badge variant="outline" className="border-primary/30 text-primary text-xs gap-1">
-                                  <span className="relative flex h-1.5 w-1.5">
-                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
-                                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-primary" />
-                                  </span>
-                                  {getJornadaElapsed(empJornada.apertura_at)}
-                                </Badge>
-                              ) : empProfile ? (
-                                <span className="text-xs text-muted-foreground">Inactivo</span>
-                              ) : (
-                                <span className="text-xs text-muted-foreground">—</span>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              {empProfile && (
-                                empJornada ? (
-                                  <Button variant="ghost" size="icon" className="text-destructive" onClick={() => handleStopJornada(emp)}>
-                                    <Square className="h-4 w-4" />
-                                  </Button>
-                                ) : (
-                                  <Button variant="ghost" size="icon" className="text-primary" onClick={() => handleStartJornada(emp)} disabled={jornadaLoading === emp.id}>
-                                    {jornadaLoading === emp.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
-                                  </Button>
-                                )
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </CardContent>
-            </Card>
+          {!myJornada?.sucursal_id && businessId && (
+            <MyEmploymentDashboard
+              businessId={businessId}
+              branchId={myEmployeeRecord.branch_id || profile?.branch_id || ''}
+              jornadaActiva={false}
+              myJornada={myJornada}
+              dailySalary={dailySalary}
+              onOpenContarYCerrar={() => setContarYCerrarOpen(true)}
+            />
           )}
         </TabsContent>
 
@@ -1069,35 +445,53 @@ const MyEmployment = () => {
               <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleMonthChange('prev')}>
                 <ChevronLeft className="h-4 w-4" />
               </Button>
-              <span className="text-sm font-medium capitalize min-w-[120px] text-center">
+              <span className="text-sm font-medium min-w-[100px] text-center">
                 {format(selectedMonth, 'MMMM yyyy', { locale: es })}
               </span>
               <Button variant="outline" size="icon" className="h-7 w-7" onClick={() => handleMonthChange('next')}>
                 <ChevronRight className="h-4 w-4" />
               </Button>
             </div>
-            <div className="flex items-center gap-1">
-              <Button variant={chartType === 'radar' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setChartType('radar')}>
-                Radar
+            <div className="flex items-center gap-2">
+              {/* Chart type toggle */}
+              <Button
+                variant={chartType === 'radar' ? 'default' : 'outline'}
+                size="icon" className="h-7 w-7"
+                onClick={() => setChartType('radar')}
+              >
+                <Activity className="h-3.5 w-3.5" />
               </Button>
-              <Button variant={chartType === 'bar' ? 'default' : 'outline'} size="sm" className="h-7 text-xs" onClick={() => setChartType('bar')}>
-                <BarChart3 className="h-3 w-3 mr-1" /> Barras
+              <Button
+                variant={chartType === 'bar' ? 'default' : 'outline'}
+                size="icon" className="h-7 w-7"
+                onClick={() => setChartType('bar')}
+              >
+                <BarChart3 className="h-3.5 w-3.5" />
               </Button>
-              {compareEmployees.length > 0 && (
-                <Select value={compareEmployeeId || 'none'} onValueChange={v => setCompareEmployeeId(v === 'none' ? null : v)}>
-                  <SelectTrigger className="h-7 text-xs w-[120px]">
-                    <SelectValue placeholder="Comparar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none" className="text-xs">Sin comparar</SelectItem>
-                    {compareEmployees.map(e => (
-                      <SelectItem key={e.id} value={e.id} className="text-xs">{e.full_name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
             </div>
           </div>
+
+          {/* Compare selector */}
+          {compareEmployees.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Comparar con:</span>
+              <Select value={compareEmployeeId || ''} onValueChange={v => setCompareEmployeeId(v || null)}>
+                <SelectTrigger className="h-7 text-xs w-[180px]">
+                  <SelectValue placeholder="Seleccionar..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {compareEmployees.map(e => (
+                    <SelectItem key={e.id} value={e.id} className="text-xs">{e.full_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {compareEmployeeId && (
+                <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setCompareEmployeeId(null)}>
+                  Limpiar
+                </Button>
+              )}
+            </div>
+          )}
 
           {evalLoading ? (
             <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin" /></div>
@@ -1385,8 +779,7 @@ const MyEmployment = () => {
           </Card>
         </TabsContent>
 
-
-        {/* ===== TAB 4: INFORMACIÓN LABORAL + Nómina info ===== */}
+        {/* ===== TAB: INFO ===== */}
         <TabsContent value="info" className="space-y-4">
           <Card>
             <CardHeader className="pb-2">
@@ -1525,39 +918,6 @@ const MyEmployment = () => {
           jornada={myJornada}
         />
       )}
-
-      {/* Manual tip dialog */}
-      <Dialog open={manualTipOpen} onOpenChange={setManualTipOpen}>
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Gift className="h-4 w-4" /> Agregar Propina
-            </DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <Label className="text-sm">Monto de la propina</Label>
-            <Input
-              type="number"
-              min={0}
-              step={0.01}
-              value={manualTipAmount}
-              onChange={e => setManualTipAmount(e.target.value)}
-              placeholder="0.00"
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setManualTipOpen(false)}>Cancelar</Button>
-            <Button
-              onClick={() => addTipMutation.mutate(parseFloat(manualTipAmount) || 0)}
-              disabled={!manualTipAmount || parseFloat(manualTipAmount) <= 0 || addTipMutation.isPending}
-            >
-              {addTipMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
-              Registrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </AppLayout>
   );
 };
