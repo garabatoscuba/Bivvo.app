@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useNotifications, type Notification } from '@/hooks/useNotifications';
 import AppLayout from '@/components/layout/AppLayout';
-import { Package, Phone, MapPin, Clock, CheckCircle, XCircle, Eye, ChevronDown, Loader2 } from 'lucide-react';
+import { Package, Phone, MapPin, Clock, CheckCircle, XCircle, ChevronDown, Loader2, Truck, Star, Copy, Link2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,29 +10,40 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
 import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { QRCodeSVG } from 'qrcode.react';
 
-type OrderStatus = 'pending' | 'confirmed' | 'delivered' | 'cancelled';
+type OrderStatus = 'new' | 'confirmed' | 'in_transit' | 'delivered' | 'cancelled';
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; icon: typeof Clock }> = {
-  pending: { label: 'Pendiente', color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20', icon: Clock },
+  new: { label: 'Nuevo', color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20', icon: Clock },
   confirmed: { label: 'Confirmado', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20', icon: CheckCircle },
+  in_transit: { label: 'En camino', color: 'bg-purple-500/10 text-purple-600 border-purple-500/20', icon: Truck },
   delivered: { label: 'Entregado', color: 'bg-green-500/10 text-green-600 border-green-500/20', icon: CheckCircle },
   cancelled: { label: 'Cancelado', color: 'bg-red-500/10 text-red-600 border-red-500/20', icon: XCircle },
+};
+
+// Map old "pending" status to "new"
+const normalizeStatus = (s: string): OrderStatus => {
+  if (s === 'pending') return 'new';
+  return (s as OrderStatus) || 'new';
 };
 
 const Orders = () => {
   const { notifications, markAsRead } = useNotifications();
   const { toast } = useToast();
-  const { isOwner, isManager, isSuperAdmin } = useAuth();
+  const { isOwner, isManager, isSuperAdmin, profile } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const [filter, setFilter] = useState<'all' | OrderStatus>('all');
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [reviewDialog, setReviewDialog] = useState<{ open: boolean; token: string; url: string; customerName: string }>({
+    open: false, token: '', url: '', customerName: '',
+  });
 
-  // Filter only storefront_order notifications
   const orders = notifications.filter(n => n.type === 'storefront_order');
 
   const getOrderStatus = (n: Notification): OrderStatus => {
-    return (n.metadata?.status as OrderStatus) || 'pending';
+    return normalizeStatus((n.metadata?.status as string) || 'new');
   };
 
   const filtered = filter === 'all' ? orders : orders.filter(n => getOrderStatus(n) === filter);
@@ -49,18 +60,48 @@ const Orders = () => {
 
     if (error) {
       toast({ title: 'Error al actualizar', description: error.message, variant: 'destructive' });
-    } else {
-      toast({ title: `Pedido ${STATUS_CONFIG[status].label.toLowerCase()}` });
-      markAsRead(notifId);
-      // Force re-render by reloading
-      window.location.reload();
+      return;
     }
+    
+    toast({ title: `Pedido ${STATUS_CONFIG[status].label.toLowerCase()}` });
+    markAsRead(notifId);
+
+    // If marking as delivered, generate review token
+    if (status === 'delivered' && notif.branch_id) {
+      try {
+        const { data: tokenData } = await (supabase
+          .from('review_tokens' as any)
+          .insert({
+            branch_id: notif.branch_id,
+            order_notification_id: notifId,
+            customer_name: (notif.metadata?.customer_name as string) || 'Cliente',
+          } as any)
+          .select('token')
+          .single() as any);
+
+        if (tokenData?.token) {
+          const reviewUrl = `${window.location.origin}/review/${tokenData.token}`;
+          setReviewDialog({
+            open: true,
+            token: tokenData.token,
+            url: reviewUrl,
+            customerName: (notif.metadata?.customer_name as string) || 'Cliente',
+          });
+        }
+      } catch {
+        // Silent - review request is optional
+      }
+    }
+
+    // Force re-render
+    window.location.reload();
   };
 
   const counts = {
     all: orders.length,
-    pending: orders.filter(n => getOrderStatus(n) === 'pending').length,
+    new: orders.filter(n => getOrderStatus(n) === 'new').length,
     confirmed: orders.filter(n => getOrderStatus(n) === 'confirmed').length,
+    in_transit: orders.filter(n => getOrderStatus(n) === 'in_transit').length,
     delivered: orders.filter(n => getOrderStatus(n) === 'delivered').length,
     cancelled: orders.filter(n => getOrderStatus(n) === 'cancelled').length,
   };
@@ -93,6 +134,11 @@ const Orders = () => {
     );
   }
 
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    toast({ title: 'Enlace copiado' });
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -103,7 +149,7 @@ const Orders = () => {
 
         {/* Filters */}
         <div className="flex gap-2 overflow-x-auto pb-1">
-          {(['all', 'pending', 'confirmed', 'delivered', 'cancelled'] as const).map(key => (
+          {(['all', 'new', 'confirmed', 'in_transit', 'delivered', 'cancelled'] as const).map(key => (
             <button
               key={key}
               onClick={() => setFilter(key)}
@@ -150,7 +196,7 @@ const Orders = () => {
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-sm font-bold">Bs {Number(meta.subtotal || 0).toFixed(2)}</span>
+                      <span className="text-sm font-bold">${Number(meta.subtotal || 0).toFixed(2)}</span>
                       <Badge variant="outline" className={`text-[10px] ${config.color}`}>
                         {config.label}
                       </Badge>
@@ -181,12 +227,12 @@ const Orders = () => {
                         {items.map((item: any, idx: number) => (
                           <div key={idx} className="flex justify-between text-sm py-1">
                             <span>{item.quantity}x {item.product_name}</span>
-                            <span className="font-medium">Bs {Number(item.total).toFixed(2)}</span>
+                            <span className="font-medium">${Number(item.total).toFixed(2)}</span>
                           </div>
                         ))}
                         <div className="flex justify-between text-sm font-bold pt-2 border-t border-border">
                           <span>Total</span>
-                          <span>Bs {Number(meta.subtotal || 0).toFixed(2)}</span>
+                          <span>${Number(meta.subtotal || 0).toFixed(2)}</span>
                         </div>
                       </div>
 
@@ -194,8 +240,8 @@ const Orders = () => {
                         <p className="text-xs text-muted-foreground bg-muted/30 p-3 rounded-lg">📝 {meta.notes}</p>
                       )}
 
-                      {/* Actions */}
-                      {status === 'pending' && (
+                      {/* Actions by status */}
+                      {status === 'new' && (
                         <div className="flex gap-2">
                           <Button size="sm" onClick={() => updateOrderStatus(order.id, 'confirmed')} className="flex-1">
                             <CheckCircle className="h-3.5 w-3.5 mr-1" /> Confirmar
@@ -206,6 +252,16 @@ const Orders = () => {
                         </div>
                       )}
                       {status === 'confirmed' && (
+                        <div className="flex gap-2">
+                          <Button size="sm" onClick={() => updateOrderStatus(order.id, 'in_transit')} className="flex-1">
+                            <Truck className="h-3.5 w-3.5 mr-1" /> En camino
+                          </Button>
+                          <Button size="sm" variant="outline" onClick={() => updateOrderStatus(order.id, 'delivered')}>
+                            <CheckCircle className="h-3.5 w-3.5 mr-1" /> Entregado
+                          </Button>
+                        </div>
+                      )}
+                      {status === 'in_transit' && (
                         <Button size="sm" onClick={() => updateOrderStatus(order.id, 'delivered')} className="w-full">
                           <CheckCircle className="h-3.5 w-3.5 mr-1" /> Marcar entregado
                         </Button>
@@ -218,6 +274,41 @@ const Orders = () => {
           </div>
         )}
       </div>
+
+      {/* Review request dialog */}
+      <Dialog open={reviewDialog.open} onOpenChange={(open) => setReviewDialog(prev => ({ ...prev, open }))}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Star className="h-4 w-4" /> Solicitar reseña
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Comparte este enlace o QR con <strong>{reviewDialog.customerName}</strong> para que deje su reseña.
+            </p>
+            
+            {/* QR Code */}
+            <div className="flex justify-center">
+              <div className="p-4 bg-white rounded-xl inline-block">
+                <QRCodeSVG value={reviewDialog.url} size={160} />
+              </div>
+            </div>
+
+            {/* Copy link */}
+            <div className="flex gap-2">
+              <input
+                readOnly
+                value={reviewDialog.url}
+                className="flex-1 h-9 px-3 rounded-lg border border-border bg-muted text-xs font-mono truncate"
+              />
+              <Button size="sm" variant="outline" onClick={() => copyToClipboard(reviewDialog.url)}>
+                <Copy className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </AppLayout>
   );
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import LoyaltyRewardsTab from '@/components/storefront/LoyaltyRewardsTab';
 import AppLayout from '@/components/layout/AppLayout';
 import { useStoreSettings, type WeekSchedule, type DaySchedule } from '@/hooks/useStoreSettings';
 import { useAuth } from '@/contexts/AuthContext';
@@ -300,6 +301,7 @@ const StoreSettingsPage = () => {
             <TabsList className="mb-6 flex-wrap h-auto gap-1">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="appearance">Personalización</TabsTrigger>
+              <TabsTrigger value="loyalty">Fidelización</TabsTrigger>
               <TabsTrigger value="announcements">Anuncios</TabsTrigger>
               <TabsTrigger value="reviews">Reseñas</TabsTrigger>
               <TabsTrigger value="affiliates">Clientes</TabsTrigger>
@@ -739,6 +741,11 @@ const StoreSettingsPage = () => {
                   )}
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* LOYALTY TAB */}
+            <TabsContent value="loyalty">
+              <LoyaltyRewardsTab />
             </TabsContent>
           </Tabs>
         )}
