@@ -123,7 +123,7 @@ const emptyForm: EmployeeForm = {
   assigned_branches: [],
   assigned_roles: ['seller'],
   salary_assignments: [],
-  use_bivoo_id: false,
+  use_bivoo_id: true,
   bivoo_password: '',
   
   modality_id: '',
