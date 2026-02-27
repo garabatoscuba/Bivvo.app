@@ -980,6 +980,39 @@ export type Database = {
           },
         ]
       }
+      module_plugin_pricing: {
+        Row: {
+          availability: string
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          monthly_price: number
+          plan_type: string
+          updated_at: string
+        }
+        Insert: {
+          availability?: string
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          monthly_price?: number
+          plan_type: string
+          updated_at?: string
+        }
+        Update: {
+          availability?: string
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          monthly_price?: number
+          plan_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           branch_id: string | null
@@ -1085,6 +1118,123 @@ export type Database = {
           total_branches?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      platform_modules: {
+        Row: {
+          business_types: string[]
+          countries: string[]
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          name: string
+          sidebar_label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          business_types?: string[]
+          countries?: string[]
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          sidebar_label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          business_types?: string[]
+          countries?: string[]
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          sidebar_label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      platform_plugins: {
+        Row: {
+          countries: string[]
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          module_ids: string[]
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          countries?: string[]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_ids?: string[]
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          countries?: string[]
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          module_ids?: string[]
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      pricing_offers: {
+        Row: {
+          created_at: string
+          description: string | null
+          discount_percent: number
+          entity_id: string
+          entity_type: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          discount_percent?: number
+          entity_id: string
+          entity_type: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          discount_percent?: number
+          entity_id?: string
+          entity_type?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
         }
         Relationships: []
       }
