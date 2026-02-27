@@ -1,21 +1,31 @@
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
-import { FileText } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import CobrosResumen from '@/components/cobro/CobrosResumen';
+import AdminReportesTab from '@/components/cobro/AdminReportesTab';
 
 const Cobros = () => {
-  const navigate = useNavigate();
+  const { profile } = useAuth();
+  const businessId = profile?.business_id;
+
+  if (!businessId) return null;
 
   return (
-    <AppLayout>
-      <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
-        <FileText className="h-12 w-12 text-muted-foreground" />
-        <h2 className="text-xl font-semibold">Próximamente</h2>
-        <p className="text-muted-foreground max-w-md">
-          El módulo de Reportes estará disponible con el plan Profesional. Consulta reportes diarios y resumen de cobros.
-        </p>
-        <Button onClick={() => navigate('/plans')}>Ver Planes</Button>
-      </div>
+    <AppLayout title="Reportes">
+      <Tabs defaultValue="resumen" className="space-y-4">
+        <TabsList className="w-full">
+          <TabsTrigger value="resumen" className="flex-1">Resumen</TabsTrigger>
+          <TabsTrigger value="reportes" className="flex-1">Reportes</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="resumen">
+          <CobrosResumen />
+        </TabsContent>
+
+        <TabsContent value="reportes">
+          <AdminReportesTab businessId={businessId} />
+        </TabsContent>
+      </Tabs>
     </AppLayout>
   );
 };

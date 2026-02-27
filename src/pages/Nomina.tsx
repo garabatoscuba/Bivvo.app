@@ -1,21 +1,49 @@
-import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
-import { Button } from '@/components/ui/button';
-import { CreditCard } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import ModalidadesTab from '@/components/nomina/ModalidadesTab';
+import CommissionsTab from '@/components/cobro/CommissionsTab';
+import SalaryConfigTab from '@/components/cobro/SalaryConfigTab';
+import TipConfigTab from '@/components/nomina/TipConfigTab';
+import PayrollHistory from '@/components/nomina/PayrollHistory';
 
 const Nomina = () => {
-  const navigate = useNavigate();
+  const { profile } = useAuth();
+  const businessId = profile?.business_id;
+
+  if (!businessId) return null;
 
   return (
     <AppLayout title="Nómina">
-      <div className="flex flex-col items-center justify-center py-16 space-y-4 text-center">
-        <CreditCard className="h-12 w-12 text-muted-foreground" />
-        <h2 className="text-xl font-semibold">Próximamente</h2>
-        <p className="text-muted-foreground max-w-md">
-          El módulo de Nómina estará disponible con el plan Profesional. Gestiona modalidades de salario, comisiones y frecuencia de pago.
-        </p>
-        <Button onClick={() => navigate('/plans')}>Ver Planes</Button>
-      </div>
+      <Tabs defaultValue="modalidades" className="space-y-4">
+        <TabsList className="w-full flex overflow-x-auto">
+          <TabsTrigger value="modalidades" className="flex-1 text-xs">Modalidades</TabsTrigger>
+          <TabsTrigger value="comisiones" className="flex-1 text-xs">Comisiones</TabsTrigger>
+          <TabsTrigger value="config" className="flex-1 text-xs">Config</TabsTrigger>
+          <TabsTrigger value="propinas" className="flex-1 text-xs">Propinas</TabsTrigger>
+          <TabsTrigger value="historial" className="flex-1 text-xs">Historial</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="modalidades">
+          <ModalidadesTab businessId={businessId} />
+        </TabsContent>
+
+        <TabsContent value="comisiones">
+          <CommissionsTab businessId={businessId} />
+        </TabsContent>
+
+        <TabsContent value="config">
+          <SalaryConfigTab businessId={businessId} />
+        </TabsContent>
+
+        <TabsContent value="propinas">
+          <TipConfigTab businessId={businessId} />
+        </TabsContent>
+
+        <TabsContent value="historial">
+          <PayrollHistory businessId={businessId} showAllEmployees />
+        </TabsContent>
+      </Tabs>
     </AppLayout>
   );
 };
