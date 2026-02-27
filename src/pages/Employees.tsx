@@ -92,6 +92,8 @@ interface EmployeeForm {
   assigned_branches: string[];
   assigned_roles: AppRole[];
   salary_assignments: SalaryAssignmentEntry[];
+  use_bivoo_id: boolean;
+  bivoo_password: string;
   
   // Legacy single fields kept for backward compat
   modality_id: string;
@@ -121,6 +123,8 @@ const emptyForm: EmployeeForm = {
   assigned_branches: [],
   assigned_roles: ['seller'],
   salary_assignments: [],
+  use_bivoo_id: false,
+  bivoo_password: '',
   
   modality_id: '',
   preset_id: '',
@@ -382,6 +386,12 @@ const Employees = () => {
     }
     if (!businessId) return;
 
+    // Validate @bivoo.app password
+    if (form.use_bivoo_id && !editingEmployee && form.bivoo_password.length < 6) {
+      sonnerToast.error('La contraseña del identificador @bivoo.app debe tener al menos 6 caracteres');
+      return;
+    }
+
     setSaving(true);
     try {
       let employeeId: string;
@@ -394,7 +404,7 @@ const Employees = () => {
             full_name: form.full_name.trim(),
             age: form.age ? parseInt(form.age) : null,
             ci: form.ci.trim(),
-            email: form.email.trim() || null,
+            email: editingEmployee.email?.endsWith('@bivoo.app') ? editingEmployee.email : (form.email.trim() || null),
             license_number: form.license_number.trim() || null,
             address: form.address.trim() || null,
             position: form.position,
@@ -414,7 +424,7 @@ const Employees = () => {
             full_name: form.full_name.trim(),
             age: form.age ? parseInt(form.age) : null,
             ci: form.ci.trim(),
-            email: form.email.trim() || null,
+            email: form.use_bivoo_id ? null : (form.email.trim() || null),
             license_number: form.license_number.trim() || null,
             address: form.address.trim() || null,
             position: form.position,
@@ -425,8 +435,30 @@ const Employees = () => {
         if (error) throw error;
         employeeId = data.id;
 
-        // Auto-link: if email matches an existing profile, assign role + business
-        if (form.email.trim()) {
+        if (form.use_bivoo_id) {
+          // Create @bivoo.app account via edge function
+          try {
+            const { data: bivooResult, error: bivooError } = await supabase.functions.invoke('create-bivoo-employee', {
+              body: {
+                full_name: form.full_name.trim(),
+                password: form.bivoo_password,
+                business_id: businessId,
+                branch_id: profile?.branch_id || null,
+                position: form.position,
+                employee_id: employeeId,
+              },
+            });
+            if (bivooError || bivooResult?.error) {
+              sonnerToast.error(bivooResult?.error || bivooError?.message || 'Error al crear cuenta @bivoo.app');
+            } else {
+              sonnerToast.success(`Cuenta ${bivooResult.email} creada exitosamente`);
+            }
+          } catch (bivooErr) {
+            console.error('Error creating bivoo account:', bivooErr);
+            sonnerToast.error('Error al crear cuenta @bivoo.app');
+          }
+        } else if (form.email.trim()) {
+          // Auto-link: if email matches an existing profile, assign role + business
           try {
             const { data: linkResult } = await supabase.functions.invoke('employee-onboarding', {
               body: {
@@ -607,6 +639,8 @@ const Employees = () => {
       assigned_branches: empBranches,
       assigned_roles: currentRoles,
       salary_assignments: generalLoaded,
+      use_bivoo_id: emp.email?.endsWith('@bivoo.app') || false,
+      bivoo_password: '',
       modality_id: first?.modality_id || '',
       preset_id: first?.preset_id || '',
       pay_frequency: first?.pay_frequency || 'monthly',
@@ -929,9 +963,51 @@ const Employees = () => {
                 <Label htmlFor="full_name">Nombre y Apellidos *</Label>
                 <Input id="full_name" value={form.full_name} onChange={(e) => updateField('full_name', e.target.value)} placeholder="Nombre completo" />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Correo Electrónico</Label>
-                <Input id="email" type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} placeholder="empleado@correo.com" />
+              {/* Email / @bivoo.app toggle */}
+              <div className="space-y-3">
+                {!editingEmployee && (
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="use_bivoo_id"
+                      checked={form.use_bivoo_id}
+                      onCheckedChange={(checked) => setForm(prev => ({
+                        ...prev,
+                        use_bivoo_id: !!checked,
+                        email: checked ? '' : prev.email,
+                      }))}
+                    />
+                    <Label htmlFor="use_bivoo_id" className="text-sm font-normal cursor-pointer">
+                      Crear identificador @bivoo.app (sin correo real)
+                    </Label>
+                  </div>
+                )}
+                {form.use_bivoo_id && !editingEmployee ? (
+                  <div className="space-y-3 rounded-lg border border-dashed p-3">
+                    <p className="text-xs text-muted-foreground">
+                      Se generará automáticamente un identificador basado en el nombre: <strong>{form.full_name ? `${form.full_name.toLowerCase().replace(/\s+/g, '.')}@bivoo.app` : 'nombre@bivoo.app'}</strong>
+                    </p>
+                    <div className="space-y-2">
+                      <Label htmlFor="bivoo_password">Contraseña Inicial *</Label>
+                      <Input
+                        id="bivoo_password"
+                        type="password"
+                        value={form.bivoo_password}
+                        onChange={(e) => updateField('bivoo_password', e.target.value)}
+                        placeholder="Mínimo 6 caracteres"
+                        minLength={6}
+                      />
+                      <p className="text-xs text-muted-foreground">El empleado usará esta contraseña para entrar al sistema.</p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Correo Electrónico</Label>
+                    <Input id="email" type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} placeholder="empleado@correo.com" disabled={editingEmployee?.email?.endsWith('@bivoo.app')} />
+                    {editingEmployee?.email?.endsWith('@bivoo.app') && (
+                      <p className="text-xs text-muted-foreground">Identificador @bivoo.app — no editable.</p>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
