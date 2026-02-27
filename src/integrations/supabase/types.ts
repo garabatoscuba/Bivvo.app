@@ -375,6 +375,135 @@ export type Database = {
           },
         ]
       }
+      cash_register_config: {
+        Row: {
+          branch_id: string
+          business_id: string
+          created_at: string
+          fixed_opening_amount: number
+          id: string
+          mode: string
+          opening_type: string
+          petty_cash_min_alert: number
+          updated_at: string
+        }
+        Insert: {
+          branch_id: string
+          business_id: string
+          created_at?: string
+          fixed_opening_amount?: number
+          id?: string
+          mode?: string
+          opening_type?: string
+          petty_cash_min_alert?: number
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string
+          business_id?: string
+          created_at?: string
+          fixed_opening_amount?: number
+          id?: string
+          mode?: string
+          opening_type?: string
+          petty_cash_min_alert?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_register_config_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: true
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_register_config_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_registers: {
+        Row: {
+          branch_id: string
+          business_id: string
+          closed_at: string | null
+          counted_cash: number | null
+          created_at: string
+          difference: number | null
+          expected_cash: number
+          id: string
+          notes: string | null
+          opened_at: string
+          opening_amount: number
+          status: string
+          total_sales_cash: number
+          total_sales_transfer: number
+          total_services_cash: number
+          total_services_transfer: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          business_id: string
+          closed_at?: string | null
+          counted_cash?: number | null
+          created_at?: string
+          difference?: number | null
+          expected_cash?: number
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opening_amount?: number
+          status?: string
+          total_sales_cash?: number
+          total_sales_transfer?: number
+          total_services_cash?: number
+          total_services_transfer?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          business_id?: string
+          closed_at?: string | null
+          counted_cash?: number | null
+          created_at?: string
+          difference?: number | null
+          expected_cash?: number
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          opening_amount?: number
+          status?: string
+          total_sales_cash?: number
+          total_sales_transfer?: number
+          total_services_cash?: number
+          total_services_transfer?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_registers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_registers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       categories: {
         Row: {
           business_id: string
@@ -1146,6 +1275,109 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petty_cash: {
+        Row: {
+          balance: number
+          branch_id: string
+          business_id: string
+          created_at: string
+          id: string
+          min_alert: number
+          updated_at: string
+        }
+        Insert: {
+          balance?: number
+          branch_id: string
+          business_id: string
+          created_at?: string
+          id?: string
+          min_alert?: number
+          updated_at?: string
+        }
+        Update: {
+          balance?: number
+          branch_id?: string
+          business_id?: string
+          created_at?: string
+          id?: string
+          min_alert?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petty_cash_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: true
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "petty_cash_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      petty_cash_movements: {
+        Row: {
+          amount: number
+          branch_id: string
+          business_id: string
+          created_at: string
+          id: string
+          movement_type: string
+          petty_cash_id: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          branch_id: string
+          business_id: string
+          created_at?: string
+          id?: string
+          movement_type: string
+          petty_cash_id: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          branch_id?: string
+          business_id?: string
+          created_at?: string
+          id?: string
+          movement_type?: string
+          petty_cash_id?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "petty_cash_movements_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "petty_cash_movements_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "petty_cash_movements_petty_cash_id_fkey"
+            columns: ["petty_cash_id"]
+            isOneToOne: false
+            referencedRelation: "petty_cash"
             referencedColumns: ["id"]
           },
         ]
