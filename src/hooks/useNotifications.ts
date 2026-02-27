@@ -15,6 +15,30 @@ export interface Notification {
   created_at: string;
 }
 
+// Notification sound using Web Audio API
+const playNotificationSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime + 0.2);
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.4);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.4);
+  } catch {
+    // Silent fallback
+  }
+};
+
 export function useNotifications() {
   const { profile } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -41,7 +65,7 @@ export function useNotifications() {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  // Realtime subscription
+  // Realtime subscription with sound for new orders
   useEffect(() => {
     if (!profile?.business_id) return;
 
@@ -59,6 +83,11 @@ export function useNotifications() {
           const newNotif = payload.new as unknown as Notification;
           setNotifications(prev => [newNotif, ...prev].slice(0, 50));
           setUnreadCount(prev => prev + 1);
+
+          // Play sound for new orders
+          if (newNotif.type === 'storefront_order') {
+            playNotificationSound();
+          }
         }
       )
       .subscribe();

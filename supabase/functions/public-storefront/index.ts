@@ -31,10 +31,28 @@ serve(async (req) => {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        let points = 0;
-        if (name?.trim()) points += 10;
-        if (phone?.trim()) points += 10;
-        if (email?.trim()) points += 10;
+
+        // Get business_id and loyalty config
+        const { data: branch } = await supabase
+          .from("branches").select("business_id").eq("id", branch_id).single();
+        if (!branch) {
+          return new Response(JSON.stringify({ error: "Sucursal no encontrada" }), {
+            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
+        const { data: loyaltyConfig } = await supabase
+          .from("loyalty_config").select("*").eq("business_id", branch.business_id).maybeSingle();
+
+        const ptsWelcome = loyaltyConfig?.points_welcome ?? 10;
+        const ptsName = loyaltyConfig?.points_name ?? 10;
+        const ptsPhone = loyaltyConfig?.points_phone ?? 10;
+        const ptsEmail = loyaltyConfig?.points_email ?? 10;
+
+        let points = ptsWelcome;
+        if (name?.trim()) points += ptsName;
+        if (phone?.trim()) points += ptsPhone;
+        if (email?.trim()) points += ptsEmail;
 
         const { data, error } = await supabase
           .from("affiliates")
@@ -53,7 +71,44 @@ serve(async (req) => {
       }
 
       if (action === "submit_review") {
-        const { branch_id, affiliate_id, rating, comment } = body;
+        const { branch_id, affiliate_id, rating, comment, token } = body;
+        
+        // Support review via token (from delivery review request)
+        if (token) {
+          const { data: reviewToken } = await supabase
+            .from("review_tokens")
+            .select("id, branch_id, customer_name, used_at")
+            .eq("token", token)
+            .maybeSingle();
+
+          if (!reviewToken || reviewToken.used_at) {
+            return new Response(JSON.stringify({ error: "Token inválido o ya utilizado" }), {
+              status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+
+          // Create a temporary affiliate for the review
+          const { data: tempAffiliate } = await supabase
+            .from("affiliates")
+            .insert({ branch_id: reviewToken.branch_id, name: reviewToken.customer_name })
+            .select("id")
+            .single();
+
+          if (tempAffiliate) {
+            await supabase.from("reviews").insert({
+              branch_id: reviewToken.branch_id,
+              affiliate_id: tempAffiliate.id,
+              rating: Math.min(5, Math.max(1, rating)),
+              comment: comment?.trim() || null,
+            });
+            await supabase.from("review_tokens").update({ used_at: new Date().toISOString() }).eq("id", reviewToken.id);
+          }
+
+          return new Response(JSON.stringify({ success: true }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+
         if (!branch_id || !affiliate_id || !rating) {
           return new Response(JSON.stringify({ error: "Datos incompletos" }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -93,11 +148,11 @@ serve(async (req) => {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        const { data: branch } = await supabase
+        const { data: branchData } = await supabase
           .from("branches").select("business_id").eq("id", branch_id).single();
-        if (branch) {
+        if (branchData) {
           await supabase.from("notifications").insert({
-            business_id: branch.business_id,
+            business_id: branchData.business_id,
             branch_id,
             type: "contact_message",
             title: `Mensaje de ${name.trim()}`,
@@ -117,9 +172,9 @@ serve(async (req) => {
           });
         }
 
-        const { data: branch } = await supabase
+        const { data: branchData } = await supabase
           .from("branches").select("business_id, name").eq("id", branch_id).single();
-        if (!branch) {
+        if (!branchData) {
           return new Response(JSON.stringify({ error: "Sucursal no encontrada" }), {
             status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
@@ -151,7 +206,7 @@ serve(async (req) => {
         const message = `Pedido de ${customer_name.trim()} (${customer_phone.trim()}):\n${itemLines}\n\n💰 Total: Bs ${Number(subtotal).toFixed(2)}${deliveryLine}${notesLine}`;
 
         await supabase.from("notifications").insert({
-          business_id: branch.business_id,
+          business_id: branchData.business_id,
           branch_id,
           type: "storefront_order",
           title: `Nuevo pedido de ${customer_name.trim()}`,
@@ -163,7 +218,7 @@ serve(async (req) => {
             notes: notes || null,
             items,
             subtotal,
-            status: "pending",
+            status: "new",
           },
         });
 
@@ -187,7 +242,6 @@ serve(async (req) => {
       });
     }
 
-    // Step 1: Get business (required for branch lookup)
     const { data: business, error: bizErr } = await supabase
       .from("businesses").select("id, name, slug, logo_url").eq("slug", bizSlug).single();
     if (bizErr || !business) {
@@ -196,7 +250,6 @@ serve(async (req) => {
       });
     }
 
-    // Step 2: Get branch - if branchSlug provided use it, otherwise get main branch
     let branchQuery = supabase
       .from("branches").select("id, name, slug, address, phone").eq("business_id", business.id);
     if (branchSlug) {
@@ -204,9 +257,9 @@ serve(async (req) => {
     } else {
       branchQuery = branchQuery.eq("is_main", true);
     }
-    const { data: branch, error: branchErr } = await branchQuery.maybeSingle();
-    if (branchErr || !branch) {
-      // Fallback: get any branch if main not found
+    const { data: branch } = await branchQuery.maybeSingle();
+    let resolvedBranch = branch;
+    if (!resolvedBranch) {
       const { data: anyBranch } = await supabase
         .from("branches").select("id, name, slug, address, phone").eq("business_id", business.id).limit(1).single();
       if (!anyBranch) {
@@ -214,14 +267,10 @@ serve(async (req) => {
           status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      // Use anyBranch as fallback
-      var resolvedBranch = anyBranch;
-    } else {
-      var resolvedBranch = branch;
+      resolvedBranch = anyBranch;
     }
 
-    // Step 3: Run ALL remaining queries in parallel
-    const [settingsResult, stockResult, reviewsResult, announcementsResult] = await Promise.all([
+    const [settingsResult, stockResult, reviewsResult, announcementsResult, loyaltyResult, rewardsResult] = await Promise.all([
       supabase
         .from("store_settings")
         .select("is_active, has_delivery, schedule, accent_color, about_text, hero_image_url, hero_title, hero_subtitle, font_heading, font_body, social_instagram, social_facebook, social_tiktok, social_twitter, contact_email")
@@ -242,6 +291,17 @@ serve(async (req) => {
         .select("id, title, description, badge_text")
         .eq("branch_id", resolvedBranch.id).eq("is_active", true)
         .order("created_at", { ascending: false }).limit(10),
+      supabase
+        .from("loyalty_config")
+        .select("points_welcome, points_name, points_phone, points_email")
+        .eq("business_id", business.id)
+        .maybeSingle(),
+      supabase
+        .from("rewards")
+        .select("id, name, description, points_cost, reward_type, config")
+        .eq("business_id", business.id)
+        .eq("is_active", true)
+        .order("sort_order"),
     ]);
 
     const settings = settingsResult.data;
@@ -285,6 +345,8 @@ serve(async (req) => {
           author: r.affiliate?.name || 'Anónimo',
         })),
         announcements: announcementsResult.data || [],
+        loyalty: loyaltyResult.data || { points_welcome: 10, points_name: 10, points_phone: 10, points_email: 10 },
+        rewards: rewardsResult.data || [],
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

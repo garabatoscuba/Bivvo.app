@@ -39,6 +39,7 @@ const Caja = lazy(() => import("./pages/Caja"));
 const JornadaEntrada = lazy(() => import("./pages/JornadaEntrada"));
 const OnboardingEmpleado = lazy(() => import("./pages/OnboardingEmpleado"));
 const MyEmployment = lazy(() => import("./pages/MyEmployment"));
+const ReviewPage = lazy(() => import("./pages/ReviewPage"));
 
 const queryClient = new QueryClient();
 
@@ -221,6 +222,7 @@ const App = () => {
                       <Route path="/onboarding/empleado" element={<OnboardingEmpleado />} />
                       <Route path="/s/:bizSlug" element={<PublicStorefront />} />
                       <Route path="/tienda/:bizSlug/:branchSlug" element={<PublicStorefront />} />
+                      <Route path="/review/:token" element={<ReviewPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                   </Suspense>
