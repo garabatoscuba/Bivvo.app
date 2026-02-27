@@ -1,7 +1,7 @@
 // Tipos extendidos para las nuevas tablas
 export type ProductStatus = 'for_sale' | 'warehouse' | 'discontinued';
 export type InventoryMovementType = 'purchase' | 'sale' | 'transfer_in' | 'transfer_out' | 'loss' | 'adjustment' | 'return';
-export type PaymentType = 'cash' | 'credit' | 'card' | 'transfer';
+export type PaymentType = 'cash' | 'credit' | 'card' | 'transfer' | 'mixed';
 export type SaleStatus = 'completed' | 'pending' | 'cancelled';
 
 export interface Category {

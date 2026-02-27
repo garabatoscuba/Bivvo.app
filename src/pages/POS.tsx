@@ -152,7 +152,7 @@ const POS = () => {
     setDiscount(0);
   }, []);
 
-  const handlePayment = async (paymentType: PaymentType, amountPaid: number) => {
+  const handlePayment = async (paymentType: PaymentType, amountPaid: number, mixedAmounts?: { cash: number; transfer: number }) => {
     if (!currentBranch) return;
 
     await createSale.mutateAsync({
@@ -161,6 +161,8 @@ const POS = () => {
       paymentType,
       discount,
       amountPaid,
+      cashAmount: mixedAmounts?.cash,
+      transferAmount: mixedAmounts?.transfer,
     });
 
     setPaymentOpen(false);

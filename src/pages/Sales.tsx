@@ -31,6 +31,7 @@ const paymentLabels: Record<PaymentType, string> = {
   card: 'Tarjeta',
   transfer: 'Transferencia',
   credit: 'Crédito',
+  mixed: 'Mixto',
 };
 
 const paymentColors: Record<PaymentType, string> = {
@@ -38,6 +39,7 @@ const paymentColors: Record<PaymentType, string> = {
   card: 'bg-info/15 text-info',
   transfer: 'bg-primary/15 text-primary',
   credit: 'bg-warning/15 text-warning',
+  mixed: 'bg-accent/15 text-accent-foreground',
 };
 
 const statusLabels: Record<SaleStatus, string> = {
