@@ -25,7 +25,7 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
   Loader2, Pencil, Trash2, Activity, Mail, MapPin, StopCircle, Clock,
-  Play, Square, Plus,
+  Play, Square, Plus, Save,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import PerformanceChart from '@/components/employees/PerformanceChart';
@@ -1102,25 +1102,77 @@ const Employees = () => {
               <div className="space-y-3 border-t pt-4">
                 <div className="flex items-center justify-between">
                   <Label className="font-semibold">Nómina</Label>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setForm(prev => ({
-                      ...prev,
-                      salary_assignments: [...prev.salary_assignments, { ...emptyAssignment }],
-                    }))}
-                    disabled={form.salary_assignments.length >= salaryModalities.length}
-                  >
-                    <Plus className="h-3.5 w-3.5 mr-1" /> Agregar modalidad
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    {/* Load saved preset button */}
+                    {(() => {
+                      const allSaved = salaryModalities.flatMap((m: any) => {
+                        const saved = (m.saved_configs || []) as { id: string; name: string; applies_to: string; presets: any[] }[];
+                        return saved.map(s => ({ ...s, modalityId: m.id, modalityName: m.name }));
+                      });
+                      if (allSaved.length === 0) return null;
+                      return (
+                        <Select
+                          value="none"
+                          onValueChange={(savedId) => {
+                            if (savedId === 'none') return;
+                            const found = allSaved.find(s => s.id === savedId);
+                            if (!found) return;
+                            // Find the sub-preset to get base_salary
+                            const firstPreset = found.presets?.[0];
+                            setForm(prev => ({
+                              ...prev,
+                              salary_assignments: [
+                                ...prev.salary_assignments,
+                                {
+                                  modality_id: found.modalityId,
+                                  preset_id: firstPreset?.id || '',
+                                  pay_frequency: 'monthly',
+                                  base_salary: firstPreset?.config?.base_salary !== undefined
+                                    ? String(firstPreset.config.base_salary)
+                                    : firstPreset?.config?.hourly_rate !== undefined
+                                      ? String(firstPreset.config.hourly_rate)
+                                      : '',
+                                  commissions_enabled: false,
+                                },
+                              ],
+                            }));
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-xs w-auto gap-1">
+                            <Save className="h-3.5 w-3.5" />
+                            <span>Cargar preset</span>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="none" disabled>Seleccionar preset...</SelectItem>
+                            {allSaved.map(s => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.name} <span className="text-muted-foreground ml-1">({s.modalityName})</span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      );
+                    })()}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setForm(prev => ({
+                        ...prev,
+                        salary_assignments: [...prev.salary_assignments, { ...emptyAssignment }],
+                      }))}
+                      disabled={form.salary_assignments.length >= salaryModalities.length}
+                    >
+                      <Plus className="h-3.5 w-3.5 mr-1" /> Agregar modalidad
+                    </Button>
+                  </div>
                 </div>
 
                 {form.salary_assignments.length === 0 && (
                   <p className="text-xs text-muted-foreground">
                     {salaryModalities.length === 0
                       ? 'No hay modalidades activas. Configúralas en Nómina → Modalidades.'
-                      : 'Sin modalidades asignadas. Agrega una para configurar el salario.'}
+                      : 'Sin modalidades asignadas. Agrega una o carga un preset guardado.'}
                   </p>
                 )}
 
