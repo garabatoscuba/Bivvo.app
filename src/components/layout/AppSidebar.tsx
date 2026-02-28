@@ -313,15 +313,33 @@ const AppSidebar = () => {
   const activeBusiness = userBusinesses.find((b) => b.id === profile?.business_id);
   const isCopyShop = activeBusiness?.business_type === "copy_shop";
 
+  // For managers (non-owners), fetch the business type from their profile's business_id
+  const { data: managerBusiness = null } = useQuery({
+    queryKey: ['manager-business-type', profile?.business_id],
+    queryFn: async () => {
+      if (!profile?.business_id) return null;
+      const { data } = await supabase
+        .from('businesses')
+        .select('id, name, business_type')
+        .eq('id', profile.business_id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!profile?.business_id && !activeBusiness && (isManager || hasEmployeeRecord),
+  });
+
+  // Use owner's business or fallback to manager's business for resolving the business type
+  const resolvedBusiness = activeBusiness || managerBusiness;
+
   // Fetch dynamic sidebar modules
   const { data: sidebarModules = [] } = useQuery({
-    queryKey: ['sidebar-modules', activeBusiness?.business_type],
+    queryKey: ['sidebar-modules', resolvedBusiness?.business_type],
     queryFn: async () => {
-      if (!activeBusiness?.business_type) return [];
+      if (!resolvedBusiness?.business_type) return [];
       const { data: btConfig } = await supabase
         .from('business_type_configs')
         .select('module_ids')
-        .eq('key', activeBusiness.business_type)
+        .eq('key', resolvedBusiness.business_type)
         .eq('is_active', true)
         .maybeSingle();
       if (!btConfig?.module_ids?.length) return [];
@@ -333,7 +351,7 @@ const AppSidebar = () => {
         .order('sort_order');
       return mods || [];
     },
-    enabled: !!activeBusiness?.business_type,
+    enabled: !!resolvedBusiness?.business_type,
   });
 
   // Fetch available business types for "new business" dropdown/dialog
@@ -508,8 +526,13 @@ const AppSidebar = () => {
         {/* Manager modules section — sees dynamic modules + config, but NOT Planes/Mis Negocios */}
         {showManagerModules && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
-              Gestión
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
+              <span>Gestión</span>
+              {resolvedBusiness?.name && (
+                <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
+                  {resolvedBusiness.name}
+                </span>
+              )}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
