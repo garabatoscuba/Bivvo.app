@@ -93,20 +93,32 @@ Deno.serve(async (req) => {
     // We need to wait a moment for it to execute
     await new Promise((r) => setTimeout(r, 1500));
 
-    // Update the employee record with the generated email and auth_user_id
-    await admin
+    const normalizedPosition = (() => {
+      const raw = String(position || "").toLowerCase().trim();
+      if (["manager", "gerente"].includes(raw)) return "manager";
+      if (["accountant", "contable"].includes(raw)) return "accountant";
+      if (["seller", "vendedor", "dependiente", "dependent"].includes(raw)) return "seller";
+      return "seller";
+    })();
+
+    // Update the employee record with generated credentials binding
+    const { error: employeeUpdateError } = await admin
       .from("employees")
-      .update({ email, auth_user_id: userId })
+      .update({ email, auth_user_id: userId, position: normalizedPosition })
       .eq("id", employee_id);
 
-    // Assign the appropriate role
-    const roleMap: Record<string, string> = {
-      seller: "seller",
-      manager: "manager",
-      accountant: "accountant",
-      owner: "seller",
-    };
-    const role = roleMap[position || "seller"] || "seller";
+    if (employeeUpdateError) {
+      return new Response(
+        JSON.stringify({ error: employeeUpdateError.message || "No se pudo vincular la cuenta al empleado" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Remove accidental owner role created by signup trigger for internal @bivoo users
+    await admin.from("user_roles").delete().eq("user_id", userId).eq("role", "owner");
+
+    // Assign the appropriate operational role
+    const role = normalizedPosition;
 
     // Check if role already exists
     const { data: existingRole } = await admin

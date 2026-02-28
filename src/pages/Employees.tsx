@@ -443,13 +443,14 @@ const Employees = () => {
         if (form.use_bivoo_id) {
           // Create @bivoo.app account via edge function
           try {
+            const resolvedPosition = form.assigned_roles[0] || form.position || 'seller';
             const { data: bivooResult, error: bivooError } = await supabase.functions.invoke('create-bivoo-employee', {
               body: {
                 full_name: form.full_name.trim(),
                 password: form.bivoo_password,
                 business_id: businessId,
                 branch_id: profile?.branch_id || null,
-                position: form.position,
+                position: resolvedPosition,
                 employee_id: employeeId,
               },
             });
