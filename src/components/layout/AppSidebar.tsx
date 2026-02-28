@@ -107,31 +107,47 @@ const AppSidebar = () => {
   const activeBranch = branches.find((b) => b.id === profile?.branch_id);
 
   // Check if user has an employee record (to show "Mi Empleo" in sidebar)
+  // For @bivoo.app accounts, look up by auth_user_id; for others, by email
   const { data: employeeRecord = null } = useQuery({
-    queryKey: ["has-employee-record", profile?.email],
+    queryKey: ["has-employee-record", profile?.email, profile?.user_id],
     queryFn: async () => {
-      if (!profile?.email) return null;
+      if (!profile) return null;
+      // Try auth_user_id first (for @bivoo.app accounts)
+      if (profile.user_id) {
+        const { data } = await supabase
+          .from("employees")
+          .select("id, business_id, branch_id, position, businesses!employees_business_id_fkey(name, business_type)")
+          .eq("auth_user_id", profile.user_id)
+          .limit(1)
+          .maybeSingle();
+        if (data) return data;
+      }
+      // Fallback to email lookup
+      if (!profile.email) return null;
       const { data, error } = await supabase
         .from("employees")
-        .select("id, business_id, businesses!employees_business_id_fkey(name, business_type)")
+        .select("id, business_id, branch_id, position, businesses!employees_business_id_fkey(name, business_type)")
         .eq("email", profile.email.toLowerCase())
         .limit(1)
         .maybeSingle();
       if (error || !data) return null;
       return data;
     },
-    enabled: !!profile?.email,
+    enabled: !!profile,
   });
   const hasEmployeeRecord = !!employeeRecord;
   const isEmployeeCopyShop = (employeeRecord as any)?.businesses?.business_type === "copy_shop";
   const employerName = (employeeRecord as any)?.businesses?.name || null;
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const isBivooAccount = profile?.email?.endsWith('@bivoo.app') || false;
+  // For @bivoo.app accounts, derive manager status from employee record position
+  const isBivooManager = isBivooAccount && (employeeRecord as any)?.position === 'manager';
+  const effectiveManager = isManager || isBivooManager;
   // Pure sellers, managers, and @bivoo.app accounts never see "Mis Negocios"
   // Managers see the business modules but NOT the "Mis Negocios" section
   const showBusinessSection = (isOwner || isSuperAdmin) && !isBivooAccount;
   // Managers see the business module items (dynamic modules + config) but in their own section
-  const showManagerModules = isManager && !isOwner && !isSuperAdmin && !isBivooAccount;
+  const showManagerModules = (effectiveManager && !isOwner && !isSuperAdmin) || (isBivooManager && !isOwner && !isSuperAdmin);
 
   // Jornada check for non-privileged employees — gate operational tools
   const { jornadaActiva, jornada: activeJornada } = useJornadaActiva();
@@ -313,19 +329,23 @@ const AppSidebar = () => {
   const activeBusiness = userBusinesses.find((b) => b.id === profile?.business_id);
   const isCopyShop = activeBusiness?.business_type === "copy_shop";
 
-  // For managers (non-owners), fetch the business type from their profile's business_id
+  // For managers/employees (non-owners), fetch the business type
+  // For @bivoo.app users, use the employee record's business_id instead of profile's
+  const employeeBusinessId = (employeeRecord as any)?.business_id;
+  const resolvedBusinessId = isBivooAccount ? employeeBusinessId : profile?.business_id;
+
   const { data: managerBusiness = null } = useQuery({
-    queryKey: ['manager-business-type', profile?.business_id],
+    queryKey: ['manager-business-type', resolvedBusinessId],
     queryFn: async () => {
-      if (!profile?.business_id) return null;
+      if (!resolvedBusinessId) return null;
       const { data } = await supabase
         .from('businesses')
         .select('id, name, business_type')
-        .eq('id', profile.business_id)
+        .eq('id', resolvedBusinessId)
         .maybeSingle();
       return data;
     },
-    enabled: !!profile?.business_id && !activeBusiness && (isManager || hasEmployeeRecord),
+    enabled: !!resolvedBusinessId && !activeBusiness && (effectiveManager || hasEmployeeRecord),
   });
 
   // Use owner's business or fallback to manager's business for resolving the business type

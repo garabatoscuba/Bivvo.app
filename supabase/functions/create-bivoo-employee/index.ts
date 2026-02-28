@@ -93,10 +93,10 @@ Deno.serve(async (req) => {
     // We need to wait a moment for it to execute
     await new Promise((r) => setTimeout(r, 1500));
 
-    // Update the employee record with the generated email
+    // Update the employee record with the generated email and auth_user_id
     await admin
       .from("employees")
-      .update({ email })
+      .update({ email, auth_user_id: userId })
       .eq("id", employee_id);
 
     // Assign the appropriate role
