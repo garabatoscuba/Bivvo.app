@@ -245,9 +245,11 @@ export const useDailySalary = ({
 
     for (const assignment of mySalaryAssignments) {
       const modType = assignment?.salary_modalities?.modality_type;
-      const config = (assignment?.salary_modalities?.config || {}) as Record<string, any>;
-      const baseSalary = Number(assignment.base_salary || 0);
+      const modalityConfig = (assignment?.salary_modalities?.config || {}) as Record<string, any>;
       const configOverride = (assignment.config_override as Record<string, any>) || {};
+      // Merge: per-employee override takes priority over global modality config
+      const config = { ...modalityConfig, ...configOverride } as Record<string, any>;
+      const baseSalary = Number(assignment.base_salary || 0);
 
       if (!modalityName && assignment?.salary_modalities?.name) {
         modalityName = assignment.salary_modalities.name;
@@ -280,7 +282,7 @@ export const useDailySalary = ({
             || conditions.filter((c: any) => c.positions <= activeWorkersCount).sort((a: any, b: any) => b.positions - a.positions)[0]
             || conditions.sort((a: any, b: any) => a.positions - b.positions)[0];
 
-          const presetId = configOverride?.preset_id;
+          const presetId = config?.preset_id;
           let servicePercent = matchedCondition?.service_percent || 0;
 
           if (presetId) {
