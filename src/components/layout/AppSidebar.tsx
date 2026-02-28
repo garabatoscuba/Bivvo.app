@@ -105,56 +105,59 @@ const AppSidebar = () => {
   const [branchPhone, setBranchPhone] = useState("");
 
   const activeBranch = branches.find((b) => b.id === profile?.branch_id);
+  const isBivooAccount = profile?.email?.toLowerCase().endsWith("@bivoo.app") || false;
 
-  // Check if user has an employee record (to show "Mi Empleo" in sidebar)
-  // For @bivoo.app accounts, look up by auth_user_id; for others, by email
-  const { data: employeeRecord = null } = useQuery({
-    queryKey: ["has-employee-record", profile?.email, profile?.user_id],
+  const normalizeEmployeePosition = (position?: string | null): "manager" | "seller" | "accountant" | null => {
+    const raw = position?.toLowerCase().trim();
+    if (!raw) return null;
+    if (["manager", "gerente"].includes(raw)) return "manager";
+    if (["accountant", "contable"].includes(raw)) return "accountant";
+    if (["seller", "vendedor", "dependiente", "dependent"].includes(raw)) return "seller";
+    return null;
+  };
+
+  // Resolve employee context strictly by auth.uid -> employees.auth_user_id
+  const { data: employeeRecord = null, isLoading: employeeRecordLoading } = useQuery({
+    queryKey: ["employee-session-record", profile?.user_id],
     queryFn: async () => {
-      if (!profile) return null;
-      // Try auth_user_id first (for @bivoo.app accounts)
-      if (profile.user_id) {
-        const { data } = await supabase
-          .from("employees")
-          .select("id, business_id, branch_id, position, businesses!employees_business_id_fkey(name, business_type)")
-          .eq("auth_user_id", profile.user_id)
-          .limit(1)
-          .maybeSingle();
-        if (data) return data;
-      }
-      // Fallback to email lookup
-      if (!profile.email) return null;
+      if (!profile?.user_id) return null;
       const { data, error } = await supabase
         .from("employees")
         .select("id, business_id, branch_id, position, businesses!employees_business_id_fkey(name, business_type)")
-        .eq("email", profile.email.toLowerCase())
+        .eq("auth_user_id", profile.user_id)
         .limit(1)
         .maybeSingle();
       if (error || !data) return null;
       return data;
     },
-    enabled: !!profile,
+    enabled: !!profile?.user_id,
+    staleTime: 0,
+    refetchOnMount: "always",
+    refetchOnWindowFocus: true,
   });
-  const hasEmployeeRecord = !!employeeRecord;
-  const isEmployeeCopyShop = (employeeRecord as any)?.businesses?.business_type === "copy_shop";
-  const employerName = (employeeRecord as any)?.businesses?.name || null;
-  const isPrivileged = isOwner || isManager || isSuperAdmin;
-  const isBivooAccount = profile?.email?.endsWith('@bivoo.app') || false;
-  // For @bivoo.app accounts, derive manager status from employee record position
-  const isBivooManager = isBivooAccount && (employeeRecord as any)?.position === 'manager';
-  const effectiveManager = isManager || isBivooManager;
-  // Pure sellers, managers, and @bivoo.app accounts never see "Mis Negocios"
-  // Managers see the business modules but NOT the "Mis Negocios" section
-  const showBusinessSection = (isOwner || isSuperAdmin) && !isBivooAccount;
-  // Managers see the business module items (dynamic modules + config) but in their own section
-  const showManagerModules = (effectiveManager && !isOwner && !isSuperAdmin) || (isBivooManager && !isOwner && !isSuperAdmin);
 
-  // Jornada check for non-privileged employees — gate operational tools
-  const { jornadaActiva, jornada: activeJornada } = useJornadaActiva();
-  const hasAuthorizedJornada = jornadaActiva && activeJornada?.metodo_apertura === "manual_gerente";
-  // Employee can see operational tools when they have an authorized active shift
-  // This applies even if they're also a business owner — the tools use ?ctx=emp for employer context
-  const showEmployeeTools = hasEmployeeRecord && hasAuthorizedJornada;
+  const hasEmployeeRecord = !!employeeRecord;
+  const employeeBusinessId = (employeeRecord as any)?.business_id ?? null;
+  const employerName = (employeeRecord as any)?.businesses?.name || null;
+  const employeePosition = normalizeEmployeePosition((employeeRecord as any)?.position);
+  const isEmployeeSession = hasEmployeeRecord;
+  const isEmployeeManager = employeePosition === "manager";
+  const shouldWaitEmployeeResolution = isBivooAccount && employeeRecordLoading;
+
+  // Employees must not run owner/owner_id sidebar flow
+  const showBusinessSection =
+    !shouldWaitEmployeeResolution &&
+    (isOwner || isSuperAdmin) &&
+    !isEmployeeSession;
+
+  // Managers use their employee role in real-time (not cached owner flags)
+  const showManagerModules =
+    !shouldWaitEmployeeResolution &&
+    (isEmployeeSession ? isEmployeeManager : isManager && !isOwner && !isSuperAdmin);
+
+  // Jornada check for operational employee tools
+  const { jornadaActiva } = useJornadaActiva();
+  const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && jornadaActiva;
 
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
@@ -182,7 +185,7 @@ const AppSidebar = () => {
         branches: (allBranches || []).filter((br) => br.business_id === biz.id),
       }));
     },
-    enabled: !!profile?.id,
+    enabled: !!profile?.id && !isBivooAccount && !isEmployeeSession,
   });
 
   const createBizMutation = useMutation({
@@ -326,30 +329,33 @@ const AppSidebar = () => {
     { title: "Módulos y Plugins", url: "/admin/modules", icon: Settings2 },
   ];
 
-  const activeBusiness = userBusinesses.find((b) => b.id === profile?.business_id);
-  const isCopyShop = activeBusiness?.business_type === "copy_shop";
+  const activeBusiness = showBusinessSection
+    ? userBusinesses.find((b) => b.id === profile?.business_id)
+    : null;
 
-  // For managers/employees (non-owners), fetch the business type
-  // For @bivoo.app users, use the employee record's business_id instead of profile's
-  const employeeBusinessId = (employeeRecord as any)?.business_id;
-  const resolvedBusinessId = isBivooAccount ? employeeBusinessId : profile?.business_id;
+  // Owners resolve business by owner context; employees always by employees.business_id
+  const resolvedBusinessId = shouldWaitEmployeeResolution
+    ? null
+    : isEmployeeSession
+      ? employeeBusinessId
+      : activeBusiness?.id || profile?.business_id;
 
   const { data: managerBusiness = null } = useQuery({
-    queryKey: ['manager-business-type', resolvedBusinessId],
+    queryKey: ["manager-business-type", resolvedBusinessId],
     queryFn: async () => {
       if (!resolvedBusinessId) return null;
       const { data } = await supabase
-        .from('businesses')
-        .select('id, name, business_type')
-        .eq('id', resolvedBusinessId)
+        .from("businesses")
+        .select("id, name, business_type")
+        .eq("id", resolvedBusinessId)
         .maybeSingle();
       return data;
     },
-    enabled: !!resolvedBusinessId && !activeBusiness && (effectiveManager || hasEmployeeRecord),
+    enabled: !!resolvedBusinessId && (!activeBusiness || isEmployeeSession || showManagerModules),
   });
 
-  // Use owner's business or fallback to manager's business for resolving the business type
-  const resolvedBusiness = activeBusiness || managerBusiness;
+  // Use owner's business or fallback to resolved employee/manager business
+  const resolvedBusiness = activeBusiness || managerBusiness || (employeeRecord as any)?.businesses || null;
 
   // Fetch dynamic sidebar modules
   const { data: sidebarModules = [] } = useQuery({
@@ -411,8 +417,18 @@ const AppSidebar = () => {
       icon: getIconComponent(m.icon),
     })),
     { title: 'Configuración', url: '/settings', icon: Settings },
-    // Managers don't see Planes
     ...(!isManager || isOwner || isSuperAdmin ? [{ title: 'Planes', url: '/plans', icon: CreditCard }] : []),
+  ];
+
+  const managerItems = [
+    { title: 'POS', url: '/pos', icon: ShoppingCart },
+    { title: 'Servicios', url: '/services', icon: Wrench },
+    { title: 'Caja', url: '/caja', icon: DollarSign },
+    { title: 'Inventario', url: '/inventory', icon: Package },
+    { title: 'Pedidos', url: '/orders', icon: ShoppingBag },
+    { title: 'Reportes', url: '/cobros', icon: FileText },
+    { title: 'Empleados', url: '/employees', icon: Users },
+    { title: 'Ventas', url: '/sales', icon: Receipt },
   ];
 
   const ctxParam = new URLSearchParams(location.search).get("ctx");
@@ -494,7 +510,7 @@ const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {/* Operational tools only shown when employee has authorized active shift */}
+                {/* Operational tools for seller/dependent only when jornada is active */}
                 {showEmployeeTools && (
                   <>
                     <SidebarMenuItem>
@@ -506,7 +522,7 @@ const AppSidebar = () => {
                       >
                         <Link to="/pos?ctx=emp">
                           <ShoppingCart className="h-4 w-4" />
-                          <span className="text-sm">Punto de Venta</span>
+                          <span className="text-sm">POS</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -527,12 +543,12 @@ const AppSidebar = () => {
                       <SidebarMenuButton
                         asChild
                         isActive={
-                          location.pathname === "/sales" && new URLSearchParams(location.search).get("ctx") === "emp"
+                          location.pathname === "/caja" && new URLSearchParams(location.search).get("ctx") === "emp"
                         }
                       >
-                        <Link to="/sales?ctx=emp">
-                          <Receipt className="h-4 w-4" />
-                          <span className="text-sm">Ventas</span>
+                        <Link to="/caja?ctx=emp">
+                          <DollarSign className="h-4 w-4" />
+                          <span className="text-sm">Caja</span>
                         </Link>
                       </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -556,28 +572,16 @@ const AppSidebar = () => {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {sidebarModules.map(m => {
-                  const ModIcon = getIconComponent(m.icon);
-                  const url = moduleUrlMap[m.name] || '/';
-                  return (
-                    <SidebarMenuItem key={m.id}>
-                      <SidebarMenuButton asChild isActive={isActive(url)}>
-                        <Link to={url}>
-                          <ModIcon className="h-4 w-4" />
-                          <span className="text-sm">{m.sidebar_label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  );
-                })}
-                <SidebarMenuItem>
-                  <SidebarMenuButton asChild isActive={isActive('/settings')}>
-                    <Link to="/settings">
-                      <Settings className="h-4 w-4" />
-                      <span className="text-sm">Configuración</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {managerItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <Link to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span className="text-sm">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
