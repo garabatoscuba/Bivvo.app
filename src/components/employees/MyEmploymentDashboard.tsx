@@ -437,15 +437,17 @@ const MyEmploymentDashboard = ({
         </Card>
       )}
 
-      {/* Close shift button */}
-      <Button
-        className="w-full"
-        variant="destructive"
-        onClick={onOpenContarYCerrar}
-      >
-        <LogOut className="h-4 w-4 mr-2" />
-        Contar y Cerrar Jornada
-      </Button>
+      {/* Close shift button - single fixed bar */}
+      <div className="sticky bottom-0 -mx-4 px-4 py-3 bg-background border-t z-10">
+        <Button
+          className="w-full"
+          variant="destructive"
+          onClick={onOpenContarYCerrar}
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Contar y Cerrar Jornada
+        </Button>
+      </div>
     </div>
   );
 };
