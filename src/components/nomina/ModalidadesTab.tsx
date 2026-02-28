@@ -63,6 +63,7 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
   // Config state
   const [appliesTo, setAppliesTo] = useState('both');
   const [presets, setPresets] = useState<Preset[]>([]);
+  const [modalityConfig, setModalityConfig] = useState<Record<string, any>>({});
 
   // Save-as-preset state
   const [savePresetName, setSavePresetName] = useState('');
@@ -163,7 +164,7 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
       // Save applies_to and presets to the modality
       const { error } = await supabase
         .from('salary_modalities')
-        .update({ applies_to: appliesTo, presets: presets as any, config: {} } as any)
+        .update({ applies_to: appliesTo, presets: presets as any, config: modalityConfig } as any)
         .eq('business_id', businessId)
         .eq('modality_type', selectedType as any)
         .eq('context', context);
@@ -246,6 +247,7 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
     const mod = modalities.find((m: any) => m.modality_type === type);
     setAppliesTo((mod as any)?.applies_to || 'both');
     setPresets(((mod as any)?.presets as Preset[]) || []);
+    setModalityConfig(((mod as any)?.config as Record<string, any>) || {});
     setShowSavePreset(false);
     setSavePresetName('');
 
@@ -270,15 +272,15 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
       case 'fixed_ladder':
         return <FixedLadderConfig presets={presets} onPresetsChange={setPresets} />;
       case 'fixed_plus_sales_percent':
-        return <SalesPercentConfig type="fixed_plus_sales_percent" presets={presets} onPresetsChange={setPresets} />;
+        return <SalesPercentConfig type="fixed_plus_sales_percent" config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'sales_percent_only':
-        return <SalesPercentConfig type="sales_percent_only" presets={presets} onPresetsChange={setPresets} />;
+        return <SalesPercentConfig type="sales_percent_only" config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'profit_percent':
-        return <ProfitPercentConfig presets={presets} onPresetsChange={setPresets} />;
+        return <ProfitPercentConfig config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'fixed_plus_goal_bonus':
         return <GoalBonusConfig presets={presets} onPresetsChange={setPresets} />;
       case 'hourly':
-        return <HourlyConfig presets={presets} onPresetsChange={setPresets} />;
+        return <HourlyConfig config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'custom_mixed':
         return (
           <CustomMixedConfig

@@ -1,14 +1,17 @@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Separator } from '@/components/ui/separator';
 import PresetManager, { Preset } from './PresetManager';
 
 interface SalesPercentConfigProps {
   type: 'fixed_plus_sales_percent' | 'sales_percent_only';
+  config: Record<string, any>;
+  onConfigChange: (config: Record<string, any>) => void;
   presets: Preset[];
   onPresetsChange: (presets: Preset[]) => void;
 }
 
-const SalesPercentConfig = ({ type, presets, onPresetsChange }: SalesPercentConfigProps) => {
+const SalesPercentConfig = ({ type, config, onConfigChange, presets, onPresetsChange }: SalesPercentConfigProps) => {
   const isFixedPlus = type === 'fixed_plus_sales_percent';
 
   return (
@@ -20,6 +23,38 @@ const SalesPercentConfig = ({ type, presets, onPresetsChange }: SalesPercentConf
             : 'Sin salario fijo, solo un porcentaje de lo que vende el empleado.'}
         </p>
       </div>
+
+      {/* Global default config */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Configuración por defecto</Label>
+        {isFixedPlus && (
+          <div className="flex items-center gap-2">
+            <Label className="text-xs shrink-0">Salario base:</Label>
+            <span className="text-xs text-muted-foreground">$</span>
+            <Input
+              type="number"
+              min={0}
+              value={config.base_salary ?? 0}
+              onChange={e => onConfigChange({ ...config, base_salary: parseFloat(e.target.value) || 0 })}
+              className="w-28 h-8 text-sm text-center"
+            />
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <Label className="text-xs shrink-0">% sobre ventas:</Label>
+          <Input
+            type="number"
+            min={0}
+            max={100}
+            value={config.sales_percent ?? config.percent ?? 0}
+            onChange={e => onConfigChange({ ...config, sales_percent: parseFloat(e.target.value) || 0, percent: parseFloat(e.target.value) || 0 })}
+            className="w-20 h-8 text-sm text-center"
+          />
+          <span className="text-sm font-medium">%</span>
+        </div>
+      </div>
+
+      <Separator />
 
       <PresetManager
         presets={presets}
