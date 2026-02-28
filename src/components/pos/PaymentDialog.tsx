@@ -42,7 +42,7 @@ export const PaymentDialog = ({
   const total = subtotal - discount;
 
   const [paymentType, setPaymentType] = useState<PaymentType>('cash');
-  const [amountPaid, setAmountPaid] = useState<string>('0');
+  const [amountPaid, setAmountPaid] = useState<string>('');
 
   // Mixed payment state
   const [isMixed, setIsMixed] = useState(false);
@@ -52,7 +52,7 @@ export const PaymentDialog = ({
   useEffect(() => {
     if (open) {
       setPaymentType('cash');
-      setAmountPaid('0');
+      setAmountPaid('');
       setIsMixed(false);
       setMixedCash('0');
       setMixedTransfer('0');
@@ -74,7 +74,7 @@ export const PaymentDialog = ({
       if (value === 'cash' || value === 'transfer') {
         setIsMixed(false);
         setPaymentType(value);
-        setAmountPaid('0');
+        setAmountPaid('');
         return;
       }
     }
@@ -92,7 +92,7 @@ export const PaymentDialog = ({
 
     setIsMixed(false);
     setPaymentType(value);
-    setAmountPaid('0');
+    setAmountPaid('');
   };
 
   const change = !isMixed && paymentType !== 'credit'
@@ -101,7 +101,7 @@ export const PaymentDialog = ({
 
   const canProceed = isMixed
     ? (Number(mixedCash) + Number(mixedTransfer)) >= total
-    : paymentType === 'credit' || Number(amountPaid) >= total;
+    : paymentType === 'credit' || (amountPaid !== '' && Number(amountPaid) > 0 && Number(amountPaid) >= total);
 
   const handleConfirm = () => {
     if (isMixed) {
@@ -113,7 +113,7 @@ export const PaymentDialog = ({
     }
   };
 
-  const quickAmounts = [0, 1, 5, 10, 20, 50, 100, 200, 500, 1000];
+  const quickAmounts = [1, 5, 10, 20, 50, 100, 200, 500, 1000];
 
   const isButtonActive = (value: PaymentType) => {
     if (isMixed) return value === 'cash' || value === 'transfer';
@@ -264,6 +264,7 @@ export const PaymentDialog = ({
                 min="0"
                 value={amountPaid}
                 onChange={(e) => setAmountPaid(e.target.value)}
+                placeholder="0.00"
                 className="text-lg font-medium text-right"
               />
               {paymentType === 'cash' && (
@@ -291,7 +292,7 @@ export const PaymentDialog = ({
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setAmountPaid('0')}
+                    onClick={() => setAmountPaid('')}
                   >
                     <RotateCcw className="h-3.5 w-3.5" />
                   </Button>
