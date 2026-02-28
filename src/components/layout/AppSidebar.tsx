@@ -127,8 +127,11 @@ const AppSidebar = () => {
   const employerName = (employeeRecord as any)?.businesses?.name || null;
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const isBivooAccount = profile?.email?.endsWith('@bivoo.app') || false;
-  // Pure sellers and @bivoo.app accounts never see "Mis Negocios"
-  const showBusinessSection = isPrivileged && !isBivooAccount;
+  // Pure sellers, managers, and @bivoo.app accounts never see "Mis Negocios"
+  // Managers see the business modules but NOT the "Mis Negocios" section
+  const showBusinessSection = (isOwner || isSuperAdmin) && !isBivooAccount;
+  // Managers see the business module items (dynamic modules + config) but in their own section
+  const showManagerModules = isManager && !isOwner && !isSuperAdmin && !isBivooAccount;
 
   // Jornada check for non-privileged employees — gate operational tools
   const { jornadaActiva, jornada: activeJornada } = useJornadaActiva();
@@ -370,7 +373,8 @@ const AppSidebar = () => {
       icon: getIconComponent(m.icon),
     })),
     { title: 'Configuración', url: '/settings', icon: Settings },
-    { title: 'Planes', url: '/plans', icon: CreditCard },
+    // Managers don't see Planes
+    ...(!isManager || isOwner || isSuperAdmin ? [{ title: 'Planes', url: '/plans', icon: CreditCard }] : []),
   ];
 
   const ctxParam = new URLSearchParams(location.search).get("ctx");
@@ -501,7 +505,42 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-        {/* Mis Negocios - owner's businesses (hidden for pure sellers and @bivoo.app) */}
+        {/* Manager modules section — sees dynamic modules + config, but NOT Planes/Mis Negocios */}
+        {showManagerModules && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              Gestión
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {sidebarModules.map(m => {
+                  const ModIcon = getIconComponent(m.icon);
+                  const url = moduleUrlMap[m.name] || '/';
+                  return (
+                    <SidebarMenuItem key={m.id}>
+                      <SidebarMenuButton asChild isActive={isActive(url)}>
+                        <Link to={url}>
+                          <ModIcon className="h-4 w-4" />
+                          <span className="text-sm">{m.sidebar_label}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive('/settings')}>
+                    <Link to="/settings">
+                      <Settings className="h-4 w-4" />
+                      <span className="text-sm">Configuración</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Mis Negocios - owner's businesses (hidden for managers, pure sellers and @bivoo.app) */}
         {showBusinessSection && <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
             <span>{activeBusiness?.name || "Mi Negocio"}</span>
