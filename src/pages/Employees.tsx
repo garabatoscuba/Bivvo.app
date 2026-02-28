@@ -52,7 +52,7 @@ const POSITION_OPTIONS = [
   { value: 'accountant', label: 'Contable' },
 ];
 
-const ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'accountant'];
+const ALL_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'accountant'];
 
 interface Employee {
   id: string;
@@ -163,6 +163,11 @@ const Employees = () => {
 
   const businessId = profile?.business_id;
   const canManage = isOwner || isManager || isSuperAdmin;
+  const canDelete = isOwner || isSuperAdmin;
+  // Managers can't assign the 'owner' role
+  const ASSIGNABLE_ROLES = isOwner || isSuperAdmin
+    ? ALL_ASSIGNABLE_ROLES
+    : ALL_ASSIGNABLE_ROLES.filter(r => r !== 'owner');
 
   // Fetch HR employees
   const { data: hrEmployees = [], isLoading: loadingHR } = useQuery({
@@ -811,9 +816,11 @@ const Employees = () => {
                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEmployee(emp)}>
                                       <Pencil className="h-3.5 w-3.5" />
                                     </Button>
-                                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteEmployee(emp.id)}>
-                                      <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                    </Button>
+                                    {(isOwner || isSuperAdmin) && (
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleDeleteEmployee(emp.id)}>
+                                        <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                      </Button>
+                                    )}
                                   </div>
                                 </div>
                               );
@@ -901,9 +908,11 @@ const Employees = () => {
                                           <Button variant="ghost" size="icon" onClick={() => openEditEmployee(emp)}>
                                             <Pencil className="h-4 w-4" />
                                           </Button>
-                                          <Button variant="ghost" size="icon" onClick={() => handleDeleteEmployee(emp.id)}>
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                          </Button>
+                                          {(isOwner || isSuperAdmin) && (
+                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteEmployee(emp.id)}>
+                                              <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
+                                          )}
                                         </div>
                                       </TableCell>
                                     </TableRow>
