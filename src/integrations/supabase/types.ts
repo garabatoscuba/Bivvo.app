@@ -1025,6 +1025,7 @@ export type Database = {
         Row: {
           address: string | null
           age: number | null
+          auth_user_id: string | null
           branch_id: string | null
           business_id: string
           ci: string
@@ -1042,6 +1043,7 @@ export type Database = {
         Insert: {
           address?: string | null
           age?: number | null
+          auth_user_id?: string | null
           branch_id?: string | null
           business_id: string
           ci: string
@@ -1059,6 +1061,7 @@ export type Database = {
         Update: {
           address?: string | null
           age?: number | null
+          auth_user_id?: string | null
           branch_id?: string | null
           business_id?: string
           ci?: string
