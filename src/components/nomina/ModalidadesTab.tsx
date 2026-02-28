@@ -13,28 +13,21 @@ import {
 } from '@/components/ui/dialog';
 
 import AppliesToSelector from './modality-configs/AppliesToSelector';
-import FixedConfig from './modality-configs/FixedConfig';
-import FixedLadderConfig from './modality-configs/FixedLadderConfig';
 import SalesPercentConfig from './modality-configs/SalesPercentConfig';
 import ProfitPercentConfig from './modality-configs/ProfitPercentConfig';
-import GoalBonusConfig from './modality-configs/GoalBonusConfig';
 import HourlyConfig from './modality-configs/HourlyConfig';
 import CustomMixedConfig from './modality-configs/CustomMixedConfig';
 import type { Preset } from './modality-configs/PresetManager';
 
 const MODALITY_INFO: Record<string, { label: string; description: string }> = {
-  fixed: { label: 'Fijo', description: 'Salario fijo independiente de ventas' },
-  fixed_ladder: { label: 'Fijo con Escalera', description: 'Salario base que sube según rangos de venta' },
-  fixed_plus_sales_percent: { label: 'Fijo + % Ventas', description: 'Salario base más porcentaje sobre sus ventas' },
   sales_percent_only: { label: 'Solo % sobre su Venta', description: 'Sin salario fijo, solo porcentaje de lo que vende' },
   profit_percent: { label: '% sobre Ganancia Total', description: 'Porcentaje sobre la ganancia neta del negocio' },
-  fixed_plus_goal_bonus: { label: 'Fijo + Bono por Meta', description: 'Salario base con bonos al cumplir metas' },
   hourly: { label: 'Por Horas', description: 'Pago según horas trabajadas' },
   custom_mixed: { label: 'Mixto Personalizado', description: 'Cada trabajador gana un % de la venta según cuántos estén activos' },
 };
 
 const ALL_TYPES = Object.keys(MODALITY_INFO);
-const BLOCKED_TYPES = new Set(['fixed_ladder', 'fixed_plus_goal_bonus']);
+const BLOCKED_TYPES = new Set<string>();
 
 interface Condition {
   positions: number;
@@ -267,18 +260,10 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
     if (!selectedType) return null;
 
     switch (selectedType) {
-      case 'fixed':
-        return <FixedConfig presets={presets} onPresetsChange={setPresets} />;
-      case 'fixed_ladder':
-        return <FixedLadderConfig presets={presets} onPresetsChange={setPresets} />;
-      case 'fixed_plus_sales_percent':
-        return <SalesPercentConfig type="fixed_plus_sales_percent" config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'sales_percent_only':
         return <SalesPercentConfig type="sales_percent_only" config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'profit_percent':
         return <ProfitPercentConfig config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
-      case 'fixed_plus_goal_bonus':
-        return <GoalBonusConfig presets={presets} onPresetsChange={setPresets} />;
       case 'hourly':
         return <HourlyConfig config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'custom_mixed':
