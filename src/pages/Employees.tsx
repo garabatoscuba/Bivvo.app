@@ -407,7 +407,7 @@ const Employees = () => {
             email: editingEmployee.email?.endsWith('@bivoo.app') ? editingEmployee.email : (form.email.trim() || null),
             license_number: form.license_number.trim() || null,
             address: form.address.trim() || null,
-            position: form.position,
+            position: form.assigned_roles[0] || 'seller',
             start_date: form.start_date,
           })
           .eq('id', editingEmployee.id);
@@ -427,7 +427,7 @@ const Employees = () => {
             email: form.use_bivoo_id ? null : (form.email.trim() || null),
             license_number: form.license_number.trim() || null,
             address: form.address.trim() || null,
-            position: form.position,
+            position: form.assigned_roles[0] || 'seller',
             start_date: form.start_date,
           })
           .select('id')
@@ -1023,24 +1023,9 @@ const Employees = () => {
                 <Label htmlFor="address">Dirección Particular</Label>
                 <Input id="address" value={form.address} onChange={(e) => updateField('address', e.target.value)} placeholder="Dirección del empleado" />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="position">Puesto Principal *</Label>
-                  <Select value={form.position} onValueChange={(v) => updateField('position', v)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecciona puesto" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {POSITION_OPTIONS.map(opt => (
-                        <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="start_date">Fecha de Alta *</Label>
-                  <Input id="start_date" type="date" value={form.start_date} onChange={(e) => updateField('start_date', e.target.value)} />
-                </div>
+              <div className="space-y-2">
+                <Label htmlFor="start_date">Fecha de Alta *</Label>
+                <Input id="start_date" type="date" value={form.start_date} onChange={(e) => updateField('start_date', e.target.value)} />
               </div>
 
               {/* Multi-role assignment */}
