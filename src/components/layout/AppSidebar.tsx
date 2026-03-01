@@ -384,8 +384,8 @@ const AppSidebar = () => {
 
       return mods.filter(m => {
         const avail = pricingMap.get(m.id);
-        // If no pricing record exists, include by default; exclude only explicit 'not_available'
-        return avail !== 'not_available';
+        // Exclude modules explicitly marked as unavailable for this plan
+        return avail !== 'unavailable' && avail !== 'not_available';
       });
     },
     enabled: !!resolvedBusiness?.business_type,
