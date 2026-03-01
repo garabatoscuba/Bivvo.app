@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Check, ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, ArrowRight, Package, ShoppingCart, Users } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -350,16 +350,16 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
             {step === 'checklist' && (
               <div className="w-full space-y-4">
                 {[
-                  { emoji: '📦', text: 'Agrega tu primer producto', sub: 'Inventario' },
-                  { emoji: '🛒', text: 'Realiza tu primera venta', sub: 'Punto de Venta' },
-                  { emoji: '👥', text: 'Agrega tu primer empleado', sub: 'Recursos Humanos' },
+                  { Icon: Package, text: 'Agrega tu primer producto', sub: 'Inventario' },
+                  { Icon: ShoppingCart, text: 'Realiza tu primera venta', sub: 'Punto de Venta' },
+                  { Icon: Users, text: 'Agrega tu primer empleado', sub: 'Recursos Humanos' },
                 ].map((item, i) => (
                   <div
                     key={i}
                     className="flex items-center gap-4 rounded-xl border border-border px-5 py-4"
                     style={{ animationDelay: `${i * 100}ms` }}
                   >
-                    <span className="text-2xl">{item.emoji}</span>
+                    <item.Icon className="w-5 h-5 text-primary shrink-0" />
                     <div>
                       <p className="text-sm font-medium text-foreground">{item.text}</p>
                       <p className="text-xs text-muted-foreground">{item.sub}</p>
