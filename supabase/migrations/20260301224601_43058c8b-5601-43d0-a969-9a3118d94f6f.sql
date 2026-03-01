@@ -1,0 +1,1 @@
+ALTER TABLE public.module_plugin_pricing ADD CONSTRAINT module_plugin_pricing_entity_plan_unique UNIQUE (entity_id, plan_type);

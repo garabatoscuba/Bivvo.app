@@ -721,14 +721,17 @@ const PricingTab = () => {
 
   const upsertPricingMutation = useMutation({
     mutationFn: async (row: { entity_type: string; entity_id: string; plan_type: string; availability: string; monthly_price: number }) => {
-      const existing = pricing.find(p => p.entity_id === row.entity_id && p.plan_type === row.plan_type);
-      if (existing) {
-        const { error } = await supabase.from('module_plugin_pricing').update({ availability: row.availability, monthly_price: row.monthly_price } as any).eq('id', existing.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('module_plugin_pricing').insert(row as any);
-        if (error) throw error;
-      }
+      const { error } = await supabase.from('module_plugin_pricing').upsert(
+        {
+          entity_type: row.entity_type,
+          entity_id: row.entity_id,
+          plan_type: row.plan_type,
+          availability: row.availability,
+          monthly_price: row.monthly_price,
+        } as any,
+        { onConflict: 'entity_id,plan_type' }
+      );
+      if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['module-plugin-pricing'] });
