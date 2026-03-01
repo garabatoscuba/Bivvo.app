@@ -5,6 +5,8 @@ import AppHeader from './AppHeader';
 import SubscriptionBanner from './SubscriptionBanner';
 import InstallBanner from './InstallBanner';
 import AlertaInactividad from '@/components/employees/AlertaInactividad';
+import BivooAssistant from '@/components/assistant/BivooAssistant';
+import { useFeatureUsage } from '@/hooks/useFeatureUsage';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -12,6 +14,8 @@ interface AppLayoutProps {
 }
 
 const AppLayout = ({ children, title }: AppLayoutProps) => {
+  useFeatureUsage();
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full overflow-hidden">
@@ -26,8 +30,9 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
           <AlertaInactividad />
         </SidebarInset>
       </div>
-    </SidebarProvider>);
-
+      <BivooAssistant />
+    </SidebarProvider>
+  );
 };
 
 export default AppLayout;
