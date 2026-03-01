@@ -24,6 +24,7 @@ const POS = lazy(() => import("./pages/POS"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
 const AdminModules = lazy(() => import("./pages/admin/AdminModules"));
+const AdminAssistant = lazy(() => import("./pages/admin/AdminAssistant"));
 const Employees = lazy(() => import("./pages/Employees"));
 const Sales = lazy(() => import("./pages/Sales"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -208,6 +209,14 @@ const App = () => {
                         element={
                           <ProtectedRoute requireSuperAdmin>
                             <AdminUsers />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/admin/assistant"
+                        element={
+                          <ProtectedRoute requireSuperAdmin>
+                            <AdminAssistant />
                           </ProtectedRoute>
                         }
                       />

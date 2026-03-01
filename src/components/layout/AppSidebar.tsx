@@ -58,6 +58,7 @@ import {
   DollarSign,
   Briefcase,
   FileText,
+  Bot,
 } from "lucide-react";
 import { getIconComponent } from "@/components/services/IconSelector";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -323,6 +324,7 @@ const AppSidebar = () => {
     { title: "Panel Admin", url: "/admin", icon: Shield },
     { title: "Usuarios", url: "/admin/users", icon: Users },
     { title: "Módulos y Plugins", url: "/admin/modules", icon: Settings2 },
+    { title: "Asistente IA", url: "/admin/assistant", icon: Bot },
   ];
 
   const activeBusiness = showBusinessSection ? userBusinesses.find((b) => b.id === profile?.business_id) : null;
