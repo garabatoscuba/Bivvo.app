@@ -425,6 +425,7 @@ const AppSidebar = () => {
 
   const ctxParam = new URLSearchParams(location.search).get("ctx");
   const isActive = (url: string) => {
+    // If viewing in employee context (?ctx=emp), don't highlight the business menu items for overlapping paths
     if (ctxParam === "emp" && (url === "/pos" || url === "/sales" || url === "/services" || url === "/cobros")) {
       return false;
     }
@@ -450,6 +451,8 @@ const AppSidebar = () => {
           <img src={isDark ? "/logo-dark.png" : "/logo-light.png"} alt="Bivoo" className="h-6 w-auto" />
         </Link>
       </SidebarHeader>
+
+      <Separator className="mx-4 w-auto" />
 
       <SidebarContent className="pt-2">
         {isSuperAdmin && (
@@ -495,6 +498,7 @@ const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {/* Operational tools for seller/dependent only when jornada is active */}
                 {showEmployeeTools && (
                   <>
                     <SidebarMenuItem>
@@ -543,7 +547,7 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-        {/* Manager modules section */}
+        {/* Manager modules section — sees dynamic modules + config, but NOT Planes/Mis Negocios */}
         {showManagerModules && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
@@ -571,7 +575,7 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-        {/* Mis Negocios - owner's businesses */}
+        {/* Mis Negocios - owner's businesses (hidden for managers, pure sellers and @bivoo.app) */}
         {showBusinessSection && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
@@ -590,6 +594,7 @@ const AppSidebar = () => {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
+                {/* Business menu items for the ACTIVE owned business */}
                 {businessItems.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
@@ -619,6 +624,7 @@ const AppSidebar = () => {
                           const isSelectedBiz = profile?.business_id === biz.id;
                           return (
                             <div key={biz.id}>
+                              {/* Business header row */}
                               <DropdownMenuItem
                                 className="gap-2 justify-between"
                                 onSelect={(e) => {
@@ -671,6 +677,7 @@ const AppSidebar = () => {
                                 </div>
                               </DropdownMenuItem>
 
+                              {/* Branches under this business */}
                               {biz.branches.length > 0 && (
                                 <div className="ml-4 border-l border-border/50 pl-2 my-0.5">
                                   {biz.branches.map((branch) => {
