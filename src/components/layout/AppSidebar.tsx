@@ -353,9 +353,9 @@ const AppSidebar = () => {
   // Use owner's business or fallback to resolved employee/manager business
   const resolvedBusiness = activeBusiness || managerBusiness || (employeeRecord as any)?.businesses || null;
 
-  // Fetch dynamic sidebar modules
+  // Fetch dynamic sidebar modules filtered by pricing availability
   const { data: sidebarModules = [] } = useQuery({
-    queryKey: ["sidebar-modules", resolvedBusiness?.business_type],
+    queryKey: ["sidebar-modules", resolvedBusiness?.business_type, planType],
     queryFn: async () => {
       if (!resolvedBusiness?.business_type) return [];
       const { data: btConfig } = await supabase
@@ -371,7 +371,22 @@ const AppSidebar = () => {
         .in("id", btConfig.module_ids)
         .eq("is_active", true)
         .order("sort_order");
-      return mods || [];
+      if (!mods?.length) return [];
+
+      // Filter by pricing availability for the current plan
+      const { data: pricing } = await supabase
+        .from("module_plugin_pricing")
+        .select("entity_id, availability")
+        .eq("entity_type", "module")
+        .eq("plan_type", planType);
+
+      const pricingMap = new Map((pricing || []).map(p => [p.entity_id, p.availability]));
+
+      return mods.filter(m => {
+        const avail = pricingMap.get(m.id);
+        // If no pricing record exists, include by default; exclude only explicit 'not_available'
+        return avail !== 'not_available';
+      });
     },
     enabled: !!resolvedBusiness?.business_type,
   });
