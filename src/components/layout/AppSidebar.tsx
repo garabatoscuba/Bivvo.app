@@ -145,15 +145,11 @@ const AppSidebar = () => {
   const shouldWaitEmployeeResolution = isBivooAccount && employeeRecordLoading;
 
   // Employees must not run owner/owner_id sidebar flow
-  const showBusinessSection =
-    !shouldWaitEmployeeResolution &&
-    (isOwner || isSuperAdmin) &&
-    !isEmployeeSession;
+  const showBusinessSection = !shouldWaitEmployeeResolution && (isOwner || isSuperAdmin) && !isEmployeeSession;
 
   // Managers use their employee role in real-time (not cached owner flags)
   const showManagerModules =
-    !shouldWaitEmployeeResolution &&
-    (isEmployeeSession ? isEmployeeManager : isManager && !isOwner && !isSuperAdmin);
+    !shouldWaitEmployeeResolution && (isEmployeeSession ? isEmployeeManager : isManager && !isOwner && !isSuperAdmin);
 
   // Jornada check for operational employee tools
   const { jornadaActiva } = useJornadaActiva();
@@ -329,9 +325,7 @@ const AppSidebar = () => {
     { title: "Módulos y Plugins", url: "/admin/modules", icon: Settings2 },
   ];
 
-  const activeBusiness = showBusinessSection
-    ? userBusinesses.find((b) => b.id === profile?.business_id)
-    : null;
+  const activeBusiness = showBusinessSection ? userBusinesses.find((b) => b.id === profile?.business_id) : null;
 
   // Owners resolve business by owner context; employees always by employees.business_id
   const resolvedBusinessId = shouldWaitEmployeeResolution
@@ -359,22 +353,22 @@ const AppSidebar = () => {
 
   // Fetch dynamic sidebar modules
   const { data: sidebarModules = [] } = useQuery({
-    queryKey: ['sidebar-modules', resolvedBusiness?.business_type],
+    queryKey: ["sidebar-modules", resolvedBusiness?.business_type],
     queryFn: async () => {
       if (!resolvedBusiness?.business_type) return [];
       const { data: btConfig } = await supabase
-        .from('business_type_configs')
-        .select('module_ids')
-        .eq('key', resolvedBusiness.business_type)
-        .eq('is_active', true)
+        .from("business_type_configs")
+        .select("module_ids")
+        .eq("key", resolvedBusiness.business_type)
+        .eq("is_active", true)
         .maybeSingle();
       if (!btConfig?.module_ids?.length) return [];
       const { data: mods } = await supabase
-        .from('platform_modules')
-        .select('id, name, sidebar_label, icon')
-        .in('id', btConfig.module_ids)
-        .eq('is_active', true)
-        .order('sort_order');
+        .from("platform_modules")
+        .select("id, name, sidebar_label, icon")
+        .in("id", btConfig.module_ids)
+        .eq("is_active", true)
+        .order("sort_order");
       return mods || [];
     },
     enabled: !!resolvedBusiness?.business_type,
@@ -382,58 +376,55 @@ const AppSidebar = () => {
 
   // Fetch available business types for "new business" dropdown/dialog
   const { data: availableBusinessTypes = [] } = useQuery({
-    queryKey: ['available-business-types', isCuba],
+    queryKey: ["available-business-types", isCuba],
     queryFn: async () => {
       const { data } = await supabase
-        .from('business_type_configs')
-        .select('key, name, icon, country')
-        .eq('is_active', true)
-        .order('sort_order');
-      return (data || []).filter(bt =>
-        !bt.country || bt.country === 'cuba' ? isCuba : true
-      );
+        .from("business_type_configs")
+        .select("key, name, icon, country")
+        .eq("is_active", true)
+        .order("sort_order");
+      return (data || []).filter((bt) => (!bt.country || bt.country === "cuba" ? isCuba : true));
     },
   });
 
   const moduleUrlMap: Record<string, string> = {
-    'Dashboard': '/',
-    'Inventario': '/inventory',
-    'Punto de Venta': '/pos',
-    'Servicios': '/services',
-    'Ventas': '/sales',
-    'Reportes': '/cobros',
-    'Portal': '/store-settings',
-    'Pedidos': '/orders',
-    'Recursos Humanos': '/employees',
-    'Nómina': '/nomina',
-    'Caja': '/caja',
-    'Impresiones2': '/impresiones',
+    Dashboard: "/",
+    Inventario: "/inventory",
+    "Punto de Venta": "/pos",
+    Servicios: "/services",
+    Ventas: "/sales",
+    Reportes: "/cobros",
+    Portal: "/store-settings",
+    Pedidos: "/orders",
+    "Recursos Humanos": "/employees",
+    Nómina: "/nomina",
+    Caja: "/caja",
+    Impresiones2: "/impresiones",
   };
 
   const businessItems = [
-    ...sidebarModules.map(m => ({
+    ...sidebarModules.map((m) => ({
       title: m.sidebar_label,
-      url: moduleUrlMap[m.name] || '/',
+      url: moduleUrlMap[m.name] || "/",
       icon: getIconComponent(m.icon),
     })),
-    { title: 'Configuración', url: '/settings', icon: Settings },
-    ...(!isManager || isOwner || isSuperAdmin ? [{ title: 'Planes', url: '/plans', icon: CreditCard }] : []),
+    { title: "Configuración", url: "/settings", icon: Settings },
+    ...(!isManager || isOwner || isSuperAdmin ? [{ title: "Planes", url: "/plans", icon: CreditCard }] : []),
   ];
 
   const managerItems = [
-    { title: 'POS', url: '/pos', icon: ShoppingCart },
-    { title: 'Servicios', url: '/services', icon: Wrench },
-    { title: 'Caja', url: '/caja', icon: DollarSign },
-    { title: 'Inventario', url: '/inventory', icon: Package },
-    { title: 'Pedidos', url: '/orders', icon: ShoppingBag },
-    { title: 'Reportes', url: '/cobros', icon: FileText },
-    { title: 'Empleados', url: '/employees', icon: Users },
-    { title: 'Ventas', url: '/sales', icon: Receipt },
+    { title: "POS", url: "/pos", icon: ShoppingCart },
+    { title: "Servicios", url: "/services", icon: Wrench },
+    { title: "Caja", url: "/caja", icon: DollarSign },
+    { title: "Inventario", url: "/inventory", icon: Package },
+    { title: "Pedidos", url: "/orders", icon: ShoppingBag },
+    { title: "Reportes", url: "/cobros", icon: FileText },
+    { title: "Empleados", url: "/employees", icon: Users },
+    { title: "Ventas", url: "/sales", icon: Receipt },
   ];
 
   const ctxParam = new URLSearchParams(location.search).get("ctx");
   const isActive = (url: string) => {
-    // If viewing in employee context (?ctx=emp), don't highlight the business menu items for overlapping paths
     if (ctxParam === "emp" && (url === "/pos" || url === "/sales" || url === "/services" || url === "/cobros")) {
       return false;
     }
@@ -456,15 +447,9 @@ const AppSidebar = () => {
     <Sidebar>
       <SidebarHeader className="p-4">
         <Link to="/" className="flex items-center">
-          <img
-            src={isDark ? "/logo-dark.png" : "/logo-light.png"}
-            alt="Bivoo"
-            className="h-6 w-auto"
-          />
+          <img src={isDark ? "/logo-dark.png" : "/logo-light.png"} alt="Bivoo" className="h-6 w-auto" />
         </Link>
       </SidebarHeader>
-
-      <Separator className="mx-4 w-auto" />
 
       <SidebarContent className="pt-2">
         {isSuperAdmin && (
@@ -510,7 +495,6 @@ const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-                {/* Operational tools for seller/dependent only when jornada is active */}
                 {showEmployeeTools && (
                   <>
                     <SidebarMenuItem>
@@ -559,7 +543,7 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-        {/* Manager modules section — sees dynamic modules + config, but NOT Planes/Mis Negocios */}
+        {/* Manager modules section */}
         {showManagerModules && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
@@ -587,183 +571,185 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-        {/* Mis Negocios - owner's businesses (hidden for managers, pure sellers and @bivoo.app) */}
-        {showBusinessSection && <SidebarGroup>
-          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
-            <span>{activeBusiness?.name || "Mi Negocio"}</span>
-            {activeBusiness?.business_type && (
-              <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
-                {activeBusiness.business_type === "store"
-                  ? "Tienda"
-                  : activeBusiness.business_type === "copy_shop"
-                    ? "Punto de Copias"
-                    : activeBusiness.business_type === "gym"
-                      ? "Gym"
-                      : activeBusiness.business_type}
-              </span>
-            )}
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {/* Business menu items for the ACTIVE owned business */}
-              {businessItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                    <Link to={item.url}>
-                      <item.icon className="h-4 w-4" />
-                      <span className="text-sm">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-
-              {/* Business selector dropdown */}
-              <SidebarMenuItem>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <SidebarMenuButton className="justify-between">
-                      <div className="flex items-center gap-2">
-                        <Store className="h-4 w-4" />
-                        <span className="text-sm">Mis Negocios</span>
-                      </div>
-                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+        {/* Mis Negocios - owner's businesses */}
+        {showBusinessSection && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
+              <span>{activeBusiness?.name || "Mi Negocio"}</span>
+              {activeBusiness?.business_type && (
+                <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
+                  {activeBusiness.business_type === "store"
+                    ? "Tienda"
+                    : activeBusiness.business_type === "copy_shop"
+                      ? "Punto de Copias"
+                      : activeBusiness.business_type === "gym"
+                        ? "Gym"
+                        : activeBusiness.business_type}
+                </span>
+              )}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                {businessItems.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                      <Link to={item.url}>
+                        <item.icon className="h-4 w-4" />
+                        <span className="text-sm">{item.title}</span>
+                      </Link>
                     </SidebarMenuButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" className="w-72 max-h-[70vh] overflow-y-auto">
-                    {userBusinesses.length > 0 ? (
-                      userBusinesses.map((biz) => {
-                        const isSelectedBiz = profile?.business_id === biz.id;
-                        return (
-                          <div key={biz.id}>
-                            {/* Business header row */}
-                            <DropdownMenuItem
-                              className="gap-2 justify-between"
-                              onSelect={(e) => {
-                                e.preventDefault();
-                                if (!isSelectedBiz) switchBusiness(biz.id);
-                              }}
-                            >
-                              <div className="flex items-center gap-2 min-w-0">
-                                {isSelectedBiz ? (
-                                  <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                                ) : (
-                                  <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                )}
-                                <div className="flex flex-col min-w-0">
-                                  <span className={`truncate text-sm ${isSelectedBiz ? "font-semibold" : ""}`}>
-                                    {biz.name}
-                                  </span>
-                                  <span className="text-[9px] text-muted-foreground/60">
-                                    {biz.business_type === "store"
-                                      ? "Tienda"
-                                      : biz.business_type === "copy_shop"
-                                        ? "Punto de Copias"
-                                        : biz.business_type === "gym"
-                                          ? "Gym"
-                                          : biz.business_type}
-                                  </span>
+                  </SidebarMenuItem>
+                ))}
+
+                {/* Business selector dropdown */}
+                <SidebarMenuItem>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <SidebarMenuButton className="justify-between">
+                        <div className="flex items-center gap-2">
+                          <Store className="h-4 w-4" />
+                          <span className="text-sm">Mis Negocios</span>
+                        </div>
+                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      </SidebarMenuButton>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-72 max-h-[70vh] overflow-y-auto">
+                      {userBusinesses.length > 0 ? (
+                        userBusinesses.map((biz) => {
+                          const isSelectedBiz = profile?.business_id === biz.id;
+                          return (
+                            <div key={biz.id}>
+                              <DropdownMenuItem
+                                className="gap-2 justify-between"
+                                onSelect={(e) => {
+                                  e.preventDefault();
+                                  if (!isSelectedBiz) switchBusiness(biz.id);
+                                }}
+                              >
+                                <div className="flex items-center gap-2 min-w-0">
+                                  {isSelectedBiz ? (
+                                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                                  ) : (
+                                    <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                  )}
+                                  <div className="flex flex-col min-w-0">
+                                    <span className={`truncate text-sm ${isSelectedBiz ? "font-semibold" : ""}`}>
+                                      {biz.name}
+                                    </span>
+                                    <span className="text-[9px] text-muted-foreground/60">
+                                      {biz.business_type === "store"
+                                        ? "Tienda"
+                                        : biz.business_type === "copy_shop"
+                                          ? "Punto de Copias"
+                                          : biz.business_type === "gym"
+                                            ? "Gym"
+                                            : biz.business_type}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="flex items-center gap-0.5 shrink-0">
-                                <button
-                                  className="p-1 rounded hover:bg-muted"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openCreateBranch(biz.id);
-                                  }}
-                                  title="Nueva sucursal"
-                                >
-                                  <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-                                </button>
-                                <button
-                                  className="p-1 rounded hover:bg-muted"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    openEditBiz(biz);
-                                  }}
-                                  title="Editar negocio"
-                                >
-                                  <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                </button>
-                              </div>
-                            </DropdownMenuItem>
+                                <div className="flex items-center gap-0.5 shrink-0">
+                                  <button
+                                    className="p-1 rounded hover:bg-muted"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openCreateBranch(biz.id);
+                                    }}
+                                    title="Nueva sucursal"
+                                  >
+                                    <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </button>
+                                  <button
+                                    className="p-1 rounded hover:bg-muted"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditBiz(biz);
+                                    }}
+                                    title="Editar negocio"
+                                  >
+                                    <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </button>
+                                </div>
+                              </DropdownMenuItem>
 
-                            {/* Branches under this business */}
-                            {biz.branches.length > 0 && (
-                              <div className="ml-4 border-l border-border/50 pl-2 my-0.5">
-                                {biz.branches.map((branch) => {
-                                  const isBranchActive = profile?.branch_id === branch.id && isSelectedBiz;
-                                  return (
-                                    <DropdownMenuItem
-                                      key={branch.id}
-                                      className="gap-2 justify-between py-1.5 text-xs"
-                                      onSelect={(e) => {
-                                        e.preventDefault();
-                                        if (!isSelectedBiz) {
-                                          switchBusiness(biz.id);
-                                        } else if (!isBranchActive) {
-                                          handleSelectBranch(branch.id);
-                                        }
-                                      }}
-                                    >
-                                      <div className="flex items-center gap-2 min-w-0">
-                                        {isBranchActive ? (
-                                          <Check className="h-3 w-3 text-primary shrink-0" />
-                                        ) : (
-                                          <MapPin className="h-3 w-3 text-muted-foreground/60 shrink-0" />
-                                        )}
-                                        <span
-                                          className={`truncate ${isBranchActive ? "font-medium text-foreground" : "text-muted-foreground"}`}
-                                        >
-                                          {branch.name}
-                                        </span>
-                                        {branch.is_main && (
-                                          <span className="text-[9px] text-muted-foreground/50 uppercase tracking-wider shrink-0">
-                                            principal
-                                          </span>
-                                        )}
-                                      </div>
-                                      <button
-                                        className="p-0.5 rounded hover:bg-muted shrink-0"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openEditBranch(branch);
+                              {biz.branches.length > 0 && (
+                                <div className="ml-4 border-l border-border/50 pl-2 my-0.5">
+                                  {biz.branches.map((branch) => {
+                                    const isBranchActive = profile?.branch_id === branch.id && isSelectedBiz;
+                                    return (
+                                      <DropdownMenuItem
+                                        key={branch.id}
+                                        className="gap-2 justify-between py-1.5 text-xs"
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          if (!isSelectedBiz) {
+                                            switchBusiness(biz.id);
+                                          } else if (!isBranchActive) {
+                                            handleSelectBranch(branch.id);
+                                          }
                                         }}
-                                        title="Editar sucursal"
                                       >
-                                        <Pencil className="h-3 w-3 text-muted-foreground/60" />
-                                      </button>
-                                    </DropdownMenuItem>
-                                  );
-                                })}
-                              </div>
-                            )}
+                                        <div className="flex items-center gap-2 min-w-0">
+                                          {isBranchActive ? (
+                                            <Check className="h-3 w-3 text-primary shrink-0" />
+                                          ) : (
+                                            <MapPin className="h-3 w-3 text-muted-foreground/60 shrink-0" />
+                                          )}
+                                          <span
+                                            className={`truncate ${isBranchActive ? "font-medium text-foreground" : "text-muted-foreground"}`}
+                                          >
+                                            {branch.name}
+                                          </span>
+                                          {branch.is_main && (
+                                            <span className="text-[9px] text-muted-foreground/50 uppercase tracking-wider shrink-0">
+                                              principal
+                                            </span>
+                                          )}
+                                        </div>
+                                        <button
+                                          className="p-0.5 rounded hover:bg-muted shrink-0"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            openEditBranch(branch);
+                                          }}
+                                          title="Editar sucursal"
+                                        >
+                                          <Pencil className="h-3 w-3 text-muted-foreground/60" />
+                                        </button>
+                                      </DropdownMenuItem>
+                                    );
+                                  })}
+                                </div>
+                              )}
 
-                            <DropdownMenuSeparator className="my-1" />
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-                        Sin negocios
-                      </DropdownMenuItem>
-                    )}
-                    {availableBusinessTypes.map(bt => (
-                      <DropdownMenuItem
-                        key={bt.key}
-                        className="gap-2"
-                        onSelect={() => { setBizType(bt.key); setNewBizOpen(true); }}
-                      >
-                        <Store className="h-3.5 w-3.5" />
-                        <span>{bt.name}</span>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </SidebarMenuItem>
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>}
+                              <DropdownMenuSeparator className="my-1" />
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                          Sin negocios
+                        </DropdownMenuItem>
+                      )}
+                      {availableBusinessTypes.map((bt) => (
+                        <DropdownMenuItem
+                          key={bt.key}
+                          className="gap-2"
+                          onSelect={() => {
+                            setBizType(bt.key);
+                            setNewBizOpen(true);
+                          }}
+                        >
+                          <Store className="h-3.5 w-3.5" />
+                          <span>{bt.name}</span>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {!isInstalled && (
           <SidebarGroup>
@@ -828,7 +814,9 @@ const AppSidebar = () => {
           <DialogHeader>
             <DialogTitle>Nuevo Negocio</DialogTitle>
             <DialogDescription>
-              Al agregar un nuevo negocio se añadirá un cargo adicional a tu cuenta según tu plan activo. El monto de tu suscripción aumentará proporcionalmente. Espera la confirmación del administrador antes de poder utilizarlo.
+              Al agregar un nuevo negocio se añadirá un cargo adicional a tu cuenta según tu plan activo. El monto de tu
+              suscripción aumentará proporcionalmente. Espera la confirmación del administrador antes de poder
+              utilizarlo.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
@@ -843,8 +831,10 @@ const AppSidebar = () => {
                 onChange={(e) => setBizType(e.target.value)}
                 className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                {availableBusinessTypes.map(bt => (
-                  <option key={bt.key} value={bt.key}>{bt.name}</option>
+                {availableBusinessTypes.map((bt) => (
+                  <option key={bt.key} value={bt.key}>
+                    {bt.name}
+                  </option>
                 ))}
               </select>
             </div>
