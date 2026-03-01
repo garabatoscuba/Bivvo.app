@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -17,6 +18,12 @@ const ROLE_RESTRICTIONS: Record<string, string> = {
     "El usuario es dueño del negocio. Tiene acceso completo a todos los módulos.",
 };
 
+const TONE_MAP: Record<string, string> = {
+  formal: "Responde siempre de forma profesional, estructurada y respetuosa. Evita coloquialismos.",
+  friendly: "Responde de forma clara, cercana y amigable. Usa un tono conversacional pero profesional.",
+  technical: "Responde con precisión técnica. Sé directo y específico. Usa terminología apropiada.",
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -28,14 +35,51 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const sb = createClient(supabaseUrl, supabaseKey);
+
+    // Fetch config, business type instructions, and training examples in parallel
+    const [configRes, btInstrRes, trainingRes] = await Promise.all([
+      sb.from("assistant_config").select("*").limit(1).single(),
+      business_id
+        ? sb.from("businesses").select("business_type").eq("id", business_id).single().then(async (bizRes) => {
+            if (!bizRes.data?.business_type) return { data: null };
+            return sb.from("assistant_business_type_instructions").select("instructions").eq("business_type", bizRes.data.business_type).single();
+          })
+        : Promise.resolve({ data: null }),
+      sb.from("assistant_training_examples").select("question, answer").eq("is_active", true).order("sort_order").limit(20),
+    ]);
+
+    const config = configRes.data;
+    const btInstructions = (btInstrRes as any)?.data?.instructions || "";
+    const trainingExamples = trainingRes.data || [];
+
+    // Check if assistant is disabled
+    if (config && !config.is_enabled) {
+      return new Response(
+        JSON.stringify({ error: "El asistente está desactivado temporalmente." }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const roleInstructions = ROLE_RESTRICTIONS[role] || ROLE_RESTRICTIONS.owner;
+    const toneInstruction = TONE_MAP[config?.tone || "friendly"] || TONE_MAP.friendly;
+
+    // Build training section
+    let trainingSection = "";
+    if (trainingExamples.length > 0) {
+      trainingSection = "\n\nEJEMPLOS DE REFERENCIA:\n" + trainingExamples.map((e: any) =>
+        `Pregunta: ${e.question}\nRespuesta ideal: ${e.answer}`
+      ).join("\n\n");
+    }
 
     const systemPrompt = `Eres el asistente virtual de Bivoo, una plataforma de gestión para negocios.
 
 INSTRUCCIONES BASE:
 - Ayudas a los usuarios a sacar el máximo provecho del sistema.
 - Orienta según el módulo activo del usuario.
-- Responde siempre en español de forma clara, concisa y amigable.
+- ${toneInstruction}
 - NUNCA reveles nombres de tablas, componentes, archivos, variables de entorno, URLs, credenciales ni la arquitectura técnica del sistema.
 - Si no puedes resolver algo responde exactamente: "Para esto te recomiendo contactar al soporte de Bivoo."
 - NUNCA ejecutes operaciones de dinero sin confirmación explícita del usuario.
@@ -49,7 +93,9 @@ CONTEXTO ACTUAL:
 - Rol del usuario: ${role || "viewer"}
 
 CUSTOM_INSTRUCTIONS:
-{/* Preparado para recibir datos externos en el futuro */}`;
+${config?.base_instructions || ""}
+${btInstructions ? "\nINSTRUCCIONES DEL TIPO DE NEGOCIO:\n" + btInstructions : ""}
+${trainingSection}`;
 
     const response = await fetch(
       "https://ai.gateway.lovable.dev/v1/chat/completions",
@@ -89,6 +135,27 @@ CUSTOM_INSTRUCTIONS:
         JSON.stringify({ error: "Error del asistente" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Save conversation async (fire-and-forget)
+    if (business_id && messages.length > 0) {
+      const authHeader = req.headers.get("authorization");
+      const token = authHeader?.replace("Bearer ", "");
+      if (token) {
+        const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+          global: { headers: { Authorization: `Bearer ${token}` } },
+        });
+        const { data: { user } } = await userClient.auth.getUser(token);
+        if (user) {
+          sb.from("assistant_conversations").upsert({
+            business_id,
+            user_id: user.id,
+            user_role: role || "viewer",
+            messages,
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "business_id,user_id" }).then(() => {/* silent */});
+        }
+      }
     }
 
     return new Response(response.body, {

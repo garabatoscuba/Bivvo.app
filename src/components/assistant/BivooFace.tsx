@@ -22,25 +22,28 @@ export default function BivooFace({ state, hasUnread, className }: BivooFaceProp
           state === 'responding' && 'animate-bivoo-respond',
         )}
       >
+        {/* Accent dash above left eye */}
+        <div className="absolute top-[8px] left-[11px] w-[5px] h-[2px] rounded-sm bg-primary-foreground" />
+
         {/* Eyes container */}
         <div
           className={cn(
-            'flex items-center gap-[5px]',
+            'flex items-center gap-[4px]',
             state === 'thinking' && 'animate-bivoo-think',
           )}
         >
-          {/* Left eye */}
+          {/* Left eye — ring style */}
           <div
             className={cn(
-              'w-[9px] h-[9px] rounded-full bg-primary-foreground',
+              'w-[12px] h-[12px] rounded-full border-[2.5px] border-primary-foreground bg-transparent',
               state === 'idle' && 'animate-bivoo-blink',
               state === 'notification' && 'animate-bivoo-blink',
             )}
           />
-          {/* Right eye */}
+          {/* Right eye — ring style (slightly larger) */}
           <div
             className={cn(
-              'w-[9px] h-[9px] rounded-full bg-primary-foreground',
+              'w-[14px] h-[14px] rounded-full border-[2.5px] border-primary-foreground bg-transparent',
               state === 'idle' && 'animate-bivoo-blink',
               state === 'notification' && 'animate-bivoo-blink',
             )}
@@ -48,7 +51,7 @@ export default function BivooFace({ state, hasUnread, className }: BivooFaceProp
         </div>
 
         {/* Mouth — always visible */}
-        <div className="absolute bottom-[11px] left-1/2 -translate-x-1/2 w-[14px] h-[2px] rounded-full bg-primary-foreground" />
+        <div className="absolute bottom-[8px] left-1/2 -translate-x-1/2 w-[6px] h-[2px] rounded-sm bg-primary-foreground" />
       </div>
 
       {/* Notification dot */}

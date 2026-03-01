@@ -138,6 +138,57 @@ export type Database = {
           },
         ]
       }
+      assistant_business_type_instructions: {
+        Row: {
+          business_type: string
+          created_at: string
+          id: string
+          instructions: string
+          updated_at: string
+        }
+        Insert: {
+          business_type: string
+          created_at?: string
+          id?: string
+          instructions?: string
+          updated_at?: string
+        }
+        Update: {
+          business_type?: string
+          created_at?: string
+          id?: string
+          instructions?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      assistant_config: {
+        Row: {
+          base_instructions: string
+          created_at: string
+          id: string
+          is_enabled: boolean
+          tone: string
+          updated_at: string
+        }
+        Insert: {
+          base_instructions?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          tone?: string
+          updated_at?: string
+        }
+        Update: {
+          base_instructions?: string
+          created_at?: string
+          id?: string
+          is_enabled?: boolean
+          tone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assistant_context_actions: {
         Row: {
           action_payload: Json
@@ -173,6 +224,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      assistant_conversations: {
+        Row: {
+          business_id: string | null
+          created_at: string
+          id: string
+          messages: Json
+          updated_at: string
+          user_id: string
+          user_role: string
+        }
+        Insert: {
+          business_id?: string | null
+          created_at?: string
+          id?: string
+          messages?: Json
+          updated_at?: string
+          user_id: string
+          user_role?: string
+        }
+        Update: {
+          business_id?: string | null
+          created_at?: string
+          id?: string
+          messages?: Json
+          updated_at?: string
+          user_id?: string
+          user_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_conversations_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       assistant_feature_usage: {
         Row: {
@@ -211,6 +300,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      assistant_training_examples: {
+        Row: {
+          answer: string
+          created_at: string
+          id: string
+          is_active: boolean
+          question: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          question?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       branch_stock: {
         Row: {
