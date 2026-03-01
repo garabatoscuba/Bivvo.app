@@ -89,45 +89,53 @@ export default {
   		},
   		keyframes: {
   			'accordion-down': {
-  				from: {
-  					height: '0'
-  				},
-  				to: {
-  					height: 'var(--radix-accordion-content-height)'
-  				}
+  				from: { height: '0' },
+  				to: { height: 'var(--radix-accordion-content-height)' }
   			},
   			'accordion-up': {
-  				from: {
-  					height: 'var(--radix-accordion-content-height)'
-  				},
-  				to: {
-  					height: '0'
-  				}
+  				from: { height: 'var(--radix-accordion-content-height)' },
+  				to: { height: '0' }
   			},
   			'fade-in': {
-  				from: {
-  					opacity: '0',
-  					transform: 'translateY(8px)'
-  				},
-  				to: {
-  					opacity: '1',
-  					transform: 'translateY(0)'
-  				}
+  				from: { opacity: '0', transform: 'translateY(8px)' },
+  				to: { opacity: '1', transform: 'translateY(0)' }
   			},
   			'slide-in-right': {
-  				from: {
-  					transform: 'translateX(100%)'
-  				},
-  				to: {
-  					transform: 'translateX(0)'
-  				}
+  				from: { transform: 'translateX(100%)' },
+  				to: { transform: 'translateX(0)' }
+  			},
+  			'scale-in': {
+  				from: { opacity: '0', transform: 'scale(0.9)' },
+  				to: { opacity: '1', transform: 'scale(1)' }
+  			},
+  			'bivoo-blink': {
+  				'0%, 90%, 100%': { transform: 'scaleY(1)' },
+  				'95%': { transform: 'scaleY(0.1)' }
+  			},
+  			'bivoo-think': {
+  				'0%, 100%': { transform: 'translateX(0)' },
+  				'25%': { transform: 'translateX(3px)' },
+  				'75%': { transform: 'translateX(-3px)' }
+  			},
+  			'bivoo-respond': {
+  				'0%, 100%': { transform: 'scale(1)' },
+  				'50%': { transform: 'scale(1.06)' }
+  			},
+  			'bivoo-pulse': {
+  				'0%, 100%': { opacity: '1', transform: 'scale(1)' },
+  				'50%': { opacity: '0.7', transform: 'scale(1.3)' }
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			'fade-in': 'fade-in 0.4s ease-out',
-  			'slide-in-right': 'slide-in-right 0.4s ease-out'
+  			'slide-in-right': 'slide-in-right 0.4s ease-out',
+  			'scale-in': 'scale-in 0.2s ease-out',
+  			'bivoo-blink': 'bivoo-blink 4s ease-in-out infinite',
+  			'bivoo-think': 'bivoo-think 1.2s ease-in-out infinite',
+  			'bivoo-respond': 'bivoo-respond 1.5s ease-in-out infinite',
+  			'bivoo-pulse': 'bivoo-pulse 3s ease-in-out infinite'
   		},
   		fontFamily: {
   			sans: [

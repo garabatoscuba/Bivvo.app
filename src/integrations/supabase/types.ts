@@ -138,6 +138,80 @@ export type Database = {
           },
         ]
       }
+      assistant_context_actions: {
+        Row: {
+          action_payload: Json
+          action_type: string
+          created_at: string
+          icon: string
+          id: string
+          is_active: boolean
+          label: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          action_payload?: Json
+          action_type?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          label: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          action_payload?: Json
+          action_type?: string
+          created_at?: string
+          icon?: string
+          id?: string
+          is_active?: boolean
+          label?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      assistant_feature_usage: {
+        Row: {
+          business_id: string
+          created_at: string
+          feature_key: string
+          id: string
+          last_used_at: string
+          use_count: number
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          feature_key: string
+          id?: string
+          last_used_at?: string
+          use_count?: number
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          feature_key?: string
+          id?: string
+          last_used_at?: string
+          use_count?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_feature_usage_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branch_stock: {
         Row: {
           branch_id: string
@@ -2496,6 +2570,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_feature_usage: {
+        Args: { _business_id: string; _feature_key: string; _user_id: string }
+        Returns: undefined
       }
       is_employee_of_business: {
         Args: { _business_id: string; _user_id: string }

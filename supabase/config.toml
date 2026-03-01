@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.employee-onboarding]
 verify_jwt = false
+
+[functions.bivoo-assistant]
+verify_jwt = false
