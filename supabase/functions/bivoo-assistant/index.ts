@@ -30,7 +30,7 @@ serve(async (req) => {
   try {
     const { messages, role, active_module, business_id } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
