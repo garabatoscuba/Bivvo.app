@@ -53,8 +53,22 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
   const [closeNotes, setCloseNotes] = useState("");
   const [movementModal, setMovementModal] = useState<{ open: boolean; type: "insertion" | "extraction" }>({ open: false, type: "insertion" });
 
-  const branchId = profile?.branch_id;
-  const businessId = profile?.business_id;
+  // Resolve branch/business from employees table for @bivoo.app users
+  const { data: empRecord } = useQuery({
+    queryKey: ["employee-session-record-caja", profile?.user_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("employees")
+        .select("branch_id, business_id")
+        .eq("auth_user_id", profile!.user_id)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!profile?.user_id,
+  });
+
+  const branchId = empRecord?.branch_id || profile?.branch_id;
+  const businessId = empRecord?.business_id || profile?.business_id;
 
   // Fetch config
   const { data: config } = useQuery({
