@@ -35,11 +35,7 @@ const productSchema = z.object({
   name: z.string().min(1, 'El nombre es requerido').max(100),
   description: z.string().max(500).optional(),
   category_id: z.string().optional(),
-  cost_price: z.coerce.number().min(0, 'El costo debe ser positivo'),
-  sale_price: z.coerce.number().min(0, 'El precio debe ser positivo'),
-  min_stock: z.coerce.number().int().min(0),
   barcode: z.string().max(50).optional(),
-  supplier: z.string().max(200).optional(),
   unit_of_measure: z.string().min(1),
   brand: z.string().max(100).optional(),
 });
@@ -85,8 +81,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '', description: '', category_id: undefined,
-      cost_price: 0, sale_price: 0, min_stock: 5,
-      barcode: '', supplier: '', unit_of_measure: 'Pieza', brand: '',
+      barcode: '', unit_of_measure: 'Pieza', brand: '',
     },
   });
 
@@ -96,19 +91,14 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
         name: product.name,
         description: product.description || '',
         category_id: product.category_id || undefined,
-        cost_price: product.cost_price,
-        sale_price: product.sale_price,
-        min_stock: product.min_stock,
         barcode: product.barcode || '',
-        supplier: product.supplier || '',
         unit_of_measure: product.unit_of_measure || 'Pieza',
         brand: product.brand || '',
       });
     } else {
       form.reset({
         name: '', description: '', category_id: undefined,
-        cost_price: 0, sale_price: 0, min_stock: 5,
-        barcode: '', supplier: '', unit_of_measure: 'Pieza', brand: '',
+        barcode: '', unit_of_measure: 'Pieza', brand: '',
       });
     }
   }, [product, form]);
@@ -175,12 +165,12 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       name: data.name,
       description: data.description || null,
       category_id: data.category_id || null,
-      cost_price: data.cost_price,
-      sale_price: data.sale_price,
-      min_stock: data.min_stock,
+      cost_price: product?.cost_price ?? 0,
+      sale_price: product?.sale_price ?? 0,
+      min_stock: product?.min_stock ?? 0,
       status: 'for_sale' as Product['status'],
       barcode: data.barcode || null,
-      supplier: data.supplier || null,
+      supplier: product?.supplier ?? null,
       unit_of_measure: data.unit_of_measure,
       brand: data.brand || null,
     };
@@ -379,61 +369,9 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
 
             <Separator />
 
-            {/* ─── Sección 3: Precios ─── */}
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Precios</p>
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="cost_price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Costo</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" min="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="sale_price"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Precio de Venta</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" min="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* ─── Sección 4: Inventario ─── */}
+            {/* ─── Sección 3: Inventario (solo lectura) ─── */}
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Inventario</p>
-              <div className="grid grid-cols-2 gap-3">
-                <FormField
-                  control={form.control}
-                  name="min_stock"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Stock Mínimo</FormLabel>
-                      <FormControl>
-                        <Input type="number" min="0" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {/* Existencia actual (solo lectura) */}
               <div className="rounded-lg border bg-muted/30 p-3">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Package className="h-4 w-4 text-muted-foreground" />
@@ -444,26 +382,6 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
                   <p className="text-xs text-muted-foreground">Usa el botón de entrada en la lista para agregar stock</p>
                 )}
               </div>
-            </div>
-
-            <Separator />
-
-            {/* ─── Sección 5: Adicional ─── */}
-            <div className="space-y-3">
-              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Adicional</p>
-              <FormField
-                control={form.control}
-                name="supplier"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Proveedor</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nombre del proveedor" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
             {/* Actions */}
