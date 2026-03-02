@@ -132,7 +132,10 @@ function SecuritySection() {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setSaving(false);
     if (error) {
-      toast.error('Error al cambiar la contraseña');
+      const msg = error.message?.includes('same')
+        ? 'La nueva contraseña debe ser diferente a la actual'
+        : error.message || 'Error al cambiar la contraseña';
+      toast.error(msg);
     } else {
       toast.success('Contraseña actualizada');
       setNewPassword('');
