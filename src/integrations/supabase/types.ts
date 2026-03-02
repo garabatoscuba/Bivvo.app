@@ -2711,33 +2711,39 @@ export type Database = {
           amount: number
           branch_id: string
           business_id: string
-          category_id: string
+          category_id: string | null
           created_at: string
           description: string | null
           id: string
+          is_catalog: boolean
           payment_type: string
+          service_name: string | null
           user_id: string
         }
         Insert: {
           amount?: number
           branch_id: string
           business_id: string
-          category_id: string
+          category_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_catalog?: boolean
           payment_type?: string
+          service_name?: string | null
           user_id: string
         }
         Update: {
           amount?: number
           branch_id?: string
           business_id?: string
-          category_id?: string
+          category_id?: string | null
           created_at?: string
           description?: string | null
           id?: string
+          is_catalog?: boolean
           payment_type?: string
+          service_name?: string | null
           user_id?: string
         }
         Relationships: [
