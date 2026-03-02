@@ -1,3 +1,4 @@
+import { useState, useMemo } from 'react';
 import {
   Scissors, Wrench, Star, Heart, Dumbbell, Car, Camera, Music,
   Gamepad2, Monitor, Smartphone, Globe, DollarSign, Wifi, Coffee,
@@ -19,12 +20,84 @@ import {
   Cast, Cloud, CloudRain, Snowflake, CircuitBoard, Database,
   HardDrive, Server, Terminal, Code, Binary, Braces,
   Webhook, Share2, Link, Unlink, SquareStack, PanelLeft,
+  // ─── Extended icons ───
+  Activity, Airplay, AlarmClock, AlertCircle, AlertTriangle, AlignCenter,
+  Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp,
+  AtSign, Banknote, BarChart2, BarChart3, Battery, BatteryCharging,
+  Bed, BellRing, BicepsFlexed, Blend, Blocks, Bone,
+  BookMarked, BookOpen as BookOpenCheck, BoomBox, BotMessageSquare,
+  Cable, Cake, CalendarCheck, CalendarDays, CandlestickChart,
+  CarFront, ChartArea, ChartBar, ChartLine, ChartPie,
+  Check, CheckCircle, ChefHat, ChevronDown, ChevronRight,
+  Church, Cigarette, Circle, CircleCheck, CircleDollarSign,
+  CircleUser, Clipboard, ClipboardCheck, CloudSun,
+  Coins, Component, Construction, Contact, Container,
+  Cookie, Copy, CreditCard, Crosshair, DatabaseZap,
+  Delete, Dessert, Dock, DoorOpen, Download,
+  Drill, Drumstick, Ear, Edit, Ellipsis,
+  Equal, Eraser, Euro, Expand, ExternalLink,
+  Factory, Fan, FastForward, File, FileArchive,
+  FileAudio, FileCode, FileDown, FileImage, FileLock,
+  FileOutput, FilePlus, FileSearch, FileSpreadsheet, FileVideo,
+  Filter, Flashlight, FlaskConical, FolderOpen, Footprints,
+  Forklift, Frame, Frown, Fuel, Gauge,
+  Gem, Ghost, GlassWater, Grape, Grid2x2,
+  Grid3x3, Grip, GripVertical, Group, Guitar,
+  Hand, HandCoins, HandHeart, HandHelping, Handshake as HandshakeIcon,
+  HardHat, Hash, Heading, Heart as HeartIcon, Heater,
+  HelpCircle, Hexagon, Highlighter, History, Hospital,
+  Hotel, Hourglass, IceCreamCone, Inbox, IndianRupee,
+  Infinity, Info, Inspect, Instagram, Italic,
+  JapaneseYen, Joystick, Kanban, KeyRound, Keyboard,
+  LandPlot, Languages, Lasso, Laugh, Layout,
+  LayoutDashboard, LayoutGrid, LayoutList, Library, LifeBuoy,
+  Ligature, ListChecks, ListOrdered, Locate, LogIn,
+  LogOut, Luggage, Magnet, MailOpen, Mailbox,
+  MapPinned, Martini, Maximize, Medal, MemoryStick,
+  Menu, Merge, MessageCircle, MessageSquare, Milestone,
+  Milk, Minimize, Minus, MonitorCheck, MonitorPlay,
+  MoonStar, MoreHorizontal, MoreVertical, MousePointer, Move,
+  Navigation, Network, Newspaper, Nut,
+  Orbit, PaintBucket, Palmtree, Paperclip, ParkingCircle,
+  Pause, PenLine, Pencil, PencilRuler,
+  PersonStanding, PhoneCall, PhoneIncoming, PhoneOff, PhoneOutgoing,
+  PieChart, PiggyBank, Pin, PinOff, Pipette,
+  Play, PlayCircle, PlugZap, PlusCircle, Pocket,
+  Podcast, Pointer, Popcorn, Power, Presentation,
+  PrinterCheck, Projector, Puzzle, QrCode as QrCodeIcon,
+  Quote, Radar, Receipt, Recycle, Redo,
+  RefreshCcw, Refrigerator, Regex, Repeat, Reply,
+  Rewind, Ribbon, RotateCcw, Route, Rows2,
+  Rss, RussianRuble, Sailboat, Salad, Sandwich,
+  Satellite, Save, Scaling, ScanLine, School,
+  ScreenShare, ScrollText, SearchCheck, Send, SendHorizontal,
+  ServerCog, ShieldCheck, ShieldQuestion, Ship, ShoppingCart,
+  Shovel, Shrink, Shuffle, Sigma, Signal,
+  Siren, Skull, Slice, Sliders, Smile,
+  Snail, Soup, Spade, Sparkle, Split,
+  Stamp, StarHalf, StarOff, StickyNote,
+  Strikethrough, Sunrise,
+  Sunset, Superscript, SwissFranc, SwitchCamera, Syringe,
+  Table2, TabletSmartphone, Tag, Tags, Tally1,
+  TestTube, TestTubes, Theater, ThumbsDown, ThumbsUp,
+  Ticket, TimerOff, TimerReset, ToggleLeft, ToggleRight,
+  Tornado, TowerControl, TrafficCone, Train, Trash,
+  TreeDeciduous, TreePine, Trello, TrendingDown, TrendingUp,
+  Triangle, TvMinimal, Type, Umbrella as UmbrellaIcon2,
+  Underline, Undo, Upload, User,
+  UserCheck, UserCog, UserMinus, UserPlus, UserX,
+  UtensilsCrossed, Vault, Vibrate, VideoOff, View,
+  Voicemail, WalletCards, Warehouse, Waves, Waypoints,
+  Webcam, Weight, Workflow, WrapText, X,
+  XCircle, Youtube, ZoomIn, ZoomOut,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 const ICON_MAP: Record<string, LucideIcon> = {
+  // Original icons
   Scissors, Wrench, Star, Heart, Dumbbell, Car, Camera, Music,
   Gamepad2, Monitor, Smartphone, Globe, DollarSign, Wifi, Coffee,
   Zap, ShoppingBag, Truck, Paintbrush, Headphones, BookOpen, Film,
@@ -45,6 +118,275 @@ const ICON_MAP: Record<string, LucideIcon> = {
   Cast, Cloud, CloudRain, Snowflake, CircuitBoard, Database,
   HardDrive, Server, Terminal, Code, Binary, Braces,
   Webhook, Share2, Link, Unlink, SquareStack, PanelLeft,
+  // Extended
+  Activity, Airplay, AlarmClock, AlertCircle, AlertTriangle, AlignCenter,
+  Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp,
+  AtSign, Banknote, BarChart2, BarChart3, Battery, BatteryCharging,
+  Bed, BellRing, BicepsFlexed, Blend, Blocks, Bone,
+  BookMarked, BoomBox, BotMessageSquare,
+  Cable, Cake, CalendarCheck, CalendarDays, CandlestickChart,
+  CarFront, ChartArea, ChartBar, ChartLine, ChartPie,
+  Check, CheckCircle, ChefHat, ChevronDown, ChevronRight,
+  Church, Circle, CircleCheck, CircleDollarSign,
+  CircleUser, Clipboard, ClipboardCheck, CloudSun,
+  Coins, Component, Construction, Contact, Container,
+  Cookie, Copy, CreditCard, Crosshair, DatabaseZap,
+  Delete, Dock, DoorOpen, Download,
+  Drill, Drumstick, Ear, Edit, Ellipsis,
+  Eraser, Euro, Expand, ExternalLink,
+  Factory, Fan, FastForward, File, FileArchive,
+  FileAudio, FileCode, FileDown, FileImage, FileLock,
+  FileOutput, FilePlus, FileSearch, FileSpreadsheet, FileVideo,
+  Filter, Flashlight, FlaskConical, FolderOpen, Footprints,
+  Forklift, Frame, Frown, Fuel, Gauge,
+  Gem, Ghost, GlassWater, Grape, Grid2x2,
+  Grid3x3, Grip, GripVertical, Group, Guitar,
+  Hand, HandCoins, HandHeart, HandHelping,
+  HardHat, Hash, Heading, Heater,
+  HelpCircle, Hexagon, Highlighter, History, Hospital,
+  Hotel, Hourglass, IceCreamCone, Inbox, IndianRupee,
+  Infinity, Info, Inspect, Italic,
+  JapaneseYen, Joystick, Kanban, KeyRound, Keyboard,
+  LandPlot, Languages, Lasso, Laugh, Layout,
+  LayoutDashboard, LayoutGrid, LayoutList, Library, LifeBuoy,
+  ListChecks, ListOrdered, Locate, LogIn,
+  LogOut, Luggage, Magnet, MailOpen, Mailbox,
+  MapPinned, Martini, Maximize, Medal, MemoryStick,
+  Menu, Merge, MessageCircle, MessageSquare, Milestone,
+  Milk, Minimize, Minus, MonitorCheck, MonitorPlay,
+  MoonStar, MoreHorizontal, MoreVertical, MousePointer, Move,
+  Navigation, Network, Newspaper, Nut,
+  Orbit, PaintBucket, Palmtree, Paperclip, ParkingCircle,
+  Pause, PenLine, Pencil, PencilRuler,
+  PersonStanding, PhoneCall, PhoneIncoming, PhoneOff, PhoneOutgoing,
+  PieChart, PiggyBank, Pin, PinOff, Pipette,
+  Play, PlayCircle, PlugZap, PlusCircle, Pocket,
+  Podcast, Pointer, Popcorn, Power, Presentation,
+  PrinterCheck, Projector, Puzzle,
+  Quote, Radar, Receipt, Recycle, Redo,
+  RefreshCcw, Refrigerator, Repeat, Reply,
+  Rewind, Ribbon, RotateCcw, Route, Rows2,
+  Rss, RussianRuble, Sailboat, Salad, Sandwich,
+  Satellite, Save, Scaling, ScanLine, School,
+  ScreenShare, ScrollText, SearchCheck, Send, SendHorizontal,
+  ServerCog, ShieldCheck, ShieldQuestion, Ship, ShoppingCart,
+  Shovel, Shrink, Shuffle, Sigma, Signal,
+  Siren, Skull, Slice, Sliders, Smile,
+  Snail, Soup, Spade, Sparkle, Split,
+  Stamp, StarHalf, StarOff, StickyNote,
+  Strikethrough, Sunrise,
+  Sunset, SwitchCamera, Syringe,
+  Table2, TabletSmartphone, Tag, Tags, Tally1,
+  TestTube, TestTubes, Theater, ThumbsDown, ThumbsUp,
+  Ticket, TimerOff, TimerReset, ToggleLeft, ToggleRight,
+  Tornado, TowerControl, TrafficCone, Train, Trash,
+  TreeDeciduous, TreePine, TrendingDown, TrendingUp,
+  Triangle, TvMinimal, Type,
+  Undo, Upload, User,
+  UserCheck, UserCog, UserMinus, UserPlus, UserX,
+  UtensilsCrossed, Vault, Vibrate, VideoOff, View,
+  Voicemail, WalletCards, Warehouse, Waves, Waypoints,
+  Webcam, Weight, Workflow, WrapText, X,
+  XCircle, Youtube, ZoomIn, ZoomOut,
+};
+
+// Spanish search aliases for common terms
+const SEARCH_ALIASES: Record<string, string[]> = {
+  DollarSign: ['dinero', 'dolar', 'precio', 'costo', 'pago', 'money'],
+  CreditCard: ['tarjeta', 'credito', 'debito', 'pago'],
+  Banknote: ['billete', 'dinero', 'efectivo', 'cash'],
+  Coins: ['monedas', 'dinero', 'cambio'],
+  PiggyBank: ['ahorro', 'cerdito', 'banco'],
+  Wallet: ['billetera', 'cartera'],
+  WalletCards: ['billetera', 'cartera', 'tarjetas'],
+  Receipt: ['recibo', 'factura', 'ticket', 'boleta'],
+  ShoppingCart: ['carrito', 'compras', 'tienda'],
+  ShoppingBag: ['bolsa', 'compras', 'tienda'],
+  Store: ['tienda', 'negocio', 'comercio', 'local'],
+  Warehouse: ['almacen', 'bodega', 'deposito', 'inventario'],
+  Package: ['paquete', 'envio', 'caja', 'producto'],
+  Box: ['caja', 'paquete', 'contenedor'],
+  Archive: ['archivo', 'caja', 'guardar'],
+  Truck: ['camion', 'envio', 'entrega', 'transporte'],
+  Home: ['casa', 'hogar', 'inicio'],
+  Users: ['usuarios', 'personas', 'empleados', 'equipo', 'grupo'],
+  User: ['usuario', 'persona', 'empleado', 'perfil'],
+  UserPlus: ['agregar', 'nuevo', 'empleado', 'usuario'],
+  Settings: ['configuracion', 'ajustes', 'opciones'],
+  Lock: ['candado', 'seguridad', 'bloqueo', 'privado'],
+  Shield: ['escudo', 'seguridad', 'proteccion'],
+  Key: ['llave', 'clave', 'acceso'],
+  Bell: ['campana', 'notificacion', 'alerta'],
+  Mail: ['correo', 'email', 'mensaje', 'carta'],
+  Phone: ['telefono', 'llamada', 'celular'],
+  Calendar: ['calendario', 'fecha', 'evento', 'agenda'],
+  Clock: ['reloj', 'hora', 'tiempo'],
+  Timer: ['cronometro', 'tiempo', 'temporizador'],
+  MapPin: ['ubicacion', 'mapa', 'direccion', 'lugar'],
+  Printer: ['impresora', 'imprimir', 'impresion', 'copias'],
+  Camera: ['camara', 'foto', 'fotografia'],
+  Scissors: ['tijeras', 'cortar', 'peluqueria', 'barberia'],
+  Wrench: ['llave', 'herramienta', 'reparacion', 'mantenimiento'],
+  Hammer: ['martillo', 'herramienta', 'construccion'],
+  Drill: ['taladro', 'herramienta', 'construccion'],
+  Coffee: ['cafe', 'bebida', 'restaurante'],
+  Utensils: ['cubiertos', 'comida', 'restaurante', 'cocina'],
+  Pizza: ['pizza', 'comida', 'restaurante'],
+  ChefHat: ['chef', 'cocinero', 'restaurante', 'cocina'],
+  Cake: ['pastel', 'postre', 'cumpleanos', 'dulce'],
+  Dumbbell: ['pesa', 'gimnasio', 'ejercicio', 'fitness'],
+  Heart: ['corazon', 'salud', 'favorito', 'amor'],
+  HeartPulse: ['pulso', 'salud', 'medico', 'cardiaco'],
+  Stethoscope: ['estetoscopio', 'medico', 'doctor', 'salud'],
+  Hospital: ['hospital', 'clinica', 'medico', 'salud'],
+  Pill: ['pastilla', 'medicina', 'farmacia', 'medicamento'],
+  Syringe: ['jeringa', 'inyeccion', 'vacuna', 'medico'],
+  Car: ['carro', 'auto', 'vehiculo', 'coche'],
+  Fuel: ['combustible', 'gasolina', 'gas'],
+  Bike: ['bicicleta', 'ciclismo', 'transporte'],
+  Train: ['tren', 'metro', 'transporte'],
+  Plane: ['avion', 'vuelo', 'viaje', 'aeropuerto'],
+  Ship: ['barco', 'buque', 'maritimo', 'navegacion'],
+  Book: ['libro', 'lectura', 'educacion'],
+  BookOpen: ['libro', 'lectura', 'educacion', 'manual'],
+  GraduationCap: ['graduacion', 'educacion', 'universidad', 'escuela'],
+  School: ['escuela', 'colegio', 'educacion'],
+  Library: ['biblioteca', 'libros', 'lectura'],
+  Laptop: ['portatil', 'computadora', 'computador'],
+  Monitor: ['pantalla', 'computadora', 'escritorio'],
+  Smartphone: ['celular', 'movil', 'telefono'],
+  Gamepad2: ['juego', 'videojuego', 'control', 'gamer'],
+  Music: ['musica', 'audio', 'cancion'],
+  Guitar: ['guitarra', 'musica', 'instrumento'],
+  Film: ['pelicula', 'cine', 'video'],
+  Star: ['estrella', 'favorito', 'calificacion', 'rating'],
+  Trophy: ['trofeo', 'premio', 'ganador', 'competencia'],
+  Award: ['premio', 'medalla', 'reconocimiento'],
+  Medal: ['medalla', 'premio', 'competencia'],
+  Gift: ['regalo', 'presente', 'obsequio'],
+  Crown: ['corona', 'rey', 'premium', 'vip'],
+  Diamond: ['diamante', 'joya', 'premium', 'lujo'],
+  Gem: ['gema', 'joya', 'piedra', 'preciosa'],
+  Sparkles: ['brillos', 'destellos', 'magia', 'especial'],
+  Rocket: ['cohete', 'lanzamiento', 'rapido', 'startup'],
+  Lightbulb: ['bombilla', 'idea', 'luz', 'iluminacion'],
+  Flame: ['llama', 'fuego', 'caliente', 'popular'],
+  Sun: ['sol', 'dia', 'clima', 'brillo'],
+  Moon: ['luna', 'noche', 'oscuro'],
+  Cloud: ['nube', 'clima', 'almacenamiento'],
+  Leaf: ['hoja', 'naturaleza', 'ecologico', 'verde'],
+  Flower2: ['flor', 'jardin', 'naturaleza', 'floreria'],
+  TreeDeciduous: ['arbol', 'naturaleza', 'parque'],
+  Dog: ['perro', 'mascota', 'veterinaria', 'animal'],
+  Shirt: ['camisa', 'ropa', 'textil', 'moda'],
+  Baby: ['bebe', 'nino', 'infantil'],
+  Briefcase: ['maletin', 'trabajo', 'oficina', 'negocio'],
+  Building2: ['edificio', 'empresa', 'oficina', 'inmobiliaria'],
+  Factory: ['fabrica', 'industria', 'produccion'],
+  Construction: ['construccion', 'obra', 'edificar'],
+  LayoutDashboard: ['panel', 'dashboard', 'tablero', 'resumen'],
+  BarChart2: ['grafico', 'estadistica', 'reporte', 'informe'],
+  ChartPie: ['grafico', 'pastel', 'estadistica', 'porcentaje'],
+  TrendingUp: ['tendencia', 'crecimiento', 'subida', 'aumento'],
+  Activity: ['actividad', 'pulso', 'rendimiento', 'grafico'],
+  Database: ['base de datos', 'datos', 'almacenamiento'],
+  Server: ['servidor', 'hosting', 'infraestructura'],
+  Wifi: ['wifi', 'internet', 'red', 'conexion'],
+  Globe: ['globo', 'mundo', 'internacional', 'web'],
+  Tag: ['etiqueta', 'precio', 'categoria', 'marca'],
+  Tags: ['etiquetas', 'precios', 'categorias'],
+  Percent: ['porcentaje', 'descuento', 'oferta'],
+  Calculator: ['calculadora', 'calculo', 'matematicas', 'contabilidad'],
+  Clipboard: ['portapapeles', 'lista', 'tareas', 'notas'],
+  FileText: ['archivo', 'documento', 'texto', 'nota'],
+  Newspaper: ['periodico', 'noticias', 'articulo', 'blog'],
+  Ticket: ['boleto', 'entrada', 'ticket', 'evento'],
+  HandCoins: ['propina', 'pago', 'monedas', 'dar'],
+  Vault: ['boveda', 'caja fuerte', 'seguridad', 'tesoreria'],
+  Scale: ['balanza', 'peso', 'justicia', 'medida'],
+  Weight: ['peso', 'masa', 'medida', 'balanza'],
+  Gauge: ['medidor', 'velocimetro', 'indicador', 'nivel'],
+  Sliders: ['controles', 'ajustes', 'filtros', 'configuracion'],
+  Filter: ['filtro', 'buscar', 'clasificar'],
+  Send: ['enviar', 'mensaje', 'despachar'],
+  Download: ['descargar', 'bajar', 'guardar'],
+  Upload: ['subir', 'cargar', 'enviar'],
+  Save: ['guardar', 'salvar', 'disco'],
+  Trash: ['basura', 'eliminar', 'borrar'],
+  Edit: ['editar', 'modificar', 'cambiar'],
+  Pencil: ['lapiz', 'escribir', 'editar'],
+  Copy: ['copiar', 'duplicar', 'clonar'],
+  Scan: ['escanear', 'lector', 'codigo'],
+  QrCode: ['qr', 'codigo', 'escanear'],
+  Fingerprint: ['huella', 'biometrico', 'seguridad', 'identidad'],
+  Eye: ['ojo', 'ver', 'visible', 'mostrar'],
+  Search: ['buscar', 'lupa', 'encontrar'],
+  Compass: ['brujula', 'navegacion', 'direccion', 'explorar'],
+  Navigation: ['navegacion', 'gps', 'direccion'],
+  Route: ['ruta', 'camino', 'direccion', 'recorrido'],
+  DoorOpen: ['puerta', 'entrada', 'salida', 'acceso'],
+  LogIn: ['entrar', 'iniciar sesion', 'acceso'],
+  LogOut: ['salir', 'cerrar sesion'],
+  Power: ['encender', 'apagar', 'energia', 'power'],
+  Plug: ['enchufe', 'conectar', 'electricidad'],
+  Zap: ['rayo', 'rapido', 'energia', 'electrico'],
+  PlugZap: ['enchufe', 'carga', 'electricidad', 'rapido'],
+  BatteryCharging: ['bateria', 'carga', 'energia'],
+  Workflow: ['flujo', 'proceso', 'automatizacion'],
+  Kanban: ['kanban', 'tablero', 'tareas', 'proyecto'],
+  ListChecks: ['lista', 'tareas', 'completadas', 'checklist'],
+  CheckCircle: ['completado', 'verificado', 'correcto', 'ok'],
+  XCircle: ['cancelar', 'error', 'cerrar', 'incorrecto'],
+  Info: ['informacion', 'ayuda', 'detalle'],
+  HelpCircle: ['ayuda', 'pregunta', 'soporte'],
+  AlertCircle: ['alerta', 'advertencia', 'atencion'],
+  AlertTriangle: ['alerta', 'peligro', 'advertencia', 'cuidado'],
+  ThumbsUp: ['bien', 'aprobado', 'like', 'positivo'],
+  ThumbsDown: ['mal', 'rechazado', 'dislike', 'negativo'],
+  Smile: ['sonrisa', 'feliz', 'satisfecho', 'emoji'],
+  Frown: ['triste', 'insatisfecho', 'malo'],
+  MessageCircle: ['mensaje', 'chat', 'conversacion', 'comentario'],
+  MessageSquare: ['mensaje', 'chat', 'comentario'],
+  Megaphone: ['megafono', 'anuncio', 'promocion', 'publicidad'],
+  Handshake: ['apreton', 'acuerdo', 'socio', 'contrato'],
+  PersonStanding: ['persona', 'empleado', 'individuo'],
+  Contact: ['contacto', 'persona', 'directorio'],
+  Group: ['grupo', 'equipo', 'comunidad'],
+  Popcorn: ['palomitas', 'cine', 'entretenimiento'],
+  Theater: ['teatro', 'cine', 'espectaculo'],
+  Sailboat: ['velero', 'barco', 'navegacion', 'mar'],
+  Palmtree: ['palmera', 'tropical', 'playa', 'vacaciones'],
+  Sunrise: ['amanecer', 'manana', 'dia'],
+  Sunset: ['atardecer', 'tarde', 'noche'],
+  Mountain: ['montana', 'naturaleza', 'aventura'],
+  Waves: ['olas', 'agua', 'mar', 'oceano'],
+  Snowflake: ['nieve', 'frio', 'invierno', 'hielo'],
+  Hotel: ['hotel', 'hospedaje', 'alojamiento', 'habitacion'],
+  Bed: ['cama', 'dormir', 'habitacion', 'hospedaje'],
+  Luggage: ['equipaje', 'maleta', 'viaje'],
+  Martini: ['cocktail', 'bar', 'bebida', 'trago'],
+  IceCreamCone: ['helado', 'postre', 'dulce'],
+  Soup: ['sopa', 'comida', 'cocina'],
+  Salad: ['ensalada', 'comida', 'saludable'],
+  Sandwich: ['sandwich', 'comida', 'rapida'],
+  Drumstick: ['pollo', 'comida', 'carne'],
+  Grape: ['uva', 'fruta', 'vino'],
+  Milk: ['leche', 'lacteo', 'bebida'],
+  Cookie: ['galleta', 'dulce', 'postre'],
+  Dessert: ['postre', 'dulce', 'pastel'],
+  Cherry: ['cereza', 'fruta'],
+  Wheat: ['trigo', 'cereal', 'panaderia', 'pan'],
+  Refrigerator: ['refrigerador', 'nevera', 'frio'],
+  Heater: ['calentador', 'calefaccion', 'calor'],
+  Fan: ['ventilador', 'aire', 'frescor'],
+  Spray: ['spray', 'aerosol', 'limpieza'],
+  Stamp: ['sello', 'estampa', 'correo'],
+  StickyNote: ['nota', 'adhesiva', 'recordatorio', 'post-it'],
+  TestTube: ['tubo', 'ensayo', 'laboratorio', 'ciencia'],
+  FlaskConical: ['matraz', 'laboratorio', 'quimica', 'ciencia'],
+  Siren: ['sirena', 'emergencia', 'alarma', 'policia'],
+  TrafficCone: ['cono', 'trafico', 'precaucion', 'obra'],
+  HardHat: ['casco', 'seguridad', 'construccion', 'obra'],
 };
 
 export const getIconComponent = (name: string | null | undefined): LucideIcon => {
@@ -58,28 +400,57 @@ interface IconSelectorProps {
 }
 
 const IconSelector = ({ value, onChange }: IconSelectorProps) => {
+  const [search, setSearch] = useState('');
+
+  const filteredIcons = useMemo(() => {
+    if (!search.trim()) return Object.entries(ICON_MAP);
+    const q = search.toLowerCase().trim();
+    return Object.entries(ICON_MAP).filter(([name]) => {
+      // Match by icon name
+      if (name.toLowerCase().includes(q)) return true;
+      // Match by Spanish aliases
+      const aliases = SEARCH_ALIASES[name];
+      if (aliases && aliases.some(a => a.includes(q))) return true;
+      return false;
+    });
+  }, [search]);
+
   return (
     <div>
       <Label className="text-xs text-muted-foreground mb-2 block">Ícono</Label>
+      <div className="relative mb-2">
+        <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+        <Input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Buscar ícono..."
+          className="pl-8 h-9 text-sm"
+        />
+      </div>
       <ScrollArea className="h-48 rounded-md border p-2">
-        <div className="grid grid-cols-8 gap-1.5">
-          {Object.entries(ICON_MAP).map(([name, Icon]) => (
-            <button
-              key={name}
-              type="button"
-              onClick={() => onChange(name)}
-              className={`flex items-center justify-center rounded-md p-2 transition-colors ${
-                value === name
-                  ? 'bg-primary text-primary-foreground ring-2 ring-primary'
-                  : 'hover:bg-muted text-muted-foreground'
-              }`}
-              title={name}
-            >
-              <Icon className="h-4 w-4" />
-            </button>
-          ))}
-        </div>
+        {filteredIcons.length === 0 ? (
+          <p className="text-xs text-muted-foreground text-center py-6">No se encontraron íconos</p>
+        ) : (
+          <div className="grid grid-cols-8 gap-1.5">
+            {filteredIcons.map(([name, Icon]) => (
+              <button
+                key={name}
+                type="button"
+                onClick={() => onChange(name)}
+                className={`flex items-center justify-center rounded-md p-2 transition-colors ${
+                  value === name
+                    ? 'bg-primary text-primary-foreground ring-2 ring-primary'
+                    : 'hover:bg-muted text-muted-foreground'
+                }`}
+                title={name}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+        )}
       </ScrollArea>
+      <p className="text-[10px] text-muted-foreground mt-1">{filteredIcons.length} íconos disponibles</p>
     </div>
   );
 };

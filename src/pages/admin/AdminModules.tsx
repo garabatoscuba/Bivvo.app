@@ -121,7 +121,7 @@ const ModulesTab = () => {
   const qc = useQueryClient();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<PlatformModule | null>(null);
-  const [form, setForm] = useState({ name: '', icon: 'Package', description: '', sidebar_label: '', business_types: ['store'] as string[], countries: [] as string[] });
+  const [form, setForm] = useState({ name: '', icon: 'Package', description: '', sidebar_label: '', business_types: ['store'] as string[], countries: [] as string[], sort_order: 0 });
   const [assignSearch, setAssignSearch] = useState('');
   const [assignTab, setAssignTab] = useState<'user' | 'business'>('user');
 
@@ -201,6 +201,7 @@ const ModulesTab = () => {
         sidebar_label: form.sidebar_label,
         business_types: form.business_types,
         countries: form.countries,
+        sort_order: form.sort_order,
       };
       if (editing) {
         const { error } = await supabase.from('platform_modules').update(payload as any).eq('id', editing.id);
@@ -228,13 +229,13 @@ const ModulesTab = () => {
 
   const openCreate = () => {
     setEditing(null);
-    setForm({ name: '', icon: 'Package', description: '', sidebar_label: '', business_types: ['store'], countries: [] });
+    setForm({ name: '', icon: 'Package', description: '', sidebar_label: '', business_types: ['store'], countries: [], sort_order: 0 });
     setDialogOpen(true);
   };
 
   const openEdit = (m: PlatformModule) => {
     setEditing(m);
-    setForm({ name: m.name, icon: m.icon, description: m.description || '', sidebar_label: m.sidebar_label, business_types: m.business_types, countries: m.countries });
+    setForm({ name: m.name, icon: m.icon, description: m.description || '', sidebar_label: m.sidebar_label, business_types: m.business_types, countries: m.countries, sort_order: m.sort_order });
     setAssignSearch('');
     setDialogOpen(true);
   };
@@ -270,6 +271,7 @@ const ModulesTab = () => {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
+                <TableHead className="text-[11px] uppercase tracking-wide w-12">Orden</TableHead>
                 <TableHead className="text-[11px] uppercase tracking-wide">Módulo</TableHead>
                 <TableHead className="text-[11px] uppercase tracking-wide">Sidebar</TableHead>
                 <TableHead className="text-[11px] uppercase tracking-wide">Tipos</TableHead>
@@ -281,6 +283,7 @@ const ModulesTab = () => {
             <TableBody>
               {modules.map(m => (
                 <TableRow key={m.id}>
+                  <TableCell className="text-center text-xs text-muted-foreground font-mono">{m.sort_order}</TableCell>
                   <TableCell>
                     <div>
                       <p className="text-sm font-medium">{m.name}</p>
@@ -312,7 +315,7 @@ const ModulesTab = () => {
                 </TableRow>
               ))}
               {modules.length === 0 && (
-                <TableRow><TableCell colSpan={6} className="text-center text-sm text-muted-foreground py-8">No hay módulos creados.</TableCell></TableRow>
+                <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">No hay módulos creados.</TableCell></TableRow>
               )}
             </TableBody>
           </Table>
@@ -340,6 +343,18 @@ const ModulesTab = () => {
             <div className="space-y-1.5">
               <Label className="text-sm">Descripción</Label>
               <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Orden en sidebar</Label>
+              <Input
+                type="number"
+                min={0}
+                value={form.sort_order}
+                onChange={e => setForm(f => ({ ...f, sort_order: parseInt(e.target.value) || 0 }))}
+                placeholder="0"
+                className="w-24"
+              />
+              <p className="text-[10px] text-muted-foreground">Menor número = aparece primero</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Tipos de negocio</Label>
