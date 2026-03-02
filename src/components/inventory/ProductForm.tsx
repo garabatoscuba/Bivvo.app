@@ -55,7 +55,7 @@ interface ProductFormProps {
 
 const unitOptions = [
   'Pieza', 'Kilogramo', 'Gramo', 'Litro', 'Mililitro',
-  'Metro', 'Centímetro', 'Caja', 'Paquete', 'Par', 'Docena', 'Rollo',
+  'Metro', 'Metro cuadrado (m²)', 'Centímetro', 'Caja', 'Paquete', 'Par', 'Docena', 'Rollo',
 ];
 
 export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) => {
