@@ -226,50 +226,85 @@ function Layer3Reset() {
   };
 
   const handleDelete = async () => {
-    if (!profile?.business_id || !user?.email || !password) return;
-    setLoading(true);
-
-    // Verify password
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email: user.email,
-      password,
-    });
-
-    if (authError) {
-      setLoading(false);
-      toast.error('Contraseña incorrecta');
+    if (!profile?.business_id || !user?.email || !password) {
+      toast.error('Faltan datos para continuar');
       return;
     }
+    setLoading(true);
 
-    const fromISO = new Date(dateFrom).toISOString();
-    const toISO = new Date(dateTo + 'T23:59:59').toISOString();
+    try {
+      // Verify password
+      const { error: authError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password,
+      });
 
-    // Delete sale_items first (FK), then sales, then movements
-    const { data: salesData } = await supabase.from('sales').select('id')
-      .eq('branch_id', profile.branch_id!).gte('created_at', fromISO).lte('created_at', toISO);
+      if (authError) {
+        setLoading(false);
+        toast.error('Contraseña incorrecta');
+        return;
+      }
 
-    const saleIds = (salesData || []).map(s => s.id);
+      const fromISO = new Date(dateFrom).toISOString();
+      const toISO = new Date(dateTo + 'T23:59:59').toISOString();
+      const branchId = profile.branch_id;
 
-    if (saleIds.length > 0) {
-      await supabase.from('sale_items').delete().in('sale_id', saleIds);
-      await supabase.from('sales').delete().in('id', saleIds);
+      // Delete sale_items first (FK), then sales
+      if (branchId) {
+        const { data: salesData, error: salesFetchErr } = await supabase
+          .from('sales').select('id')
+          .eq('branch_id', branchId)
+          .gte('created_at', fromISO)
+          .lte('created_at', toISO);
+
+        if (salesFetchErr) {
+          console.error('Error fetching sales:', salesFetchErr);
+          throw salesFetchErr;
+        }
+
+        const saleIds = (salesData || []).map(s => s.id);
+
+        if (saleIds.length > 0) {
+          // Delete in batches to avoid URI too long
+          const batchSize = 100;
+          for (let i = 0; i < saleIds.length; i += batchSize) {
+            const batch = saleIds.slice(i, i + batchSize);
+            const { error: itemsErr } = await supabase.from('sale_items').delete().in('sale_id', batch);
+            if (itemsErr) { console.error('Error deleting sale_items:', itemsErr); throw itemsErr; }
+            const { error: salesErr } = await supabase.from('sales').delete().in('id', batch);
+            if (salesErr) { console.error('Error deleting sales:', salesErr); throw salesErr; }
+          }
+        }
+
+        // Delete inventory movements
+        const { error: movErr } = await supabase.from('inventory_movements').delete()
+          .eq('branch_id', branchId)
+          .gte('created_at', fromISO)
+          .lte('created_at', toISO);
+        if (movErr) { console.error('Error deleting inventory_movements:', movErr); throw movErr; }
+      }
+
+      // Delete cash register movements
+      const { error: cashErr } = await supabase.from('cash_register_movements').delete()
+        .eq('business_id', profile.business_id)
+        .gte('created_at', fromISO)
+        .lte('created_at', toISO);
+      if (cashErr) { console.error('Error deleting cash_register_movements:', cashErr); throw cashErr; }
+
+      setLoading(false);
+      queryClient.invalidateQueries();
+      toast.success('Datos eliminados exitosamente');
+      setOpen(false);
+      setStep(1);
+      setCounts(null);
+      setPassword('');
+      setDateFrom('');
+      setDateTo('');
+    } catch (err: any) {
+      setLoading(false);
+      console.error('Reset completo error:', err);
+      toast.error(err?.message || 'Error al eliminar los datos. Revisa los permisos.');
     }
-
-    await supabase.from('inventory_movements').delete()
-      .eq('branch_id', profile.branch_id!).gte('created_at', fromISO).lte('created_at', toISO);
-
-    await supabase.from('cash_register_movements').delete()
-      .eq('business_id', profile.business_id).gte('created_at', fromISO).lte('created_at', toISO);
-
-    setLoading(false);
-    queryClient.invalidateQueries();
-    toast.success('Datos eliminados correctamente');
-    setOpen(false);
-    setStep(1);
-    setCounts(null);
-    setPassword('');
-    setDateFrom('');
-    setDateTo('');
   };
 
   const handleClose = () => {
