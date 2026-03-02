@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from '@/components/ui/dialog';
@@ -20,16 +21,70 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Loader2, DollarSign, Send } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle } from 'lucide-react';
 import IconSelector, { getIconComponent } from '@/components/services/IconSelector';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
-
-// Business type check replaces hardcoded ID
 
 const paymentLabels: Record<string, string> = {
   cash: 'Efectivo',
   transfer: 'Transferencia',
   card: 'Tarjeta',
+};
+
+// ─── Shared: Recent entries list ───
+const RecentEntriesList = ({ entries, isLoading, isOwner, onPromote }: {
+  entries: any[];
+  isLoading: boolean;
+  isOwner: boolean;
+  onPromote?: (entry: any) => void;
+}) => {
+  if (isLoading) return <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>;
+  if (entries.length === 0) return <p className="text-sm text-muted-foreground text-center py-4">No hay cobros registrados</p>;
+
+  return (
+    <div className="space-y-2">
+      {entries.map((entry: any) => {
+        const isLive = entry.is_catalog === false;
+        const EntryIcon = isLive ? Zap : getIconComponent(entry.service_categories?.icon);
+        return (
+          <div key={entry.id} className="flex items-center justify-between rounded-lg border p-3">
+            <div className="flex items-center gap-2 min-w-0">
+              <EntryIcon className={`h-4 w-4 shrink-0 ${isLive ? 'text-amber-500' : 'text-primary'}`} />
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {isLive ? (
+                    <Badge variant="outline" className="text-[10px] border-amber-500/50 text-amber-600 bg-amber-50 dark:bg-amber-950/30">
+                      En vivo
+                    </Badge>
+                  ) : null}
+                  <Badge variant="secondary" className="text-[10px]">
+                    {isLive ? (entry.service_name || 'Sin nombre') : entry.service_categories?.name}
+                  </Badge>
+                  <Badge variant="outline" className="text-[10px]">{paymentLabels[entry.payment_type] || entry.payment_type}</Badge>
+                </div>
+                {entry.description && <p className="text-sm text-muted-foreground mt-1 truncate">{entry.description}</p>}
+                <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                  {new Date(entry.created_at).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0 ml-2">
+              {isLive && isOwner && onPromote && (
+                <button
+                  onClick={() => onPromote(entry)}
+                  className="p-1 rounded hover:bg-muted"
+                  title="Promover al catálogo"
+                >
+                  <ArrowUpCircle className="h-4 w-4 text-primary" />
+                </button>
+              )}
+              <span className="text-sm font-bold">${Number(entry.amount).toFixed(2)}</span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
 };
 
 // ─── Employee-facing view: quick service registration ───
@@ -44,6 +99,8 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [paymentType, setPaymentType] = useState('cash');
+  const [isLiveService, setIsLiveService] = useState(false);
+  const [liveServiceName, setLiveServiceName] = useState('');
 
   const { data: categories = [], isLoading: loadingCats } = useQuery({
     queryKey: ['service-categories', businessId],
@@ -78,15 +135,22 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
 
   const createEntryMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('service_entries').insert({
+      const payload: any = {
         business_id: businessId!,
         branch_id: branchId!,
-        category_id: selectedCatId!,
         user_id: user!.id,
         description: description.trim() || null,
         amount: parseFloat(amount),
         payment_type: paymentType,
-      });
+        is_catalog: !isLiveService,
+      };
+      if (isLiveService) {
+        payload.service_name = liveServiceName.trim();
+        payload.category_id = null;
+      } else {
+        payload.category_id = selectedCatId!;
+      }
+      const { error } = await supabase.from('service_entries').insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -97,12 +161,14 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       setAmount('');
       setSelectedCatId(null);
       setPaymentType('cash');
+      setIsLiveService(false);
+      setLiveServiceName('');
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
-  // When selecting a category, pre-fill its fixed price
   const handleSelectCategory = (catId: string) => {
+    setIsLiveService(false);
     if (selectedCatId === catId) {
       setSelectedCatId(null);
       setAmount('');
@@ -115,11 +181,18 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     }
   };
 
-  const todayTotal = recentEntries
-    .filter(e => new Date(e.created_at).toDateString() === new Date().toDateString())
-    .reduce((sum, e) => sum + Number(e.amount), 0);
+  const handleLiveToggle = () => {
+    setIsLiveService(!isLiveService);
+    setSelectedCatId(null);
+    setAmount('');
+  };
 
-  const canSubmit = !!selectedCatId && !!amount && parseFloat(amount) > 0 && !createEntryMutation.isPending;
+  const todayEntries = recentEntries.filter(e => new Date(e.created_at).toDateString() === new Date().toDateString());
+  const todayTotal = todayEntries.reduce((sum, e) => sum + Number(e.amount), 0);
+
+  const canSubmit = isLiveService
+    ? !!liveServiceName.trim() && !!amount && parseFloat(amount) > 0 && !createEntryMutation.isPending
+    : !!selectedCatId && !!amount && parseFloat(amount) > 0 && !createEntryMutation.isPending;
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -140,43 +213,66 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
 
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Registrar Servicio</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">Registrar Servicio</CardTitle>
+            <Button
+              variant={isLiveService ? 'default' : 'outline'}
+              size="sm"
+              onClick={handleLiveToggle}
+            >
+              <Zap className="h-3.5 w-3.5 mr-1" />
+              En vivo
+            </Button>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div>
-            <Label className="text-xs text-muted-foreground mb-2 block">Selecciona un servicio</Label>
-            {loadingCats ? (
-              <div className="flex justify-center py-3"><Loader2 className="h-5 w-5 animate-spin" /></div>
-            ) : categories.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-3">No hay servicios configurados</p>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {categories.map((cat: any) => {
-                  const Icon = getIconComponent(cat.icon);
-                  const isSelected = selectedCatId === cat.id;
-                  return (
-                    <button
-                      key={cat.id}
-                      onClick={() => handleSelectCategory(cat.id)}
-                      className={`flex items-center gap-2 rounded-lg border p-3 text-left transition-colors ${
-                        isSelected
-                          ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                          : 'hover:bg-muted/50'
-                      }`}
-                    >
-                      <Icon className={`h-4 w-4 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-                      <div className="min-w-0">
-                        <span className="text-sm font-medium truncate block">{cat.name}</span>
-                        {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
-                          <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
-                        )}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {isLiveService ? (
+            <div>
+              <Label className="text-xs text-muted-foreground">Nombre del servicio</Label>
+              <Input
+                value={liveServiceName}
+                onChange={(e) => setLiveServiceName(e.target.value)}
+                placeholder="Ej: Reparación de pantalla"
+                className="mt-1"
+              />
+              <p className="text-[10px] text-muted-foreground mt-1">Este servicio no se agrega al catálogo automáticamente</p>
+            </div>
+          ) : (
+            <div>
+              <Label className="text-xs text-muted-foreground mb-2 block">Selecciona un servicio</Label>
+              {loadingCats ? (
+                <div className="flex justify-center py-3"><Loader2 className="h-5 w-5 animate-spin" /></div>
+              ) : categories.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-3">No hay servicios configurados</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {categories.map((cat: any) => {
+                    const Icon = getIconComponent(cat.icon);
+                    const isSelected = selectedCatId === cat.id;
+                    return (
+                      <button
+                        key={cat.id}
+                        onClick={() => handleSelectCategory(cat.id)}
+                        className={`flex items-center gap-2 rounded-lg border p-3 text-left transition-colors ${
+                          isSelected
+                            ? 'border-primary bg-primary/10 ring-1 ring-primary'
+                            : 'hover:bg-muted/50'
+                        }`}
+                      >
+                        <Icon className={`h-4 w-4 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <div className="min-w-0">
+                          <span className="text-sm font-medium truncate block">{cat.name}</span>
+                          {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
+                            <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="space-y-3">
             <div>
@@ -223,12 +319,20 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
         </CardContent>
       </Card>
 
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Cobros Recientes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <RecentEntriesList entries={todayEntries} isLoading={loadingEntries} isOwner={false} />
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-// ─── Owner/Manager view: full config + entries ───
-const ManagerServicesView = () => {
+// ─── Owner/Manager view: tabs — Catálogo, Cobros, Análisis ───
+const OwnerServicesView = () => {
   const { profile, user, isOwner, isManager } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -236,17 +340,24 @@ const ManagerServicesView = () => {
   const businessId = profile?.business_id;
   const branchId = profile?.branch_id;
 
+  // Category dialog state
   const [catDialogOpen, setCatDialogOpen] = useState(false);
   const [editCat, setEditCat] = useState<{ id: string; name: string; icon?: string; fixed_price?: number | null } | null>(null);
   const [catName, setCatName] = useState('');
   const [catIcon, setCatIcon] = useState('DollarSign');
   const [catFixedPrice, setCatFixedPrice] = useState('');
 
+  // Entry dialog state
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
   const [entryCategoryId, setEntryCategoryId] = useState('');
   const [entryDescription, setEntryDescription] = useState('');
   const [entryAmount, setEntryAmount] = useState('');
   const [entryPaymentType, setEntryPaymentType] = useState('cash');
+  const [entryIsLive, setEntryIsLive] = useState(false);
+  const [entryLiveName, setEntryLiveName] = useState('');
+
+  // Promote dialog
+  const [promoteEntry, setPromoteEntry] = useState<any>(null);
 
   const { data: categories = [], isLoading: loadingCats } = useQuery({
     queryKey: ['service-categories', businessId],
@@ -279,6 +390,7 @@ const ManagerServicesView = () => {
     enabled: !!businessId && !!branchId,
   });
 
+  // Category mutations
   const saveCatMutation = useMutation({
     mutationFn: async () => {
       const payload: any = {
@@ -318,17 +430,25 @@ const ManagerServicesView = () => {
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
+  // Entry mutation
   const createEntryMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('service_entries').insert({
+      const payload: any = {
         business_id: businessId!,
         branch_id: branchId!,
-        category_id: entryCategoryId,
         user_id: user!.id,
         description: entryDescription.trim() || null,
         amount: parseFloat(entryAmount),
         payment_type: entryPaymentType,
-      });
+        is_catalog: !entryIsLive,
+      };
+      if (entryIsLive) {
+        payload.service_name = entryLiveName.trim();
+        payload.category_id = null;
+      } else {
+        payload.category_id = entryCategoryId;
+      }
+      const { error } = await supabase.from('service_entries').insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -340,6 +460,25 @@ const ManagerServicesView = () => {
       setEntryAmount('');
       setEntryCategoryId('');
       setEntryPaymentType('cash');
+      setEntryIsLive(false);
+      setEntryLiveName('');
+    },
+    onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
+  });
+
+  // Promote live service to catalog
+  const promoteMutation = useMutation({
+    mutationFn: async (entry: any) => {
+      const { error } = await supabase
+        .from('service_entries')
+        .update({ is_catalog: true } as any)
+        .eq('id', entry.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['service-entries-recent'] });
+      toast({ title: 'Servicio promovido al catálogo' });
+      setPromoteEntry(null);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
@@ -372,14 +511,18 @@ const ManagerServicesView = () => {
     .filter(e => new Date(e.created_at).toDateString() === new Date().toDateString())
     .reduce((sum, e) => sum + Number(e.amount), 0);
 
+  const entryCanSubmit = entryIsLive
+    ? !!entryLiveName.trim() && !!entryAmount && parseFloat(entryAmount) > 0 && !createEntryMutation.isPending
+    : !!entryCategoryId && !!entryAmount && parseFloat(entryAmount) > 0 && !createEntryMutation.isPending;
+
   return (
     <div className="space-y-4 md:space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl md:text-2xl font-bold">Servicios</h1>
-          <p className="text-sm text-muted-foreground">Registra cobros de servicios</p>
+          <p className="text-sm text-muted-foreground">Gestión de servicios y cobros</p>
         </div>
-        <Button onClick={() => setEntryDialogOpen(true)} disabled={categories.length === 0}>
+        <Button onClick={() => setEntryDialogOpen(true)}>
           <Plus className="h-4 w-4 mr-1" /> Nuevo Cobro
         </Button>
       </div>
@@ -394,138 +537,139 @@ const ManagerServicesView = () => {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Categorías de Servicio</CardTitle>
-            {canManage && (
-              <Button variant="outline" size="sm" onClick={handleOpenNewCat}>
-                <Plus className="h-3.5 w-3.5 mr-1" /> Agregar
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loadingCats ? (
-            <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>
-          ) : categories.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No hay categorías</p>
-          ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {categories.map((cat: any) => {
-                const Icon = getIconComponent(cat.icon);
-                return (
-                  <div key={cat.id} className="flex items-center justify-between rounded-lg border p-2.5 gap-2">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Icon className="h-4 w-4 text-primary shrink-0" />
-                      <div className="min-w-0">
-                        <span className="text-sm font-medium truncate block">{cat.name}</span>
-                        {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
-                          <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
+      <Tabs defaultValue="catalogo" className="space-y-4">
+        <TabsList className="w-full">
+          <TabsTrigger value="catalogo" className="flex-1 text-xs">Catálogo</TabsTrigger>
+          <TabsTrigger value="cobros" className="flex-1 text-xs">Cobros</TabsTrigger>
+          <TabsTrigger value="analisis" className="flex-1 text-xs">Análisis</TabsTrigger>
+        </TabsList>
+
+        {/* ─── Catálogo Tab ─── */}
+        <TabsContent value="catalogo">
+          <Card>
+            <CardHeader className="pb-3">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base">Categorías de Servicio</CardTitle>
+                {canManage && (
+                  <Button variant="outline" size="sm" onClick={handleOpenNewCat}>
+                    <Plus className="h-3.5 w-3.5 mr-1" /> Agregar
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loadingCats ? (
+                <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>
+              ) : categories.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No hay categorías</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {categories.map((cat: any) => {
+                    const Icon = getIconComponent(cat.icon);
+                    return (
+                      <div key={cat.id} className="flex items-center justify-between rounded-lg border p-2.5 gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Icon className="h-4 w-4 text-primary shrink-0" />
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium truncate block">{cat.name}</span>
+                            {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
+                              <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
+                            )}
+                          </div>
+                        </div>
+                        {canManage && (
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <button className="p-1 rounded hover:bg-muted" onClick={() => handleEditCat(cat)}>
+                              <Pencil className="h-3 w-3 text-muted-foreground" />
+                            </button>
+                            <button className="p-1 rounded hover:bg-muted" onClick={() => deleteCatMutation.mutate(cat.id)}>
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </button>
+                          </div>
                         )}
                       </div>
-                    </div>
-                    {canManage && (
-                      <div className="flex items-center gap-0.5 shrink-0">
-                        <button className="p-1 rounded hover:bg-muted" onClick={() => handleEditCat(cat)}>
-                          <Pencil className="h-3 w-3 text-muted-foreground" />
-                        </button>
-                        <button className="p-1 rounded hover:bg-muted" onClick={() => deleteCatMutation.mutate(cat.id)}>
-                          <Trash2 className="h-3 w-3 text-destructive" />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      {/* Top Services Chart (only for managers/owners) */}
-      {canManage && recentEntries.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base">Servicios más vendidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {(() => {
-              const counts: Record<string, { name: string; count: number; total: number }> = {};
-              recentEntries.forEach((e: any) => {
-                const catName = e.service_categories?.name || 'Sin categoría';
-                if (!counts[catName]) counts[catName] = { name: catName, count: 0, total: 0 };
-                counts[catName].count++;
-                counts[catName].total += Number(e.amount);
-              });
-              const chartData = Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 8);
-              const COLORS = [
-                'hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))',
-                'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--accent))',
-                'hsl(var(--muted-foreground))', 'hsl(var(--secondary))',
-              ];
-              return (
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 10, top: 5, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} fontSize={11} />
-                    <YAxis type="category" dataKey="name" width={100} fontSize={11} tick={{ fill: 'hsl(var(--foreground))' }} />
-                    <RechartsTooltip
-                      formatter={(value: number, name: string) => [
-                        name === 'count' ? `${value} cobros` : `$${value.toFixed(2)}`,
-                        name === 'count' ? 'Cantidad' : 'Total'
-                      ]}
-                      contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
-                    />
-                    <Bar dataKey="count" name="Cantidad" barSize={14} radius={[0, 4, 4, 0]}>
-                      {chartData.map((_, i) => (
-                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              );
-            })()}
-          </CardContent>
-        </Card>
-      )}
+        {/* ─── Cobros Tab ─── */}
+        <TabsContent value="cobros">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Cobros Recientes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RecentEntriesList
+                entries={recentEntries}
+                isLoading={loadingEntries}
+                isOwner={isOwner}
+                onPromote={(entry) => setPromoteEntry(entry)}
+              />
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Cobros Recientes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {loadingEntries ? (
-            <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>
-          ) : recentEntries.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">No hay cobros registrados</p>
+        {/* ─── Análisis Tab ─── */}
+        <TabsContent value="analisis">
+          {recentEntries.length > 0 ? (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Servicios más vendidos</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const counts: Record<string, { name: string; count: number; total: number }> = {};
+                  recentEntries.forEach((e: any) => {
+                    const catName = e.is_catalog === false
+                      ? (e.service_name || 'En vivo')
+                      : (e.service_categories?.name || 'Sin categoría');
+                    if (!counts[catName]) counts[catName] = { name: catName, count: 0, total: 0 };
+                    counts[catName].count++;
+                    counts[catName].total += Number(e.amount);
+                  });
+                  const chartData = Object.values(counts).sort((a, b) => b.count - a.count).slice(0, 8);
+                  const COLORS = [
+                    'hsl(var(--primary))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))',
+                    'hsl(var(--chart-4))', 'hsl(var(--chart-5))', 'hsl(var(--accent))',
+                    'hsl(var(--muted-foreground))', 'hsl(var(--secondary))',
+                  ];
+                  return (
+                    <ResponsiveContainer width="100%" height={220}>
+                      <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 10, top: 5, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                        <XAxis type="number" allowDecimals={false} fontSize={11} />
+                        <YAxis type="category" dataKey="name" width={100} fontSize={11} tick={{ fill: 'hsl(var(--foreground))' }} />
+                        <RechartsTooltip
+                          formatter={(value: number, name: string) => [
+                            name === 'count' ? `${value} cobros` : `$${value.toFixed(2)}`,
+                            name === 'count' ? 'Cantidad' : 'Total'
+                          ]}
+                          contentStyle={{ background: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 8, fontSize: 12 }}
+                        />
+                        <Bar dataKey="count" name="Cantidad" barSize={14} radius={[0, 4, 4, 0]}>
+                          {chartData.map((_, i) => (
+                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  );
+                })()}
+              </CardContent>
+            </Card>
           ) : (
-            <div className="space-y-2">
-              {recentEntries.map((entry: any) => {
-                const EntryIcon = getIconComponent(entry.service_categories?.icon);
-                return (
-                  <div key={entry.id} className="flex items-center justify-between rounded-lg border p-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <EntryIcon className="h-4 w-4 text-primary shrink-0" />
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="secondary" className="text-[10px]">{entry.service_categories?.name}</Badge>
-                          <Badge variant="outline" className="text-[10px]">{paymentLabels[entry.payment_type] || entry.payment_type}</Badge>
-                        </div>
-                        {entry.description && <p className="text-sm text-muted-foreground mt-1 truncate">{entry.description}</p>}
-                        <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                          {new Date(entry.created_at).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-bold shrink-0 ml-2">${Number(entry.amount).toFixed(2)}</span>
-                  </div>
-                );
-              })}
-            </div>
+            <Card>
+              <CardContent className="p-6">
+                <p className="text-sm text-muted-foreground text-center">No hay datos suficientes para el análisis</p>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
 
       {/* Category Dialog */}
       <Dialog open={catDialogOpen} onOpenChange={setCatDialogOpen}>
@@ -567,17 +711,50 @@ const ManagerServicesView = () => {
             <DialogTitle>Registrar Servicio</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
-            <div>
-              <Label>Categoría</Label>
-              <Select value={entryCategoryId} onValueChange={handleSelectEntryCategory}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat: any) => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant={entryIsLive ? 'outline' : 'default'}
+                size="sm"
+                className="flex-1"
+                onClick={() => setEntryIsLive(false)}
+              >
+                Catálogo
+              </Button>
+              <Button
+                type="button"
+                variant={entryIsLive ? 'default' : 'outline'}
+                size="sm"
+                className="flex-1"
+                onClick={() => { setEntryIsLive(true); setEntryCategoryId(''); }}
+              >
+                <Zap className="h-3.5 w-3.5 mr-1" /> En vivo
+              </Button>
             </div>
+
+            {entryIsLive ? (
+              <div>
+                <Label>Nombre del servicio</Label>
+                <Input
+                  value={entryLiveName}
+                  onChange={(e) => setEntryLiveName(e.target.value)}
+                  placeholder="Ej: Cambio de pantalla"
+                />
+              </div>
+            ) : (
+              <div>
+                <Label>Categoría</Label>
+                <Select value={entryCategoryId} onValueChange={handleSelectEntryCategory}>
+                  <SelectTrigger><SelectValue placeholder="Seleccionar..." /></SelectTrigger>
+                  <SelectContent>
+                    {categories.map((cat: any) => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
             <div>
               <Label>Descripción</Label>
               <Textarea value={entryDescription} onChange={(e) => setEntryDescription(e.target.value)} placeholder="Detalle del servicio..." rows={2} />
@@ -585,7 +762,6 @@ const ManagerServicesView = () => {
             <div>
               <Label>Monto cobrado ($)</Label>
               <Input type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="0.00" />
-              <p className="text-[10px] text-muted-foreground mt-1">Puedes ajustar el monto si necesitas agregar extras</p>
             </div>
             <div>
               <Label>Método de pago</Label>
@@ -600,11 +776,26 @@ const ManagerServicesView = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button
-              onClick={() => createEntryMutation.mutate()}
-              disabled={!entryCategoryId || !entryAmount || parseFloat(entryAmount) <= 0 || createEntryMutation.isPending}
-            >
+            <Button onClick={() => createEntryMutation.mutate()} disabled={!entryCanSubmit}>
               {createEntryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Registrar Cobro'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Promote Dialog */}
+      <Dialog open={!!promoteEntry} onOpenChange={() => setPromoteEntry(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Promover al catálogo</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            ¿Deseas marcar <strong>"{promoteEntry?.service_name}"</strong> como un servicio oficial del catálogo?
+          </p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPromoteEntry(null)}>Cancelar</Button>
+            <Button onClick={() => promoteMutation.mutate(promoteEntry)} disabled={promoteMutation.isPending}>
+              {promoteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Promover'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -637,10 +828,8 @@ const Services = () => {
   const hasEmployeeRecord = !!employeeRecord;
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   
-  // When ?ctx=emp is present, force employee view regardless of privilege level
   const showEmployeeView = isEmpCtx ? hasEmployeeRecord : (!isPrivileged && hasEmployeeRecord);
 
-  // For employee context, skip jornada checks for privileged users but still require jornada for non-privileged
   if (!isPrivileged && !isEmpCtx && jornadaLoading) {
     return (
       <AppLayout>
@@ -667,7 +856,7 @@ const Services = () => {
           employeeBranchId={employeeRecord?.branch_id ?? jornada?.sucursal_id ?? profile?.branch_id ?? null}
         />
       ) : (
-        <ManagerServicesView />
+        <OwnerServicesView />
       )}
     </AppLayout>
   );
