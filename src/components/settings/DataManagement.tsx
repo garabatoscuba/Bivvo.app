@@ -201,17 +201,35 @@ function Layer3Reset() {
   const [counts, setCounts] = useState<{ sales: number; movements: number; cashMovements: number } | null>(null);
   const queryClient = useQueryClient();
 
+  const resolveBranchId = async (): Promise<string | null> => {
+    if (profile?.branch_id) return profile.branch_id;
+    if (!profile?.business_id) return null;
+    const { data } = await supabase
+      .from('branches').select('id')
+      .eq('business_id', profile.business_id)
+      .eq('is_main', true)
+      .limit(1);
+    return data?.[0]?.id ?? null;
+  };
+
   const countRecords = async () => {
     if (!profile?.business_id || !dateFrom || !dateTo) return;
     setCounting(true);
     const fromISO = new Date(dateFrom).toISOString();
     const toISO = new Date(dateTo + 'T23:59:59').toISOString();
+    const branchId = await resolveBranchId();
+
+    if (!branchId) {
+      setCounting(false);
+      toast.error('No se encontró una sucursal asociada al negocio');
+      return;
+    }
 
     const [salesRes, movRes, cashRes] = await Promise.all([
       supabase.from('sales').select('id', { count: 'exact', head: true })
-        .eq('branch_id', profile.branch_id!).gte('created_at', fromISO).lte('created_at', toISO),
+        .eq('branch_id', branchId).gte('created_at', fromISO).lte('created_at', toISO),
       supabase.from('inventory_movements').select('id', { count: 'exact', head: true })
-        .eq('branch_id', profile.branch_id!).gte('created_at', fromISO).lte('created_at', toISO),
+        .eq('branch_id', branchId).gte('created_at', fromISO).lte('created_at', toISO),
       supabase.from('cash_register_movements').select('id', { count: 'exact', head: true })
         .eq('business_id', profile.business_id).gte('created_at', fromISO).lte('created_at', toISO),
     ]);
@@ -247,10 +265,16 @@ function Layer3Reset() {
 
       const fromISO = new Date(dateFrom).toISOString();
       const toISO = new Date(dateTo + 'T23:59:59').toISOString();
-      const branchId = profile.branch_id;
+      const branchId = await resolveBranchId();
+
+      if (!branchId) {
+        setLoading(false);
+        toast.error('No se encontró una sucursal asociada al negocio');
+        return;
+      }
 
       // Delete sale_items first (FK), then sales
-      if (branchId) {
+      {
         const { data: salesData, error: salesFetchErr } = await supabase
           .from('sales').select('id')
           .eq('branch_id', branchId)
@@ -276,12 +300,12 @@ function Layer3Reset() {
           }
         }
 
-        // Delete inventory movements
-        const { error: movErr } = await supabase.from('inventory_movements').delete()
-          .eq('branch_id', branchId)
-          .gte('created_at', fromISO)
-          .lte('created_at', toISO);
-        if (movErr) { console.error('Error deleting inventory_movements:', movErr); throw movErr; }
+      // Delete inventory movements
+      const { error: movErr } = await supabase.from('inventory_movements').delete()
+        .eq('branch_id', branchId)
+        .gte('created_at', fromISO)
+        .lte('created_at', toISO);
+      if (movErr) { console.error('Error deleting inventory_movements:', movErr); throw movErr; }
       }
 
       // Delete cash register movements
