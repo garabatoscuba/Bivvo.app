@@ -109,7 +109,7 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
           },
           body: JSON.stringify({
             messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
