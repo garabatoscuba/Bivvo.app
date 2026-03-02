@@ -81,8 +81,19 @@ const CajaOwnerOverview = () => {
         .in("user_id", userIds);
       const map: Record<string, string> = {};
       data?.forEach((p) => {
-        map[p.user_id] = p.full_name;
+        if (p.full_name) map[p.user_id] = p.full_name;
       });
+      // Fallback: resolve missing names from employees table
+      const missing = userIds.filter((id) => !map[id]);
+      if (missing.length > 0) {
+        const { data: empData } = await supabase
+          .from("employees")
+          .select("auth_user_id, full_name")
+          .in("auth_user_id", missing);
+        empData?.forEach((e) => {
+          if (e.auth_user_id && e.full_name) map[e.auth_user_id] = e.full_name;
+        });
+      }
       return map;
     },
     enabled: userIds.length > 0,
