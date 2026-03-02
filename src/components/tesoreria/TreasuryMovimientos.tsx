@@ -27,6 +27,9 @@ import {
 } from "lucide-react";
 import TreasuryCategoryManager from "./TreasuryCategoryManager";
 import TreasuryMovementModal from "./TreasuryMovementModal";
+import BalancePersonalCards from "./BalancePersonalCards";
+
+type Period = "today" | "week" | "month" | "all";
 
 interface Props {
   businessId: string;
@@ -39,6 +42,7 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPrefill, setModalPrefill] = useState<"extraccion" | "inyeccion" | null>(null);
+  const [period, setPeriod] = useState<Period>("today");
 
   // Filters
   const [filterType, setFilterType] = useState("all");
@@ -190,15 +194,8 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
     });
   }, [movements, filterType, filterCategory, filterLabel, dateFrom, dateTo]);
 
-  const summary = useMemo(() => {
-    let inyecciones = 0;
-    let extracciones = 0;
-    filtered.forEach((m: any) => {
-      if (m.movement_type === "inyeccion") inyecciones += Number(m.amount);
-      else extracciones += Number(m.amount);
-    });
-    return { inyecciones, extracciones, balance: inyecciones - extracciones };
-  }, [filtered]);
+
+
 
   const handleNewMovement = (type?: "extraccion" | "inyeccion") => {
     setModalPrefill(type || null);
@@ -207,46 +204,35 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
 
   return (
     <div className="space-y-4">
+      {/* Period selector */}
+      <div className="flex gap-1.5 overflow-x-auto pb-1">
+        {([
+          { key: "today", label: "Hoy" },
+          { key: "week", label: "Esta Semana" },
+          { key: "month", label: "Este Mes" },
+          { key: "all", label: "Todos los Tiempos" },
+        ] as { key: Period; label: string }[]).map((p) => (
+          <Button
+            key={p.key}
+            size="sm"
+            variant={period === p.key ? "default" : "outline"}
+            className="text-xs h-8 shrink-0"
+            onClick={() => setPeriod(p.key)}
+          >
+            {p.label}
+          </Button>
+        ))}
+      </div>
+
+      {/* Balance Personal Cards */}
+      <BalancePersonalCards businessId={businessId} branchId={profile?.branch_id} period={period} />
+
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button onClick={() => handleNewMovement()} className="gap-2">
+      <div className="flex items-center justify-between pt-2 border-t">
+        <Button onClick={() => handleNewMovement()} className="gap-2" size="sm">
           <Plus className="h-4 w-4" /> Nuevo movimiento
         </Button>
         <TreasuryCategoryManager businessId={businessId} />
-      </div>
-
-      {/* Summary cards */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <TrendingUp className="h-3.5 w-3.5 text-green-600" /> Inyecciones
-            </div>
-            <div className="text-lg font-bold text-green-600">
-              ${summary.inyecciones.toLocaleString("es", { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <TrendingDown className="h-3.5 w-3.5 text-red-600" /> Extracciones
-            </div>
-            <div className="text-lg font-bold text-red-600">
-              ${summary.extracciones.toLocaleString("es", { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="p-3">
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <ArrowUpDown className="h-3.5 w-3.5" /> Balance
-            </div>
-            <div className={`text-lg font-bold ${summary.balance >= 0 ? "text-primary" : "text-destructive"}`}>
-              ${summary.balance.toLocaleString("es", { minimumFractionDigits: 2 })}
-            </div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Pending entries from employee register closings */}
