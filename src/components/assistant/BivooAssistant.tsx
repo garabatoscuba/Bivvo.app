@@ -26,14 +26,15 @@ export default function BivooAssistant() {
   useEffect(() => {
     if (visible === 'none') return;
     const handler = (e: MouseEvent) => {
+      if (longPressTriggered.current) return;
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setVisible('none');
       }
     };
-    const id = setTimeout(() => document.addEventListener('click', handler), 0);
+    const id = setTimeout(() => document.addEventListener('mousedown', handler), 0);
     return () => {
       clearTimeout(id);
-      document.removeEventListener('click', handler);
+      document.removeEventListener('mousedown', handler);
     };
   }, [visible]);
 
@@ -57,7 +58,7 @@ export default function BivooAssistant() {
     longPressTimer.current = setTimeout(() => {
       longPressTriggered.current = true;
       setVisible('menu');
-    }, 500);
+    }, 600);
   }, [showContextMenu]);
 
   const handlePointerUp = useCallback(() => {
