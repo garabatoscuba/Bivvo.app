@@ -159,7 +159,7 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
             }
             try {
               const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+              const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text as string | undefined;
               if (content) upsertAssistant(content);
             } catch {
               textBuffer = line + "\n" + textBuffer;
@@ -179,7 +179,7 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
             if (jsonStr === "[DONE]") continue;
             try {
               const parsed = JSON.parse(jsonStr);
-              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
+              const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text as string | undefined;
               if (content) upsertAssistant(content);
             } catch {
               /* ignore */
