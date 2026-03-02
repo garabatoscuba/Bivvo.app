@@ -24,6 +24,7 @@ const CajaConfig = () => {
   const [minAlert, setMinAlert] = useState("100");
   const [nextDayFundMode, setNextDayFundMode] = useState("none");
   const [nextDayFundAmount, setNextDayFundAmount] = useState("0");
+  const [lowBillDenominations, setLowBillDenominations] = useState<number[]>([1, 2, 5, 10]);
 
   const { data: config, isLoading } = useQuery({
     queryKey: ["cash-register-config", branchId],
@@ -47,6 +48,7 @@ const CajaConfig = () => {
       setMinAlert(String(config.petty_cash_min_alert));
       setNextDayFundMode((config as any).next_day_fund_mode || "none");
       setNextDayFundAmount(String((config as any).next_day_fund_amount || 0));
+      setLowBillDenominations((config as any).low_bill_denominations || [1, 2, 5, 10]);
     }
   }, [config]);
 
@@ -61,6 +63,7 @@ const CajaConfig = () => {
         petty_cash_min_alert: Number(minAlert) || 100,
         next_day_fund_mode: nextDayFundMode,
         next_day_fund_amount: Number(nextDayFundAmount) || 0,
+        low_bill_denominations: lowBillDenominations,
       };
 
       if (config) {
@@ -206,6 +209,38 @@ const CajaConfig = () => {
                 onChange={(e) => setNextDayFundAmount(e.target.value)}
                 className="max-w-xs"
               />
+            </div>
+          )}
+
+          {nextDayFundMode === "low_bills" && (
+            <div className="space-y-2">
+              <Label className="text-sm">Denominaciones consideradas bajas</Label>
+              <p className="text-xs text-muted-foreground">
+                Selecciona qué billetes se suman como fondo al cerrar caja.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {[1, 2, 3, 5, 10, 20, 50].map((d) => {
+                  const selected = lowBillDenominations.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => {
+                        setLowBillDenominations((prev) =>
+                          selected ? prev.filter((v) => v !== d) : [...prev, d].sort((a, b) => a - b)
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-md border text-sm font-mono transition-colors ${
+                        selected
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-input hover:bg-muted"
+                      }`}
+                    >
+                      ${d}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 

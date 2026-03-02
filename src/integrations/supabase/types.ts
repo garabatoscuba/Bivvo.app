@@ -575,6 +575,7 @@ export type Database = {
           created_at: string
           fixed_opening_amount: number
           id: string
+          low_bill_denominations: number[]
           mode: string
           next_day_fund_amount: number
           next_day_fund_mode: string
@@ -588,6 +589,7 @@ export type Database = {
           created_at?: string
           fixed_opening_amount?: number
           id?: string
+          low_bill_denominations?: number[]
           mode?: string
           next_day_fund_amount?: number
           next_day_fund_mode?: string
@@ -601,6 +603,7 @@ export type Database = {
           created_at?: string
           fixed_opening_amount?: number
           id?: string
+          low_bill_denominations?: number[]
           mode?: string
           next_day_fund_amount?: number
           next_day_fund_mode?: string
@@ -621,6 +624,64 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cash_register_movements: {
+        Row: {
+          amount: number
+          branch_id: string
+          business_id: string
+          cash_register_id: string
+          created_at: string
+          id: string
+          movement_type: string
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          branch_id: string
+          business_id: string
+          cash_register_id: string
+          created_at?: string
+          id?: string
+          movement_type: string
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          branch_id?: string
+          business_id?: string
+          cash_register_id?: string
+          created_at?: string
+          id?: string
+          movement_type?: string
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cash_register_movements_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_register_movements_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cash_register_movements_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
             referencedColumns: ["id"]
           },
         ]

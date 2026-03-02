@@ -20,6 +20,8 @@ import {
   CreditCard,
   Lock,
   Banknote,
+  ArrowDownToLine,
+  ArrowUpFromLine,
 } from "lucide-react";
 import {
   Dialog,
@@ -29,6 +31,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import CajaMovementModal from "@/components/caja/CajaMovementModal";
 
 const DENOMINATIONS_SMALL = [1, 3, 5, 10];
 const DENOMINATIONS_LOW = [1, 2, 5, 10];
@@ -44,6 +47,7 @@ const CajaActiva = () => {
   const [showCloseDialog, setShowCloseDialog] = useState(false);
   const [billCounts, setBillCounts] = useState<Record<number, number>>({});
   const [closeNotes, setCloseNotes] = useState("");
+  const [movementModal, setMovementModal] = useState<{ open: boolean; type: "insertion" | "extraction" }>({ open: false, type: "insertion" });
 
   const branchId = profile?.branch_id;
   const businessId = profile?.business_id;
@@ -148,10 +152,32 @@ const CajaActiva = () => {
     refetchInterval: 15000,
   });
 
+  // Fetch cash register movements
+  const { data: cajaMovements = [] } = useQuery({
+    queryKey: ["caja-movements", activeRegister?.id],
+    queryFn: async () => {
+      if (!activeRegister?.id) return [];
+      const { data } = await supabase
+        .from("cash_register_movements" as any)
+        .select("*")
+        .eq("cash_register_id", activeRegister.id)
+        .order("created_at", { ascending: false });
+      return (data as any[]) || [];
+    },
+    enabled: !!activeRegister?.id,
+    refetchInterval: 15000,
+  });
+
+  const movementsCashDelta = useMemo(() => {
+    return cajaMovements.reduce((sum: number, m: any) => {
+      return sum + (m.movement_type === "insertion" ? Number(m.amount) : -Number(m.amount));
+    }, 0);
+  }, [cajaMovements]);
+
   const expectedCash = useMemo(() => {
     if (!activeRegister) return 0;
-    return Number(activeRegister.opening_amount) + (salesData?.cash || 0) + (servicesData?.cash || 0);
-  }, [activeRegister, salesData, servicesData]);
+    return Number(activeRegister.opening_amount) + (salesData?.cash || 0) + (servicesData?.cash || 0) + movementsCashDelta;
+  }, [activeRegister, salesData, servicesData, movementsCashDelta]);
 
   const totalTransfers = (salesData?.transfer || 0) + (servicesData?.transfer || 0);
 
@@ -160,15 +186,17 @@ const CajaActiva = () => {
   }, [billCounts]);
 
   // Calculate next-day fund based on config
+  const configDenominations: number[] = (config as any)?.low_bill_denominations || DENOMINATIONS_LOW;
+
   const nextDayFund = useMemo(() => {
     const fundMode = (config as any)?.next_day_fund_mode || "none";
     if (fundMode === "none") return 0;
     if (fundMode === "fixed") return Number((config as any)?.next_day_fund_amount || 0);
     if (fundMode === "low_bills") {
-      return DENOMINATIONS_LOW.reduce((sum, d) => sum + d * (billCounts[d] || 0), 0);
+      return configDenominations.reduce((sum: number, d: number) => sum + d * (billCounts[d] || 0), 0);
     }
     return 0;
-  }, [config, billCounts]);
+  }, [config, billCounts, configDenominations]);
 
   const fundMode = (config as any)?.next_day_fund_mode || "none";
 
@@ -384,6 +412,52 @@ const CajaActiva = () => {
           </CardContent>
         </Card>
 
+        {/* Insert / Extract buttons */}
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            variant="outline"
+            className="gap-2 border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400 dark:hover:bg-green-950"
+            onClick={() => setMovementModal({ open: true, type: "insertion" })}
+          >
+            <ArrowDownToLine className="h-4 w-4" /> Insertar en Caja
+          </Button>
+          <Button
+            variant="outline"
+            className="gap-2 border-red-300 text-red-700 hover:bg-red-50 dark:border-red-700 dark:text-red-400 dark:hover:bg-red-950"
+            onClick={() => setMovementModal({ open: true, type: "extraction" })}
+          >
+            <ArrowUpFromLine className="h-4 w-4" /> Sacar de Caja
+          </Button>
+        </div>
+
+        {/* Movement history */}
+        {cajaMovements.length > 0 && (
+          <Card>
+            <CardHeader className="pb-1 pt-3 px-4">
+              <CardTitle className="text-xs text-muted-foreground">Movimientos de esta caja</CardTitle>
+            </CardHeader>
+            <CardContent className="px-4 pb-3 space-y-1.5">
+              {cajaMovements.map((m: any) => (
+                <div key={m.id} className="flex items-center justify-between text-xs py-1.5 border-b last:border-0">
+                  <div className="flex items-center gap-2">
+                    {m.movement_type === "insertion" ? (
+                      <ArrowDownToLine className="h-3.5 w-3.5 text-green-600" />
+                    ) : (
+                      <ArrowUpFromLine className="h-3.5 w-3.5 text-red-600" />
+                    )}
+                    <span className="text-muted-foreground truncate max-w-[180px]">
+                      {m.reason || (m.movement_type === "insertion" ? "Inserción" : "Extracción")}
+                    </span>
+                  </div>
+                  <span className={`font-bold ${m.movement_type === "insertion" ? "text-green-600" : "text-red-600"}`}>
+                    {m.movement_type === "insertion" ? "+" : "-"}${Number(m.amount).toFixed(2)}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         <Button
           variant="destructive"
           className="w-full gap-2"
@@ -498,6 +572,18 @@ const CajaActiva = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Movement modal */}
+      {activeRegister && (
+        <CajaMovementModal
+          open={movementModal.open}
+          onOpenChange={(open) => setMovementModal((p) => ({ ...p, open }))}
+          type={movementModal.type}
+          registerId={activeRegister.id}
+          branchId={branchId!}
+          businessId={businessId!}
+        />
+      )}
     </>
   );
 };
