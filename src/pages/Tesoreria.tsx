@@ -4,25 +4,20 @@ import { useBranches } from "@/hooks/useBranches";
 import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CajaActiva from "@/components/caja/CajaActiva";
-import CajaChica from "@/components/caja/CajaChica";
-import CajaHistorial from "@/components/caja/CajaHistorial";
-import CajaConfig from "@/components/caja/CajaConfig";
+import CajaOwnerOverview from "@/components/caja/CajaOwnerOverview";
 import TreasuryMovimientos from "@/components/tesoreria/TreasuryMovimientos";
 import { Landmark } from "lucide-react";
 
 const Tesoreria = () => {
-  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const { profile } = useAuth();
   const { data: branches = [] } = useBranches();
   const activeBranch = branches.find((b) => b.id === profile?.branch_id);
-  const isPrivileged = isOwner || isManager || isSuperAdmin;
 
   const [searchParams, setSearchParams] = useSearchParams();
   const prefillType = searchParams.get("prefill") as "extraccion" | "inyeccion" | null;
   const initialTab = prefillType ? "movimientos" : "caja";
 
   const [mainTab, setMainTab] = useState(initialTab);
-  const [cajaTab, setCajaTab] = useState("activa");
 
   const handlePrefillConsumed = () => {
     setSearchParams({}, { replace: true });
@@ -48,31 +43,7 @@ const Tesoreria = () => {
           </TabsList>
 
           <TabsContent value="caja">
-            <Tabs value={cajaTab} onValueChange={setCajaTab}>
-              <TabsList className="w-full grid grid-cols-4 h-9 mt-2">
-                <TabsTrigger value="activa" className="text-xs">Caja activa</TabsTrigger>
-                <TabsTrigger value="chica" className="text-xs">Caja chica</TabsTrigger>
-                <TabsTrigger value="historial" className="text-xs">Historial</TabsTrigger>
-                {isPrivileged && (
-                  <TabsTrigger value="config" className="text-xs">Config</TabsTrigger>
-                )}
-              </TabsList>
-
-              <TabsContent value="activa">
-                <CajaActiva />
-              </TabsContent>
-              <TabsContent value="chica">
-                <CajaChica />
-              </TabsContent>
-              <TabsContent value="historial">
-                <CajaHistorial />
-              </TabsContent>
-              {isPrivileged && (
-                <TabsContent value="config">
-                  <CajaConfig />
-                </TabsContent>
-              )}
-            </Tabs>
+            <CajaOwnerOverview />
           </TabsContent>
 
           <TabsContent value="movimientos">
