@@ -19,7 +19,7 @@ const Nomina = () => {
         <TabsList className="w-full flex overflow-x-auto">
           <TabsTrigger value="modalidades" className="flex-1 text-xs">Modalidades</TabsTrigger>
           <TabsTrigger value="comisiones" className="flex-1 text-xs">Comisiones</TabsTrigger>
-          <TabsTrigger value="config" className="flex-1 text-xs">Config</TabsTrigger>
+          <TabsTrigger value="config" className="flex-1 text-xs">Puestos</TabsTrigger>
           <TabsTrigger value="propinas" className="flex-1 text-xs">Propinas</TabsTrigger>
           <TabsTrigger value="historial" className="flex-1 text-xs">Historial</TabsTrigger>
         </TabsList>
