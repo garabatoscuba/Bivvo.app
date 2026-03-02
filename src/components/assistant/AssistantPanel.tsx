@@ -228,7 +228,7 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
   if (!open) return null;
 
   return (
-    <div className="fixed bottom-20 right-4 z-[60] w-[340px] max-h-[520px] flex flex-col rounded-2xl border bg-card shadow-xl animate-scale-in overflow-hidden md:w-[380px]">
+    <div className="fixed bottom-20 right-2 left-2 z-[60] max-h-[75vh] flex flex-col rounded-2xl border bg-card shadow-xl animate-scale-in overflow-hidden sm:left-auto sm:right-4 sm:w-[380px] sm:max-h-[580px]">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
         <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
