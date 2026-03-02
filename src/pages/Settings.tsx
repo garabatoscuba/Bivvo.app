@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Shield, Loader2, Save, Eye, EyeOff } from 'lucide-react';
+import { User, Shield, Loader2, Save, Eye, EyeOff, Database } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,21 +10,29 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import JornadaQR from '@/components/employees/JornadaQR';
+import DataManagement from '@/components/settings/DataManagement';
 
 const Settings = () => {
   const { profile, user, isOwner, isManager } = useAuth();
+  const showDataTab = isOwner;
+  const cols = showDataTab ? 3 : 2;
 
   return (
     <AppLayout title="Configuración">
       <div className="mx-auto max-w-3xl space-y-6">
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className={`grid w-full`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
             <TabsTrigger value="profile" className="gap-1.5 text-xs sm:text-sm">
               <User className="h-4 w-4" /> Perfil
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-1.5 text-xs sm:text-sm">
               <Shield className="h-4 w-4" /> Seguridad
             </TabsTrigger>
+            {showDataTab && (
+              <TabsTrigger value="data" className="gap-1.5 text-xs sm:text-sm">
+                <Database className="h-4 w-4" /> Datos
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="profile">
@@ -33,6 +41,11 @@ const Settings = () => {
           <TabsContent value="security">
             <SecuritySection />
           </TabsContent>
+          {showDataTab && (
+            <TabsContent value="data">
+              <DataManagement />
+            </TabsContent>
+          )}
         </Tabs>
 
         {/* QR de Jornada - solo owner/manager */}

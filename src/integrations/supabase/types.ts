@@ -420,6 +420,44 @@ export type Database = {
           },
         ]
       }
+      business_periods: {
+        Row: {
+          business_id: string
+          created_at: string
+          ended_at: string | null
+          id: string
+          is_active: boolean
+          name: string
+          started_at: string
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          started_at?: string
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          started_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "business_periods_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       business_requests: {
         Row: {
           admin_notes: string | null
@@ -526,6 +564,7 @@ export type Database = {
           base_currency: string
           business_type: string
           created_at: string
+          dashboard_reset_at: string | null
           id: string
           is_active: boolean
           logo_url: string | null
@@ -538,6 +577,7 @@ export type Database = {
           base_currency?: string
           business_type?: string
           created_at?: string
+          dashboard_reset_at?: string | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
@@ -550,6 +590,7 @@ export type Database = {
           base_currency?: string
           business_type?: string
           created_at?: string
+          dashboard_reset_at?: string | null
           id?: string
           is_active?: boolean
           logo_url?: string | null
