@@ -200,7 +200,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-              Motivo de entrada *
+              Motivo de entrada
             </Label>
             <Select value={reason} onValueChange={setReason}>
               <SelectTrigger>
@@ -218,7 +218,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-              Origen *
+              Origen
             </Label>
             <Input
               placeholder="Ej: Proveedor X, Sucursal Norte, Cliente Y..."
@@ -270,16 +270,6 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
                 onChange={(e) => setNewSalePrice(e.target.value)}
               />
             </div>
-          </div>
-
-          {/* Supplier */}
-          <div className="space-y-1.5">
-            <Label>Proveedor</Label>
-            <Input
-              placeholder="Nombre del proveedor"
-              value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
-            />
           </div>
 
           {/* Notes */}

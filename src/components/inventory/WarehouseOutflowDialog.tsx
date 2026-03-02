@@ -178,7 +178,7 @@ export const WarehouseOutflowDialog = ({
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-              Motivo de salida *
+              Motivo de salida
             </Label>
             <Select value={reason} onValueChange={setReason}>
               <SelectTrigger>
@@ -196,7 +196,7 @@ export const WarehouseOutflowDialog = ({
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-              Destino *
+              Destino
             </Label>
             <Input
               placeholder="Ej: Sucursal Norte, Cliente X, Proveedor Y..."
