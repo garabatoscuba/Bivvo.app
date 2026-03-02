@@ -2799,6 +2799,51 @@ export type Database = {
           },
         ]
       }
+      treasury_pending_entries: {
+        Row: {
+          amount: number
+          business_id: string
+          cash_register_id: string
+          created_at: string
+          employee_user_id: string
+          id: string
+          status: string
+        }
+        Insert: {
+          amount?: number
+          business_id: string
+          cash_register_id: string
+          created_at?: string
+          employee_user_id: string
+          id?: string
+          status?: string
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          cash_register_id?: string
+          created_at?: string
+          employee_user_id?: string
+          id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treasury_pending_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treasury_pending_entries_cash_register_id_fkey"
+            columns: ["cash_register_id"]
+            isOneToOne: false
+            referencedRelation: "cash_registers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string

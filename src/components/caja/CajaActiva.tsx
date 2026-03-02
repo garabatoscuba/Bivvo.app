@@ -254,6 +254,7 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
   const closeMutation = useMutation({
     mutationFn: async () => {
       const diff = countedTotal - expectedCash;
+      const netToDeliverCalc = countedTotal - nextDayFund;
       const { error } = await supabase
         .from("cash_registers")
         .update({
@@ -271,6 +272,19 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
         } as any)
         .eq("id", activeRegister!.id);
       if (error) throw error;
+
+      // Create treasury pending entry if net to deliver > 0
+      if (netToDeliverCalc > 0 && businessId) {
+        await supabase
+          .from("treasury_pending_entries" as any)
+          .insert({
+            business_id: businessId,
+            employee_user_id: profile!.user_id,
+            cash_register_id: activeRegister!.id,
+            amount: netToDeliverCalc,
+            status: "pending",
+          });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });

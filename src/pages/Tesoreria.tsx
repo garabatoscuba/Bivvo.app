@@ -39,7 +39,7 @@ const Tesoreria = () => {
         <Tabs value={mainTab} onValueChange={setMainTab}>
           <TabsList className="w-full grid grid-cols-2 h-9">
             <TabsTrigger value="caja" className="text-xs">Caja</TabsTrigger>
-            <TabsTrigger value="movimientos" className="text-xs">Movimientos</TabsTrigger>
+            <TabsTrigger value="movimientos" className="text-xs">Balance Personal</TabsTrigger>
           </TabsList>
 
           <TabsContent value="caja">
