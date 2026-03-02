@@ -4,30 +4,20 @@ import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
-  TrendingDown,
-  TrendingUp,
   Plus,
-  ArrowUpDown,
-  Calendar,
   Bell,
   Check,
   X,
+  ShoppingCart,
 } from "lucide-react";
 import TreasuryCategoryManager from "./TreasuryCategoryManager";
 import TreasuryMovementModal from "./TreasuryMovementModal";
 import BalancePersonalCards from "./BalancePersonalCards";
+import BalanceHistoryTable from "./BalanceHistoryTable";
+import ProductEntryModal from "./ProductEntryModal";
 
 type Period = "today" | "week" | "month" | "all";
 
@@ -43,13 +33,7 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPrefill, setModalPrefill] = useState<"extraccion" | "inyeccion" | null>(null);
   const [period, setPeriod] = useState<Period>("today");
-
-  // Filters
-  const [filterType, setFilterType] = useState("all");
-  const [filterCategory, setFilterCategory] = useState("all");
-  const [filterLabel, setFilterLabel] = useState("all");
-  const [dateFrom, setDateFrom] = useState("");
-  const [dateTo, setDateTo] = useState("");
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
 
   // Handle prefill from assistant
   useEffect(() => {
@@ -68,7 +52,6 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
         .select("*")
         .eq("business_id", businessId)
         .order("sort_order");
-      // Seed defaults if empty
       if (!data || data.length === 0) {
         const defaults = [
           "Alimentación y mercado",
@@ -89,20 +72,6 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
           .select();
         return (seeded as any[]) || [];
       }
-      return (data as any[]) || [];
-    },
-    enabled: !!businessId,
-  });
-
-  const { data: movements = [], isLoading } = useQuery({
-    queryKey: ["treasury-movements", businessId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("treasury_movements" as any)
-        .select("*, treasury_categories(name)")
-        .eq("business_id", businessId)
-        .order("created_at", { ascending: false })
-        .limit(500);
       return (data as any[]) || [];
     },
     enabled: !!businessId,
@@ -131,7 +100,20 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
       if (pendingUserIds.length === 0) return {};
       const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", pendingUserIds);
       const map: Record<string, string> = {};
-      data?.forEach((p) => { map[p.user_id] = p.full_name; });
+      data?.forEach((p) => {
+        if (p.full_name) map[p.user_id] = p.full_name;
+      });
+      // Fallback for @bivoo.app employees
+      const missing = pendingUserIds.filter((id) => !map[id]);
+      if (missing.length > 0) {
+        const { data: empData } = await supabase
+          .from("employees")
+          .select("auth_user_id, full_name")
+          .in("auth_user_id", missing);
+        empData?.forEach((e) => {
+          if (e.auth_user_id && e.full_name) map[e.auth_user_id] = e.full_name;
+        });
+      }
       return map;
     },
     enabled: pendingUserIds.length > 0,
@@ -139,9 +121,7 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
 
   const confirmEntryMutation = useMutation({
     mutationFn: async (entry: any) => {
-      // Find "Entrega de caja" category
       const entregaCat = categories.find((c: any) => c.name === "Entrega de caja");
-      // Create treasury_movement
       await supabase.from("treasury_movements" as any).insert({
         business_id: businessId,
         user_id: profile!.user_id,
@@ -153,12 +133,13 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
         origin: pendingProfilesMap[entry.employee_user_id] || "Empleado",
         reason: "Entrega de caja al cerrar jornada",
       });
-      // Mark as confirmed
       await supabase.from("treasury_pending_entries" as any).update({ status: "confirmed" }).eq("id", entry.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["treasury-pending-entries"] });
       queryClient.invalidateQueries({ queryKey: ["treasury-movements"] });
+      queryClient.invalidateQueries({ queryKey: ["bp-injections"] });
+      queryClient.invalidateQueries({ queryKey: ["bh-treasury"] });
     },
   });
 
@@ -171,32 +152,6 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
     },
   });
 
-  const categoryMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    categories.forEach((c: any) => { map[c.id] = c.name; });
-    return map;
-  }, [categories]);
-
-  const filtered = useMemo(() => {
-    return movements.filter((m: any) => {
-      if (filterType !== "all" && m.movement_type !== filterType) return false;
-      if (filterCategory !== "all" && m.category_id !== filterCategory) return false;
-      if (filterLabel !== "all" && m.label !== filterLabel) return false;
-      if (dateFrom) {
-        const mDate = m.created_at.split("T")[0];
-        if (mDate < dateFrom) return false;
-      }
-      if (dateTo) {
-        const mDate = m.created_at.split("T")[0];
-        if (mDate > dateTo) return false;
-      }
-      return true;
-    });
-  }, [movements, filterType, filterCategory, filterLabel, dateFrom, dateTo]);
-
-
-
-
   const handleNewMovement = (type?: "extraccion" | "inyeccion") => {
     setModalPrefill(type || null);
     setModalOpen(true);
@@ -204,30 +159,40 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
 
   return (
     <div className="space-y-4">
-      {/* Period selector */}
-      <div className="flex gap-1.5 overflow-x-auto pb-1">
-        {([
-          { key: "today", label: "Hoy" },
-          { key: "week", label: "Esta Semana" },
-          { key: "month", label: "Este Mes" },
-          { key: "all", label: "Todos los Tiempos" },
-        ] as { key: Period; label: string }[]).map((p) => (
-          <Button
-            key={p.key}
-            size="sm"
-            variant={period === p.key ? "default" : "outline"}
-            className="text-xs h-8 shrink-0"
-            onClick={() => setPeriod(p.key)}
-          >
-            {p.label}
-          </Button>
-        ))}
+      {/* Period selector + Purchase button */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex gap-1.5 overflow-x-auto flex-1">
+          {([
+            { key: "today", label: "Hoy" },
+            { key: "week", label: "Esta Semana" },
+            { key: "month", label: "Este Mes" },
+            { key: "all", label: "Todos" },
+          ] as { key: Period; label: string }[]).map((p) => (
+            <Button
+              key={p.key}
+              size="sm"
+              variant={period === p.key ? "default" : "outline"}
+              className="text-xs h-8 shrink-0"
+              onClick={() => setPeriod(p.key)}
+            >
+              {p.label}
+            </Button>
+          ))}
+        </div>
+        <Button
+          size="sm"
+          className="h-8 text-xs gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white shrink-0"
+          onClick={() => setPurchaseModalOpen(true)}
+        >
+          <ShoppingCart className="h-3.5 w-3.5" />
+          + Registrar Compra
+        </Button>
       </div>
 
       {/* Balance Personal Cards */}
       <BalancePersonalCards businessId={businessId} branchId={profile?.branch_id} period={period} />
 
-      {/* Header */}
+      {/* Action buttons */}
       <div className="flex items-center justify-between pt-2 border-t">
         <Button onClick={() => handleNewMovement()} className="gap-2" size="sm">
           <Plus className="h-4 w-4" /> Nuevo movimiento
@@ -235,7 +200,7 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
         <TreasuryCategoryManager businessId={businessId} />
       </div>
 
-      {/* Pending entries from employee register closings */}
+      {/* Pending entries */}
       {pendingEntries.length > 0 && (
         <div className="space-y-2">
           <h3 className="text-xs font-semibold flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
@@ -282,130 +247,24 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
         </div>
       )}
 
-      {/* Filters */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos</SelectItem>
-            <SelectItem value="extraccion">Extracciones</SelectItem>
-            <SelectItem value="inyeccion">Inyecciones</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={filterCategory} onValueChange={setFilterCategory}>
-          <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Categoría" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            {categories.map((c: any) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={filterLabel} onValueChange={setFilterLabel}>
-          <SelectTrigger className="h-9 text-xs">
-            <SelectValue placeholder="Etiqueta" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="negocio">Negocio</SelectItem>
-            <SelectItem value="personal">Personal</SelectItem>
-          </SelectContent>
-        </Select>
-        <Input
-          type="date"
-          className="h-9 text-xs"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          placeholder="Desde"
-        />
-        <Input
-          type="date"
-          className="h-9 text-xs"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          placeholder="Hasta"
-        />
-      </div>
+      {/* Historical table */}
+      <BalanceHistoryTable businessId={businessId} branchId={profile?.branch_id} period={period} />
 
-      {/* Movement list */}
-      {isLoading ? (
-        <div className="py-8 text-center text-sm text-muted-foreground">Cargando...</div>
-      ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">
-            <ArrowUpDown className="h-8 w-8 opacity-40 mx-auto mb-2" />
-            <p className="text-sm">Sin movimientos registrados</p>
-            <p className="text-xs mt-1">Registra tu primer movimiento con el botón de arriba.</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-2">
-          {filtered.map((m: any) => {
-            const isInj = m.movement_type === "inyeccion";
-            const catName = m.treasury_categories?.name || categoryMap[m.category_id] || null;
-            return (
-              <Card key={m.id}>
-                <CardContent className="p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2.5 flex-1 min-w-0">
-                      <div className={`mt-0.5 rounded-full p-1.5 ${isInj ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30"}`}>
-                        {isInj ? (
-                          <TrendingUp className="h-3.5 w-3.5 text-green-600" />
-                        ) : (
-                          <TrendingDown className="h-3.5 w-3.5 text-red-600" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0 space-y-0.5">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {catName && (
-                            <span className="text-xs font-medium">{catName}</span>
-                          )}
-                          <Badge
-                            variant={m.label === "personal" ? "outline" : "secondary"}
-                            className="text-[10px] h-4"
-                          >
-                            {m.label === "personal" ? "Personal" : "Negocio"}
-                          </Badge>
-                          <Badge variant="outline" className="text-[10px] h-4">
-                            {m.payment_method === "efectivo" ? "Efectivo" : m.payment_method === "transferencia" ? "Transfer." : "Mixto"}
-                          </Badge>
-                        </div>
-                        {m.reason && (
-                          <p className="text-xs text-muted-foreground truncate">{m.reason}</p>
-                        )}
-                        {m.origin && (
-                          <p className="text-[10px] text-muted-foreground/70">Origen: {m.origin}</p>
-                        )}
-                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">
-                          <Calendar className="h-2.5 w-2.5" />
-                          {format(new Date(m.created_at), "dd MMM yyyy · HH:mm", { locale: es })}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className={`text-base font-bold ${isInj ? "text-green-600" : "text-red-600"}`}>
-                        {isInj ? "+" : "-"}${Number(m.amount).toLocaleString("es", { minimumFractionDigits: 2 })}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Modal */}
+      {/* Modals */}
       <TreasuryMovementModal
         open={modalOpen}
         onOpenChange={setModalOpen}
         businessId={businessId}
         prefillType={modalPrefill}
       />
+      {profile?.branch_id && (
+        <ProductEntryModal
+          open={purchaseModalOpen}
+          onOpenChange={setPurchaseModalOpen}
+          businessId={businessId}
+          branchId={profile.branch_id}
+        />
+      )}
     </div>
   );
 }

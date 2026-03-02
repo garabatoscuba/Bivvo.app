@@ -111,6 +111,9 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["treasury-movements"] });
+      queryClient.invalidateQueries({ queryKey: ["bh-treasury"] });
+      queryClient.invalidateQueries({ queryKey: ["bp-injections"] });
+      queryClient.invalidateQueries({ queryKey: ["bp-extractions"] });
       toast({ title: type === "inyeccion" ? "Capital registrado" : "Gasto registrado" });
       onOpenChange(false);
     },
