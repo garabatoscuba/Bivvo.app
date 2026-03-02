@@ -38,6 +38,7 @@ const Services = lazy(() => import("./pages/Services"));
 const Cobros = lazy(() => import("./pages/Cobros"));
 const Nomina = lazy(() => import("./pages/Nomina"));
 const Caja = lazy(() => import("./pages/Caja"));
+const Tesoreria = lazy(() => import("./pages/Tesoreria"));
 const JornadaEntrada = lazy(() => import("./pages/JornadaEntrada"));
 const OnboardingEmpleado = lazy(() => import("./pages/OnboardingEmpleado"));
 const MyEmployment = lazy(() => import("./pages/MyEmployment"));
@@ -185,6 +186,14 @@ const App = () => {
                         element={
                           <ProtectedRoute>
                             <Caja />
+                          </ProtectedRoute>
+                        }
+                      />
+                      <Route
+                        path="/tesoreria"
+                        element={
+                          <ProtectedRoute>
+                            <Tesoreria />
                           </ProtectedRoute>
                         }
                       />

@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { TrendingDown, TrendingUp, Zap } from 'lucide-react';
+import { TrendingDown, TrendingUp, Zap, Landmark } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { getIconComponent } from '@/components/services/IconSelector';
 
 interface ContextAction {
@@ -21,6 +23,8 @@ interface AssistantContextMenuProps {
 export default function AssistantContextMenu({ open, onOpenChange, onAction, children }: AssistantContextMenuProps) {
   const [customActions, setCustomActions] = useState<ContextAction[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
+  const { isOwner, isSuperAdmin } = useAuth();
 
   useEffect(() => {
     supabase
@@ -45,6 +49,15 @@ export default function AssistantContextMenu({ open, onOpenChange, onAction, chi
     return () => { clearTimeout(id); document.removeEventListener('mousedown', handler); };
   }, [open, onOpenChange]);
 
+  const handleAbrirCaja = () => {
+    onOpenChange(false);
+    if (isOwner || isSuperAdmin) {
+      navigate('/tesoreria');
+    } else {
+      navigate('/caja');
+    }
+  };
+
   return (
     <>
       {children}
@@ -66,6 +79,13 @@ export default function AssistantContextMenu({ open, onOpenChange, onAction, chi
           >
             <TrendingUp className="h-4 w-4 text-primary" />
             +Capital
+          </button>
+          <button
+            onClick={handleAbrirCaja}
+            className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted/60 transition-colors text-foreground"
+          >
+            <Landmark className="h-4 w-4 text-muted-foreground" />
+            Abrir Caja
           </button>
           {customActions.map((a) => {
             const Icon = getIconComponent(a.icon) || Zap;
