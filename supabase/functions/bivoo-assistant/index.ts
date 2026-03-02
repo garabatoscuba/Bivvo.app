@@ -137,7 +137,8 @@ ${trainingSection}`;
       );
     }
 
-    // Save conversation async (fire-and-forget)
+    // Save conversation async (fire-and-forget) — saves incoming messages;
+    // the assistant reply will be saved from the client side after streaming completes.
     if (business_id && messages.length > 0) {
       const authHeader = req.headers.get("authorization");
       const token = authHeader?.replace("Bearer ", "");
@@ -154,6 +155,13 @@ ${trainingSection}`;
             messages,
             updated_at: new Date().toISOString(),
           }, { onConflict: "business_id,user_id" }).then(() => {/* silent */});
+
+          // Register feature usage silently
+          sb.rpc("increment_feature_usage", {
+            _business_id: business_id,
+            _user_id: user.id,
+            _feature_key: "assistant_chat",
+          }).then(() => {/* silent */});
         }
       }
     }
