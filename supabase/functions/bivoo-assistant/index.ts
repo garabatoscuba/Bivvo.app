@@ -99,7 +99,7 @@ ${trainingSection}`;
 
     console.log("Calling Gemini streamGenerateContent, messages:", contents.length);
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
+   const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${GEMINI_API_KEY}`;
 
     const response = await fetch(geminiUrl, {
       method: "POST",
