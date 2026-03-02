@@ -2183,6 +2183,73 @@ export type Database = {
           },
         ]
       }
+      product_stock_entries: {
+        Row: {
+          branch_id: string
+          business_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          reason: string | null
+          sale_price: number | null
+          supplier: string | null
+          unit_cost: number | null
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          business_id: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity?: number
+          reason?: string | null
+          sale_price?: number | null
+          supplier?: string | null
+          unit_cost?: number | null
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          business_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          reason?: string | null
+          sale_price?: number | null
+          supplier?: string | null
+          unit_cost?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_stock_entries_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_stock_entries_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           barcode: string | null
