@@ -416,11 +416,19 @@ const AppSidebar = () => {
     "Recursos Humanos": "/employees",
     Nómina: "/nomina",
     Caja: "/caja",
+    Tesorería: "/tesoreria",
     Impresiones2: "/impresiones",
   };
 
+  // For owner: replace Caja with Tesorería in sidebar
+  const ownerFilteredModules = sidebarModules.filter((m) => {
+    // Owner sees Tesorería instead of standalone Caja
+    if ((isOwner || isSuperAdmin) && !isEmployeeSession && m.name === "Caja") return false;
+    return true;
+  });
+
   const businessItems = [
-    ...sidebarModules.map((m) => ({
+    ...ownerFilteredModules.map((m) => ({
       title: m.sidebar_label,
       url: moduleUrlMap[m.name] || "/",
       icon: getIconComponent(m.icon),
