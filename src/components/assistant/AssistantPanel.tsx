@@ -178,6 +178,32 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
           } catch { /* ignore */ }
         }
       }
+
+      // Save the full conversation including assistant reply (fire-and-forget)
+      if (assistantContent && profile?.business_id) {
+        const finalMessages = [
+          ...allMessages,
+          { role: 'assistant' as const, content: assistantContent },
+        ];
+        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+        fetch(`${SUPABASE_URL}/rest/v1/assistant_conversations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            apikey: SUPABASE_KEY,
+            Prefer: 'resolution=merge-duplicates',
+          },
+          body: JSON.stringify({
+            business_id: profile.business_id,
+            user_id: profile.user_id,
+            user_role: chatRole,
+            messages: finalMessages,
+            updated_at: new Date().toISOString(),
+          }),
+        }).catch(() => {/* silent */});
+      }
     } catch (e) {
       console.error('Assistant error:', e);
       setMessages(prev => [
