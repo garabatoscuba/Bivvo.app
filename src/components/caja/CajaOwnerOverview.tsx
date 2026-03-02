@@ -23,14 +23,17 @@ import {
   DollarSign,
   ChevronDown,
   Clock,
-  ArrowUpRight,
   ArrowDownToLine,
   ArrowUpFromLine,
   Inbox,
   User,
+  Store,
+  KeyRound,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Separator } from "@/components/ui/separator";
+import CajaActiva from "@/components/caja/CajaActiva";
 
 const CajaOwnerOverview = () => {
   const { profile } = useAuth();
@@ -41,14 +44,13 @@ const CajaOwnerOverview = () => {
     profile?.branch_id || ""
   );
 
-  // Default to first branch if none selected
   useEffect(() => {
     if (!selectedBranchId && branches.length > 0) {
       setSelectedBranchId(branches[0].id);
     }
   }, [branches, selectedBranchId]);
 
-  // Fetch all open registers for the selected branch
+  // Fetch all open registers for the selected branch (excluding owner)
   const { data: openRegisters = [], isLoading } = useQuery({
     queryKey: ["owner-open-registers", selectedBranchId],
     queryFn: async () => {
@@ -60,12 +62,13 @@ const CajaOwnerOverview = () => {
         .eq("status", "open")
         .order("opened_at", { ascending: true });
       if (error) throw error;
-      return data || [];
+      // Exclude the owner's own register
+      return (data || []).filter((r) => r.user_id !== profile?.user_id);
     },
     enabled: !!selectedBranchId,
   });
 
-  // Fetch employee names for the open registers
+  // Fetch employee names
   const userIds = useMemo(
     () => [...new Set(openRegisters.map((r) => r.user_id))],
     [openRegisters]
@@ -88,7 +91,7 @@ const CajaOwnerOverview = () => {
     enabled: userIds.length > 0,
   });
 
-  // Fetch sales data for all open registers (aggregated by register opened_at)
+  // Fetch sales data for open registers
   const earliestOpen = useMemo(() => {
     if (openRegisters.length === 0) return null;
     return openRegisters.reduce(
@@ -108,7 +111,6 @@ const CajaOwnerOverview = () => {
         .eq("status", "completed")
         .gte("created_at", earliestOpen);
       const map: Record<string, { cash: number; transfer: number }> = {};
-      // Initialize for each register
       openRegisters.forEach((r) => {
         map[r.user_id] = { cash: 0, transfer: 0 };
       });
@@ -160,7 +162,7 @@ const CajaOwnerOverview = () => {
     refetchInterval: 15000,
   });
 
-  // Fetch movements for all open registers
+  // Fetch movements for open registers
   const registerIds = useMemo(
     () => openRegisters.map((r) => r.id),
     [openRegisters]
@@ -187,7 +189,7 @@ const CajaOwnerOverview = () => {
     refetchInterval: 15000,
   });
 
-  // Realtime subscription for cash_registers changes on this branch
+  // Realtime subscription
   useEffect(() => {
     if (!selectedBranchId) return;
     const channel = supabase
@@ -212,7 +214,7 @@ const CajaOwnerOverview = () => {
     };
   }, [selectedBranchId, queryClient]);
 
-  // Compute consolidated totals
+  // Consolidated totals (employees only)
   const totals = useMemo(() => {
     let cash = 0;
     let transfer = 0;
@@ -240,117 +242,136 @@ const CajaOwnerOverview = () => {
   const selectedBranch = branches.find((b) => b.id === selectedBranchId);
 
   return (
-    <div className="space-y-4 mt-2">
-      {/* Header with branch selector */}
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold text-muted-foreground">
-          Resumen de Caja
+    <div className="space-y-6 mt-2">
+      {/* ===== SECTION 1: Cajas del negocio ===== */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-sm font-semibold flex items-center gap-1.5">
+            <Store className="h-4 w-4 text-muted-foreground" />
+            Cajas del negocio
+          </h2>
+          {branches.length > 1 && (
+            <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
+              <SelectTrigger className="w-[180px] h-8 text-xs">
+                <SelectValue placeholder="Sucursal" />
+              </SelectTrigger>
+              <SelectContent>
+                {branches.map((b) => (
+                  <SelectItem key={b.id} value={b.id} className="text-xs">
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+          {branches.length === 1 && selectedBranch && (
+            <span className="text-xs text-muted-foreground">
+              {selectedBranch.name}
+            </span>
+          )}
+        </div>
+
+        {/* Consolidated summary */}
+        <div className="grid grid-cols-3 gap-3">
+          <Card>
+            <CardContent className="p-3 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-1">
+                <Wallet className="h-3.5 w-3.5" /> Efectivo
+              </div>
+              <div className="text-lg font-bold">${totals.cash.toFixed(2)}</div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-3 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-1">
+                <CreditCard className="h-3.5 w-3.5" /> Transferencias
+              </div>
+              <div className="text-lg font-bold">
+                ${totals.transfer.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="p-3 text-center">
+              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-1">
+                <DollarSign className="h-3.5 w-3.5" /> Total
+              </div>
+              <div className="text-lg font-bold">${totals.total.toFixed(2)}</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Open register cards */}
+        {isLoading ? (
+          <div className="py-8 text-center text-sm text-muted-foreground">
+            Cargando cajas...
+          </div>
+        ) : openRegisters.length === 0 ? (
+          <Card>
+            <CardContent className="py-10 flex flex-col items-center gap-3 text-muted-foreground">
+              <Inbox className="h-10 w-10" />
+              <p className="text-sm">No hay cajas de empleados abiertas en esta sucursal</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            <h3 className="text-xs font-medium text-muted-foreground">
+              Cajas abiertas ({openRegisters.length})
+            </h3>
+            {openRegisters.map((reg) => {
+              const uid = reg.user_id;
+              const sCash = salesByUser[uid]?.cash || 0;
+              const svCash = servicesByUser[uid]?.cash || 0;
+              const sTransfer = salesByUser[uid]?.transfer || 0;
+              const svTransfer = servicesByUser[uid]?.transfer || 0;
+              const movements = movementsByRegister[reg.id] || [];
+              const mvDelta = movements.reduce(
+                (sum: number, m: any) =>
+                  sum +
+                  (m.movement_type === "insertion"
+                    ? Number(m.amount)
+                    : -Number(m.amount)),
+                0
+              );
+              const expectedCash =
+                Number(reg.opening_amount) + sCash + svCash + mvDelta;
+              const totalTransfers = sTransfer + svTransfer;
+
+              return (
+                <RegisterCard
+                  key={reg.id}
+                  register={reg}
+                  employeeName={profilesMap[uid] || "Empleado"}
+                  salesCash={sCash}
+                  servicesCash={svCash}
+                  transfers={totalTransfers}
+                  expectedCash={expectedCash}
+                  movements={movements}
+                />
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <Separator />
+
+      {/* ===== SECTION 2: Mi Caja (dueño) ===== */}
+      <section className="space-y-4">
+        <h2 className="text-sm font-semibold flex items-center gap-1.5">
+          <KeyRound className="h-4 w-4 text-muted-foreground" />
+          Mi Caja
         </h2>
-        {branches.length > 1 && (
-          <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
-            <SelectTrigger className="w-[180px] h-8 text-xs">
-              <SelectValue placeholder="Sucursal" />
-            </SelectTrigger>
-            <SelectContent>
-              {branches.map((b) => (
-                <SelectItem key={b.id} value={b.id} className="text-xs">
-                  {b.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        {branches.length === 1 && selectedBranch && (
-          <span className="text-xs text-muted-foreground">
-            {selectedBranch.name}
-          </span>
-        )}
-      </div>
-
-      {/* Consolidated summary */}
-      <div className="grid grid-cols-3 gap-3">
-        <Card>
-          <CardContent className="p-3 text-center">
-            <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <Wallet className="h-3.5 w-3.5" /> Efectivo
-            </div>
-            <div className="text-lg font-bold">${totals.cash.toFixed(2)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3 text-center">
-            <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <CreditCard className="h-3.5 w-3.5" /> Transferencias
-            </div>
-            <div className="text-lg font-bold">
-              ${totals.transfer.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-primary/30 bg-primary/5">
-          <CardContent className="p-3 text-center">
-            <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground mb-1">
-              <DollarSign className="h-3.5 w-3.5" /> Total
-            </div>
-            <div className="text-lg font-bold">${totals.total.toFixed(2)}</div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Open register cards */}
-      {isLoading ? (
-        <div className="py-8 text-center text-sm text-muted-foreground">
-          Cargando cajas...
-        </div>
-      ) : openRegisters.length === 0 ? (
-        <Card>
-          <CardContent className="py-12 flex flex-col items-center gap-3 text-muted-foreground">
-            <Inbox className="h-10 w-10" />
-            <p className="text-sm">No hay cajas abiertas en esta sucursal</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="space-y-3">
-          <h3 className="text-xs font-medium text-muted-foreground">
-            Cajas abiertas ({openRegisters.length})
-          </h3>
-          {openRegisters.map((reg) => {
-            const uid = reg.user_id;
-            const sCash = salesByUser[uid]?.cash || 0;
-            const svCash = servicesByUser[uid]?.cash || 0;
-            const sTransfer = salesByUser[uid]?.transfer || 0;
-            const svTransfer = servicesByUser[uid]?.transfer || 0;
-            const movements = movementsByRegister[reg.id] || [];
-            const mvDelta = movements.reduce(
-              (sum: number, m: any) =>
-                sum +
-                (m.movement_type === "insertion"
-                  ? Number(m.amount)
-                  : -Number(m.amount)),
-              0
-            );
-            const expectedCash =
-              Number(reg.opening_amount) + sCash + svCash + mvDelta;
-            const totalTransfers = sTransfer + svTransfer;
-
-            return (
-              <RegisterCard
-                key={reg.id}
-                register={reg}
-                employeeName={profilesMap[uid] || "Empleado"}
-                salesCash={sCash}
-                servicesCash={svCash}
-                transfers={totalTransfers}
-                expectedCash={expectedCash}
-                movements={movements}
-              />
-            );
-          })}
-        </div>
-      )}
+        <p className="text-xs text-muted-foreground -mt-2">
+          Tu caja personal. Independiente de las cajas de empleados.
+        </p>
+        <CajaActiva forceEmployeeMode />
+      </section>
     </div>
   );
 };
+
+/* ───── Employee Register Card (collapsible) ───── */
 
 interface RegisterCardProps {
   register: any;

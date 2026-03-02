@@ -37,7 +37,11 @@ const DENOMINATIONS_SMALL = [1, 3, 5, 10];
 const DENOMINATIONS_LOW = [1, 2, 5, 10];
 const DENOMINATIONS_ALL = [1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000];
 
-const CajaActiva = () => {
+interface CajaActivaProps {
+  forceEmployeeMode?: boolean;
+}
+
+const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const { toast } = useToast();
@@ -72,7 +76,7 @@ const CajaActiva = () => {
     queryKey: ["last-closed-fund", branchId, profile?.user_id],
     queryFn: async () => {
       if (!branchId) return 0;
-      const mode = config?.mode || "branch";
+      const mode = forceEmployeeMode ? "employee" : (config?.mode || "branch");
       let query = supabase
         .from("cash_registers")
         .select("next_day_fund")
@@ -96,7 +100,7 @@ const CajaActiva = () => {
     queryKey: ["active-cash-register", branchId, profile?.user_id],
     queryFn: async () => {
       if (!branchId) return null;
-      const mode = config?.mode || "branch";
+      const mode = forceEmployeeMode ? "employee" : (config?.mode || "branch");
       let query = supabase
         .from("cash_registers")
         .select("*")
