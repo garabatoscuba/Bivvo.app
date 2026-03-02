@@ -9,17 +9,41 @@ interface BivooFaceProps {
   className?: string;
 }
 
+const keyframesStyle = `
+@keyframes bivoo-breathe {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.04); }
+}
+@keyframes bivoo-think {
+  0%, 100% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+}
+@keyframes bivoo-respond {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+@keyframes bivoo-dot-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+`;
+
 export default function BivooFace({ state, hasUnread, className }: BivooFaceProps) {
   return (
     <div className={cn('relative', className)}>
+      <style>{keyframesStyle}</style>
       <div
-        className={cn(
-          'relative w-12 h-12 rounded-full overflow-hidden transition-transform',
-          state === 'thinking' && 'animate-bivoo-think',
-          state === 'responding' && 'animate-bivoo-respond',
-          state === 'idle' && 'animate-bivoo-blink',
-          state === 'notification' && 'animate-bivoo-blink',
-        )}
+        className="relative w-12 h-12 rounded-full overflow-hidden"
+        style={{
+          animation:
+            state === 'thinking'
+              ? 'bivoo-think 0.6s ease-in-out infinite'
+              : state === 'responding'
+                ? 'bivoo-respond 0.8s ease-in-out infinite'
+                : state === 'idle'
+                  ? 'bivoo-breathe 3s ease-in-out infinite'
+                  : 'none',
+        }}
       >
         <img
           src={bivooFaceSvg}
@@ -32,10 +56,10 @@ export default function BivooFace({ state, hasUnread, className }: BivooFaceProp
       {/* Notification dot */}
       {(hasUnread || state === 'notification') && (
         <span
-          className={cn(
-            'absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-destructive border-2 border-background',
-            state === 'notification' && 'animate-bivoo-pulse',
-          )}
+          className="absolute -top-0.5 -right-0.5 w-[10px] h-[10px] rounded-full bg-destructive border-2 border-background"
+          style={{
+            animation: 'bivoo-dot-pulse 1.5s ease-in-out infinite',
+          }}
         />
       )}
     </div>
