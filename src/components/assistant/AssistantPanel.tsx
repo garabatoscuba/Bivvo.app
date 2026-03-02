@@ -10,6 +10,7 @@ import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useLocation } from 'react-router-dom';
 import type { BivooState } from './BivooFace';
+import bivooFaceSvg from '@/assets/bivoo-face.svg';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -199,11 +200,8 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
     <div className="fixed bottom-20 right-4 z-[60] w-[340px] max-h-[520px] flex flex-col rounded-2xl border bg-card shadow-xl animate-scale-in overflow-hidden md:w-[380px]">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
-        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-          <div className="flex items-center gap-[3px]">
-            <div className="w-[5px] h-[5px] rounded-full bg-primary-foreground" />
-            <div className="w-[5px] h-[5px] rounded-full bg-primary-foreground" />
-          </div>
+        <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
+          <img src={bivooFaceSvg} alt="Bivoo" className="w-full h-full object-cover" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-semibold leading-tight">Asistente Bivoo</p>
@@ -273,11 +271,8 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
             </div>
             {/* Greeting bubble */}
             <div className="flex items-end gap-2 mt-3">
-              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-                <div className="flex items-center gap-[2px]">
-                  <div className="w-[3px] h-[3px] rounded-full bg-primary-foreground" />
-                  <div className="w-[3px] h-[3px] rounded-full bg-primary-foreground" />
-                </div>
+              <div className="w-6 h-6 rounded-full overflow-hidden shrink-0">
+                <img src={bivooFaceSvg} alt="Bivoo" className="w-full h-full object-cover" />
               </div>
               <div className="bg-muted/60 rounded-2xl rounded-bl-md px-3 py-2 max-w-[85%]">
                 <p className="text-sm">
@@ -289,36 +284,49 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
         )}
 
         {/* Messages */}
-        {messages.map((m, i) => (
-          <div key={i} className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start items-end gap-2')}>
-            {m.role === 'assistant' && (
-              <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-                <div className="flex items-center gap-[2px]">
-                  <div className="w-[3px] h-[3px] rounded-full bg-primary-foreground" />
-                  <div className="w-[3px] h-[3px] rounded-full bg-primary-foreground" />
+        {messages.map((m, i) => {
+          const isLastAssistant = m.role === 'assistant' && !isLoading &&
+            (i === messages.length - 1 || messages.slice(i + 1).every(x => x.role !== 'assistant'));
+          return (
+            <div key={i}>
+              <div className={cn('flex', m.role === 'user' ? 'justify-end' : 'justify-start items-end gap-2')}>
+                {m.role === 'assistant' && (
+                  <div className="w-6 h-6 rounded-full overflow-hidden shrink-0">
+                    <img src={bivooFaceSvg} alt="Bivoo" className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    'max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap',
+                    m.role === 'user'
+                      ? 'bg-primary text-primary-foreground rounded-br-md'
+                      : 'bg-muted/60 text-foreground rounded-bl-md',
+                  )}
+                >
+                  {m.content}
                 </div>
               </div>
-            )}
-            <div
-              className={cn(
-                'max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap',
-                m.role === 'user'
-                  ? 'bg-primary text-primary-foreground rounded-br-md'
-                  : 'bg-muted/60 text-foreground rounded-bl-md',
+              {isLastAssistant && (
+                <div className="flex flex-wrap gap-1.5 mt-2 ml-8">
+                  {suggestions.slice(0, 3).map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => sendMessage(s)}
+                      className="text-[11px] px-2.5 py-1 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               )}
-            >
-              {m.content}
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isLoading && messages[messages.length - 1]?.role === 'user' && (
           <div className="flex items-end gap-2">
-            <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center shrink-0">
-              <div className="flex items-center gap-[2px]">
-                <div className="w-[3px] h-[3px] rounded-full bg-primary-foreground" />
-                <div className="w-[3px] h-[3px] rounded-full bg-primary-foreground" />
-              </div>
+            <div className="w-6 h-6 rounded-full overflow-hidden shrink-0">
+              <img src={bivooFaceSvg} alt="Bivoo" className="w-full h-full object-cover" />
             </div>
             <div className="bg-muted/60 rounded-2xl rounded-bl-md px-3 py-2">
               <div className="flex gap-1">
