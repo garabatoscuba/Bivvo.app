@@ -81,11 +81,7 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
   // Role for the edge function
   const chatRole = isSeller ? 'seller' : isManager ? 'manager' : isOwner ? 'owner' : 'viewer';
 
-  useEffect(() => {
-    if (open && inputRef.current) {
-      setTimeout(() => inputRef.current?.focus(), 200);
-    }
-  }, [open]);
+  // No auto-focus on mobile to prevent keyboard from opening automatically
 
   useEffect(() => {
     if (scrollRef.current) {
