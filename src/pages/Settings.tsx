@@ -132,12 +132,18 @@ function SecuritySection() {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setSaving(false);
     if (error) {
-      const msg = error.message?.includes('same')
-        ? 'La nueva contraseña debe ser diferente a la actual'
-        : error.message || 'Error al cambiar la contraseña';
+      const raw = (error.message || '').toLowerCase();
+      let msg = 'Error al cambiar la contraseña';
+      if (raw.includes('same') || raw.includes('different') || raw.includes('previously used')) {
+        msg = 'No puedes usar la misma contraseña que tenías antes';
+      } else if (raw.includes('weak') || raw.includes('strength') || raw.includes('short') || raw.includes('characters') || raw.includes('length')) {
+        msg = 'La contraseña debe tener al menos 6 caracteres';
+      } else if (raw.includes('password')) {
+        msg = error.message;
+      }
       toast.error(msg);
     } else {
-      toast.success('Contraseña actualizada');
+      toast.success('Contraseña cambiada exitosamente');
       setNewPassword('');
       setConfirmPassword('');
     }
