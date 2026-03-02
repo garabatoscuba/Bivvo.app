@@ -10,12 +10,10 @@ const corsHeaders = {
 const ROLE_RESTRICTIONS: Record<string, string> = {
   seller:
     "El usuario es vendedor/dependiente. Solo puedes responder sobre POS, Servicios y Caja. Si pregunta algo fuera de estos módulos, indica que no tiene acceso a esa función.",
-  partner:
-    "El usuario es Partner. Solo puedes responder sobre Mi Red. No reveles información de otros módulos.",
+  partner: "El usuario es Partner. Solo puedes responder sobre Mi Red. No reveles información de otros módulos.",
   manager:
     "El usuario es gerente. Puede preguntar sobre POS, Servicios, Caja, Inventario, Pedidos, Reportes, Empleados y Ventas. No tiene acceso a Planes, suscripciones ni configuración de negocio.",
-  owner:
-    "El usuario es dueño del negocio. Tiene acceso completo a todos los módulos.",
+  owner: "El usuario es dueño del negocio. Tiene acceso completo a todos los módulos.",
 };
 
 const TONE_MAP: Record<string, string> = {
@@ -32,7 +30,7 @@ serve(async (req) => {
   try {
     const { messages, role, active_module, business_id } = await req.json();
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const LOVABLE_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -43,12 +41,26 @@ serve(async (req) => {
     const [configRes, btInstrRes, trainingRes] = await Promise.all([
       sb.from("assistant_config").select("*").limit(1).single(),
       business_id
-        ? sb.from("businesses").select("business_type").eq("id", business_id).single().then(async (bizRes) => {
-            if (!bizRes.data?.business_type) return { data: null };
-            return sb.from("assistant_business_type_instructions").select("instructions").eq("business_type", bizRes.data.business_type).single();
-          })
+        ? sb
+            .from("businesses")
+            .select("business_type")
+            .eq("id", business_id)
+            .single()
+            .then(async (bizRes) => {
+              if (!bizRes.data?.business_type) return { data: null };
+              return sb
+                .from("assistant_business_type_instructions")
+                .select("instructions")
+                .eq("business_type", bizRes.data.business_type)
+                .single();
+            })
         : Promise.resolve({ data: null }),
-      sb.from("assistant_training_examples").select("question, answer").eq("is_active", true).order("sort_order").limit(20),
+      sb
+        .from("assistant_training_examples")
+        .select("question, answer")
+        .eq("is_active", true)
+        .order("sort_order")
+        .limit(20),
     ]);
 
     const config = configRes.data;
@@ -57,10 +69,10 @@ serve(async (req) => {
 
     // Check if assistant is disabled
     if (config && !config.is_enabled) {
-      return new Response(
-        JSON.stringify({ error: "El asistente está desactivado temporalmente." }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "El asistente está desactivado temporalmente." }), {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const roleInstructions = ROLE_RESTRICTIONS[role] || ROLE_RESTRICTIONS.owner;
@@ -69,9 +81,9 @@ serve(async (req) => {
     // Build training section
     let trainingSection = "";
     if (trainingExamples.length > 0) {
-      trainingSection = "\n\nEJEMPLOS DE REFERENCIA:\n" + trainingExamples.map((e: any) =>
-        `Pregunta: ${e.question}\nRespuesta ideal: ${e.answer}`
-      ).join("\n\n");
+      trainingSection =
+        "\n\nEJEMPLOS DE REFERENCIA:\n" +
+        trainingExamples.map((e: any) => `Pregunta: ${e.question}\nRespuesta ideal: ${e.answer}`).join("\n\n");
     }
 
     const systemPrompt = `Eres el asistente virtual de Bivoo, una plataforma de gestión para negocios.
@@ -97,44 +109,38 @@ ${config?.base_instructions || ""}
 ${btInstructions ? "\nINSTRUCCIONES DEL TIPO DE NEGOCIO:\n" + btInstructions : ""}
 ${trainingSection}`;
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            ...messages,
-          ],
-          stream: true,
-        }),
-      }
-    );
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [{ role: "system", content: systemPrompt }, ...messages],
+        stream: true,
+      }),
+    });
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Se agotaron los créditos de IA." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        return new Response(JSON.stringify({ error: "Se agotaron los créditos de IA." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
-      return new Response(
-        JSON.stringify({ error: "Error del asistente" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify({ error: "Error del asistente" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Save conversation async (fire-and-forget) — saves incoming messages;
@@ -146,22 +152,33 @@ ${trainingSection}`;
         const userClient = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
           global: { headers: { Authorization: `Bearer ${token}` } },
         });
-        const { data: { user } } = await userClient.auth.getUser(token);
+        const {
+          data: { user },
+        } = await userClient.auth.getUser(token);
         if (user) {
-          sb.from("assistant_conversations").upsert({
-            business_id,
-            user_id: user.id,
-            user_role: role || "viewer",
-            messages,
-            updated_at: new Date().toISOString(),
-          }, { onConflict: "business_id,user_id" }).then(() => {/* silent */});
+          sb.from("assistant_conversations")
+            .upsert(
+              {
+                business_id,
+                user_id: user.id,
+                user_role: role || "viewer",
+                messages,
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "business_id,user_id" },
+            )
+            .then(() => {
+              /* silent */
+            });
 
           // Register feature usage silently
           sb.rpc("increment_feature_usage", {
             _business_id: business_id,
             _user_id: user.id,
             _feature_key: "assistant_chat",
-          }).then(() => {/* silent */});
+          }).then(() => {
+            /* silent */
+          });
         }
       }
     }
@@ -171,9 +188,9 @@ ${trainingSection}`;
     });
   } catch (e) {
     console.error("bivoo-assistant error:", e);
-    return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
