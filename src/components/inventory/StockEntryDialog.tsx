@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, PackagePlus, MapPin, User, FileText } from 'lucide-react';
+import { Loader2, PackagePlus, MapPin, User, FileText, DollarSign, Tag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -39,6 +39,9 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
   const [origin, setOrigin] = useState('');
   const [authorizedBy, setAuthorizedBy] = useState('');
   const [notes, setNotes] = useState('');
+  const [unitCost, setUnitCost] = useState('');
+  const [newSalePrice, setNewSalePrice] = useState('');
+  const [supplier, setSupplier] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const resetForm = () => {
@@ -48,6 +51,9 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     setOrigin('');
     setAuthorizedBy('');
     setNotes('');
+    setUnitCost('');
+    setNewSalePrice('');
+    setSupplier('');
   };
 
   const handleClose = (value: boolean) => {
@@ -115,6 +121,32 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
         notes: detailParts.join(' | '),
       });
 
+      // Save stock entry for Treasury cost tracking
+      const businessId = profile.business_id || (await supabase.from('branches').select('business_id').eq('id', branchId).single()).data?.business_id;
+      if (businessId) {
+        await supabase.from('product_stock_entries' as any).insert({
+          business_id: businessId,
+          branch_id: branchId,
+          product_id: product.id,
+          user_id: profile.user_id,
+          quantity: totalQty,
+          unit_cost: unitCost ? parseFloat(unitCost) : null,
+          sale_price: newSalePrice ? parseFloat(newSalePrice) : null,
+          supplier: supplier.trim() || null,
+          notes: notes.trim() || null,
+          reason: reason || null,
+        });
+      }
+
+      // Update product sale_price if user provided a new one
+      if (newSalePrice && parseFloat(newSalePrice) > 0) {
+        await supabase
+          .from('products')
+          .update({ sale_price: parseFloat(newSalePrice) })
+          .eq('id', product.id);
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+      }
+
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       toast({ title: `Entrada de ${totalQty} unidades registrada` });
@@ -130,7 +162,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <PackagePlus className="h-5 w-5 text-primary" />
@@ -141,7 +173,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-2 overflow-y-auto">
+        <div className="space-y-4 py-2 overflow-y-auto flex-1 min-h-0">
           {/* Quantities */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -205,6 +237,48 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
               placeholder="Nombre de quien autoriza"
               value={authorizedBy}
               onChange={(e) => setAuthorizedBy(e.target.value)}
+            />
+          </div>
+
+          {/* Cost & Price */}
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                Costo unitario
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Precio que pagaste"
+                value={unitCost}
+                onChange={(e) => setUnitCost(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                Precio de venta
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Nuevo precio de venta"
+                value={newSalePrice}
+                onChange={(e) => setNewSalePrice(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Supplier */}
+          <div className="space-y-1.5">
+            <Label>Proveedor</Label>
+            <Input
+              placeholder="Nombre del proveedor"
+              value={supplier}
+              onChange={(e) => setSupplier(e.target.value)}
             />
           </div>
 
