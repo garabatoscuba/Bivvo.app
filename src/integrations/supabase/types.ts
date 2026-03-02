@@ -1275,6 +1275,67 @@ export type Database = {
           },
         ]
       }
+      employee_salary_records: {
+        Row: {
+          amount: number
+          branch_id: string
+          business_id: string
+          created_at: string
+          employee_name: string
+          employee_user_id: string
+          id: string
+          jornada_id: string | null
+          payment_method: string
+          salary_date: string
+        }
+        Insert: {
+          amount?: number
+          branch_id: string
+          business_id: string
+          created_at?: string
+          employee_name: string
+          employee_user_id: string
+          id?: string
+          jornada_id?: string | null
+          payment_method?: string
+          salary_date?: string
+        }
+        Update: {
+          amount?: number
+          branch_id?: string
+          business_id?: string
+          created_at?: string
+          employee_name?: string
+          employee_user_id?: string
+          id?: string
+          jornada_id?: string | null
+          payment_method?: string
+          salary_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_salary_records_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_salary_records_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_salary_records_jornada_id_fkey"
+            columns: ["jornada_id"]
+            isOneToOne: false
+            referencedRelation: "jornadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employees: {
         Row: {
           address: string | null
@@ -2010,6 +2071,70 @@ export type Database = {
           },
           {
             foreignKeyName: "product_commissions_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_entries: {
+        Row: {
+          branch_id: string
+          business_id: string
+          cost_per_unit: number
+          created_at: string
+          entry_date: string
+          id: string
+          notes: string | null
+          product_id: string
+          quantity: number
+          sale_price_per_unit: number
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          business_id: string
+          cost_per_unit?: number
+          created_at?: string
+          entry_date?: string
+          id?: string
+          notes?: string | null
+          product_id: string
+          quantity?: number
+          sale_price_per_unit?: number
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          business_id?: string
+          cost_per_unit?: number
+          created_at?: string
+          entry_date?: string
+          id?: string
+          notes?: string | null
+          product_id?: string
+          quantity?: number
+          sale_price_per_unit?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_entries_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_entries_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"

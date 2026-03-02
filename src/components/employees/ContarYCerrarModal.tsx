@@ -212,6 +212,20 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
       return;
     }
 
+    // Insert salary record for Balance Personal
+    if (user?.id && salarioTotal > 0) {
+      await supabase.from('employee_salary_records' as any).insert({
+        business_id: employeeBusinessId,
+        branch_id: jornada.sucursal_id,
+        employee_user_id: user.id,
+        employee_name: profile?.full_name || 'Empleado',
+        amount: salarioTotal,
+        salary_date: todayStr,
+        payment_method: 'pending',
+        jornada_id: jornada.id,
+      });
+    }
+
     queryClient.invalidateQueries({ queryKey: ['jornada-activa'] });
     queryClient.invalidateQueries({ queryKey: ['jornadas-activas-business'] });
     queryClient.invalidateQueries({ queryKey: ['my-today-tips'] });
