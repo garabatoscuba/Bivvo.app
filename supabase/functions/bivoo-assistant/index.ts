@@ -28,6 +28,7 @@ serve(async (req) => {
   }
 
   try {
+    console.log("GEMINI_API_KEY present:", !!Deno.env.get("VITE_GEMINI_API_KEY"));
     const { messages, role, active_module, business_id } = await req.json();
 
     const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
@@ -116,7 +117,7 @@ ${trainingSection}`;
     }));
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse`,
       {
         method: "POST",
         headers: {
@@ -133,7 +134,9 @@ ${trainingSection}`;
 
     if (!response.ok) {
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." }), {
+        const body = await response.text();
+        console.error("Gemini 429:", body);
+        return new Response(JSON.stringify({ error: "Límite de API alcanzado. Intenta en unos segundos.", detail: body }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
