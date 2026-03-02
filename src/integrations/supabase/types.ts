@@ -2704,6 +2704,101 @@ export type Database = {
           },
         ]
       }
+      treasury_categories: {
+        Row: {
+          business_id: string
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treasury_categories_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      treasury_movements: {
+        Row: {
+          amount: number
+          business_id: string
+          cash_amount: number
+          category_id: string | null
+          created_at: string
+          id: string
+          label: string
+          movement_type: string
+          origin: string | null
+          payment_method: string
+          reason: string | null
+          registered_by: string
+          transfer_amount: number
+        }
+        Insert: {
+          amount: number
+          business_id: string
+          cash_amount?: number
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          movement_type: string
+          origin?: string | null
+          payment_method?: string
+          reason?: string | null
+          registered_by: string
+          transfer_amount?: number
+        }
+        Update: {
+          amount?: number
+          business_id?: string
+          cash_amount?: number
+          category_id?: string | null
+          created_at?: string
+          id?: string
+          label?: string
+          movement_type?: string
+          origin?: string | null
+          payment_method?: string
+          reason?: string | null
+          registered_by?: string
+          transfer_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "treasury_movements_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "treasury_movements_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "treasury_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string

@@ -1,17 +1,17 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useNavigate } from 'react-router-dom';
 import BivooFace, { type BivooState } from './BivooFace';
 import AssistantPanel from './AssistantPanel';
 import AssistantContextMenu from './AssistantContextMenu';
-import { useToast } from '@/hooks/use-toast';
 
 type VisibleElement = 'none' | 'panel' | 'menu';
 
 export default function BivooAssistant() {
   const { isOwner, isManager } = useAuth();
   const { unreadCount } = useNotifications();
-  const { toast } = useToast();
+  const navigate = useNavigate();
   const [visible, setVisible] = useState<VisibleElement>('none');
   const [faceState, setFaceState] = useState<BivooState>('idle');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -30,7 +30,6 @@ export default function BivooAssistant() {
         setVisible('none');
       }
     };
-    // Delay so the current click doesn't immediately close
     const id = setTimeout(() => document.addEventListener('click', handler), 0);
     return () => {
       clearTimeout(id);
@@ -70,13 +69,11 @@ export default function BivooAssistant() {
 
   const handleAction = useCallback((type: 'gasto' | 'capital' | 'custom', payload?: any) => {
     if (type === 'gasto') {
-      toast({ title: 'Registrar Gasto', description: 'El formulario de extracción de Tesorería estará disponible próximamente.' });
+      navigate('/tesoreria?prefill=extraccion');
     } else if (type === 'capital') {
-      toast({ title: 'Inyectar Capital', description: 'El formulario de inyección de Tesorería estará disponible próximamente.' });
-    } else {
-      toast({ title: 'Acción personalizada', description: JSON.stringify(payload) });
+      navigate('/tesoreria?prefill=inyeccion');
     }
-  }, [toast]);
+  }, [navigate]);
 
   const button = (
     <button

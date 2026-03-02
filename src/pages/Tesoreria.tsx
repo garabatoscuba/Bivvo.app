@@ -1,21 +1,32 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranches } from "@/hooks/useBranches";
+import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CajaActiva from "@/components/caja/CajaActiva";
 import CajaChica from "@/components/caja/CajaChica";
 import CajaHistorial from "@/components/caja/CajaHistorial";
 import CajaConfig from "@/components/caja/CajaConfig";
-import { Landmark, Construction } from "lucide-react";
+import TreasuryMovimientos from "@/components/tesoreria/TreasuryMovimientos";
+import { Landmark } from "lucide-react";
 
 const Tesoreria = () => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
   const { data: branches = [] } = useBranches();
   const activeBranch = branches.find((b) => b.id === profile?.branch_id);
   const isPrivileged = isOwner || isManager || isSuperAdmin;
-  const [mainTab, setMainTab] = useState("caja");
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const prefillType = searchParams.get("prefill") as "extraccion" | "inyeccion" | null;
+  const initialTab = prefillType ? "movimientos" : "caja";
+
+  const [mainTab, setMainTab] = useState(initialTab);
   const [cajaTab, setCajaTab] = useState("activa");
+
+  const handlePrefillConsumed = () => {
+    setSearchParams({}, { replace: true });
+  };
 
   return (
     <AppLayout>
@@ -65,12 +76,13 @@ const Tesoreria = () => {
           </TabsContent>
 
           <TabsContent value="movimientos">
-            <div className="flex flex-col items-center justify-center py-16 text-center space-y-3">
-              <Construction className="h-10 w-10 text-muted-foreground/50" />
-              <p className="text-sm text-muted-foreground">
-                Próximamente — Movimientos del dueño
-              </p>
-            </div>
+            {profile?.business_id && (
+              <TreasuryMovimientos
+                businessId={profile.business_id}
+                prefillType={prefillType}
+                onPrefillConsumed={handlePrefillConsumed}
+              />
+            )}
           </TabsContent>
         </Tabs>
       </div>
