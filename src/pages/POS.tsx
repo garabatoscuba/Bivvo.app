@@ -64,6 +64,7 @@ const POS = () => {
   const [discount, setDiscount] = useState(0);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [tabletCartOpen, setTabletCartOpen] = useState(false);
 
   const stockMap = new Map<string, number>();
   branchStock?.forEach((bs: any) => {
@@ -222,7 +223,7 @@ const POS = () => {
 
   return (
     <AppLayout>
-      <div className="flex flex-col md:flex-row h-[calc(100vh-6.5rem)] md:h-[calc(100vh-8rem)] gap-0 md:gap-4 overflow-hidden max-w-full">
+      <div className="flex flex-col lg:flex-row h-[calc(100vh-6.5rem)] md:h-[calc(100vh-8rem)] gap-0 lg:gap-4 overflow-hidden max-w-full">
         {/* Products Section */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Search & Categories */}
@@ -274,7 +275,7 @@ const POS = () => {
           </div>
 
           {/* Product Grid */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-0">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-20 lg:pb-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -285,7 +286,7 @@ const POS = () => {
                 <p>No se encontraron productos</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4 px-0.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4 px-0.5">
                 {filteredProducts.map((product) => {
                   const availableStock = getAvailableStock(product.id);
                   return (
@@ -304,8 +305,8 @@ const POS = () => {
           </div>
         </div>
 
-        {/* Desktop Cart */}
-        <Card className="hidden md:flex w-80 lg:w-96 flex-col overflow-hidden flex-shrink-0">
+        {/* Desktop Cart (lg+) */}
+        <Card className="hidden lg:flex w-80 lg:w-96 flex-col overflow-hidden flex-shrink-0">
           <POSCart
             items={cart}
             discount={discount}
@@ -325,7 +326,54 @@ const POS = () => {
           )}
         </Card>
 
-        {/* Mobile Cart FAB + Sheet */}
+        {/* Tablet Cart - Bottom Panel (md to lg) */}
+        {tabletCartOpen && (
+          <div className="hidden md:block lg:hidden fixed bottom-0 left-0 right-0 z-50 border-t bg-card shadow-[0_-4px_20px_rgba(0,0,0,0.15)]" style={{ maxHeight: '45vh' }}>
+            <div className="flex flex-col h-full max-h-[45vh] overflow-hidden">
+              <POSCart
+                items={cart}
+                discount={discount}
+                onUpdateQuantity={updateQuantity}
+                onRemoveItem={removeItem}
+                onClearCart={clearCart}
+                onDiscountChange={setDiscount}
+                stockMap={stockMap}
+              />
+              {cart.length > 0 && (
+                <div className="flex-shrink-0 p-3 border-t bg-background">
+                  <Button className="w-full h-11 font-bold" onClick={() => { setTabletCartOpen(false); setPaymentOpen(true); }}>
+                    <ShoppingCart className="h-5 w-5 mr-2" />
+                    Cobrar ${cartTotal.toFixed(2)}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Tablet Cart FAB (md to lg) */}
+        <div className="hidden md:block lg:hidden fixed bottom-4 right-4 z-[51]">
+          <Button
+            size="lg"
+            className={cn(
+              "rounded-full shadow-lg relative",
+              cartItemsCount > 0 ? "h-14 px-5 gap-2" : "h-14 w-14"
+            )}
+            onClick={() => setTabletCartOpen(!tabletCartOpen)}
+          >
+            <ShoppingCart className="h-5 w-5" />
+            {cartItemsCount > 0 && (
+              <span className="text-sm font-bold">${cartTotal.toFixed(2)}</span>
+            )}
+            {cartItemsCount > 0 && (
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-[10px]">
+                {cartItemsCount}
+              </Badge>
+            )}
+          </Button>
+        </div>
+
+        {/* Mobile Cart FAB + Sheet (<md) */}
         <div className="md:hidden fixed bottom-4 right-4 z-50">
           <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
             <SheetTrigger asChild>
