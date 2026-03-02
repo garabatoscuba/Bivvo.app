@@ -28,12 +28,9 @@ import {
   Inbox,
   User,
   Store,
-  KeyRound,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Separator } from "@/components/ui/separator";
-import CajaActiva from "@/components/caja/CajaActiva";
 
 const CajaOwnerOverview = () => {
   const { profile } = useAuth();
@@ -352,20 +349,6 @@ const CajaOwnerOverview = () => {
             })}
           </div>
         )}
-      </section>
-
-      <Separator />
-
-      {/* ===== SECTION 2: Mi Caja (dueño) ===== */}
-      <section className="space-y-4">
-        <h2 className="text-sm font-semibold flex items-center gap-1.5">
-          <KeyRound className="h-4 w-4 text-muted-foreground" />
-          Mi Caja
-        </h2>
-        <p className="text-xs text-muted-foreground -mt-2">
-          Tu caja personal. Independiente de las cajas de empleados.
-        </p>
-        <CajaActiva forceEmployeeMode />
       </section>
     </div>
   );

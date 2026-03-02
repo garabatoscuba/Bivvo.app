@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -21,6 +21,9 @@ import {
   Plus,
   ArrowUpDown,
   Calendar,
+  Bell,
+  Check,
+  X,
 } from "lucide-react";
 import TreasuryCategoryManager from "./TreasuryCategoryManager";
 import TreasuryMovementModal from "./TreasuryMovementModal";
@@ -33,6 +36,7 @@ interface Props {
 
 export default function TreasuryMovimientos({ businessId, prefillType, onPrefillConsumed }: Props) {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPrefill, setModalPrefill] = useState<"extraccion" | "inyeccion" | null>(null);
 
@@ -68,6 +72,7 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
           "Servicios (agua, luz, internet)",
           "Gastos imprevistos",
           "Retiro personal del dueño",
+          "Entrega de caja",
         ];
         const rows = defaults.map((name, i) => ({
           business_id: businessId,
@@ -97,6 +102,69 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
       return (data as any[]) || [];
     },
     enabled: !!businessId,
+  });
+
+  // Pending entries from employee register closings
+  const { data: pendingEntries = [] } = useQuery({
+    queryKey: ["treasury-pending-entries", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("treasury_pending_entries" as any)
+        .select("*")
+        .eq("business_id", businessId)
+        .eq("status", "pending")
+        .order("created_at", { ascending: false });
+      return (data as any[]) || [];
+    },
+    enabled: !!businessId,
+  });
+
+  // Fetch employee names for pending entries
+  const pendingUserIds = useMemo(() => [...new Set(pendingEntries.map((e: any) => e.employee_user_id))], [pendingEntries]);
+  const { data: pendingProfilesMap = {} } = useQuery({
+    queryKey: ["pending-profiles", pendingUserIds],
+    queryFn: async () => {
+      if (pendingUserIds.length === 0) return {};
+      const { data } = await supabase.from("profiles").select("user_id, full_name").in("user_id", pendingUserIds);
+      const map: Record<string, string> = {};
+      data?.forEach((p) => { map[p.user_id] = p.full_name; });
+      return map;
+    },
+    enabled: pendingUserIds.length > 0,
+  });
+
+  const confirmEntryMutation = useMutation({
+    mutationFn: async (entry: any) => {
+      // Find "Entrega de caja" category
+      const entregaCat = categories.find((c: any) => c.name === "Entrega de caja");
+      // Create treasury_movement
+      await supabase.from("treasury_movements" as any).insert({
+        business_id: businessId,
+        user_id: profile!.user_id,
+        movement_type: "inyeccion",
+        amount: entry.amount,
+        category_id: entregaCat?.id || null,
+        label: "negocio",
+        payment_method: "efectivo",
+        origin: pendingProfilesMap[entry.employee_user_id] || "Empleado",
+        reason: "Entrega de caja al cerrar jornada",
+      });
+      // Mark as confirmed
+      await supabase.from("treasury_pending_entries" as any).update({ status: "confirmed" }).eq("id", entry.id);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["treasury-pending-entries"] });
+      queryClient.invalidateQueries({ queryKey: ["treasury-movements"] });
+    },
+  });
+
+  const ignoreEntryMutation = useMutation({
+    mutationFn: async (entryId: string) => {
+      await supabase.from("treasury_pending_entries" as any).update({ status: "ignored" }).eq("id", entryId);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["treasury-pending-entries"] });
+    },
   });
 
   const categoryMap = useMemo(() => {
@@ -180,6 +248,53 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
           </CardContent>
         </Card>
       </div>
+
+      {/* Pending entries from employee register closings */}
+      {pendingEntries.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="text-xs font-semibold flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
+            <Bell className="h-3.5 w-3.5" /> Entregas pendientes ({pendingEntries.length})
+          </h3>
+          {pendingEntries.map((entry: any) => (
+            <Card key={entry.id} className="border-amber-300/50 bg-amber-50/50 dark:border-amber-700/30 dark:bg-amber-950/20">
+              <CardContent className="p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0 space-y-0.5">
+                    <p className="text-sm font-medium">
+                      {pendingProfilesMap[entry.employee_user_id] || "Empleado"} entregó caja
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Monto: <span className="font-semibold text-foreground">${Number(entry.amount).toLocaleString("es", { minimumFractionDigits: 2 })}</span>
+                      {" · "}
+                      {format(new Date(entry.created_at), "dd MMM yyyy · HH:mm", { locale: es })}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 gap-1 text-xs border-green-300 text-green-700 hover:bg-green-50 dark:border-green-700 dark:text-green-400"
+                      onClick={() => confirmEntryMutation.mutate(entry)}
+                      disabled={confirmEntryMutation.isPending}
+                    >
+                      <Check className="h-3.5 w-3.5" /> Confirmar
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 gap-1 text-xs text-muted-foreground"
+                      onClick={() => ignoreEntryMutation.mutate(entry.id)}
+                      disabled={ignoreEntryMutation.isPending}
+                    >
+                      <X className="h-3.5 w-3.5" /> Ignorar
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Filters */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
