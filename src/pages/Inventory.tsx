@@ -18,6 +18,8 @@ import { toast } from '@/hooks/use-toast';
 import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft } from 'lucide-react';
 import { MovementsLog } from '@/components/inventory/MovementsLog';
 import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowDialog';
+import { MermaDialog } from '@/components/inventory/MermaDialog';
+import { MermasTab } from '@/components/inventory/MermasTab';
 import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
 import {
   Select,
@@ -114,6 +116,7 @@ const Inventory = () => {
   const [transferDirection, setTransferDirection] = useState<'toSale' | 'toWarehouse'>('toSale');
   const [outflowProduct, setOutflowProduct] = useState<Product | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  const [mermaOpen, setMermaOpen] = useState(false);
 
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
 
@@ -480,6 +483,10 @@ const Inventory = () => {
               <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
               Movim.
             </TabsTrigger>
+            <TabsTrigger value="mermas" className="flex items-center gap-1 flex-1 text-xs px-2">
+              <PackageX className="h-3.5 w-3.5 shrink-0" />
+              Mermas
+            </TabsTrigger>
           </TabsList>
 
           {/* ─── Products Tab ─── */}
@@ -669,6 +676,14 @@ const Inventory = () => {
           {/* ─── Movements Tab ─── */}
           <TabsContent value="movements" className="mt-4">
             <MovementsLog branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''} />
+          </TabsContent>
+
+          {/* ─── Mermas Tab ─── */}
+          <TabsContent value="mermas" className="mt-4">
+            <MermasTab
+              branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
+              onRegisterMerma={() => setMermaOpen(true)}
+            />
           </TabsContent>
         </Tabs>
       </div>
@@ -951,6 +966,14 @@ const Inventory = () => {
         product={outflowProduct}
         warehouseStock={outflowProduct ? (warehouseStockMap.get(outflowProduct.id) || 0) : 0}
         branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
+      />
+      {/* Merma Dialog */}
+      <MermaDialog
+        open={mermaOpen}
+        onOpenChange={setMermaOpen}
+        branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
+        products={products.map(p => ({ id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price) }))}
+        stockMap={stockMap}
       />
     </AppLayout>
   );

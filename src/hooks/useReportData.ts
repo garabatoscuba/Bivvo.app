@@ -5,6 +5,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { type Period, getDateRange, getPreviousDateRange, isInRange } from '@/lib/periodUtils';
 import { format, eachDayOfInterval } from 'date-fns';
 
+export interface MermaEntry {
+  id: string;
+  created_at: string;
+  quantity: number;
+  cost_value: number;
+  product_name: string;
+  reason: string;
+}
+
 export interface ReportEntry {
   id: string;
   created_at: string;
@@ -99,6 +108,43 @@ export function useReportData(period: Period) {
     enabled: !!businessId,
   });
 
+  // Fetch mermas (losses)
+  const { data: allMermas = [], isLoading: loadingMermas } = useQuery({
+    queryKey: ['report-mermas', businessId, branchId],
+    queryFn: async () => {
+      let query = supabase
+        .from('inventory_movements')
+        .select('id, created_at, quantity, notes, product_id')
+        .eq('movement_type', 'loss')
+        .order('created_at', { ascending: false });
+      if (branchId) query = query.eq('branch_id', branchId);
+      const { data } = await query;
+      if (!data?.length) return [];
+
+      const productIds = [...new Set(data.map(m => m.product_id))];
+      const { data: products } = await supabase
+        .from('products')
+        .select('id, name, cost_price')
+        .in('id', productIds);
+      const productMap = new Map(products?.map(p => [p.id, p]) || []);
+
+      return data.map(m => {
+        const product = productMap.get(m.product_id);
+        const notesStr = m.notes || '';
+        const reasonMatch = notesStr.match(/^Merma:\s*(\S+)/i);
+        return {
+          id: m.id,
+          created_at: m.created_at,
+          quantity: m.quantity,
+          cost_value: m.quantity * Number(product?.cost_price || 0),
+          product_name: product?.name || 'Producto eliminado',
+          reason: reasonMatch ? reasonMatch[1] : 'Otro',
+        } as MermaEntry;
+      });
+    },
+    enabled: !!businessId,
+  });
+
   // Seller name map
   const { data: sellerMap = new Map<string, string>() } = useQuery({
     queryKey: ['report-sellers', businessId],
@@ -131,6 +177,9 @@ export function useReportData(period: Period) {
   const currentSales = useMemo(() => allSales.filter(s => isInRange(s.created_at, currentRange)), [allSales, currentRange]);
   const currentServices = useMemo(() => allServices.filter(s => isInRange(s.created_at, currentRange)), [allServices, currentRange]);
   const currentAll = useMemo(() => [...currentSales, ...currentServices], [currentSales, currentServices]);
+
+  // Mermas in current period
+  const currentMermas = useMemo(() => allMermas.filter(m => isInRange(m.created_at, currentRange)), [allMermas, currentRange]);
 
   // Previous period entries
   const prevSales = useMemo(() => allSales.filter(s => isInRange(s.created_at, previousRange)), [allSales, previousRange]);
@@ -177,13 +226,14 @@ export function useReportData(period: Period) {
     return Array.from(map.values());
   }, [dailyReports]);
 
-  const isLoading = loadingSales || loadingServices || loadingReports;
+  const isLoading = loadingSales || loadingServices || loadingReports || loadingMermas;
 
   return {
     isLoading,
     currentSales,
     currentServices,
     currentAll,
+    currentMermas,
     prevSales,
     prevServices,
     prevAll,
