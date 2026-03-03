@@ -32,6 +32,7 @@ import PerformanceChart from '@/components/employees/PerformanceChart';
 import CerrarJornadaGerenteModal from '@/components/employees/CerrarJornadaGerenteModal';
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
 import HistorialJornadasTab from '@/components/employees/HistorialJornadasTab';
+import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -161,7 +162,8 @@ const Employees = () => {
   // Jornada start/stop loading
   const [jornadaLoading, setJornadaLoading] = useState<string | null>(null);
 
-  const businessId = profile?.business_id;
+  const { businessId: resolvedBusinessId } = useResolvedBusinessId();
+  const businessId = resolvedBusinessId || profile?.business_id;
   const canManage = isOwner || isManager || isSuperAdmin;
   const canDelete = isOwner || isSuperAdmin;
   // Managers can't assign the 'owner' role

@@ -112,8 +112,7 @@ const MyEmploymentDashboard = ({
       setWelcomeMsg(msg);
       shownJornadaRef.current = myJornada.id;
       sessionStorage.setItem(storageKey, '1');
-      const timer = setTimeout(() => setWelcomeMsg(null), 8000);
-      return () => clearTimeout(timer);
+      // Message stays visible permanently (no auto-dismiss)
     }
   }, [jornadaActiva, myJornada?.id, myJornada?.apertura_at, branchSchedule]);
 
