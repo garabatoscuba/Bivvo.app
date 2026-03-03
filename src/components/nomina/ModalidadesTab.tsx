@@ -20,6 +20,8 @@ import CustomMixedConfig from './modality-configs/CustomMixedConfig';
 import type { Preset } from './modality-configs/PresetManager';
 
 const MODALITY_INFO: Record<string, { label: string; description: string }> = {
+  fixed_plus_sales_percent: { label: 'Fijo + % de Venta', description: 'Salario fijo que siempre se suma más un porcentaje de sus ventas' },
+  fixed_plus_profit_percent: { label: 'Fijo + % de Ganancia', description: 'Salario fijo que siempre se suma más un porcentaje de la ganancia (venta - costo)' },
   sales_percent_only: { label: 'Solo % sobre su Venta', description: 'Sin salario fijo, solo porcentaje de lo que vende' },
   profit_percent: { label: '% sobre Ganancia Total', description: 'Porcentaje sobre la ganancia neta del negocio' },
   hourly: { label: 'Por Horas', description: 'Pago según horas trabajadas' },
@@ -260,6 +262,10 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
     if (!selectedType) return null;
 
     switch (selectedType) {
+      case 'fixed_plus_sales_percent':
+        return <SalesPercentConfig type="fixed_plus_sales_percent" config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
+      case 'fixed_plus_profit_percent':
+        return <ProfitPercentConfig config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'sales_percent_only':
         return <SalesPercentConfig type="sales_percent_only" config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'profit_percent':

@@ -15,7 +15,7 @@ const ProfitPercentConfig = ({ config, onConfigChange, presets, onPresetsChange 
     <div className="space-y-4">
       <div className="rounded-lg border p-3 bg-muted/30">
         <p className="text-sm text-muted-foreground">
-          Porcentaje sobre la ganancia neta del negocio (ventas - costos).
+          Porcentaje sobre la ganancia neta (ventas - costos). El % se calcula en tiempo real y el monto final se consolida al cerrar la jornada.
         </p>
       </div>
 

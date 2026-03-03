@@ -3168,6 +3168,7 @@ export type Database = {
         | "fixed_plus_goal_bonus"
         | "hourly"
         | "custom_mixed"
+        | "fixed_plus_profit_percent"
       sale_status: "completed" | "pending" | "cancelled"
       subscription_status: "pending" | "active" | "suspended" | "cancelled"
     }
@@ -3326,6 +3327,7 @@ export const Constants = {
         "fixed_plus_goal_bonus",
         "hourly",
         "custom_mixed",
+        "fixed_plus_profit_percent",
       ],
       sale_status: ["completed", "pending", "cancelled"],
       subscription_status: ["pending", "active", "suspended", "cancelled"],

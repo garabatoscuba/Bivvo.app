@@ -300,10 +300,27 @@ export const useDailySalary = ({
         case 'fixed_plus_sales_percent': {
           const freq = assignment.pay_frequency;
           const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
-          base += baseSalary / days;
+          // Fijo siempre se suma, NO es piso
+          earning += baseSalary / days;
           const salesPct = Number(config.sales_percent || 0);
           displayPercent = salesPct;
           if (salesPct > 0) earning += individualIncome * (salesPct / 100);
+          break;
+        }
+        case 'fixed_plus_profit_percent': {
+          const freq = assignment.pay_frequency;
+          const days = freq === 'daily' ? 1 : freq === 'weekly' ? 7 : freq === 'biweekly' ? 15 : 30;
+          // Fijo siempre se suma, NO es piso
+          earning += baseSalary / days;
+          const profitPct = Number(config.profit_percent || config.percent || 0);
+          displayPercent = profitPct;
+          // Ganancia = venta - costo de los items vendidos hoy
+          if (profitPct > 0) {
+            const todayProfit = todaySaleItems.reduce((sum, item) => {
+              return sum + ((Number(item.unit_price) - Number(item.cost_price)) * Number(item.quantity));
+            }, 0);
+            earning += todayProfit * (profitPct / 100);
+          }
           break;
         }
         case 'sales_percent_only': {
@@ -315,7 +332,13 @@ export const useDailySalary = ({
         case 'profit_percent': {
           const profitPct = Number(config.profit_percent || config.percent || 0);
           displayPercent = profitPct;
-          if (profitPct > 0) earning += individualIncome * (profitPct / 100);
+          // Ganancia real = venta - costo
+          if (profitPct > 0) {
+            const todayProfit = todaySaleItems.reduce((sum, item) => {
+              return sum + ((Number(item.unit_price) - Number(item.cost_price)) * Number(item.quantity));
+            }, 0);
+            earning += todayProfit * (profitPct / 100);
+          }
           break;
         }
         case 'fixed_plus_goal_bonus': {
