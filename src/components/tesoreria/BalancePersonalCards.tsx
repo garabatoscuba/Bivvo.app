@@ -62,13 +62,14 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
 
   // Injections (treasury_movements type inyeccion)
   const { data: injections = 0 } = useQuery({
-    queryKey: ["bp-injections", businessId, period],
+    queryKey: ["bp-injections", businessId, branchId, period],
     queryFn: async () => {
       let q = supabase
         .from("treasury_movements" as any)
         .select("amount")
         .eq("business_id", businessId)
         .eq("movement_type", "inyeccion");
+      if (branchId) q = q.eq("branch_id", branchId);
       if (from) q = q.gte("created_at", from);
       q = q.lte("created_at", to);
       const { data } = await q;
@@ -127,21 +128,20 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
 
   // Extractions (treasury_movements type extraccion)
   const { data: extractionData } = useQuery({
-    queryKey: ["bp-extractions", businessId, period],
+    queryKey: ["bp-extractions", businessId, branchId, period],
     queryFn: async () => {
       let q = supabase
         .from("treasury_movements" as any)
         .select("amount, category_id")
         .eq("business_id", businessId)
         .eq("movement_type", "extraccion");
+      if (branchId) q = q.eq("branch_id", branchId);
       if (from) q = q.gte("created_at", from);
       q = q.lte("created_at", to);
       const { data } = await q;
-      // Split into "retiro personal" (label personal or category "Retiro personal del dueño") and "otros gastos"
       let retiro = 0;
       let otros = 0;
       (data as any[])?.forEach((m: any) => {
-        // We sum all extractions together but categorize by label
         if (m.label === "personal") retiro += Number(m.amount);
         else otros += Number(m.amount);
       });

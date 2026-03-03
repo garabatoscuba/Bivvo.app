@@ -3170,6 +3170,7 @@ export type Database = {
       treasury_movements: {
         Row: {
           amount: number
+          branch_id: string | null
           business_id: string
           cash_amount: number
           category_id: string | null
@@ -3185,6 +3186,7 @@ export type Database = {
         }
         Insert: {
           amount: number
+          branch_id?: string | null
           business_id: string
           cash_amount?: number
           category_id?: string | null
@@ -3200,6 +3202,7 @@ export type Database = {
         }
         Update: {
           amount?: number
+          branch_id?: string | null
           business_id?: string
           cash_amount?: number
           category_id?: string | null
@@ -3214,6 +3217,13 @@ export type Database = {
           transfer_amount?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "treasury_movements_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "treasury_movements_business_id_fkey"
             columns: ["business_id"]

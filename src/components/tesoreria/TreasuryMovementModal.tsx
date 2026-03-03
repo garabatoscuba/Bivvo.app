@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useBranches } from "@/hooks/useBranches";
 import {
   Dialog,
   DialogContent,
@@ -30,12 +31,14 @@ interface Props {
   onOpenChange: (open: boolean) => void;
   businessId: string;
   prefillType?: "extraccion" | "inyeccion" | null;
+  defaultBranchId?: string | null;
 }
 
-export default function TreasuryMovementModal({ open, onOpenChange, businessId, prefillType }: Props) {
+export default function TreasuryMovementModal({ open, onOpenChange, businessId, prefillType, defaultBranchId }: Props) {
   const { profile } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: branches = [] } = useBranches();
 
   const [type, setType] = useState<"extraccion" | "inyeccion">("extraccion");
   const [amount, setAmount] = useState("");
@@ -46,6 +49,7 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
   const [origin, setOrigin] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [label, setLabel] = useState("negocio");
+  const [branchId, setBranchId] = useState<string>("all");
 
   // Reset form when opening
   useEffect(() => {
@@ -59,8 +63,9 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
       setOrigin("");
       setCategoryId("");
       setLabel("negocio");
+      setBranchId(defaultBranchId || "all");
     }
-  }, [open, prefillType]);
+  }, [open, prefillType, defaultBranchId]);
 
   const { data: categories = [] } = useQuery({
     queryKey: ["treasury-categories", businessId],
@@ -94,8 +99,12 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
         }
       }
 
+      const resolvedBranchId = label === "negocio" && branchId !== "all" ? branchId : 
+                                label === "negocio" && branches.length === 1 ? branches[0].id : null;
+
       const { error } = await supabase.from("treasury_movements" as any).insert({
         business_id: businessId,
+        branch_id: resolvedBranchId,
         movement_type: type,
         amount: numAmount,
         payment_method: paymentMethod,
@@ -254,6 +263,24 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
                 </div>
               </RadioGroup>
             </div>
+
+            {/* Branch selector (only when label is negocio and multiple branches) */}
+            {label === "negocio" && branches.length > 1 && (
+              <div className="space-y-1">
+                <Label className="text-sm">Sucursal</Label>
+                <Select value={branchId} onValueChange={setBranchId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar sucursal" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas (general)</SelectItem>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Reason */}
             <div className="space-y-1">

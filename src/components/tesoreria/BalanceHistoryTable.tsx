@@ -149,12 +149,13 @@ export default function BalanceHistoryTable({ businessId, branchId, period }: Pr
 
   // 3. Treasury movements
   const { data: treasuryRows = [] } = useQuery({
-    queryKey: ["bh-treasury", businessId, period],
+    queryKey: ["bh-treasury", businessId, branchId, period],
     queryFn: async () => {
       let q = supabase
         .from("treasury_movements" as any)
-        .select("id, created_at, amount, movement_type, reason, payment_method, origin, treasury_categories(name)")
+        .select("id, created_at, amount, movement_type, reason, payment_method, origin, branch_id, treasury_categories(name)")
         .eq("business_id", businessId);
+      if (branchId) q = q.eq("branch_id", branchId);
       if (from) q = q.gte("created_at", from);
       q = q.lte("created_at", to).order("created_at", { ascending: false }).limit(500);
       const { data } = await q;
