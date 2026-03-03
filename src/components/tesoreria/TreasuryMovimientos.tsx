@@ -21,11 +21,12 @@ type Period = "today" | "week" | "month" | "all";
 
 interface Props {
   businessId: string;
+  branchId?: string | null;
   prefillType?: "extraccion" | "inyeccion" | null;
   onPrefillConsumed?: () => void;
 }
 
-export default function TreasuryMovimientos({ businessId, prefillType, onPrefillConsumed }: Props) {
+export default function TreasuryMovimientos({ businessId, branchId, prefillType, onPrefillConsumed }: Props) {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
@@ -180,7 +181,7 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
       </div>
 
       {/* Balance Personal Cards */}
-      <BalancePersonalCards businessId={businessId} branchId={profile?.branch_id} period={period} />
+      <BalancePersonalCards businessId={businessId} branchId={branchId} period={period} />
 
       {/* Action buttons */}
       <div className="flex items-center justify-between pt-2 border-t">
@@ -238,7 +239,7 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
       )}
 
       {/* Historical table */}
-      <BalanceHistoryTable businessId={businessId} branchId={profile?.branch_id} period={period} />
+      <BalanceHistoryTable businessId={businessId} branchId={branchId} period={period} />
 
       {/* Modals */}
       <TreasuryMovementModal
@@ -246,6 +247,7 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
         onOpenChange={setModalOpen}
         businessId={businessId}
         prefillType={modalPrefill}
+        defaultBranchId={branchId}
       />
     </div>
   );
