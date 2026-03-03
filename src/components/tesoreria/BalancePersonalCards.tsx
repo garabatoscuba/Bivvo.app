@@ -77,19 +77,33 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
     enabled: !!businessId,
   });
 
-  // COGS: sum of all purchases (quantity * unit_cost) from product_stock_entries
+  // COGS: sum of (quantity * cost_price) from sale_items of completed sales
   const { data: productCost = 0 } = useQuery({
     queryKey: ["bp-product-cost", businessId, branchId, period],
     queryFn: async () => {
-      let q = supabase
-        .from("product_stock_entries" as any)
-        .select("quantity, unit_cost")
-        .eq("business_id", businessId);
-      if (branchId) q = q.eq("branch_id", branchId);
-      if (from) q = q.gte("created_at", from);
-      q = q.lte("created_at", to);
-      const { data } = await q;
-      return (data as any[])?.reduce((sum: number, e: any) => sum + Number(e.quantity) * Number(e.unit_cost || 0), 0) || 0;
+      // First get completed sale IDs in the period
+      let sq = supabase
+        .from("sales")
+        .select("id")
+        .eq("status", "completed");
+      if (branchId) sq = sq.eq("branch_id", branchId);
+      if (from) sq = sq.gte("created_at", from);
+      sq = sq.lte("created_at", to);
+      const { data: sales } = await sq;
+      if (!sales || sales.length === 0) return 0;
+
+      const saleIds = sales.map((s: any) => s.id);
+      // Batch in chunks of 50 to avoid URI limits
+      let total = 0;
+      for (let i = 0; i < saleIds.length; i += 50) {
+        const chunk = saleIds.slice(i, i + 50);
+        const { data: items } = await supabase
+          .from("sale_items")
+          .select("quantity, cost_price")
+          .in("sale_id", chunk);
+        total += (items || []).reduce((sum: number, it: any) => sum + Number(it.quantity) * Number(it.cost_price || 0), 0);
+      }
+      return total;
     },
     enabled: !!businessId,
   });
