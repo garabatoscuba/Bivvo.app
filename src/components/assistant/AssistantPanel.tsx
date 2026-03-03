@@ -63,9 +63,11 @@ interface AssistantPanelProps {
   open: boolean;
   onClose: () => void;
   onStateChange: (state: BivooState) => void;
+  canChat?: boolean;
+  canNotifications?: boolean;
 }
 
-export default function AssistantPanel({ open, onClose, onStateChange }: AssistantPanelProps) {
+export default function AssistantPanel({ open, onClose, onStateChange, canChat = true, canNotifications = true }: AssistantPanelProps) {
   const { profile, isOwner, isManager, isSeller } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const location = useLocation();
@@ -75,7 +77,7 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const showNotifications = isOwner || isManager;
+  const showNotifications = canNotifications && (isOwner || isManager);
   const unreadNotifs = notifications.filter((n) => !n.is_read);
   const activeModule = getActiveModule(location.pathname);
   const suggestions = getSuggestions(activeModule);
@@ -289,7 +291,7 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
       {/* Chat area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
         {/* Suggestions when empty */}
-        {messages.length === 0 && (
+        {canChat && messages.length === 0 && (
           <>
             {showNotifications && unreadNotifs.length === 0 && (
               <p className="text-[10px] uppercase tracking-widest text-muted-foreground text-center mb-2">Chat</p>
@@ -384,26 +386,32 @@ export default function AssistantPanel({ open, onClose, onStateChange }: Assista
         )}
       </div>
 
-      {/* Input */}
-      <div className="shrink-0 border-t p-3 flex gap-2">
-        <Input
-          ref={inputRef}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
-          placeholder="Escribe tu pregunta..."
-          className="text-sm rounded-full h-9"
-          disabled={isLoading}
-        />
-        <Button
-          size="icon"
-          className="h-9 w-9 rounded-full shrink-0"
-          disabled={!input.trim() || isLoading}
-          onClick={() => sendMessage(input)}
-        >
-          <Send className="h-4 w-4" />
-        </Button>
-      </div>
+      {/* Input — only if chat is enabled */}
+      {canChat ? (
+        <div className="shrink-0 border-t p-3 flex gap-2">
+          <Input
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
+            placeholder="Escribe tu pregunta..."
+            className="text-sm rounded-full h-9"
+            disabled={isLoading}
+          />
+          <Button
+            size="icon"
+            className="h-9 w-9 rounded-full shrink-0"
+            disabled={!input.trim() || isLoading}
+            onClick={() => sendMessage(input)}
+          >
+            <Send className="h-4 w-4" />
+          </Button>
+        </div>
+      ) : (
+        <div className="shrink-0 border-t p-3 text-center">
+          <p className="text-xs text-muted-foreground">El chat no está disponible en tu plan actual.</p>
+        </div>
+      )}
     </div>
   );
 }

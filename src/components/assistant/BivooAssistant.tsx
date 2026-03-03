@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useAssistantFeatures } from '@/hooks/useAssistantFeatures';
 import { useNavigate } from 'react-router-dom';
 import BivooFace, { type BivooState } from './BivooFace';
 import AssistantPanel from './AssistantPanel';
@@ -11,6 +12,7 @@ type VisibleElement = 'none' | 'panel' | 'menu';
 export default function BivooAssistant() {
   const { isOwner, isManager } = useAuth();
   const { unreadCount } = useNotifications();
+  const { hasAnyFeature, canChat, canContextMenu, canNotifications } = useAssistantFeatures();
   const navigate = useNavigate();
   const [visible, setVisible] = useState<VisibleElement>('none');
   const [faceState, setFaceState] = useState<BivooState>('idle');
@@ -19,8 +21,9 @@ export default function BivooAssistant() {
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
 
-  const showContextMenu = isOwner || isManager;
-  const derivedState: BivooState = faceState !== 'idle' ? faceState : unreadCount > 0 ? 'notification' : 'idle';
+  const showContextMenu = canContextMenu && (isOwner || isManager);
+  const showNotificationDot = canNotifications && unreadCount > 0;
+  const derivedState: BivooState = faceState !== 'idle' ? faceState : showNotificationDot ? 'notification' : 'idle';
 
   // Click-outside listener
   useEffect(() => {
@@ -43,8 +46,9 @@ export default function BivooAssistant() {
       longPressTriggered.current = false;
       return;
     }
+    if (!canChat && !canNotifications) return;
     setVisible(prev => (prev === 'panel' ? 'none' : 'panel'));
-  }, []);
+  }, [canChat, canNotifications]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (!showContextMenu) return;
@@ -76,6 +80,9 @@ export default function BivooAssistant() {
     }
   }, [navigate]);
 
+  // Don't render at all if no features available
+  if (!hasAnyFeature) return null;
+
   const button = (
     <button
       onClick={handleClick}
@@ -86,7 +93,7 @@ export default function BivooAssistant() {
       className="fixed bottom-4 right-4 z-[55] select-none touch-none focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-full"
       aria-label="Asistente Bivoo"
     >
-      <BivooFace state={derivedState} hasUnread={unreadCount > 0} />
+      <BivooFace state={derivedState} hasUnread={showNotificationDot} />
     </button>
   );
 
@@ -103,11 +110,15 @@ export default function BivooAssistant() {
       ) : (
         button
       )}
-      <AssistantPanel
-        open={visible === 'panel'}
-        onClose={() => setVisible('none')}
-        onStateChange={setFaceState}
-      />
+      {(canChat || canNotifications) && (
+        <AssistantPanel
+          open={visible === 'panel'}
+          onClose={() => setVisible('none')}
+          onStateChange={setFaceState}
+          canChat={canChat}
+          canNotifications={canNotifications}
+        />
+      )}
     </div>
   );
 }
