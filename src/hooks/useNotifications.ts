@@ -116,5 +116,15 @@ export function useNotifications() {
     setUnreadCount(0);
   };
 
-  return { notifications, unreadCount, loading, markAsRead, markAllAsRead, refetch: fetchNotifications };
+  const clearAll = async () => {
+    if (!profile?.business_id) return;
+    await supabase
+      .from('notifications')
+      .delete()
+      .eq('business_id', profile.business_id);
+    setNotifications([]);
+    setUnreadCount(0);
+  };
+
+  return { notifications, unreadCount, loading, markAsRead, markAllAsRead, clearAll, refetch: fetchNotifications };
 }
