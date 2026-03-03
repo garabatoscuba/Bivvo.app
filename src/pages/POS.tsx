@@ -389,7 +389,7 @@ const POS = () => {
         )}
 
         {/* Tablet Cart FAB (md to lg) */}
-        <div className="hidden md:block lg:hidden fixed bottom-4 right-4 z-[51]">
+        <div className="hidden md:flex lg:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-[51]">
           <Button
             size="lg"
             className={cn(
@@ -411,7 +411,7 @@ const POS = () => {
         </div>
 
         {/* Mobile Cart FAB + Sheet (<md) */}
-        <div className="md:hidden fixed bottom-4 right-4 z-50">
+        <div className="md:hidden fixed bottom-4 left-1/2 -translate-x-1/2 z-50">
           <Sheet open={mobileCartOpen} onOpenChange={setMobileCartOpen}>
             <SheetTrigger asChild>
               <Button size="lg" className={cn(
