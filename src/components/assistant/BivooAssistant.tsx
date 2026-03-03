@@ -22,7 +22,7 @@ export default function BivooAssistant() {
   const longPressTriggered = useRef(false);
 
   const showContextMenu = canContextMenu && (isOwner || isManager);
-  const showNotificationDot = canNotifications && unreadCount > 0;
+  const showNotificationDot = canNotifications && unreadCount > 0 && visible !== 'panel';
   const derivedState: BivooState = faceState !== 'idle' ? faceState : showNotificationDot ? 'notification' : 'idle';
 
   // Click-outside listener
