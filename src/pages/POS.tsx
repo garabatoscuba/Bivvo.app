@@ -30,6 +30,7 @@ import { cn } from '@/lib/utils';
 const POS = () => {
   const { profile, isOwner, isManager, isSuperAdmin, user } = useAuth();
   const isPrivileged = isOwner || isManager || isSuperAdmin;
+  const canBypassJornada = isOwner || isSuperAdmin;
   const [searchParams] = useSearchParams();
   const isEmployeeContext = searchParams.get('ctx') === 'emp';
 
@@ -215,7 +216,7 @@ const POS = () => {
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
 
-  if (!isPrivileged && jornadaLoading) {
+  if (!canBypassJornada && jornadaLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center py-20">
@@ -225,7 +226,7 @@ const POS = () => {
     );
   }
 
-  if (!isPrivileged && !jornadaActiva) {
+  if (!canBypassJornada && !jornadaActiva) {
     return (
       <AppLayout>
         <SinJornadaActiva />
@@ -233,7 +234,7 @@ const POS = () => {
     );
   }
 
-  if (!isPrivileged && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+  if (!canBypassJornada && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
     return (
       <AppLayout>
         <SinJornadaAutorizada />

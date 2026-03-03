@@ -5,6 +5,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PeriodFilter, type Period } from '@/components/ui/period-filter';
 import { Loader2 } from 'lucide-react';
 import { useReportData } from '@/hooks/useReportData';
+import { useJornadaActiva } from '@/hooks/useJornadaActiva';
+import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
 import ReportesResumenTab from '@/components/cobro/ReportesResumenTab';
 import ReportesPorEmpleadoTab from '@/components/cobro/ReportesPorEmpleadoTab';
 import ReportesVsTab from '@/components/cobro/ReportesVsTab';
@@ -12,9 +14,11 @@ import ReportesComparativaTab from '@/components/cobro/ReportesComparativaTab';
 import AdminReportesTab from '@/components/cobro/AdminReportesTab';
 
 const Cobros = () => {
-  const { profile } = useAuth();
+  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
   const businessId = profile?.business_id;
   const [period, setPeriod] = useState<Period>('today');
+  const { jornadaActiva, isLoading: jornadaLoading } = useJornadaActiva();
+  const canBypassJornada = isOwner || isSuperAdmin;
 
   const {
     isLoading,
@@ -30,6 +34,14 @@ const Cobros = () => {
   } = useReportData(period);
 
   if (!businessId) return null;
+
+  if (!canBypassJornada && jornadaLoading) {
+    return <AppLayout title="Reportes"><div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div></AppLayout>;
+  }
+
+  if (!canBypassJornada && !jornadaActiva) {
+    return <AppLayout title="Reportes"><SinJornadaActiva /></AppLayout>;
+  }
 
   return (
     <AppLayout title="Reportes">

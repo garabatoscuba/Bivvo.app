@@ -107,8 +107,9 @@ const Orders = () => {
   };
 
   const isPrivileged = isOwner || isManager || isSuperAdmin;
+  const canBypassJornada = isOwner || isSuperAdmin;
 
-  if (!isPrivileged && jornadaLoading) {
+  if (!canBypassJornada && jornadaLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center py-20">
@@ -118,7 +119,7 @@ const Orders = () => {
     );
   }
 
-  if (!isPrivileged && !jornadaActiva) {
+  if (!canBypassJornada && !jornadaActiva) {
     return (
       <AppLayout>
         <SinJornadaActiva />
@@ -126,7 +127,7 @@ const Orders = () => {
     );
   }
 
-  if (!isPrivileged && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+  if (!canBypassJornada && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
     return (
       <AppLayout>
         <SinJornadaAutorizada />
