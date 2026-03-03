@@ -15,8 +15,9 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
   ArrowUpDown, ChevronLeft, ChevronRight, Search,
-  ShoppingCart, Wrench, ArrowDownToLine, ArrowUpFromLine, Users,
+  ShoppingCart, Wrench, ArrowDownToLine, ArrowUpFromLine, Users, Eye,
 } from "lucide-react";
+import MovementDetailSheet from "./MovementDetailSheet";
 
 type Period = "today" | "week" | "month" | "all";
 
@@ -76,6 +77,8 @@ export default function BalanceHistoryTable({ businessId, branchId, period }: Pr
   const [filterPayment, setFilterPayment] = useState("all");
   const [searchText, setSearchText] = useState("");
   const [page, setPage] = useState(0);
+  const [selectedRow, setSelectedRow] = useState<(UnifiedRow & { balance: number }) | null>(null);
+  const [detailOpen, setDetailOpen] = useState(false);
 
   useMemo(() => setPage(0), [period, filterType, filterPayment, searchText]);
 
@@ -329,13 +332,14 @@ export default function BalanceHistoryTable({ businessId, branchId, period }: Pr
                   <TableHead className="text-xs">Pago</TableHead>
                   <TableHead className="text-xs text-right">Monto</TableHead>
                   <TableHead className="text-xs text-right">Balance</TableHead>
+                  <TableHead className="text-xs w-[36px]"></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {pageRows.map((row) => {
                   const config = TYPE_CONFIG[row.type] || TYPE_CONFIG.gasto;
                   return (
-                    <TableRow key={row.id} className="group">
+                    <TableRow key={row.id} className="group cursor-pointer hover:bg-muted/50" onClick={() => { setSelectedRow(row); setDetailOpen(true); }}>
                       <TableCell className="py-2">
                         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${config.color}`}>
                           {config.icon}
@@ -382,6 +386,9 @@ export default function BalanceHistoryTable({ businessId, branchId, period }: Pr
                       }`}>
                         {fmt(row.balance)}
                       </TableCell>
+                      <TableCell className="py-2">
+                        <Eye className="h-3.5 w-3.5 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -406,6 +413,13 @@ export default function BalanceHistoryTable({ businessId, branchId, period }: Pr
           )}
         </>
       )}
+
+      <MovementDetailSheet
+        row={selectedRow}
+        open={detailOpen}
+        onOpenChange={setDetailOpen}
+        resolvedName={selectedRow ? resolveOriginName(selectedRow) : "—"}
+      />
     </div>
   );
 }
