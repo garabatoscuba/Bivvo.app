@@ -43,15 +43,17 @@ export function useAssistantFeatures() {
   const { data, isLoading } = useQuery({
     queryKey: ['assistant-features-access', userRole, planType],
     queryFn: async () => {
-      const [featuresRes, rolesRes, pricingRes] = await Promise.all([
+      const [featuresRes, rolesRes, pricingRes, configRes] = await Promise.all([
         supabase.from('assistant_features').select('id, key, is_active'),
         supabase.from('assistant_feature_roles').select('feature_id, role, is_allowed'),
         supabase.from('assistant_feature_pricing').select('feature_id, plan_type, availability'),
+        supabase.from('assistant_config').select('is_enabled').limit(1).single(),
       ]);
       return {
         features: (featuresRes.data || []) as unknown as AssistantFeature[],
         roles: (rolesRes.data || []) as unknown as FeatureRole[],
         pricing: (pricingRes.data || []) as unknown as FeaturePricing[],
+        globalEnabled: (configRes.data as any)?.is_enabled ?? true,
       };
     },
     staleTime: 5 * 60 * 1000, // cache 5 min
@@ -61,6 +63,9 @@ export function useAssistantFeatures() {
     if (!data) return false;
     // Super admin always has access
     if (isSuperAdmin) return true;
+
+    // Global kill switch from assistant_config
+    if (!data.globalEnabled) return false;
 
     const feature = data.features.find(f => f.key === key);
     if (!feature || !feature.is_active) return false;

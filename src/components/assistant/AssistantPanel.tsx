@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, CheckCheck } from "lucide-react";
+import { X, Send, CheckCheck, Megaphone, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { useLocation } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { BivooState } from "./BivooFace";
 import bivooFaceSvg from "@/assets/bivoo-face.svg";
@@ -83,6 +83,58 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
     staleTime: 5 * 60 * 1000,
   });
   const assistantName = (assistantConfig as any)?.assistant_name || 'Bivoo';
+
+  // Fetch active platform announcements not dismissed by this user
+  const { data: announcements = [] } = useQuery({
+    queryKey: ['panel-announcements', profile?.user_id],
+    queryFn: async () => {
+      if (!profile?.user_id) return [];
+      const now = new Date().toISOString();
+      // Get active announcements
+      const { data: anns } = await supabase
+        .from('platform_announcements')
+        .select('*')
+        .eq('is_active', true)
+        .lte('starts_at', now)
+        .order('created_at', { ascending: false })
+        .limit(10);
+      if (!anns || anns.length === 0) return [];
+      // Get dismissals for this user
+      const { data: dismissals } = await supabase
+        .from('announcement_dismissals')
+        .select('announcement_id')
+        .eq('user_id', profile.user_id);
+      const dismissedIds = new Set((dismissals || []).map((d: any) => d.announcement_id));
+      return (anns as any[]).filter(a => {
+        if (dismissedIds.has(a.id)) return false;
+        if (a.expires_at && new Date(a.expires_at) < new Date()) return false;
+        return true;
+      });
+    },
+    enabled: !!profile?.user_id,
+    staleTime: 2 * 60 * 1000,
+  });
+
+  const dismissAnnouncement = useMutation({
+    mutationFn: async (announcementId: string) => {
+      await supabase.from('announcement_dismissals').insert({
+        announcement_id: announcementId,
+        user_id: profile!.user_id,
+      } as any);
+    },
+    onSuccess: () => {
+      // Remove from local list immediately
+    },
+  });
+  const [dismissedLocal, setDismissedLocal] = useState<Set<string>>(new Set());
+
+  const handleDismissAnnouncement = (id: string) => {
+    setDismissedLocal(prev => new Set(prev).add(id));
+    dismissAnnouncement.mutate(id);
+  };
+
+  const visibleAnnouncements = announcements.filter((a: any) => !dismissedLocal.has(a.id));
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -259,6 +311,36 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
           <X className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* Announcements section */}
+      {visibleAnnouncements.length > 0 && (
+        <div className="shrink-0 border-b">
+          <div className="px-4 py-2">
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium flex items-center gap-1">
+              <Megaphone className="h-3 w-3" /> Anuncios
+            </span>
+          </div>
+          <div className="max-h-[120px] overflow-y-auto scrollbar-hide">
+            {visibleAnnouncements.map((a: any) => (
+              <div key={a.id} className="px-4 py-2 flex items-start gap-2 hover:bg-muted/40 transition-colors">
+                <div className="w-[3px] self-stretch rounded-full bg-primary shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium leading-tight">{a.title}</p>
+                  <p className="text-[11px] text-muted-foreground line-clamp-2">{a.message}</p>
+                  {a.link_url && (
+                    <a href={a.link_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-primary flex items-center gap-0.5 mt-0.5 hover:underline">
+                      <ExternalLink className="h-3 w-3" /> {a.link_label || 'Ver más'}
+                    </a>
+                  )}
+                </div>
+                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleDismissAnnouncement(a.id)}>
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Notifications section (owner/manager only) */}
       {showNotifications && unreadNotifs.length > 0 && (
