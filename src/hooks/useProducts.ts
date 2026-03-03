@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from '@/hooks/use-toast';
 import { getAllFromStore, putManyInStore } from '@/lib/offlineDb';
@@ -8,9 +9,10 @@ import type { Product, Category } from '@/types/database';
 
 export const useProducts = (overrideBusinessId?: string) => {
   const { profile } = useAuth();
+  const { businessId: resolvedBusinessId } = useResolvedBusinessId();
   const { isOnline } = useOffline();
   const queryClient = useQueryClient();
-  const businessId = overrideBusinessId || profile?.business_id;
+  const businessId = overrideBusinessId || resolvedBusinessId || profile?.business_id;
 
   const productsQuery = useQuery({
     queryKey: ['products', businessId],
@@ -113,9 +115,10 @@ export const useProducts = (overrideBusinessId?: string) => {
 
 export const useCategories = (overrideBusinessId?: string) => {
   const { profile } = useAuth();
+  const { businessId: resolvedBusinessId } = useResolvedBusinessId();
   const { isOnline } = useOffline();
   const queryClient = useQueryClient();
-  const businessId = overrideBusinessId || profile?.business_id;
+  const businessId = overrideBusinessId || resolvedBusinessId || profile?.business_id;
 
   const categoriesQuery = useQuery({
     queryKey: ['categories', businessId],
