@@ -70,16 +70,14 @@ export const PaymentDialog = ({
 
   const handlePaymentSelect = (value: PaymentType) => {
     if (isMixed) {
-      // If already mixed, clicking cash or transfer toggles off mixed
       if (value === 'cash' || value === 'transfer') {
         setIsMixed(false);
         setPaymentType(value);
-        setAmountPaid('');
+        setAmountPaid(value !== 'cash' ? total.toFixed(2) : '');
         return;
       }
     }
 
-    // Check if we're creating a mixed selection
     if (
       (paymentType === 'cash' && value === 'transfer') ||
       (paymentType === 'transfer' && value === 'cash')
@@ -92,7 +90,12 @@ export const PaymentDialog = ({
 
     setIsMixed(false);
     setPaymentType(value);
-    setAmountPaid('');
+    // Auto-fill amount for transfer, card, credit
+    if (value === 'transfer' || value === 'card' || value === 'credit') {
+      setAmountPaid(total.toFixed(2));
+    } else {
+      setAmountPaid('');
+    }
   };
 
   const change = !isMixed && paymentType !== 'credit'
