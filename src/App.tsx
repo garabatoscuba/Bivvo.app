@@ -24,6 +24,8 @@ const Inventory = lazy(() => import("./pages/Inventory"));
 const POS = lazy(() => import("./pages/POS"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminUsers = lazy(() => import("./pages/admin/AdminUsers"));
+const AdminBusinesses = lazy(() => import("./pages/admin/AdminBusinesses"));
+const AdminOffers = lazy(() => import("./pages/admin/AdminOffers"));
 const AdminModules = lazy(() => import("./pages/admin/AdminModules"));
 const AdminAssistant = lazy(() => import("./pages/admin/AdminAssistant"));
 const Employees = lazy(() => import("./pages/Employees"));
@@ -87,8 +89,8 @@ const App = () => {
                         <Route path="/nomina" element={<ProtectedRoute><Nomina /></ProtectedRoute>} />
                         <Route path="/caja" element={<ProtectedRoute><Caja /></ProtectedRoute>} />
                         <Route path="/tesoreria" element={<ProtectedRoute><Tesoreria /></ProtectedRoute>} />
-                        <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
-                        <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
+                        <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminBusinesses /></ProtectedRoute>} />
+                        <Route path="/admin/offers" element={<ProtectedRoute requireSuperAdmin><AdminOffers /></ProtectedRoute>} />
                         <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsers /></ProtectedRoute>} />
                         <Route path="/admin/assistant" element={<ProtectedRoute requireSuperAdmin><AdminAssistant /></ProtectedRoute>} />
                         <Route path="/admin/modules" element={<ProtectedRoute requireSuperAdmin><AdminModules /></ProtectedRoute>} />
