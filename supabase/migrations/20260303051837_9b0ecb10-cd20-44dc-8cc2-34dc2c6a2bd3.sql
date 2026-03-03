@@ -1,0 +1,1 @@
+ALTER TABLE public.assistant_config ADD COLUMN IF NOT EXISTS assistant_name text NOT NULL DEFAULT 'Bivoo';

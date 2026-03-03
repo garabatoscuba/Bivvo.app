@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
-import { WifiOff, Loader2, Cloud } from 'lucide-react';
+import { WifiOff, Loader2, Cloud, MessageCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 function useElapsedTime(startIso: string | null | undefined) {
@@ -90,6 +90,16 @@ const AppHeader = ({ title }: AppHeaderProps) => {
             <Cloud className="h-4 w-4 text-success" />
           )}
         </div>
+        {/* WhatsApp support */}
+        <a
+          href="https://wa.me/5352514878?text=Hola%2C%20necesito%20soporte%20con%20Bivoo"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-full text-[11px] font-medium text-[hsl(142,70%,45%)] hover:bg-[hsl(142,70%,45%)]/10 transition-colors"
+        >
+          <MessageCircle className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Soporte</span>
+        </a>
       </div>
 
       {/* Modal cerrar jornada */}
