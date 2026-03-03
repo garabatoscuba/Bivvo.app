@@ -149,6 +149,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
 
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['bp-product-cost'] });
       toast({ title: `Entrada de ${totalQty} unidades registrada` });
       handleClose(false);
     } catch (err: any) {
