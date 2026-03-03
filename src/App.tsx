@@ -1,4 +1,5 @@
 import { lazy, Suspense } from "react";
+import { LazyErrorBoundary } from "@/components/LazyErrorBoundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -65,187 +66,42 @@ const App = () => {
                   <Toaster />
                 <Sonner />
                 <BrowserRouter>
-                  <Suspense fallback={<PageLoader />}>
-                    <Routes>
-                      <Route path="/auth" element={<Auth />} />
-                      <Route path="/auth/callback" element={<AuthCallback />} />
-                      <Route
-                        path="/"
-                        element={
-                          <ProtectedRoute>
-                            <Dashboard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/admin"
-                        element={
-                          <ProtectedRoute requireSuperAdmin>
-                            <AdminDashboard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/inventory"
-                        element={
-                          <ProtectedRoute>
-                            <Inventory />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/pos"
-                        element={
-                          <ProtectedRoute>
-                            <POS />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/sales"
-                        element={
-                          <ProtectedRoute>
-                            <Sales />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/employees"
-                        element={
-                          <ProtectedRoute>
-                            <Employees />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/mi-empleo"
-                        element={
-                          <ProtectedRoute>
-                            <MyEmployment />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/settings"
-                        element={
-                          <ProtectedRoute>
-                            <Settings />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/plans"
-                        element={
-                          <ProtectedRoute>
-                            <Plans />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/store-settings"
-                        element={
-                          <ProtectedRoute>
-                            <StoreSettings />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/orders"
-                        element={
-                          <ProtectedRoute>
-                            <Orders />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/services"
-                        element={
-                          <ProtectedRoute>
-                            <Services />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/cobros"
-                        element={
-                          <ProtectedRoute>
-                            <Cobros />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/nomina"
-                        element={
-                          <ProtectedRoute>
-                            <Nomina />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/caja"
-                        element={
-                          <ProtectedRoute>
-                            <Caja />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/tesoreria"
-                        element={
-                          <ProtectedRoute>
-                            <Tesoreria />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/admin/businesses"
-                        element={
-                          <ProtectedRoute requireSuperAdmin>
-                            <AdminDashboard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/admin/stats"
-                        element={
-                          <ProtectedRoute requireSuperAdmin>
-                            <AdminDashboard />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/admin/users"
-                        element={
-                          <ProtectedRoute requireSuperAdmin>
-                            <AdminUsers />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/admin/assistant"
-                        element={
-                          <ProtectedRoute requireSuperAdmin>
-                            <AdminAssistant />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route
-                        path="/admin/modules"
-                        element={
-                          <ProtectedRoute requireSuperAdmin>
-                            <AdminModules />
-                          </ProtectedRoute>
-                        }
-                      />
-                      <Route path="/install" element={<Install />} />
-                      <Route path="/jornada/entrada" element={<JornadaEntrada />} />
-                      <Route path="/onboarding/empleado" element={<OnboardingEmpleado />} />
-                      <Route path="/s/:bizSlug" element={<PublicStorefront />} />
-                      <Route path="/tienda/:bizSlug/:branchSlug" element={<PublicStorefront />} />
-                      <Route path="/review/:token" element={<ReviewPage />} />
-                      <Route path="*" element={<NotFound />} />
-                    </Routes>
-                  </Suspense>
+                  <LazyErrorBoundary>
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        <Route path="/auth" element={<Auth />} />
+                        <Route path="/auth/callback" element={<AuthCallback />} />
+                        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                        <Route path="/admin" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
+                        <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
+                        <Route path="/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
+                        <Route path="/sales" element={<ProtectedRoute><Sales /></ProtectedRoute>} />
+                        <Route path="/employees" element={<ProtectedRoute><Employees /></ProtectedRoute>} />
+                        <Route path="/mi-empleo" element={<ProtectedRoute><MyEmployment /></ProtectedRoute>} />
+                        <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+                        <Route path="/plans" element={<ProtectedRoute><Plans /></ProtectedRoute>} />
+                        <Route path="/store-settings" element={<ProtectedRoute><StoreSettings /></ProtectedRoute>} />
+                        <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
+                        <Route path="/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
+                        <Route path="/cobros" element={<ProtectedRoute><Cobros /></ProtectedRoute>} />
+                        <Route path="/nomina" element={<ProtectedRoute><Nomina /></ProtectedRoute>} />
+                        <Route path="/caja" element={<ProtectedRoute><Caja /></ProtectedRoute>} />
+                        <Route path="/tesoreria" element={<ProtectedRoute><Tesoreria /></ProtectedRoute>} />
+                        <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
+                        <Route path="/admin/stats" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
+                        <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsers /></ProtectedRoute>} />
+                        <Route path="/admin/assistant" element={<ProtectedRoute requireSuperAdmin><AdminAssistant /></ProtectedRoute>} />
+                        <Route path="/admin/modules" element={<ProtectedRoute requireSuperAdmin><AdminModules /></ProtectedRoute>} />
+                        <Route path="/install" element={<Install />} />
+                        <Route path="/jornada/entrada" element={<JornadaEntrada />} />
+                        <Route path="/onboarding/empleado" element={<OnboardingEmpleado />} />
+                        <Route path="/s/:bizSlug" element={<PublicStorefront />} />
+                        <Route path="/tienda/:bizSlug/:branchSlug" element={<PublicStorefront />} />
+                        <Route path="/review/:token" element={<ReviewPage />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </Suspense>
+                  </LazyErrorBoundary>
                 </BrowserRouter>
               </SyncGate>
               </OfflineProvider>
