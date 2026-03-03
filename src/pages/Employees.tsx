@@ -18,6 +18,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { autoOpenCaja } from '@/lib/autoOpenCaja';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { toast as sonnerToast } from 'sonner';
@@ -341,9 +342,17 @@ const Employees = () => {
     if (error) {
       sonnerToast.error(error.message);
     } else {
+      // Auto-open caja for the employee
+      try {
+        await autoOpenCaja({ userId: prof.user_id, branchId, businessId: businessId! });
+      } catch (e) {
+        console.error('Auto-open caja failed:', e);
+      }
       sonnerToast.success(`Jornada iniciada para ${emp.full_name}`);
       queryClient.invalidateQueries({ queryKey: ['jornadas-activas-business'] });
       queryClient.invalidateQueries({ queryKey: ['equipo-activo'] });
+      queryClient.invalidateQueries({ queryKey: ['active-cash-register'] });
+      queryClient.invalidateQueries({ queryKey: ['owner-open-registers'] });
     }
   };
 

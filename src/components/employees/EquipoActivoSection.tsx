@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
+import { autoOpenCaja } from '@/lib/autoOpenCaja';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Users, Play, Loader2 } from 'lucide-react';
@@ -151,9 +152,37 @@ const EquipoActivoSection = ({ onlyActive = false, businessIdOverride, myJornada
     if (error) {
       toast.error(error.message);
     } else {
+      // Auto-open caja
+      try {
+        // Resolve auth user_id from profile id
+        const { data: profData } = await supabase
+          .from('profiles')
+          .select('user_id, business_id')
+          .eq('id', iniciarDialog.profileId)
+          .single();
+        if (profData) {
+          let bizId = profData.business_id || profile?.business_id;
+          if (!bizId) {
+            // Resolve from employees table for @bivoo.app users
+            const { data: empRec } = await supabase
+              .from('employees')
+              .select('business_id')
+              .eq('auth_user_id', profData.user_id)
+              .maybeSingle();
+            bizId = empRec?.business_id || null;
+          }
+          if (bizId) {
+            await autoOpenCaja({ userId: profData.user_id, branchId, businessId: bizId });
+          }
+        }
+      } catch (e) {
+        console.error('Auto-open caja failed:', e);
+      }
       toast.success(`Jornada iniciada para ${iniciarDialog.name}`);
       queryClient.invalidateQueries({ queryKey: ['equipo-activo'] });
       queryClient.invalidateQueries({ queryKey: ['jornadas-activas-business'] });
+      queryClient.invalidateQueries({ queryKey: ['active-cash-register'] });
+      queryClient.invalidateQueries({ queryKey: ['owner-open-registers'] });
       setIniciarDialog(null);
     }
   };
