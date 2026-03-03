@@ -77,19 +77,25 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
     enabled: !!businessId,
   });
 
-  // Product cost (from product_entries)
+  // COGS: cost of products actually sold (from sale_items joined with sales)
   const { data: productCost = 0 } = useQuery({
     queryKey: ["bp-product-cost", businessId, branchId, period],
     queryFn: async () => {
       let q = supabase
-        .from("product_entries" as any)
-        .select("quantity, cost_per_unit")
-        .eq("business_id", businessId);
+        .from("sales")
+        .select("sale_items(quantity, cost_price)")
+        .eq("status", "completed");
       if (branchId) q = q.eq("branch_id", branchId);
       if (from) q = q.gte("created_at", from);
       q = q.lte("created_at", to);
       const { data } = await q;
-      return (data as any[])?.reduce((sum: number, e: any) => sum + Number(e.quantity) * Number(e.cost_per_unit), 0) || 0;
+      let total = 0;
+      data?.forEach((sale: any) => {
+        sale.sale_items?.forEach((item: any) => {
+          total += Number(item.quantity) * Number(item.cost_price || 0);
+        });
+      });
+      return total;
     },
     enabled: !!businessId,
   });
@@ -180,7 +186,7 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
             </h3>
           </div>
           <div className="space-y-1.5 pl-9">
-            <Row icon={<Package className="h-3.5 w-3.5" />} label="Costo de productos vendidos" value={productCost > 0 ? fmt(productCost) : null} placeholder="sin dato" />
+            <Row icon={<Package className="h-3.5 w-3.5" />} label="Costo de productos vendidos" value={fmt(productCost)} />
             <Row icon={<Users className="h-3.5 w-3.5" />} label="Salarios pagados" value={fmt(salariesPaid)} />
             <Row icon={<ArrowUpFromLine className="h-3.5 w-3.5" />} label="Dinero que sacaste" value={fmt(extractions?.retiro || 0)} />
             <Row icon={<ReceiptText className="h-3.5 w-3.5" />} label="Otros gastos" value={fmt(extractions?.otros || 0)} />

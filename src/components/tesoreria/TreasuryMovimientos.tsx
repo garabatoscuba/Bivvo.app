@@ -11,13 +11,11 @@ import {
   Bell,
   Check,
   X,
-  ShoppingCart,
 } from "lucide-react";
 import TreasuryCategoryManager from "./TreasuryCategoryManager";
 import TreasuryMovementModal from "./TreasuryMovementModal";
 import BalancePersonalCards from "./BalancePersonalCards";
 import BalanceHistoryTable from "./BalanceHistoryTable";
-import ProductEntryModal from "./ProductEntryModal";
 
 type Period = "today" | "week" | "month" | "all";
 
@@ -33,7 +31,7 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPrefill, setModalPrefill] = useState<"extraccion" | "inyeccion" | null>(null);
   const [period, setPeriod] = useState<Period>("today");
-  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  
 
   // Handle prefill from assistant
   useEffect(() => {
@@ -159,9 +157,9 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
 
   return (
     <div className="space-y-4">
-      {/* Period selector + Purchase button */}
+      {/* Period selector */}
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex gap-1.5 overflow-x-auto flex-1">
+        <div className="flex gap-1.5 overflow-x-auto">
           {([
             { key: "today", label: "Hoy" },
             { key: "week", label: "Esta Semana" },
@@ -179,14 +177,6 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
             </Button>
           ))}
         </div>
-        <Button
-          size="sm"
-          className="h-8 text-xs gap-1.5 bg-cyan-600 hover:bg-cyan-700 text-white shrink-0"
-          onClick={() => setPurchaseModalOpen(true)}
-        >
-          <ShoppingCart className="h-3.5 w-3.5" />
-          + Registrar Compra
-        </Button>
       </div>
 
       {/* Balance Personal Cards */}
@@ -257,14 +247,6 @@ export default function TreasuryMovimientos({ businessId, prefillType, onPrefill
         businessId={businessId}
         prefillType={modalPrefill}
       />
-      {profile?.branch_id && (
-        <ProductEntryModal
-          open={purchaseModalOpen}
-          onOpenChange={setPurchaseModalOpen}
-          businessId={businessId}
-          branchId={profile.branch_id}
-        />
-      )}
     </div>
   );
 }
