@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { autoOpenCaja } from '@/lib/autoOpenCaja';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -131,6 +132,25 @@ const JornadaEntrada = () => {
     if (error) {
       toast.error('Error al iniciar jornada: ' + error.message);
       return;
+    }
+
+    // Auto-open caja
+    try {
+      let bizId = profile.business_id;
+      if (!bizId) {
+        // Resolve from employees table for @bivoo.app users
+        const { data: empRec } = await supabase
+          .from('employees')
+          .select('business_id')
+          .eq('auth_user_id', profile.user_id)
+          .maybeSingle();
+        bizId = empRec?.business_id || null;
+      }
+      if (bizId) {
+        await autoOpenCaja({ userId: profile.user_id, branchId: sucursalId, businessId: bizId });
+      }
+    } catch (e) {
+      console.error('Auto-open caja failed:', e);
     }
 
     setStep('success');
