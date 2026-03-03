@@ -187,18 +187,25 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
                             {m.product?.code || '—'}
                           </Badge>
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1">
                             <User className="h-3 w-3" />
                             {m.user_profile?.full_name || 'Usuario'}
                           </span>
                           <span>{time}</span>
-                          {m.notes && (
-                            <span className="truncate max-w-[200px]" title={m.notes}>
-                              {m.notes}
-                            </span>
-                          )}
                         </div>
+                        {m.movement_type === 'purchase' && m.notes && (
+                          <div className="mt-1 text-[11px] text-muted-foreground space-x-2">
+                            {m.notes.split(' | ').map((part, i) => (
+                              <span key={i} className="inline-block">{part}</span>
+                            ))}
+                          </div>
+                        )}
+                        {m.movement_type !== 'purchase' && m.notes && (
+                          <p className="mt-0.5 text-[11px] text-muted-foreground truncate max-w-[300px]" title={m.notes}>
+                            {m.notes}
+                          </p>
+                        )}
                       </div>
 
                       {/* Quantity & Type */}
