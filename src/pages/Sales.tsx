@@ -65,6 +65,7 @@ const Sales = () => {
   const [searchParams] = useSearchParams();
   const isEmployeeContext = searchParams.get('ctx') === 'emp';
   const isPrivileged = isOwner || isManager || isSuperAdmin;
+  const canBypassJornada = isOwner || isSuperAdmin;
 
   // Fetch employee record for employee context
   const { data: employeeRecord } = useQuery({
@@ -461,13 +462,13 @@ const Sales = () => {
     </>
   );
 
-  if (!isPrivileged && jornadaLoading) {
+  if (!canBypassJornada && jornadaLoading) {
     return <AppLayout title="Ventas"><div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div></AppLayout>;
   }
-  if (!isPrivileged && !jornadaActiva) {
+  if (!canBypassJornada && !jornadaActiva) {
     return <AppLayout title="Ventas"><SinJornadaActiva /></AppLayout>;
   }
-  if (!isPrivileged && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+  if (!canBypassJornada && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
     return <AppLayout title="Ventas"><SinJornadaAutorizada /></AppLayout>;
   }
 

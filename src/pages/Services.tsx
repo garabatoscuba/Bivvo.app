@@ -827,10 +827,11 @@ const Services = () => {
 
   const hasEmployeeRecord = !!employeeRecord;
   const isPrivileged = isOwner || isManager || isSuperAdmin;
+  const canBypassJornada = isOwner || isSuperAdmin;
   
   const showEmployeeView = isEmpCtx ? hasEmployeeRecord : (!isPrivileged && hasEmployeeRecord);
 
-  if (!isPrivileged && !isEmpCtx && jornadaLoading) {
+  if (!canBypassJornada && !isEmpCtx && jornadaLoading) {
     return (
       <AppLayout>
         <div className="flex items-center justify-center py-20">
@@ -840,11 +841,11 @@ const Services = () => {
     );
   }
 
-  if (!isPrivileged && !isEmpCtx && !jornadaActiva) {
+  if (!canBypassJornada && !isEmpCtx && !jornadaActiva) {
     return <AppLayout><SinJornadaActiva /></AppLayout>;
   }
 
-  if (!isPrivileged && !isEmpCtx && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+  if (!canBypassJornada && !isEmpCtx && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
     return <AppLayout><SinJornadaAutorizada /></AppLayout>;
   }
 

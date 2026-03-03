@@ -1,19 +1,42 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranches } from "@/hooks/useBranches";
+import { useJornadaActiva } from "@/hooks/useJornadaActiva";
 import AppLayout from "@/components/layout/AppLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import CajaActiva from "@/components/caja/CajaActiva";
 import CajaChica from "@/components/caja/CajaChica";
 import CajaHistorial from "@/components/caja/CajaHistorial";
 import CajaConfig from "@/components/caja/CajaConfig";
+import SinJornadaActiva from "@/components/employees/SinJornadaActiva";
+import { Loader2 } from "lucide-react";
 
 const Caja = () => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
   const { data: branches = [] } = useBranches();
+  const { jornadaActiva, isLoading: jornadaLoading } = useJornadaActiva();
   const activeBranch = branches.find((b) => b.id === profile?.branch_id);
   const isPrivileged = isOwner || isManager || isSuperAdmin;
+  const canBypassJornada = isOwner || isSuperAdmin;
   const [tab, setTab] = useState("activa");
+
+  if (!canBypassJornada && jornadaLoading) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!canBypassJornada && !jornadaActiva) {
+    return (
+      <AppLayout>
+        <SinJornadaActiva />
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>

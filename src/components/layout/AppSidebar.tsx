@@ -440,16 +440,28 @@ const AppSidebar = () => {
     ...(!isManager || isOwner || isSuperAdmin ? [{ title: "Planes", url: "/plans", icon: CreditCard }] : []),
   ];
 
-  const managerItems = [
-    { title: "POS", url: "/pos", icon: ShoppingCart },
-    { title: "Servicios", url: "/services", icon: Wrench },
-    { title: "Caja", url: "/caja", icon: DollarSign },
-    { title: "Inventario", url: "/inventory", icon: Package },
-    { title: "Pedidos", url: "/orders", icon: ShoppingBag },
-    { title: "Reportes", url: "/cobros", icon: FileText },
-    { title: "Empleados", url: "/employees", icon: Users },
-    { title: "Ventas", url: "/sales", icon: Receipt },
-  ];
+  // Manager-allowed module names
+  const MANAGER_ALLOWED_MODULES = new Set([
+    "Punto de Venta", "Servicios", "Caja", "Inventario",
+    "Pedidos", "Reportes", "Recursos Humanos", "Ventas",
+  ]);
+  // Modules the manager can see WITHOUT an active jornada (only Empleados)
+  const MANAGER_NO_JORNADA_MODULES = new Set(["Recursos Humanos"]);
+
+  const managerDynamicModules = sidebarModules
+    .filter((m) => {
+      if (!MANAGER_ALLOWED_MODULES.has(m.name)) return false;
+      // Owner sees Tesorería instead of Caja, but manager always sees Caja
+      if (m.name === "Tesorería") return false;
+      // Without jornada, only allow Empleados
+      if (!jornadaActiva && !MANAGER_NO_JORNADA_MODULES.has(m.name)) return false;
+      return true;
+    })
+    .map((m) => ({
+      title: m.sidebar_label,
+      url: moduleUrlMap[m.name] || "/",
+      icon: getIconComponent(m.icon),
+    }));
 
   const ctxParam = new URLSearchParams(location.search).get("ctx");
   const isActive = (url: string) => {
@@ -588,7 +600,7 @@ const AppSidebar = () => {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {managerItems.map((item) => (
+                {managerDynamicModules.map((item) => (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild isActive={isActive(item.url)}>
                       <Link to={item.url}>
