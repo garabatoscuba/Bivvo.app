@@ -2062,6 +2062,7 @@ export type Database = {
           frequency_days: number
           id: string
           is_active: boolean
+          is_persistent: boolean
           link_label: string | null
           link_url: string | null
           message: string
@@ -2078,6 +2079,7 @@ export type Database = {
           frequency_days?: number
           id?: string
           is_active?: boolean
+          is_persistent?: boolean
           link_label?: string | null
           link_url?: string | null
           message: string
@@ -2094,6 +2096,7 @@ export type Database = {
           frequency_days?: number
           id?: string
           is_active?: boolean
+          is_persistent?: boolean
           link_label?: string | null
           link_url?: string | null
           message?: string

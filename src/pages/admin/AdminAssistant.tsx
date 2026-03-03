@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -44,7 +44,7 @@ function ConfigGlobalTab() {
   const [enabled, setEnabled] = useState(true);
   const [instructions, setInstructions] = useState('');
   const [assistantName, setAssistantName] = useState('Bivoo');
-  const [initialized, setInitialized] = useState(false);
+  const [configId, setConfigId] = useState<string | null>(null);
 
   // Action dialog
   const [actionDialog, setActionDialog] = useState(false);
@@ -55,20 +55,23 @@ function ConfigGlobalTab() {
   const [actionPayload, setActionPayload] = useState('');
   const [deleteActionTarget, setDeleteActionTarget] = useState<any>(null);
 
-  if (!initialized && config) {
-    setTone(config.tone);
-    setEnabled(config.is_enabled);
-    setInstructions(config.base_instructions);
-    setAssistantName((config as any).assistant_name || 'Bivoo');
-    setInitialized(true);
-  }
+  // Sync local state when config loads
+  useEffect(() => {
+    if (config) {
+      setTone(config.tone);
+      setEnabled(config.is_enabled);
+      setInstructions(config.base_instructions);
+      setAssistantName((config as any).assistant_name || 'Bivoo');
+      setConfigId(config.id);
+    }
+  }, [config]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      if (!config?.id) return;
+      if (!configId) throw new Error('No config loaded');
       const { error } = await supabase.from('assistant_config').update({
         tone, is_enabled: enabled, base_instructions: instructions, assistant_name: assistantName,
-      } as any).eq('id', config.id);
+      } as any).eq('id', configId);
       if (error) throw error;
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-config'] }); qc.invalidateQueries({ queryKey: ['assistant-config-name'] }); qc.invalidateQueries({ queryKey: ['assistant-features-access'] }); toast({ title: 'Configuración guardada' }); },

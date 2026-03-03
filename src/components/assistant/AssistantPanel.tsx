@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, CheckCheck, Megaphone, ExternalLink } from "lucide-react";
+import { X, Send, CheckCheck, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -106,6 +106,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
         .eq('user_id', profile.user_id);
       const dismissedIds = new Set((dismissals || []).map((d: any) => d.announcement_id));
       return (anns as any[]).filter(a => {
+        if (a.is_persistent) return !(a.expires_at && new Date(a.expires_at) < new Date());
         if (dismissedIds.has(a.id)) return false;
         if (a.expires_at && new Date(a.expires_at) < new Date()) return false;
         return true;
@@ -133,7 +134,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
     dismissAnnouncement.mutate(id);
   };
 
-  const visibleAnnouncements = announcements.filter((a: any) => !dismissedLocal.has(a.id));
+  const visibleAnnouncements = announcements.filter((a: any) => a.is_persistent || !dismissedLocal.has(a.id));
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -315,11 +316,6 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
       {/* Announcements section */}
       {visibleAnnouncements.length > 0 && (
         <div className="shrink-0 border-b">
-          <div className="px-4 py-2">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium flex items-center gap-1">
-              <Megaphone className="h-3 w-3" /> Anuncios
-            </span>
-          </div>
           <div className="max-h-[120px] overflow-y-auto scrollbar-hide">
             {visibleAnnouncements.map((a: any) => (
               <div key={a.id} className="px-4 py-2 flex items-start gap-2 hover:bg-muted/40 transition-colors">
@@ -333,9 +329,11 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
                     </a>
                   )}
                 </div>
-                <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleDismissAnnouncement(a.id)}>
-                  <X className="h-3 w-3" />
-                </Button>
+                {!a.is_persistent && (
+                  <Button variant="ghost" size="icon" className="h-6 w-6 shrink-0" onClick={() => handleDismissAnnouncement(a.id)}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             ))}
           </div>
