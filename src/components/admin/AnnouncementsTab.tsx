@@ -9,7 +9,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Plus, Pencil, Trash2, Loader2, Megaphone, Link as LinkIcon, CalendarClock, Users } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, Megaphone, Link as LinkIcon, CalendarClock, Users, Pin } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -59,6 +59,7 @@ const defaultForm = {
   target_type: 'all',
   target_value: '',
   frequency_days: 0,
+  is_persistent: false,
   starts_at: '',
   expires_at: '',
 };
@@ -89,6 +90,7 @@ export default function AnnouncementsTab() {
         target_type: form.target_type,
         target_value: form.target_type === 'all' ? null : form.target_value || null,
         frequency_days: form.frequency_days,
+        is_persistent: form.is_persistent,
         starts_at: form.starts_at || new Date().toISOString(),
         expires_at: form.expires_at || null,
       };
@@ -144,6 +146,7 @@ export default function AnnouncementsTab() {
       target_type: a.target_type,
       target_value: a.target_value || '',
       frequency_days: a.frequency_days,
+      is_persistent: (a as any).is_persistent || false,
       starts_at: a.starts_at ? a.starts_at.slice(0, 16) : '',
       expires_at: a.expires_at ? a.expires_at.slice(0, 16) : '',
     });
@@ -186,6 +189,7 @@ export default function AnnouncementsTab() {
                       <Badge variant="secondary" className="text-[10px]"><Users className="h-3 w-3 mr-0.5" />{targetLabel(a)}</Badge>
                       <Badge variant="outline" className="text-[10px]"><CalendarClock className="h-3 w-3 mr-0.5" />{freqLabel(a.frequency_days)}</Badge>
                       {a.link_url && <Badge variant="outline" className="text-[10px]"><LinkIcon className="h-3 w-3 mr-0.5" />{a.link_label || 'Enlace'}</Badge>}
+                      {(a as any).is_persistent && <Badge variant="default" className="text-[10px]"><Pin className="h-3 w-3 mr-0.5" />Permanente</Badge>}
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-2">{a.message}</p>
                     <p className="text-[10px] text-muted-foreground/70">
@@ -265,6 +269,14 @@ export default function AnnouncementsTab() {
                 <Input type="number" min={0} value={form.frequency_days} onChange={e => setForm(f => ({ ...f, frequency_days: parseInt(e.target.value) || 0 }))} className="w-24" />
                 <span className="text-xs text-muted-foreground">0 = se muestra una sola vez</span>
               </div>
+            </div>
+
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>Anuncio permanente (no se puede cerrar)</Label>
+                <p className="text-[11px] text-muted-foreground">El usuario no podrá descartar este anuncio.</p>
+              </div>
+              <Switch checked={form.is_persistent} onCheckedChange={v => setForm(f => ({ ...f, is_persistent: v }))} />
             </div>
 
             <div className="grid grid-cols-2 gap-3">

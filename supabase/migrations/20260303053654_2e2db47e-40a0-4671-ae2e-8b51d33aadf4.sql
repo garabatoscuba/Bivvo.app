@@ -1,0 +1,1 @@
+ALTER TABLE public.platform_announcements ADD COLUMN IF NOT EXISTS is_persistent boolean NOT NULL DEFAULT false;
