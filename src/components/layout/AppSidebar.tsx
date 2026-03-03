@@ -59,6 +59,7 @@ import {
   Briefcase,
   FileText,
   Bot,
+  Tag,
 } from "lucide-react";
 import { getIconComponent } from "@/components/services/IconSelector";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -321,8 +322,10 @@ const AppSidebar = () => {
   };
 
   const superAdminItems = [
-    { title: "Panel Admin", url: "/admin", icon: Shield },
+    { title: "Resumen", url: "/admin", icon: Shield },
     { title: "Usuarios", url: "/admin/users", icon: Users },
+    { title: "Negocios", url: "/admin/businesses", icon: Store },
+    { title: "Ofertas", url: "/admin/offers", icon: Tag },
     { title: "Módulos y Plugins", url: "/admin/modules", icon: Settings2 },
     { title: "Asistente IA", url: "/admin/assistant", icon: Bot },
   ];
