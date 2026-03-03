@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { Settings, BookOpen, GraduationCap, History, Zap, Plus, Pencil, Trash2, Loader2, MessageSquare, ChevronDown, ChevronRight } from 'lucide-react';
+import { Settings, BookOpen, GraduationCap, History, Zap, Plus, Pencil, Trash2, Loader2, MessageSquare, ChevronDown, ChevronRight, Sparkles, Megaphone } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -473,6 +473,10 @@ function QuickActionsTab() {
   );
 }
 
+// ─── Lazy-loaded new tabs ───
+import AssistantFeaturesTab from '@/components/admin/AssistantFeaturesTab';
+import AnnouncementsTab from '@/components/admin/AnnouncementsTab';
+
 // ─── Main Page ───
 export default function AdminAssistant() {
   return (
@@ -481,6 +485,8 @@ export default function AdminAssistant() {
         <div className="overflow-x-auto">
           <TabsList className="bg-muted/60">
             <TabsTrigger value="config" className="gap-1.5 text-xs"><Settings className="h-3.5 w-3.5" /> Configuración</TabsTrigger>
+            <TabsTrigger value="features" className="gap-1.5 text-xs"><Sparkles className="h-3.5 w-3.5" /> Funciones</TabsTrigger>
+            <TabsTrigger value="announcements" className="gap-1.5 text-xs"><Megaphone className="h-3.5 w-3.5" /> Anuncios</TabsTrigger>
             <TabsTrigger value="instructions" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por tipo</TabsTrigger>
             <TabsTrigger value="training" className="gap-1.5 text-xs"><GraduationCap className="h-3.5 w-3.5" /> Entrenamiento</TabsTrigger>
             <TabsTrigger value="history" className="gap-1.5 text-xs"><History className="h-3.5 w-3.5" /> Historial</TabsTrigger>
@@ -489,6 +495,8 @@ export default function AdminAssistant() {
         </div>
 
         <TabsContent value="config"><ConfigGlobalTab /></TabsContent>
+        <TabsContent value="features"><AssistantFeaturesTab /></TabsContent>
+        <TabsContent value="announcements"><AnnouncementsTab /></TabsContent>
         <TabsContent value="instructions"><InstructionsTab /></TabsContent>
         <TabsContent value="training"><TrainingTab /></TabsContent>
         <TabsContent value="history"><HistoryTab /></TabsContent>
