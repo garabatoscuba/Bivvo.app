@@ -97,6 +97,35 @@ export type Database = {
           },
         ]
       }
+      announcement_dismissals: {
+        Row: {
+          announcement_id: string
+          dismissed_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          announcement_id: string
+          dismissed_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          announcement_id?: string
+          dismissed_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcement_dismissals_announcement_id_fkey"
+            columns: ["announcement_id"]
+            isOneToOne: false
+            referencedRelation: "platform_announcements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       announcements: {
         Row: {
           badge_text: string | null
@@ -263,6 +292,76 @@ export type Database = {
           },
         ]
       }
+      assistant_feature_pricing: {
+        Row: {
+          availability: string
+          created_at: string
+          feature_id: string
+          id: string
+          monthly_price: number
+          plan_type: string
+          updated_at: string
+        }
+        Insert: {
+          availability?: string
+          created_at?: string
+          feature_id: string
+          id?: string
+          monthly_price?: number
+          plan_type: string
+          updated_at?: string
+        }
+        Update: {
+          availability?: string
+          created_at?: string
+          feature_id?: string
+          id?: string
+          monthly_price?: number
+          plan_type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_feature_pricing_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "assistant_features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assistant_feature_roles: {
+        Row: {
+          created_at: string
+          feature_id: string
+          id: string
+          is_allowed: boolean
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          feature_id: string
+          id?: string
+          is_allowed?: boolean
+          role: string
+        }
+        Update: {
+          created_at?: string
+          feature_id?: string
+          id?: string
+          is_allowed?: boolean
+          role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assistant_feature_roles_feature_id_fkey"
+            columns: ["feature_id"]
+            isOneToOne: false
+            referencedRelation: "assistant_features"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       assistant_feature_usage: {
         Row: {
           business_id: string
@@ -300,6 +399,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      assistant_features: {
+        Row: {
+          created_at: string
+          description: string | null
+          icon: string
+          id: string
+          is_active: boolean
+          key: string
+          name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          key: string
+          name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          icon?: string
+          id?: string
+          is_active?: boolean
+          key?: string
+          name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       assistant_training_examples: {
         Row: {
@@ -1913,6 +2048,57 @@ export type Database = {
           total_branches?: number
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      platform_announcements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          expires_at: string | null
+          frequency_days: number
+          id: string
+          is_active: boolean
+          link_label: string | null
+          link_url: string | null
+          message: string
+          starts_at: string
+          target_type: string
+          target_value: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          frequency_days?: number
+          id?: string
+          is_active?: boolean
+          link_label?: string | null
+          link_url?: string | null
+          message: string
+          starts_at?: string
+          target_type?: string
+          target_value?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string | null
+          frequency_days?: number
+          id?: string
+          is_active?: boolean
+          link_label?: string | null
+          link_url?: string | null
+          message?: string
+          starts_at?: string
+          target_type?: string
+          target_value?: string | null
+          title?: string
+          updated_at?: string
         }
         Relationships: []
       }
