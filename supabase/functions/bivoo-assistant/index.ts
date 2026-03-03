@@ -31,9 +31,9 @@ serve(async (req) => {
   try {
     const { messages, role, active_module, business_id } = await req.json();
 
-    const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
-    console.log("GEMINI_API_KEY present:", !!Deno.env.get("GEMINI_API_KEY"));
-    if (!GEMINI_API_KEY) throw new Error("GEMINI_API_KEY is not configured");
+    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
+    console.log("GEMINI_API_KEY present:", !!Deno.env.get("VITE_GEMINI_API_KEY"));
+    if (!GEMINI_API_KEY) throw new Error("VITE_GEMINI_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
