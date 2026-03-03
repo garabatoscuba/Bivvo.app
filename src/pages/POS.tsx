@@ -17,7 +17,8 @@ import { useBranches } from '@/hooks/useBranches';
 import { useSales } from '@/hooks/useSales';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, ShoppingCart, Loader2, Package } from 'lucide-react';
+import { Search, ShoppingCart, Loader2, Package, PackageX } from 'lucide-react';
+import { MermaDialog } from '@/components/inventory/MermaDialog';
 import {
   Sheet,
   SheetContent,
@@ -64,6 +65,7 @@ const POS = () => {
   const [discount, setDiscount] = useState(0);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
+  const [mermaOpen, setMermaOpen] = useState(false);
   const [tabletCartOpen, setTabletCartOpen] = useState(false);
 
   const stockMap = new Map<string, number>();
@@ -228,14 +230,25 @@ const POS = () => {
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
           {/* Search & Categories */}
           <div className="space-y-2 md:space-y-3 pb-2 md:pb-4 flex-shrink-0">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Buscar productos..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10"
-              />
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar productos..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0 text-destructive hover:text-destructive"
+                onClick={() => setMermaOpen(true)}
+                title="Registrar merma"
+              >
+                <PackageX className="h-4 w-4" />
+              </Button>
             </div>
 
             <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
@@ -424,6 +437,14 @@ const POS = () => {
         discount={discount}
         onConfirm={handlePayment}
         isProcessing={isCreating}
+      />
+
+      <MermaDialog
+        open={mermaOpen}
+        onOpenChange={setMermaOpen}
+        branchId={currentBranch || ''}
+        products={products.map(p => ({ id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price) }))}
+        stockMap={stockMap}
       />
     </AppLayout>
   );

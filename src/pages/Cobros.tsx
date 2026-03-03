@@ -21,6 +21,7 @@ const Cobros = () => {
     currentSales,
     currentServices,
     currentAll,
+    currentMermas,
     prevSales,
     prevServices,
     prevAll,
@@ -54,6 +55,7 @@ const Cobros = () => {
               services={currentServices}
               all={currentAll}
               dailyBreakdown={dailyBreakdown}
+              mermas={currentMermas}
             />
           </TabsContent>
 
