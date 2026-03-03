@@ -148,12 +148,12 @@ function ConfigGlobalTab() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <div><CardTitle className="text-base">Botones del menú contextual</CardTitle><CardDescription>Aparecen después de +Gasto y +Capital</CardDescription></div>
+          <div><CardTitle className="text-base">Botones del menú contextual</CardTitle><CardDescription>Todos los botones del menú son editables. Puedes cambiar nombre, icono y acción.</CardDescription></div>
           <Button size="sm" onClick={openNewAction}><Plus className="h-4 w-4 mr-1" /> Agregar</Button>
         </CardHeader>
         <CardContent>
           {actionsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : actions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No hay botones personalizados configurados.</p>
+            <p className="text-sm text-muted-foreground">No hay botones configurados.</p>
           ) : (
             <div className="space-y-2">
               {actions.map(a => {
@@ -162,7 +162,12 @@ function ConfigGlobalTab() {
                   <div key={a.id} className="flex items-center gap-3 p-2 rounded-lg border">
                     <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-sm flex-1">{a.label}</span>
-                    <Badge variant="outline" className="text-[10px]">{a.action_type}</Badge>
+                    <Badge variant="outline" className="text-[10px]">
+                      {a.action_type === 'treasury_action' ? 'Tesorería' : a.action_type === 'navigate' ? 'Navegar' : a.action_type}
+                    </Badge>
+                    <Badge variant="secondary" className="text-[10px] font-mono">
+                      {a.action_payload?.value || '—'}
+                    </Badge>
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditAction(a)}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteActionTarget(a)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
@@ -186,12 +191,16 @@ function ConfigGlobalTab() {
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="navigate">Navegar a ruta</SelectItem>
+                  <SelectItem value="treasury_action">Acción de Tesorería</SelectItem>
                   <SelectItem value="open_module">Abrir módulo</SelectItem>
                   <SelectItem value="quick_action">Acción rápida</SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-[11px] text-muted-foreground mt-1">
+                {actionType === 'treasury_action' ? 'Valor: "gasto" o "capital"' : actionType === 'navigate' ? 'Ruta del sistema, ej: /tesoreria' : 'Identificador del recurso'}
+              </p>
             </div>
-            <div><Label>{actionType === 'navigate' ? 'Ruta del sistema' : 'Valor'}</Label><Input value={actionPayload} onChange={e => setActionPayload(e.target.value)} placeholder={actionType === 'navigate' ? '/inventory' : 'valor'} className="mt-1" /></div>
+            <div><Label>{actionType === 'navigate' ? 'Ruta del sistema' : 'Valor'}</Label><Input value={actionPayload} onChange={e => setActionPayload(e.target.value)} placeholder={actionType === 'navigate' ? '/tesoreria' : actionType === 'treasury_action' ? 'gasto' : 'valor'} className="mt-1" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog(false)}>Cancelar</Button>

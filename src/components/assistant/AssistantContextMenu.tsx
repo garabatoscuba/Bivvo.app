@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { TrendingDown, TrendingUp, Zap, Landmark } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +21,7 @@ interface AssistantContextMenuProps {
 }
 
 export default function AssistantContextMenu({ open, onOpenChange, onAction, children }: AssistantContextMenuProps) {
-  const [customActions, setCustomActions] = useState<ContextAction[]>([]);
+  const [actions, setActions] = useState<ContextAction[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { isOwner, isSuperAdmin } = useAuth();
@@ -33,7 +33,7 @@ export default function AssistantContextMenu({ open, onOpenChange, onAction, chi
       .eq('is_active', true)
       .order('sort_order')
       .then(({ data }) => {
-        if (data) setCustomActions(data as unknown as ContextAction[]);
+        if (data) setActions(data as unknown as ContextAction[]);
       });
   }, []);
 
@@ -49,12 +49,23 @@ export default function AssistantContextMenu({ open, onOpenChange, onAction, chi
     return () => { clearTimeout(id); document.removeEventListener('mousedown', handler); };
   }, [open, onOpenChange]);
 
-  const handleAbrirCaja = () => {
+  const handleAction = (a: ContextAction) => {
     onOpenChange(false);
-    if (isOwner || isSuperAdmin) {
-      navigate('/tesoreria');
+    const value = a.action_payload?.value || '';
+
+    if (a.action_type === 'treasury_action') {
+      if (value === 'gasto') onAction('gasto');
+      else if (value === 'capital') onAction('capital');
+      else onAction('custom', a.action_payload);
+    } else if (a.action_type === 'navigate') {
+      // For navigate actions, resolve owner vs employee routing
+      let route = value;
+      if (route === '/tesoreria' && !isOwner && !isSuperAdmin) {
+        route = '/caja';
+      }
+      navigate(route);
     } else {
-      navigate('/caja');
+      onAction('custom', a.action_payload);
     }
   };
 
@@ -66,33 +77,12 @@ export default function AssistantContextMenu({ open, onOpenChange, onAction, chi
           ref={menuRef}
           className="fixed bottom-[72px] right-4 z-[60] w-48 p-1.5 rounded-lg border bg-popover shadow-md animate-scale-in"
         >
-          <button
-            onClick={() => { onAction('gasto'); onOpenChange(false); }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted/60 transition-colors text-foreground"
-          >
-            <TrendingDown className="h-4 w-4 text-destructive" />
-            +Gasto
-          </button>
-          <button
-            onClick={() => { onAction('capital'); onOpenChange(false); }}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted/60 transition-colors text-foreground"
-          >
-            <TrendingUp className="h-4 w-4 text-primary" />
-            +Capital
-          </button>
-          <button
-            onClick={handleAbrirCaja}
-            className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted/60 transition-colors text-foreground"
-          >
-            <Landmark className="h-4 w-4 text-muted-foreground" />
-            Abrir Caja
-          </button>
-          {customActions.map((a) => {
+          {actions.map((a) => {
             const Icon = getIconComponent(a.icon) || Zap;
             return (
               <button
                 key={a.id}
-                onClick={() => { onAction('custom', a.action_payload); onOpenChange(false); }}
+                onClick={() => handleAction(a)}
                 className="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-muted/60 transition-colors text-foreground"
               >
                 <Icon className="h-4 w-4 text-muted-foreground" />
