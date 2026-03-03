@@ -71,7 +71,7 @@ function ConfigGlobalTab() {
       } as any).eq('id', config.id);
       if (error) throw error;
     },
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-config'] }); toast({ title: 'Configuración guardada' }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-config'] }); qc.invalidateQueries({ queryKey: ['assistant-config-name'] }); qc.invalidateQueries({ queryKey: ['assistant-features-access'] }); toast({ title: 'Configuración guardada' }); },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 
