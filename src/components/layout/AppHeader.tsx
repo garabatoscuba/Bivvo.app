@@ -5,7 +5,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
-import NotificationCenter from './NotificationCenter';
 import { WifiOff, Loader2, Cloud } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -91,7 +90,6 @@ const AppHeader = ({ title }: AppHeaderProps) => {
             <Cloud className="h-4 w-4 text-success" />
           )}
         </div>
-        <NotificationCenter />
       </div>
 
       {/* Modal cerrar jornada */}
