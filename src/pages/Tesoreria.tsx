@@ -17,7 +17,7 @@ const Tesoreria = () => {
   const prefillType = searchParams.get("prefill") as "extraccion" | "inyeccion" | null;
   const initialTab = prefillType ? "movimientos" : "caja";
 
-  const [mainTab, setMainTab] = useState(initialTab);
+  const [mainTab, setMainTab] = useState(initialTab === "caja" ? "movimientos" : initialTab);
 
   const handlePrefillConsumed = () => {
     setSearchParams({}, { replace: true });
@@ -38,13 +38,9 @@ const Tesoreria = () => {
 
         <Tabs value={mainTab} onValueChange={setMainTab}>
           <TabsList className="w-full grid grid-cols-2 h-9">
-            <TabsTrigger value="caja" className="text-xs">Caja</TabsTrigger>
             <TabsTrigger value="movimientos" className="text-xs">Balance Personal</TabsTrigger>
+            <TabsTrigger value="caja" className="text-xs">Cajas</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="caja">
-            <CajaOwnerOverview />
-          </TabsContent>
 
           <TabsContent value="movimientos">
             {profile?.business_id && (
@@ -54,6 +50,10 @@ const Tesoreria = () => {
                 onPrefillConsumed={handlePrefillConsumed}
               />
             )}
+          </TabsContent>
+
+          <TabsContent value="caja">
+            <CajaOwnerOverview />
           </TabsContent>
         </Tabs>
       </div>
