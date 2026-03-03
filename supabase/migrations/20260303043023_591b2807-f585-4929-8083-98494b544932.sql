@@ -1,0 +1,1 @@
+ALTER TYPE salary_modality_type ADD VALUE IF NOT EXISTS 'fixed_plus_profit_percent';

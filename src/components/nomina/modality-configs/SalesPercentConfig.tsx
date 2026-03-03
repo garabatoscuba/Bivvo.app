@@ -19,7 +19,7 @@ const SalesPercentConfig = ({ type, config, onConfigChange, presets, onPresetsCh
       <div className="rounded-lg border p-3 bg-muted/30">
         <p className="text-sm text-muted-foreground">
           {isFixedPlus
-            ? 'Salario base más un porcentaje sobre las ventas del empleado.'
+            ? 'Monto fijo que siempre se suma al salario más un porcentaje sobre las ventas del empleado. El fijo no es un piso, se acumula siempre.'
             : 'Sin salario fijo, solo un porcentaje de lo que vende el empleado.'}
         </p>
       </div>
