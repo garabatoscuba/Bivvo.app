@@ -77,25 +77,19 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
     enabled: !!businessId,
   });
 
-  // COGS: cost of products actually sold (from sale_items joined with sales)
+  // COGS: sum of all purchases (quantity * unit_cost) from product_stock_entries
   const { data: productCost = 0 } = useQuery({
     queryKey: ["bp-product-cost", businessId, branchId, period],
     queryFn: async () => {
       let q = supabase
-        .from("sales")
-        .select("sale_items(quantity, cost_price)")
-        .eq("status", "completed");
+        .from("product_stock_entries" as any)
+        .select("quantity, unit_cost")
+        .eq("business_id", businessId);
       if (branchId) q = q.eq("branch_id", branchId);
       if (from) q = q.gte("created_at", from);
       q = q.lte("created_at", to);
       const { data } = await q;
-      let total = 0;
-      data?.forEach((sale: any) => {
-        sale.sale_items?.forEach((item: any) => {
-          total += Number(item.quantity) * Number(item.cost_price || 0);
-        });
-      });
-      return total;
+      return (data as any[])?.reduce((sum: number, e: any) => sum + Number(e.quantity) * Number(e.unit_cost || 0), 0) || 0;
     },
     enabled: !!businessId,
   });

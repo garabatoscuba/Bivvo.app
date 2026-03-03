@@ -107,8 +107,10 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
       const detailParts = [
         `Entrada: ${reasonLabel}`,
         `${qtyForSale} venta, ${qtyWarehouse} almacén`,
+        `Costo: $${parseFloat(unitCost).toFixed(2)}`,
+        `Venta: $${parseFloat(newSalePrice).toFixed(2)}`,
         `Origen: ${origin.trim()}`,
-        authorizedBy.trim() ? `Autoriza: ${authorizedBy.trim()}` : null,
+        `Autoriza: ${authorizedBy.trim()}`,
         notes.trim() ? `Obs: ${notes.trim()}` : null,
       ].filter(Boolean);
 
@@ -159,7 +161,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     }
   };
 
-  const isValid = reason && origin.trim() && totalQty > 0;
+  const isValid = reason && origin.trim() && authorizedBy.trim() && totalQty > 0 && unitCost && parseFloat(unitCost) > 0 && newSalePrice && parseFloat(newSalePrice) > 0;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -167,7 +169,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <PackagePlus className="h-5 w-5 text-primary" />
-            Dar entrada
+            Nueva Compra
           </DialogTitle>
           <DialogDescription>
             {product?.name}
@@ -201,7 +203,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-              Motivo de entrada
+              Motivo de entrada *
             </Label>
             <Select value={reason} onValueChange={setReason}>
               <SelectTrigger>
@@ -219,7 +221,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-              Origen
+              Origen / Proveedor *
             </Label>
             <Input
               placeholder="Ej: Proveedor X, Sucursal Norte, Cliente Y..."
@@ -232,7 +234,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <User className="h-3.5 w-3.5 text-muted-foreground" />
-              Autorizado por
+              Autorizado por *
             </Label>
             <Input
               placeholder="Nombre de quien autoriza"
@@ -246,7 +248,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">
                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                Costo unitario
+                Costo unitario *
               </Label>
               <Input
                 type="number"
@@ -255,12 +257,13 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
                 placeholder="Precio que pagaste"
                 value={unitCost}
                 onChange={(e) => setUnitCost(e.target.value)}
+                required
               />
             </div>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">
                 <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                Precio de venta
+                Precio de venta *
               </Label>
               <Input
                 type="number"
@@ -269,6 +272,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
                 placeholder="Nuevo precio de venta"
                 value={newSalePrice}
                 onChange={(e) => setNewSalePrice(e.target.value)}
+                required
               />
             </div>
           </div>
@@ -289,7 +293,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           <Button variant="outline" onClick={() => handleClose(false)}>Cancelar</Button>
           <Button onClick={handleSubmit} disabled={submitting || !isValid}>
             {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Dar entrada ({totalQty})
+            Registrar Compra ({totalQty})
           </Button>
         </DialogFooter>
       </DialogContent>
