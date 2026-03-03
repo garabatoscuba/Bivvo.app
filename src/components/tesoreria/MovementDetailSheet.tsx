@@ -26,6 +26,7 @@ interface UnifiedRow {
   origin?: string;
   category?: string;
   ref?: string;
+  itemCount?: number;
 }
 
 interface Props {
@@ -62,7 +63,7 @@ export default function MovementDetailSheet({ row, open, onOpenChange, resolvedN
     queryFn: async () => {
       const { data } = await supabase
         .from("sale_items")
-        .select("id, quantity, price, cost_price, product_name")
+        .select("id, quantity, unit_price, cost_price, discount, total, product_id, products(name)")
         .eq("sale_id", realId);
       return data || [];
     },
@@ -166,11 +167,11 @@ export default function MovementDetailSheet({ row, open, onOpenChange, resolvedN
                     <TableBody>
                       {saleItems.map((item: any) => (
                         <TableRow key={item.id}>
-                          <TableCell className="text-xs py-1.5">{item.product_name || "Producto"}</TableCell>
+                          <TableCell className="text-xs py-1.5">{item.products?.name || "Producto"}</TableCell>
                           <TableCell className="text-xs py-1.5 text-center">{item.quantity}</TableCell>
-                          <TableCell className="text-xs py-1.5 text-right">{fmt(Number(item.price))}</TableCell>
+                          <TableCell className="text-xs py-1.5 text-right">{fmt(Number(item.unit_price))}</TableCell>
                           <TableCell className="text-xs py-1.5 text-right font-medium">
-                            {fmt(Number(item.quantity) * Number(item.price))}
+                             {fmt(Number(item.total))}
                           </TableCell>
                         </TableRow>
                       ))}

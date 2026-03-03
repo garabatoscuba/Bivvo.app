@@ -39,6 +39,7 @@ interface UnifiedRow {
   origin?: string;
   category?: string;
   ref?: string;
+  itemCount?: number;
 }
 
 function getDateRange(period: Period): { from: string | null; to: string } {
@@ -88,24 +89,33 @@ export default function BalanceHistoryTable({ businessId, branchId, period }: Pr
     queryFn: async () => {
       let q = supabase
         .from("sales")
-        .select("id, created_at, total, sale_number, payment_type, user_id")
+        .select("id, created_at, total, sale_number, payment_type, user_id, sale_items(quantity, unit_price, product_id, products(name))")
         .eq("status", "completed");
       if (branchId) q = q.eq("branch_id", branchId);
       if (from) q = q.gte("created_at", from);
       q = q.lte("created_at", to).order("created_at", { ascending: false }).limit(500);
       const { data } = await q;
-      return (data || []).map((s: any): UnifiedRow => ({
-        id: "sale-" + s.id,
-        date: s.created_at,
-        type: "venta_producto",
-        typeLabel: "Venta",
-        description: "Venta de producto",
-        ref: s.sale_number || undefined,
-        amount: Number(s.total),
-        isIncome: true,
-        paymentMethod: s.payment_type,
-        origin: s.user_id,
-      }));
+      return (data || []).map((s: any): UnifiedRow => {
+        const items = (s.sale_items || []) as any[];
+        const itemCount = items.reduce((sum: number, i: any) => sum + Number(i.quantity || 1), 0);
+        const productNames = items.map((i: any) => i.products?.name || "Producto").slice(0, 3);
+        const desc = productNames.length > 0
+          ? productNames.join(", ") + (items.length > 3 ? ` +${items.length - 3}` : "")
+          : "Venta de producto";
+        return {
+          id: "sale-" + s.id,
+          date: s.created_at,
+          type: "venta_producto",
+          typeLabel: "Venta",
+          description: desc,
+          ref: s.sale_number || undefined,
+          amount: Number(s.total),
+          isIncome: true,
+          paymentMethod: s.payment_type,
+          origin: s.user_id,
+          itemCount,
+        };
+      });
     },
     enabled: !!businessId,
   });
@@ -352,8 +362,11 @@ export default function BalanceHistoryTable({ businessId, branchId, period }: Pr
                       <TableCell className="text-xs py-2 whitespace-nowrap">
                         {format(new Date(row.date), "dd/MM/yy HH:mm", { locale: es })}
                       </TableCell>
-                      <TableCell className="text-xs py-2 max-w-[180px] truncate">
-                        {row.description}
+                      <TableCell className="text-xs py-2 max-w-[220px]">
+                        <span className="block truncate">{row.description}</span>
+                        {row.type === "venta_producto" && row.itemCount != null && (
+                          <span className="text-[10px] text-muted-foreground">{row.itemCount} {row.itemCount === 1 ? "artículo" : "artículos"}</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-xs py-2 max-w-[120px] truncate">
                         {resolveOriginName(row)}
