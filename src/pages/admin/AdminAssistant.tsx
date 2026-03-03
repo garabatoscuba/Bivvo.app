@@ -43,6 +43,7 @@ function ConfigGlobalTab() {
   const [tone, setTone] = useState<string>('');
   const [enabled, setEnabled] = useState(true);
   const [instructions, setInstructions] = useState('');
+  const [assistantName, setAssistantName] = useState('Bivoo');
   const [initialized, setInitialized] = useState(false);
 
   // Action dialog
@@ -58,6 +59,7 @@ function ConfigGlobalTab() {
     setTone(config.tone);
     setEnabled(config.is_enabled);
     setInstructions(config.base_instructions);
+    setAssistantName((config as any).assistant_name || 'Bivoo');
     setInitialized(true);
   }
 
@@ -65,7 +67,7 @@ function ConfigGlobalTab() {
     mutationFn: async () => {
       if (!config?.id) return;
       const { error } = await supabase.from('assistant_config').update({
-        tone, is_enabled: enabled, base_instructions: instructions,
+        tone, is_enabled: enabled, base_instructions: instructions, assistant_name: assistantName,
       } as any).eq('id', config.id);
       if (error) throw error;
     },
@@ -110,6 +112,11 @@ function ConfigGlobalTab() {
       <Card>
         <CardHeader><CardTitle className="text-base">Configuración general</CardTitle></CardHeader>
         <CardContent className="space-y-4">
+          <div>
+            <Label className="text-sm">Nombre del asistente</Label>
+            <Input value={assistantName} onChange={e => setAssistantName(e.target.value)} placeholder="Bivoo" className="mt-1 max-w-xs" />
+            <p className="text-[11px] text-muted-foreground mt-1">Se muestra como "Asistente {assistantName}" en el panel.</p>
+          </div>
           <div className="flex items-center justify-between">
             <Label>Asistente activo en toda la plataforma</Label>
             <Switch checked={enabled} onCheckedChange={setEnabled} />

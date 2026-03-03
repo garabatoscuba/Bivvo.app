@@ -193,6 +193,7 @@ export type Database = {
       }
       assistant_config: {
         Row: {
+          assistant_name: string
           base_instructions: string
           created_at: string
           id: string
@@ -201,6 +202,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assistant_name?: string
           base_instructions?: string
           created_at?: string
           id?: string
@@ -209,6 +211,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assistant_name?: string
           base_instructions?: string
           created_at?: string
           id?: string

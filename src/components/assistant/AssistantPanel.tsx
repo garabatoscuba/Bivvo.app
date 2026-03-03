@@ -9,6 +9,8 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
 import { useLocation } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import type { BivooState } from "./BivooFace";
 import bivooFaceSvg from "@/assets/bivoo-face.svg";
 
@@ -71,6 +73,16 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
   const { profile, isOwner, isManager, isSeller } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const location = useLocation();
+
+  const { data: assistantConfig } = useQuery({
+    queryKey: ['assistant-config-name'],
+    queryFn: async () => {
+      const { data } = await supabase.from('assistant_config').select('assistant_name').limit(1).single();
+      return data;
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+  const assistantName = (assistantConfig as any)?.assistant_name || 'Bivoo';
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -237,7 +249,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
           <img src={bivooFaceSvg} alt="Bivoo" className="w-full h-full object-cover" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold leading-tight">Asistente Bivoo</p>
+          <p className="text-sm font-semibold leading-tight">Asistente {assistantName}</p>
           <p className="text-[11px] text-primary flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-primary inline-block" />
             En línea
