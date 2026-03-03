@@ -17,7 +17,7 @@ import { useBranches } from '@/hooks/useBranches';
 import { useSales } from '@/hooks/useSales';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { Search, ShoppingCart, Loader2, Package, PackageX } from 'lucide-react';
+import { Search, ShoppingCart, Loader2, Package, PackageX, AlertTriangle } from 'lucide-react';
 import { MermaDialog } from '@/components/inventory/MermaDialog';
 import {
   Sheet,
@@ -28,7 +28,8 @@ import type { CartItem, Product, Category, PaymentType } from '@/types/database'
 import { cn } from '@/lib/utils';
 
 const POS = () => {
-  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const { profile, isOwner, isManager, isSuperAdmin, user } = useAuth();
+  const isPrivileged = isOwner || isManager || isSuperAdmin;
   const [searchParams] = useSearchParams();
   const isEmployeeContext = searchParams.get('ctx') === 'emp';
 
@@ -55,9 +56,27 @@ const POS = () => {
   const { categories } = useCategories(isEmployeeContext ? effectiveBusinessId || undefined : undefined);
   const { data: branches } = useBranches();
   const { createSale, isCreating } = useSales();
+  
 
   const currentBranch = effectiveBranchId || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
+
+  // Check if the user has an open cash register
+  const { data: openCashRegister } = useQuery({
+    queryKey: ['pos-open-register', user?.id, currentBranch],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('cash_registers')
+        .select('id')
+        .eq('user_id', user!.id)
+        .eq('status', 'open')
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id && !isPrivileged,
+  });
+
+  const hasCajaOpen = isPrivileged || !!openCashRegister;
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -195,7 +214,6 @@ const POS = () => {
   const cartTotal = cart.reduce((sum, item) => sum + item.total, 0) - discount;
   const cartItemsCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const isPrivileged = isOwner || isManager || isSuperAdmin;
 
   if (!isPrivileged && jornadaLoading) {
     return (
@@ -225,6 +243,12 @@ const POS = () => {
 
   return (
     <AppLayout>
+      {!hasCajaOpen && (
+        <div className="mb-3 flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+          <span>Debes abrir tu caja antes de realizar ventas. Ve a <strong>Caja</strong> para abrirla.</span>
+        </div>
+      )}
       <div className="flex flex-col lg:flex-row h-[calc(100vh-6.5rem)] md:h-[calc(100vh-8rem)] gap-0 lg:gap-4 overflow-hidden max-w-full">
         {/* Products Section */}
         <div className="flex-1 flex flex-col overflow-hidden min-w-0">
@@ -331,7 +355,7 @@ const POS = () => {
           />
           {cart.length > 0 && (
             <div className="p-4 border-t">
-              <Button className="w-full h-11 font-bold" onClick={() => setPaymentOpen(true)}>
+              <Button className="w-full h-11 font-bold" onClick={() => setPaymentOpen(true)} disabled={!hasCajaOpen}>
                 <ShoppingCart className="h-5 w-5 mr-2" />
                 Cobrar ${cartTotal.toFixed(2)}
               </Button>
@@ -354,7 +378,7 @@ const POS = () => {
               />
               {cart.length > 0 && (
                 <div className="flex-shrink-0 p-3 border-t bg-background">
-                  <Button className="w-full h-11 font-bold" onClick={() => { setTabletCartOpen(false); setPaymentOpen(true); }}>
+                  <Button className="w-full h-11 font-bold" onClick={() => { setTabletCartOpen(false); setPaymentOpen(true); }} disabled={!hasCajaOpen}>
                     <ShoppingCart className="h-5 w-5 mr-2" />
                     Cobrar ${cartTotal.toFixed(2)}
                   </Button>
@@ -418,7 +442,7 @@ const POS = () => {
                 />
                 {cart.length > 0 && (
                   <div className="flex-shrink-0 p-3 border-t bg-background">
-                    <Button className="w-full h-12 text-base font-bold" onClick={() => { setMobileCartOpen(false); setPaymentOpen(true); }}>
+                    <Button className="w-full h-12 text-base font-bold" onClick={() => { setMobileCartOpen(false); setPaymentOpen(true); }} disabled={!hasCajaOpen}>
                       <ShoppingCart className="h-5 w-5 mr-2" />
                       Cobrar ${cartTotal.toFixed(2)}
                     </Button>
