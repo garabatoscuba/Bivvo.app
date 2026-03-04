@@ -201,6 +201,36 @@ const Dashboard = () => {
           <PeriodFilter value={period} onChange={setPeriod} className="w-full sm:w-auto" />
         </div>
 
+        {/* Alerts */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="h-5 w-5 text-warning" />
+              Alertas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {lowStockProducts.length > 0 ?
+            <div className="space-y-2">
+                {lowStockProducts.slice(0, 5).map((bs: any) => {
+                const product = products.find((p) => p.id === bs.product_id);
+                return product ?
+                <div key={bs.id} className="flex items-center justify-between rounded-lg bg-warning/10 p-3">
+                      <span className="font-medium">{product.name}</span>
+                      <span className="text-sm text-warning">
+                        Stock: {bs.quantity} (mín: {product.min_stock})
+                      </span>
+                    </div> :
+                null;
+              })}
+              </div> :
+            <p className="text-sm text-muted-foreground">
+                No hay alertas en este momento. ¡Todo está funcionando correctamente!
+              </p>
+            }
+          </CardContent>
+        </Card>
+
         {/* KPI Cards */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
@@ -368,57 +398,7 @@ const Dashboard = () => {
         {/* Performance Widget */}
         <PerformanceWidget />
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-3 gap-2 md:gap-4 md:grid-cols-3">
-          {[
-          { to: '/pos', icon: ShoppingCart, title: 'POS', desc: 'Realizar venta' },
-          { to: '/inventory', icon: Package, title: 'Inventario', desc: 'Gestionar productos' },
-          { to: '/employees', icon: Users, title: 'Empleados', desc: 'Gestionar equipo' }].
-          map((action) =>
-          <Link key={action.to} to={action.to}>
-              <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-                <CardHeader className="flex flex-col items-center gap-1.5 p-3 md:flex-row md:gap-4 md:p-6">
-                  <action.icon className="h-5 w-5 text-muted-foreground" />
-                  <div className="text-center md:text-left">
-                    <CardTitle className="text-sm md:text-base">{action.title}</CardTitle>
-                    <p className="text-xs text-muted-foreground hidden md:block">{action.desc}</p>
-                  </div>
-                </CardHeader>
-              </Card>
-            </Link>
-          )}
-        </div>
 
-        {/* Alerts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-5 w-5 text-warning" />
-              Alertas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {lowStockProducts.length > 0 ?
-            <div className="space-y-2">
-                {lowStockProducts.slice(0, 5).map((bs: any) => {
-                const product = products.find((p) => p.id === bs.product_id);
-                return product ?
-                <div key={bs.id} className="flex items-center justify-between rounded-lg bg-warning/10 p-3">
-                      <span className="font-medium">{product.name}</span>
-                      <span className="text-sm text-warning">
-                        Stock: {bs.quantity} (mín: {product.min_stock})
-                      </span>
-                    </div> :
-                null;
-              })}
-              </div> :
-
-            <p className="text-sm text-muted-foreground">
-                No hay alertas en este momento. ¡Todo está funcionando correctamente!
-              </p>
-            }
-          </CardContent>
-        </Card>
       </div>
 
       {/* Onboarding Wizard for first-time users */}
