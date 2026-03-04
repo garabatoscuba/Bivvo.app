@@ -295,7 +295,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
   if (!open) return null;
 
   return (
-    <div className="fixed bottom-20 right-2 left-2 z-[60] max-h-[75vh] flex flex-col rounded-2xl border bg-card shadow-xl animate-scale-in overflow-hidden sm:left-auto sm:right-4 sm:w-[380px] sm:max-h-[580px]">
+    <div className="fixed bottom-20 right-2 left-2 z-[60] max-h-[85vh] flex flex-col rounded-2xl border bg-card shadow-xl animate-scale-in overflow-hidden sm:left-auto sm:right-4 sm:w-[380px] sm:max-h-[700px]">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
         <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
@@ -318,7 +318,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
         <div className="shrink-0 border-b">
           <div className="max-h-[120px] overflow-y-auto scrollbar-hide">
             {visibleAnnouncements.map((a: any) => (
-              <div key={a.id} className="px-4 py-2 flex items-start gap-2 hover:bg-muted/40 transition-colors">
+              <div key={a.id} className="px-4 py-3 flex items-start gap-2 hover:bg-muted/40 transition-colors">
                 <div className="w-[3px] self-stretch rounded-full bg-primary shrink-0" />
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-medium leading-tight">{a.title}</p>
