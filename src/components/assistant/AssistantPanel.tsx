@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, CheckCheck, ExternalLink, Bell } from "lucide-react";
+import { X, Send, CheckCheck, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
@@ -128,7 +128,6 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
     },
   });
   const [dismissedLocal, setDismissedLocal] = useState<Set<string>>(new Set());
-  const [showAllNotifs, setShowAllNotifs] = useState(false);
 
   const handleDismissAnnouncement = (id: string) => {
     setDismissedLocal(prev => new Set(prev).add(id));
@@ -296,7 +295,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
   if (!open) return null;
 
   return (
-    <div className="fixed bottom-20 right-2 left-2 z-[60] max-h-[90vh] flex flex-col rounded-2xl border bg-card shadow-xl animate-scale-in overflow-hidden sm:left-auto sm:right-4 sm:w-[380px] sm:max-h-[75vh]">
+    <div className="fixed bottom-20 right-2 left-2 z-[60] max-h-[85vh] flex flex-col rounded-2xl border bg-card shadow-xl animate-scale-in overflow-hidden sm:left-auto sm:right-4 sm:w-[380px] sm:max-h-[700px]">
       {/* Header */}
       <div className="flex items-center gap-3 px-4 py-3 border-b shrink-0">
         <div className="w-8 h-8 rounded-full overflow-hidden shrink-0">
@@ -309,22 +308,9 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
             En línea
           </p>
         </div>
-        <div className="flex items-center gap-1">
-          {showNotifications && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className={cn("h-7 w-7", showAllNotifs && "text-primary")}
-              onClick={() => setShowAllNotifs(prev => !prev)}
-              title="Ver notificaciones recientes"
-            >
-              <Bell className="h-4 w-4" />
-            </Button>
-          )}
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+          <X className="h-4 w-4" />
+        </Button>
       </div>
 
       {/* Announcements section */}
@@ -354,35 +340,30 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
         </div>
       )}
 
-      {/* Notifications section — unread (always) or all (when toggled) */}
-      {showNotifications && (showAllNotifs ? notifications.length > 0 : unreadNotifs.length > 0) && (
+      {/* Notifications section (owner/manager only) */}
+      {showNotifications && unreadNotifs.length > 0 && (
         <div className="shrink-0 border-b">
           <div className="flex items-center justify-between px-4 py-2">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
-              {showAllNotifs ? `Recientes · ${notifications.length}` : `Sin revisar · ${unreadNotifs.length}`}
+              Sin revisar · {unreadNotifs.length}
             </span>
-            <div className="flex items-center gap-1">
-              {!showAllNotifs && unreadNotifs.length > 1 && (
-                <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5 gap-1" onClick={markAllAsRead}>
-                  <CheckCheck className="h-3 w-3" /> Todas
-                </Button>
-              )}
-            </div>
+            {unreadNotifs.length > 1 && (
+              <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5 gap-1" onClick={markAllAsRead}>
+                <CheckCheck className="h-3 w-3" /> Todas
+              </Button>
+            )}
           </div>
-          <div className="max-h-[160px] overflow-y-auto scrollbar-hide">
-            {(showAllNotifs ? notifications.slice(0, 10) : unreadNotifs.slice(0, 5)).map((n) => (
+          <div className="max-h-[140px] overflow-y-auto scrollbar-hide">
+            {unreadNotifs.slice(0, 5).map((n) => (
               <button
                 key={n.id}
-                onClick={() => !n.is_read && markAsRead(n.id)}
-                className={cn(
-                  "w-full text-left flex items-start gap-2 px-4 py-2.5 hover:bg-muted/40 transition-colors",
-                  n.is_read && "opacity-60"
-                )}
+                onClick={() => markAsRead(n.id)}
+                className="w-full text-left flex items-start gap-2 px-4 py-2 hover:bg-muted/40 transition-colors"
               >
                 <div
                   className={cn(
                     "w-[3px] self-stretch rounded-full shrink-0",
-                    n.is_read ? "bg-muted" : (NOTIFICATION_COLORS[n.type] || "bg-muted"),
+                    NOTIFICATION_COLORS[n.type] || "bg-muted",
                   )}
                 />
                 <div className="min-w-0 flex-1">
@@ -392,7 +373,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
                     {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: es })}
                   </p>
                 </div>
-                {!n.is_read && <CheckCheck className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />}
+                <CheckCheck className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
               </button>
             ))}
           </div>
