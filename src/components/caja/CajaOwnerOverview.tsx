@@ -599,6 +599,17 @@ const RegisterCard = ({
                 </div>
               ))
             )}
+            {canManage && onClose && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-2 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={(e) => { e.stopPropagation(); onClose(); }}
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                Cerrar esta caja
+              </Button>
+            )}
           </div>
         </CollapsibleContent>
       </Card>
