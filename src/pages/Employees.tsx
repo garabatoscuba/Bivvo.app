@@ -70,6 +70,7 @@ interface Employee {
   start_date: string;
   created_at: string;
   updated_at: string;
+  auth_user_id: string | null;
 }
 
 interface SalaryAssignmentEntry {
@@ -95,6 +96,7 @@ interface EmployeeForm {
   salary_assignments: SalaryAssignmentEntry[];
   use_bivoo_id: boolean;
   bivoo_password: string;
+  new_password: string;
   
   // Legacy single fields kept for backward compat
   modality_id: string;
@@ -126,7 +128,7 @@ const emptyForm: EmployeeForm = {
   salary_assignments: [],
   use_bivoo_id: true,
   bivoo_password: '',
-  
+  new_password: '',
   modality_id: '',
   preset_id: '',
   pay_frequency: 'monthly',
@@ -152,6 +154,7 @@ const Employees = () => {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [form, setForm] = useState<EmployeeForm>(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   // Performance chart state
   const [perfEmployee, setPerfEmployee] = useState<Employee | null>(null);
@@ -649,6 +652,7 @@ const Employees = () => {
       salary_assignments: generalLoaded,
       use_bivoo_id: emp.email?.endsWith('@bivoo.app') || false,
       bivoo_password: '',
+      new_password: '',
       modality_id: first?.modality_id || '',
       preset_id: first?.preset_id || '',
       pay_frequency: first?.pay_frequency || 'monthly',
@@ -1021,6 +1025,63 @@ const Employees = () => {
                   </div>
                 )}
               </div>
+
+              {/* Password update for linked employees */}
+              {editingEmployee?.auth_user_id && (
+                <div className="space-y-2">
+                  <Label htmlFor="new_password">Nueva Contraseña</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      id="new_password"
+                      type="password"
+                      value={form.new_password || ''}
+                      onChange={(e) => setForm(prev => ({ ...prev, new_password: e.target.value }))}
+                      placeholder="Mínimo 6 caracteres"
+                      minLength={6}
+                    />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="shrink-0"
+                      disabled={!form.new_password || form.new_password.length < 6 || updatingPassword}
+                      onClick={async () => {
+                        if (!editingEmployee?.auth_user_id || !form.new_password) return;
+                        setUpdatingPassword(true);
+                        try {
+                          const { data: sessionData } = await supabase.auth.getSession();
+                          const res = await fetch(
+                            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-employee-password`,
+                            {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${sessionData.session?.access_token}`,
+                              },
+                              body: JSON.stringify({
+                                auth_user_id: editingEmployee.auth_user_id,
+                                new_password: form.new_password,
+                              }),
+                            }
+                          );
+                          const result = await res.json();
+                          if (!res.ok) throw new Error(result.error || 'Error');
+                          toast({ title: 'Contraseña actualizada' });
+                          setForm(prev => ({ ...prev, new_password: '' }));
+                        } catch (err: any) {
+                          toast({ title: 'Error', description: err.message, variant: 'destructive' });
+                        } finally {
+                          setUpdatingPassword(false);
+                        }
+                      }}
+                    >
+                      {updatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar'}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Cambia la contraseña de acceso del empleado.</p>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="age">Edad</Label>
