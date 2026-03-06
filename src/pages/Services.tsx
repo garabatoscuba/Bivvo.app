@@ -95,6 +95,23 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const businessId = employeeBusinessId;
   const branchId = employeeBranchId;
 
+  // Check for open cash register
+  const { data: hasOpenRegister, isLoading: loadingRegister } = useQuery({
+    queryKey: ['employee-open-register', branchId, user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('cash_registers')
+        .select('id')
+        .eq('branch_id', branchId!)
+        .eq('user_id', user!.id)
+        .eq('status', 'open')
+        .limit(1)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!branchId && !!user?.id,
+  });
+
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
