@@ -83,15 +83,29 @@ export default function BalanceHistoryTable({ businessId, branchId, period }: Pr
 
   useMemo(() => setPage(0), [period, filterType, filterPayment, searchText]);
 
+  // Fetch all branch IDs for this business
+  const { data: businessBranchIds = [] } = useQuery({
+    queryKey: ["bh-branch-ids", businessId],
+    queryFn: async () => {
+      const { data } = await supabase.from("branches").select("id").eq("business_id", businessId);
+      return (data || []).map((b) => b.id);
+    },
+    enabled: !!businessId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const saleBranchIds = branchId ? [branchId] : businessBranchIds;
+
   // 1. Product sales
   const { data: productSalesRows = [] } = useQuery({
-    queryKey: ["bh-sales", businessId, branchId, period],
+    queryKey: ["bh-sales", businessId, branchId, period, saleBranchIds],
     queryFn: async () => {
+      if (saleBranchIds.length === 0) return [];
       let q = supabase
         .from("sales")
         .select("id, created_at, total, sale_number, payment_type, user_id, sale_items(quantity, unit_price, product_id, products(name))")
-        .eq("status", "completed");
-      if (branchId) q = q.eq("branch_id", branchId);
+        .eq("status", "completed")
+        .in("branch_id", saleBranchIds);
       if (from) q = q.gte("created_at", from);
       q = q.lte("created_at", to).order("created_at", { ascending: false }).limit(500);
       const { data } = await q;
