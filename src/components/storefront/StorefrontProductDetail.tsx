@@ -6,6 +6,7 @@ import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
 interface Props {
   product: StorefrontProduct;
   accent: string;
+  currencySymbol: string;
   onClose: () => void;
 }
 
