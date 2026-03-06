@@ -40,7 +40,7 @@ const DURATION_OPTIONS = [
 
 const Plans = () => {
   const { status, daysLeft, planType, trialEndsAt, subscriptionEndsAt, totalBranches, totalMonthly } = useSubscription();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
 
   const [requestOpen, setRequestOpen] = useState(false);
@@ -80,8 +80,31 @@ const Plans = () => {
     enabled: !!user,
   });
 
+  // Fetch partner discount from profile referral_code or sessionStorage
+  const { data: partnerOffer } = useQuery({
+    queryKey: ['partner-offer', user?.id, (profile as any)?.referral_code],
+    queryFn: async () => {
+      const code = (profile as any)?.referral_code || sessionStorage.getItem('referral_code');
+      if (!code) return null;
+      const { data } = await supabase
+        .from('partners')
+        .select('*')
+        .eq('code', code.toUpperCase())
+        .eq('is_active', true)
+        .maybeSingle();
+      if (!data) return null;
+      // Check expiry
+      if (data.expires_at && new Date(data.expires_at) < new Date()) return null;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   // Find the best offer for the selected plan
   const bestOffer = activeOffers?.find((o: any) => o.applies_to_plans?.includes(selectedPlan));
+
+  // Check if partner offer applies to selected plan
+  const partnerApplies = partnerOffer && (partnerOffer.applies_to_plans as string[])?.includes(selectedPlan);
 
   const expirationDate = subscriptionEndsAt || trialEndsAt;
 
@@ -102,7 +125,18 @@ const Plans = () => {
       offerDiscount = Math.min(Number(bestOffer.discount_value), afterDuration);
     }
   }
-  const requestTotal = afterDuration - offerDiscount;
+  const afterOfferDiscount = afterDuration - offerDiscount;
+
+  // Apply partner discount on top of offer discount
+  let partnerDiscount = 0;
+  if (partnerApplies && partnerOffer) {
+    if (partnerOffer.discount_type === 'percentage') {
+      partnerDiscount = afterOfferDiscount * (Number(partnerOffer.discount_value) / 100);
+    } else {
+      partnerDiscount = Math.min(Number(partnerOffer.discount_value), afterOfferDiscount);
+    }
+  }
+  const requestTotal = afterOfferDiscount - partnerDiscount;
 
   // Trial activation
   const trialMutation = useMutation({
@@ -131,7 +165,7 @@ const Plans = () => {
 
   const requestMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('plan_requests').insert({
+      const insertData: any = {
         user_id: user!.id,
         plan_type: selectedPlan,
         months,
@@ -139,7 +173,11 @@ const Plans = () => {
         total_branches: branchCount,
         discount_percent: durationOpt.discount,
         total_amount: requestTotal,
-      });
+      };
+      if (partnerApplies && partnerOffer) {
+        insertData.partner_id = partnerOffer.id;
+      }
+      const { error } = await supabase.from('plan_requests').insert(insertData);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -276,6 +314,29 @@ const Plans = () => {
               </Card>
             ))}
           </div>
+        )}
+
+        {/* Partner discount banner */}
+        {partnerOffer && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="flex items-center gap-3 py-3 px-4">
+              <Tag className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-primary">Código Partner: {partnerOffer.code}</p>
+                <p className="text-xs text-muted-foreground">
+                  Aplica en planes: {(partnerOffer.applies_to_plans as string[]).join(', ')}
+                </p>
+              </div>
+              <Badge className="shrink-0">
+                {partnerOffer.discount_type === 'percentage' ? `${partnerOffer.discount_value}% OFF` : `$${Number(partnerOffer.discount_value).toFixed(2)} OFF`}
+              </Badge>
+              {partnerOffer.expires_at && (
+                <span className="text-[10px] text-muted-foreground shrink-0">
+                  Hasta {format(new Date(partnerOffer.expires_at), "d MMM", { locale: es })}
+                </span>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Plan cards */}
@@ -478,6 +539,15 @@ const Plans = () => {
                     {bestOffer.name} ({bestOffer.discount_type === 'percentage' ? `${bestOffer.discount_value}%` : `$${Number(bestOffer.discount_value).toFixed(2)}`})
                   </span>
                   <span>-${offerDiscount.toFixed(2)}</span>
+                </div>
+              )}
+              {partnerApplies && partnerOffer && partnerDiscount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span className="flex items-center gap-1">
+                    <Tag className="h-3 w-3" />
+                    Partner {partnerOffer.code} ({partnerOffer.discount_type === 'percentage' ? `${partnerOffer.discount_value}%` : `$${Number(partnerOffer.discount_value).toFixed(2)}`})
+                  </span>
+                  <span>-${partnerDiscount.toFixed(2)}</span>
                 </div>
               )}
               <div className="flex justify-between text-base font-bold border-t pt-2">

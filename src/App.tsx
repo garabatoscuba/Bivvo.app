@@ -28,6 +28,7 @@ const AdminBusinesses = lazy(() => import("./pages/admin/AdminBusinesses"));
 const AdminOffers = lazy(() => import("./pages/admin/AdminOffers"));
 const AdminModules = lazy(() => import("./pages/admin/AdminModules"));
 const AdminAssistant = lazy(() => import("./pages/admin/AdminAssistant"));
+const AdminPartners = lazy(() => import("./pages/admin/AdminPartners"));
 const Employees = lazy(() => import("./pages/Employees"));
 const Sales = lazy(() => import("./pages/Sales"));
 const Settings = lazy(() => import("./pages/Settings"));
@@ -96,6 +97,7 @@ const App = () => {
                         <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsers /></ProtectedRoute>} />
                         <Route path="/admin/assistant" element={<ProtectedRoute requireSuperAdmin><AdminAssistant /></ProtectedRoute>} />
                         <Route path="/admin/modules" element={<ProtectedRoute requireSuperAdmin><AdminModules /></ProtectedRoute>} />
+                        <Route path="/admin/partners" element={<ProtectedRoute requireSuperAdmin><AdminPartners /></ProtectedRoute>} />
                         <Route path="/install" element={<Install />} />
                         <Route path="/jornada/entrada" element={<JornadaEntrada />} />
                         <Route path="/onboarding/empleado" element={<OnboardingEmpleado />} />
