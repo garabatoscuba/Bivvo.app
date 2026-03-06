@@ -184,11 +184,14 @@ const Auth = () => {
         <CardHeader className="text-center space-y-4">
           <div className="flex items-center justify-between">
             <div className="w-8" />
-            <img
-              src={theme === "dark" ? logoLight : logoDark}
-              alt="Bivoo"
-              className="h-10 object-contain"
-            />
+            <div className="flex flex-col items-center">
+              <img
+                src={theme === "dark" ? logoLight : logoDark}
+                alt="Bivoo"
+                className="h-10 object-contain"
+              />
+              <span className="text-[11px] text-muted-foreground tracking-wide mt-1">Automatización de Empresas</span>
+            </div>
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
