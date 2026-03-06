@@ -188,6 +188,7 @@ const AdminPartners = () => {
     setExpiresAt(p.expires_at ? p.expires_at.split('T')[0] : '');
     setCommissionPercent(String(p.commission_percent));
     setCommissionDuration(p.commission_duration_months ? String(p.commission_duration_months) : '');
+    setDiscountDuration((p as any).discount_duration_months ? String((p as any).discount_duration_months) : '');
     setIsActive(p.is_active);
     setDialogOpen(true);
   };
