@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -12,9 +12,44 @@ interface ChatMessage {
   content: string;
 }
 
+interface AnnouncementItem {
+  id: string;
+  title: string;
+  message: string;
+  link_url?: string | null;
+  link_label?: string | null;
+  is_persistent?: boolean;
+}
+
 interface AssistantChatProps {
   onStateChange: (state: BivooState) => void;
   assistantName: string;
+  announcements?: AnnouncementItem[];
+  onDismissAnnouncement?: (id: string) => void;
+}
+
+const STORAGE_KEY = "bivoo-chat-history";
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+function loadPersistedMessages(): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const { messages, timestamp } = JSON.parse(raw);
+    if (Date.now() - timestamp > ONE_DAY_MS) {
+      localStorage.removeItem(STORAGE_KEY);
+      return [];
+    }
+    return messages || [];
+  } catch {
+    return [];
+  }
+}
+
+function persistMessages(messages: ChatMessage[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, timestamp: Date.now() }));
+  } catch { /* ignore quota errors */ }
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
