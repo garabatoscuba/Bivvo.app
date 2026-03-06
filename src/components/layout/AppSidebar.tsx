@@ -78,7 +78,7 @@ const AppSidebar = () => {
   const { settings: storeSettings } = useStoreSettings();
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, isSuperAdmin, isOwner, isManager, signOut, switchBranch, isCuba } = useAuth();
+  const { profile, isSuperAdmin, isOwner, isManager, signOut, switchBranch, isCuba, isPartner } = useAuth();
   const { data: branches = [] } = useBranches();
   const { planType } = useSubscription();
   const { isInstalled } = usePWAInstall();
