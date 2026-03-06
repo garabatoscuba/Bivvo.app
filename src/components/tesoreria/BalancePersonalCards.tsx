@@ -28,21 +28,38 @@ function getDateRange(period: Period): { from: string | null; to: string } {
 export default function BalancePersonalCards({ businessId, branchId, period, mode }: Props) {
   const { from, to } = useMemo(() => getDateRange(period), [period]);
 
+  // Fetch all branch IDs for this business (needed when branchId is null = "all branches")
+  const { data: businessBranchIds = [] } = useQuery({
+    queryKey: ["bp-branch-ids", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("branches")
+        .select("id")
+        .eq("business_id", businessId);
+      return (data || []).map((b) => b.id);
+    },
+    enabled: !!businessId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const saleBranchIds = branchId ? [branchId] : businessBranchIds;
+
   // Product sales (from sales table, completed only)
   const { data: productSales = 0 } = useQuery({
-    queryKey: ["bp-product-sales", businessId, branchId, period],
+    queryKey: ["bp-product-sales", businessId, branchId, period, saleBranchIds],
     queryFn: async () => {
+      if (saleBranchIds.length === 0) return 0;
       let q = supabase
         .from("sales")
         .select("total")
-        .eq("status", "completed");
-      if (branchId) q = q.eq("branch_id", branchId);
+        .eq("status", "completed")
+        .in("branch_id", saleBranchIds);
       if (from) q = q.gte("created_at", from);
       q = q.lte("created_at", to);
       const { data } = await q;
       return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
     },
-    enabled: !!businessId,
+    enabled: !!businessId && saleBranchIds.length > 0,
   });
 
   // Service sales (from service_entries)
