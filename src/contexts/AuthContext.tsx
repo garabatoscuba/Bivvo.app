@@ -194,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, referralCode?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -203,10 +203,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          full_name: fullName
+          full_name: fullName,
+          referral_code: referralCode || undefined,
         }
       }
     });
+
+    // Save referral code to profile after signup
+    if (!error && data?.user && referralCode) {
+      supabase.from('profiles').update({ referral_code: referralCode } as any).eq('user_id', data.user.id).then();
+    }
 
     return { error: error || null };
   };
