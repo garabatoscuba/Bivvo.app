@@ -315,11 +315,11 @@ const Dashboard = () => {
           </Card>
 
           {/* Payment methods donut */}
-          <Card>
+          <Card className="max-w-full overflow-hidden">
             <CardHeader>
               <CardTitle className="text-base">Métodos de Pago</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="w-full overflow-hidden">
               {isLoading ?
               <Skeleton className="h-[180px] md:h-[250px] w-full" /> :
               (stats?.paymentMethods?.length || 0) === 0 ?
@@ -327,7 +327,7 @@ const Dashboard = () => {
                   Sin datos en este período
                 </div> :
 
-              <ChartContainer config={pieChartConfig} className="h-[180px] md:h-[250px] w-full">
+              <ChartContainer config={pieChartConfig} className="h-[180px] md:h-[250px] w-full mx-auto max-w-[300px]">
                   <PieChart>
                     <ChartTooltip
                     content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />

@@ -53,15 +53,15 @@ const Caja = () => {
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="w-full grid h-9" style={{ gridTemplateColumns: `repeat(${tabCount}, 1fr)` }}>
+          <TabsList className="w-full flex flex-nowrap overflow-x-auto scrollbar-hide h-9">
             {showCajasTab && (
-              <TabsTrigger value="cajas" className="text-xs">Cajas</TabsTrigger>
+              <TabsTrigger value="cajas" className="shrink-0 text-xs">Cajas</TabsTrigger>
             )}
-            <TabsTrigger value="activa" className="text-xs">Caja activa</TabsTrigger>
-            <TabsTrigger value="chica" className="text-xs">Caja chica</TabsTrigger>
-            <TabsTrigger value="historial" className="text-xs">Historial</TabsTrigger>
+            <TabsTrigger value="activa" className="shrink-0 text-xs">Caja activa</TabsTrigger>
+            <TabsTrigger value="chica" className="shrink-0 text-xs">Caja chica</TabsTrigger>
+            <TabsTrigger value="historial" className="shrink-0 text-xs">Historial</TabsTrigger>
             {isPrivileged && (
-              <TabsTrigger value="config" className="text-xs">Config</TabsTrigger>
+              <TabsTrigger value="config" className="shrink-0 text-xs">Config</TabsTrigger>
             )}
           </TabsList>
 
