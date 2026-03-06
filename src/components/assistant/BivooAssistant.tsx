@@ -12,7 +12,7 @@ type VisibleElement = 'none' | 'panel' | 'menu';
 export default function BivooAssistant() {
   const { isOwner, isManager } = useAuth();
   const { unreadCount } = useNotifications();
-  const { hasAnyFeature, canChat, canContextMenu, canNotifications } = useAssistantFeatures();
+  const { hasAnyFeature, canContextMenu, canNotifications } = useAssistantFeatures();
   const navigate = useNavigate();
   const [visible, setVisible] = useState<VisibleElement>('none');
   const [faceState, setFaceState] = useState<BivooState>('idle');
