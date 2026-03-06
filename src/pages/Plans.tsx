@@ -46,6 +46,9 @@ const Plans = () => {
   const [requestOpen, setRequestOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'professional'>('basic');
   const [selectedMonths, setSelectedMonths] = useState('1');
+  const [manualCode, setManualCode] = useState(() => {
+    return (profile as any)?.referral_code || sessionStorage.getItem('referral_code') || '';
+  });
 
   // React Router search params for reactive updates
   const [searchParams, setSearchParams] = useSearchParams();
@@ -82,9 +85,9 @@ const Plans = () => {
 
   // Fetch partner discount from profile referral_code or sessionStorage
   const { data: partnerOffer } = useQuery({
-    queryKey: ['partner-offer', user?.id, (profile as any)?.referral_code],
+    queryKey: ['partner-offer', user?.id, manualCode],
     queryFn: async () => {
-      const code = (profile as any)?.referral_code || sessionStorage.getItem('referral_code');
+      const code = manualCode.trim();
       if (!code) return null;
       const { data } = await supabase
         .from('partners')
@@ -93,11 +96,10 @@ const Plans = () => {
         .eq('is_active', true)
         .maybeSingle();
       if (!data) return null;
-      // Check expiry
       if (data.expires_at && new Date(data.expires_at) < new Date()) return null;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && manualCode.trim().length > 0,
   });
 
   // Find the best offer for the selected plan
@@ -339,6 +341,30 @@ const Plans = () => {
             </CardContent>
           </Card>
         )}
+
+        {/* Referral code input */}
+        <Card>
+          <CardContent className="flex items-center gap-3 py-3 px-4">
+            <Tag className="h-5 w-5 text-muted-foreground shrink-0" />
+            <div className="flex-1 flex items-center gap-2">
+              <label htmlFor="referral-code" className="text-sm font-medium whitespace-nowrap">Código de referido</label>
+              <input
+                id="referral-code"
+                type="text"
+                placeholder="Ej: BIVOO2026"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+                className="flex h-9 w-full max-w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+              {manualCode && !partnerOffer && (
+                <span className="text-xs text-destructive whitespace-nowrap">Código no válido</span>
+              )}
+              {partnerOffer && (
+                <Check className="h-4 w-4 text-green-600 shrink-0" />
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Plan cards */}
         <div className="grid gap-6 md:grid-cols-3">
