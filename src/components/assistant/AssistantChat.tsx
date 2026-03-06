@@ -14,6 +14,16 @@ interface ChatMessage {
   content: string;
 }
 
+/** Parse [SUGERENCIAS] from the end of assistant text */
+function parseSuggestions(text: string): { clean: string; suggestions: string[] } {
+  const idx = text.lastIndexOf("[SUGERENCIAS]");
+  if (idx === -1) return { clean: text, suggestions: [] };
+  const clean = text.slice(0, idx).trimEnd();
+  const raw = text.slice(idx + "[SUGERENCIAS]".length).trim();
+  const suggestions = raw.split("|").map(s => s.trim()).filter(Boolean).slice(0, 3);
+  return { clean, suggestions };
+}
+
 interface AnnouncementItem {
   id: string;
   title: string;
