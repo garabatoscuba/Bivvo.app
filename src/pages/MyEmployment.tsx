@@ -379,14 +379,10 @@ const MyEmployment = () => {
   return (
     <AppLayout title="Mi Empleo">
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="w-full grid grid-cols-6 text-xs sm:text-sm overflow-x-auto">
+        <TabsList className="w-full grid grid-cols-5 text-xs sm:text-sm overflow-x-auto">
           <TabsTrigger value="dashboard" className="gap-1">
             <LayoutDashboard className="h-3.5 w-3.5 hidden sm:block" />
             Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="caja" className="gap-1">
-            <DollarSign className="h-3.5 w-3.5 hidden sm:block" />
-            Caja
           </TabsTrigger>
           <TabsTrigger value="cobros" className="gap-1">
             <DollarSign className="h-3.5 w-3.5 hidden sm:block" />
