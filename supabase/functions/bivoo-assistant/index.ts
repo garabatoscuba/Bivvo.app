@@ -6,8 +6,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GEMINI_URL =
-  "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:streamGenerateContent?alt=sse";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 /* ── role-based system prompt fragments ── */
 function buildRoleBlock(role: string): string {
@@ -32,9 +31,9 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const GEMINI_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
-    if (!GEMINI_KEY) {
-      return new Response(JSON.stringify({ error: "Missing Gemini API key" }), {
+    const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY");
+    if (!GROQ_API_KEY) {
+      return new Response(JSON.stringify({ error: "Missing Groq API key" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -102,32 +101,36 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .join("\n");
 
-    /* ── Transform messages to Gemini format ── */
-    const contents = messages.map((m: any) => ({
-      role: m.role === "assistant" || m.role === "model" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
+    /* ── Build messages array for Groq (OpenAI-compatible) ── */
+    const groqMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m: any) => ({
+        role: m.role === "model" ? "assistant" : m.role,
+        content: m.content,
+      })),
+    ];
 
-    /* ── Call Gemini SSE ── */
-    const geminiRes = await fetch(`${GEMINI_URL}`, {
+    /* ── Call Groq API ── */
+    const groqRes = await fetch(GROQ_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": GEMINI_KEY,
+        Authorization: `Bearer ${GROQ_API_KEY}`,
       },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents,
+        model: "llama-3.1-8b-instant",
+        messages: groqMessages,
+        stream: true,
       }),
     });
 
-    if (!geminiRes.ok) {
-      const errText = await geminiRes.text();
-      console.error("Gemini error:", geminiRes.status, errText);
+    if (!groqRes.ok) {
+      const errText = await groqRes.text();
+      console.error("Groq error:", groqRes.status, errText);
       return new Response(
-        JSON.stringify({ error: "Gemini API error", details: errText }),
+        JSON.stringify({ error: "Groq API error", details: errText }),
         {
-          status: geminiRes.status,
+          status: groqRes.status,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
@@ -149,8 +152,8 @@ Deno.serve(async (req) => {
       userId = user?.id || null;
     }
 
-    /* ── Transform Gemini SSE → OpenAI-compatible SSE ── */
-    const reader = geminiRes.body!.getReader();
+    /* ── Stream Groq SSE directly (already OpenAI-compatible) ── */
+    const reader = groqRes.body!.getReader();
     const decoder = new TextDecoder();
     let fullResponse = "";
 
@@ -171,19 +174,21 @@ Deno.serve(async (req) => {
             for (const line of lines) {
               if (!line.startsWith("data: ")) continue;
               const jsonStr = line.slice(6).trim();
-              if (!jsonStr || jsonStr === "[DONE]") continue;
+              if (!jsonStr || jsonStr === "[DONE]") {
+                if (jsonStr === "[DONE]") {
+                  controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+                }
+                continue;
+              }
 
               try {
                 const parsed = JSON.parse(jsonStr);
-                const text =
-                  parsed?.candidates?.[0]?.content?.parts?.[0]?.text;
+                const text = parsed?.choices?.[0]?.delta?.content;
                 if (text) {
                   fullResponse += text;
-                  const chunk = JSON.stringify({
-                    choices: [{ delta: { content: text } }],
-                  });
-                  controller.enqueue(encoder.encode(`data: ${chunk}\n\n`));
                 }
+                // Forward the SSE chunk as-is (already OpenAI-compatible)
+                controller.enqueue(encoder.encode(`data: ${jsonStr}\n\n`));
               } catch {
                 // skip malformed lines
               }
