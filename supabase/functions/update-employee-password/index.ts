@@ -24,17 +24,19 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
-    // Verify caller is owner/manager/super_admin
+    // Verify caller via getClaims
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await callerClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(JSON.stringify({ error: "No autenticado" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    const callerId = claimsData.claims.sub;
 
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
@@ -42,7 +44,7 @@ Deno.serve(async (req) => {
     const { data: callerRoles } = await admin
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id);
+      .eq("user_id", callerId);
     const roles = (callerRoles || []).map((r: any) => r.role);
     if (!roles.includes("owner") && !roles.includes("manager") && !roles.includes("super_admin")) {
       return new Response(JSON.stringify({ error: "Sin permisos" }), {
