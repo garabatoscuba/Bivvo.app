@@ -70,6 +70,7 @@ interface Employee {
   start_date: string;
   created_at: string;
   updated_at: string;
+  auth_user_id: string | null;
 }
 
 interface SalaryAssignmentEntry {
