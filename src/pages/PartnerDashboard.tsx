@@ -162,7 +162,7 @@ const PartnerDashboard = () => {
         </Card>
 
         {/* Earnings summary */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2 text-muted-foreground">
@@ -199,11 +199,6 @@ const PartnerDashboard = () => {
               <p className="text-2xl font-bold">{referrals.length}</p>
             </CardContent>
           </Card>
-        </div>
-
-        {/* Grid changed to 4 cols */}
-        <div className="hidden">
-          {/* This hidden div is intentionally left to keep line structure clean */}
         </div>
 
         {/* Referrals list */}
