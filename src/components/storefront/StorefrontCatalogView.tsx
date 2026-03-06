@@ -8,6 +8,7 @@ interface Props {
   products: StorefrontProduct[];
   accent: string;
   branchId?: string;
+  currencySymbol: string;
 }
 
 const StorefrontCatalogView = ({ products, accent, branchId }: Props) => {
