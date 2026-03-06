@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, LogOut, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface CerrarJornadaModalProps {
