@@ -176,18 +176,36 @@ const Auth = () => {
     );
   }
 
+  const { theme, setTheme } = useTheme();
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      {/* Theme toggle */}
+      <button
+        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+        className="absolute top-4 right-4 p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+        aria-label="Cambiar tema"
+      >
+        {theme === "dark" ? <Sun className="h-5 w-5 text-foreground" /> : <Moon className="h-5 w-5 text-foreground" />}
+      </button>
+
       <Card className="w-full max-w-md overflow-hidden">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">
-            {isAffiliateFlow ? "Únete como Afiliado" : "Bienvenido"}
-          </CardTitle>
-          <CardDescription>
-            {step === "email" && "Ingresa tu email para continuar"}
-            {step === "password" && "Ingresa tu contraseña"}
-            {step === "signup" && "Completa tus datos para crear tu cuenta"}
-          </CardDescription>
+        <CardHeader className="text-center space-y-4">
+          <img
+            src={theme === "dark" ? logoLight : logoDark}
+            alt="Bivoo"
+            className="h-10 mx-auto object-contain"
+          />
+          <div>
+            <CardTitle className="text-2xl font-bold">
+              {isAffiliateFlow ? "Únete como Afiliado" : "Bienvenido"}
+            </CardTitle>
+            <CardDescription>
+              {step === "email" && "Ingresa tu email para continuar"}
+              {step === "password" && "Ingresa tu contraseña"}
+              {step === "signup" && "Completa tus datos para crear tu cuenta"}
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Step: Email */}
@@ -214,21 +232,18 @@ const Auth = () => {
               </div>
 
               <form onSubmit={handleEmailContinue} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email" className="text-sm">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="tu@email.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                      autoFocus
-                    />
-                  </div>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="tu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="pl-10"
+                    required
+                    autoFocus
+                  />
                 </div>
                 <Button type="submit" className="w-full gap-2">
                   Continuar <ArrowRight className="h-4 w-4" />
@@ -252,21 +267,18 @@ const Auth = () => {
                 </button>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm">Contraseña</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                    autoFocus
-                  />
-                </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                  autoFocus
+                />
               </div>
 
               <Button type="submit" className="w-full gap-2" disabled={isLoading}>
@@ -292,53 +304,44 @@ const Auth = () => {
                 <span className="truncate">{email}</span>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="signup-name" className="text-sm">Nombre completo</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="Tu nombre"
-                    value={signupName}
-                    onChange={(e) => setSignupName(e.target.value)}
-                    className="pl-10"
-                    required
-                    autoFocus
-                  />
-                </div>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="signup-name"
+                  type="text"
+                  placeholder="Nombre completo"
+                  value={signupName}
+                  onChange={(e) => setSignupName(e.target.value)}
+                  className="pl-10"
+                  required
+                  autoFocus
+                />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="signup-password" className="text-sm">Contraseña</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signup-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="signup-password"
+                  type="password"
+                  placeholder="Contraseña"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="signup-confirm" className="text-sm">Confirmar contraseña</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signup-confirm"
-                    type="password"
-                    placeholder="••••••••"
-                    value={signupConfirmPassword}
-                    onChange={(e) => setSignupConfirmPassword(e.target.value)}
-                    className="pl-10"
-                    required
-                  />
-                </div>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="signup-confirm"
+                  type="password"
+                  placeholder="Confirmar contraseña"
+                  value={signupConfirmPassword}
+                  onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                  className="pl-10"
+                  required
+                />
               </div>
 
               <Button type="submit" className="w-full" disabled={isLoading}>
