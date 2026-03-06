@@ -85,9 +85,9 @@ const Plans = () => {
 
   // Fetch partner discount from profile referral_code or sessionStorage
   const { data: partnerOffer } = useQuery({
-    queryKey: ['partner-offer', user?.id, (profile as any)?.referral_code],
+    queryKey: ['partner-offer', user?.id, manualCode],
     queryFn: async () => {
-      const code = (profile as any)?.referral_code || sessionStorage.getItem('referral_code');
+      const code = manualCode.trim();
       if (!code) return null;
       const { data } = await supabase
         .from('partners')
@@ -96,11 +96,10 @@ const Plans = () => {
         .eq('is_active', true)
         .maybeSingle();
       if (!data) return null;
-      // Check expiry
       if (data.expires_at && new Date(data.expires_at) < new Date()) return null;
       return data;
     },
-    enabled: !!user,
+    enabled: !!user && manualCode.trim().length > 0,
   });
 
   // Find the best offer for the selected plan
