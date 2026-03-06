@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBranches } from "@/hooks/useBranches";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -18,6 +19,14 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Wallet,
   CreditCard,
   DollarSign,
@@ -28,9 +37,12 @@ import {
   Inbox,
   User,
   Store,
+  XCircle,
+  Power,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
 const CajaOwnerOverview = () => {
   const { profile } = useAuth();
