@@ -23,13 +23,6 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [showAffiliateMsg, setShowAffiliateMsg] = useState(false);
 
-  const handleRequireAffiliate = (e: React.MouseEvent, action: () => void) => {
-    e.stopPropagation();
-    // For now, show affiliate message — later can check actual affiliation
-    setShowAffiliateMsg(true);
-    setTimeout(() => setShowAffiliateMsg(false), 4000);
-  };
-
   const toggleFavorite = (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
     setFavorites(prev => {
