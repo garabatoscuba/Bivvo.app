@@ -259,7 +259,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
         if (assistantContent && profile?.business_id) {
           const finalMessages = [...allMessages, { role: "assistant" as const, content: assistantContent }];
           const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-          const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+          const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
           fetch(`${SUPABASE_URL}/rest/v1/assistant_conversations`, {
             method: "POST",
             headers: {
