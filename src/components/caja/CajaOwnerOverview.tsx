@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBranches } from "@/hooks/useBranches";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -18,6 +19,14 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   Wallet,
   CreditCard,
   DollarSign,
@@ -28,12 +37,15 @@ import {
   Inbox,
   User,
   Store,
+  XCircle,
+  Power,
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { toast } from "sonner";
 
 const CajaOwnerOverview = () => {
-  const { profile } = useAuth();
+  const { profile, isOwner, isSuperAdmin } = useAuth();
   const { data: branches = [] } = useBranches();
   const queryClient = useQueryClient();
 
@@ -47,8 +59,12 @@ const CajaOwnerOverview = () => {
     }
   }, [branches, selectedBranchId]);
 
-  // Fetch all open registers for the selected branch (excluding owner)
-  const { data: openRegisters = [], isLoading } = useQuery({
+  const [closeAllDialog, setCloseAllDialog] = useState(false);
+  const [closeOneDialog, setCloseOneDialog] = useState<{ id: string; name: string } | null>(null);
+  const [closing, setClosing] = useState(false);
+
+  // Fetch all open registers for the selected branch (including owner's for management)
+  const { data: allOpenRegisters = [], isLoading } = useQuery({
     queryKey: ["owner-open-registers", selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
@@ -59,11 +75,13 @@ const CajaOwnerOverview = () => {
         .eq("status", "open")
         .order("opened_at", { ascending: true });
       if (error) throw error;
-      // Exclude the owner's own register
-      return (data || []).filter((r) => r.user_id !== profile?.user_id);
+      return data || [];
     },
     enabled: !!selectedBranchId,
   });
+
+  // For display: exclude owner's register
+  const openRegisters = allOpenRegisters.filter((r) => r.user_id !== profile?.user_id);
 
   // Fetch employee names
   const userIds = useMemo(
@@ -248,6 +266,42 @@ const CajaOwnerOverview = () => {
   }, [openRegisters, salesByUser, servicesByUser, movementsByRegister]);
 
   const selectedBranch = branches.find((b) => b.id === selectedBranchId);
+  const canManage = isOwner || isSuperAdmin;
+
+  const handleCloseOne = async (registerId: string) => {
+    setClosing(true);
+    const { error } = await supabase
+      .from("cash_registers")
+      .update({ status: "closed", closed_at: new Date().toISOString(), notes: "Cierre forzado por el dueño" } as any)
+      .eq("id", registerId);
+    setClosing(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success("Caja cerrada");
+      queryClient.invalidateQueries({ queryKey: ["owner-open-registers"] });
+      queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
+    }
+    setCloseOneDialog(null);
+  };
+
+  const handleCloseAll = async () => {
+    setClosing(true);
+    const ids = allOpenRegisters.map((r) => r.id);
+    const { error } = await supabase
+      .from("cash_registers")
+      .update({ status: "closed", closed_at: new Date().toISOString(), notes: "Cierre masivo forzado por el dueño" } as any)
+      .in("id", ids);
+    setClosing(false);
+    if (error) {
+      toast.error(error.message);
+    } else {
+      toast.success(`${ids.length} caja(s) cerrada(s)`);
+      queryClient.invalidateQueries({ queryKey: ["owner-open-registers"] });
+      queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
+    }
+    setCloseAllDialog(false);
+  };
 
   return (
     <div className="space-y-6 mt-2">
@@ -258,25 +312,27 @@ const CajaOwnerOverview = () => {
             <Store className="h-4 w-4 text-muted-foreground" />
             Cajas del negocio
           </h2>
-          {branches.length > 1 && (
-            <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
-              <SelectTrigger className="w-[180px] h-8 text-xs">
-                <SelectValue placeholder="Sucursal" />
-              </SelectTrigger>
-              <SelectContent>
-                {branches.map((b) => (
-                  <SelectItem key={b.id} value={b.id} className="text-xs">
-                    {b.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {branches.length === 1 && selectedBranch && (
-            <span className="text-xs text-muted-foreground">
-              {selectedBranch.name}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {branches.length > 1 && (
+              <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
+                <SelectTrigger className="w-[140px] h-8 text-xs">
+                  <SelectValue placeholder="Sucursal" />
+                </SelectTrigger>
+                <SelectContent>
+                  {branches.map((b) => (
+                    <SelectItem key={b.id} value={b.id} className="text-xs">
+                      {b.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {branches.length === 1 && selectedBranch && (
+              <span className="text-xs text-muted-foreground">
+                {selectedBranch.name}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Consolidated summary */}
@@ -308,6 +364,19 @@ const CajaOwnerOverview = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Owner action: close all */}
+        {canManage && allOpenRegisters.length > 0 && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="w-full gap-2"
+            onClick={() => setCloseAllDialog(true)}
+          >
+            <Power className="h-4 w-4" />
+            Cerrar todas las cajas ({allOpenRegisters.length})
+          </Button>
+        )}
 
         {/* Open register cards */}
         {isLoading ? (
@@ -355,12 +424,50 @@ const CajaOwnerOverview = () => {
                   transfers={totalTransfers}
                   expectedCash={expectedCash}
                   movements={movements}
+                  canManage={canManage}
+                  onClose={() => setCloseOneDialog({ id: reg.id, name: profilesMap[uid] || "Empleado" })}
                 />
               );
             })}
           </div>
         )}
       </section>
+
+      {/* Close All Dialog */}
+      <Dialog open={closeAllDialog} onOpenChange={setCloseAllDialog}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cerrar todas las cajas</DialogTitle>
+            <DialogDescription>
+              Se cerrarán {allOpenRegisters.length} caja(s) abierta(s) en esta sucursal. Esta acción no se puede deshacer.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCloseAllDialog(false)}>Cancelar</Button>
+            <Button variant="destructive" onClick={handleCloseAll} disabled={closing}>
+              {closing ? "Cerrando..." : "Cerrar todas"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Close One Dialog */}
+      <Dialog open={!!closeOneDialog} onOpenChange={(o) => { if (!o) setCloseOneDialog(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Cerrar caja</DialogTitle>
+            <DialogDescription>
+              ¿Cerrar la caja de <strong>{closeOneDialog?.name}</strong>? El empleado no podrá registrar ventas ni servicios hasta abrir una nueva.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCloseOneDialog(null)}>Cancelar</Button>
+            <Button variant="destructive" onClick={() => closeOneDialog && handleCloseOne(closeOneDialog.id)} disabled={closing}>
+              {closing ? "Cerrando..." : "Cerrar caja"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -375,6 +482,8 @@ interface RegisterCardProps {
   transfers: number;
   expectedCash: number;
   movements: any[];
+  canManage?: boolean;
+  onClose?: () => void;
 }
 
 const RegisterCard = ({
@@ -385,6 +494,8 @@ const RegisterCard = ({
   transfers,
   expectedCash,
   movements,
+  canManage,
+  onClose,
 }: RegisterCardProps) => {
   const [open, setOpen] = useState(false);
 
@@ -487,6 +598,17 @@ const RegisterCard = ({
                   </span>
                 </div>
               ))
+            )}
+            {canManage && onClose && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-2 gap-2 text-destructive border-destructive/30 hover:bg-destructive/10"
+                onClick={(e) => { e.stopPropagation(); onClose(); }}
+              >
+                <XCircle className="h-3.5 w-3.5" />
+                Cerrar esta caja
+              </Button>
             )}
           </div>
         </CollapsibleContent>

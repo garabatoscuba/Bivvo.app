@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Loader2, LogOut, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
 interface CerrarJornadaModalProps {
@@ -34,6 +35,7 @@ function calcDuration(apertura: string): { text: string; minutes: number } {
 const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalProps) => {
   const [closing, setClosing] = useState(false);
   const queryClient = useQueryClient();
+  const { profile } = useAuth();
 
   const duration = calcDuration(jornada.apertura_at);
   const entryTime = new Date(jornada.apertura_at).toLocaleTimeString('es', {
@@ -52,6 +54,15 @@ const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalP
       })
       .eq('id', jornada.id);
 
+    // Auto-close open cash register for this employee (use auth user_id)
+    if (profile?.user_id) {
+      await supabase
+        .from('cash_registers')
+        .update({ status: 'closed', closed_at: new Date().toISOString(), notes: 'Cierre automático al cerrar jornada' } as any)
+        .eq('user_id', profile.user_id)
+        .eq('status', 'open');
+    }
+
     setClosing(false);
     if (error) {
       toast.error('Error al cerrar jornada: ' + error.message);
@@ -59,6 +70,8 @@ const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalP
     }
 
     queryClient.invalidateQueries({ queryKey: ['jornada-activa'] });
+    queryClient.invalidateQueries({ queryKey: ['active-cash-register'] });
+    queryClient.invalidateQueries({ queryKey: ['owner-open-registers'] });
     toast.success('Jornada cerrada. ¡Hasta luego! 👋');
     onOpenChange(false);
   };
