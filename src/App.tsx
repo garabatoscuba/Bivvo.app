@@ -90,6 +90,7 @@ const App = () => {
                         <Route path="/nomina" element={<ProtectedRoute><Nomina /></ProtectedRoute>} />
                         <Route path="/caja" element={<ProtectedRoute><Caja /></ProtectedRoute>} />
                         <Route path="/tesoreria" element={<ProtectedRoute><Tesoreria /></ProtectedRoute>} />
+                        <Route path="/mi-red" element={<ProtectedRoute><PartnerDashboard /></ProtectedRoute>} />
                         <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminBusinesses /></ProtectedRoute>} />
                         <Route path="/admin/offers" element={<ProtectedRoute requireSuperAdmin><AdminOffers /></ProtectedRoute>} />
                         <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsers /></ProtectedRoute>} />
