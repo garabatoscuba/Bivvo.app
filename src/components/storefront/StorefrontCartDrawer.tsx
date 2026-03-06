@@ -212,7 +212,7 @@ const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, b
                   )}
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-medium truncate">{item.product.name}</h4>
-                    <p className="text-xs text-muted-foreground">Bs {Number(item.product.price).toFixed(2)} c/u</p>
+                    <p className="text-xs text-muted-foreground">{currencySymbol} {Number(item.product.price).toFixed(2)} c/u</p>
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-1.5">
                         <button
