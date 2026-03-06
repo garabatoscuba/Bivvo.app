@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import AppLayout from '@/components/layout/AppLayout';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
@@ -16,6 +15,7 @@ import { useProducts, useCategories, useBranchStock } from '@/hooks/useProducts'
 import { useBranches } from '@/hooks/useBranches';
 import { useSales } from '@/hooks/useSales';
 import { useAuth } from '@/contexts/AuthContext';
+import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, ShoppingCart, Loader2, Package, PackageX, AlertTriangle } from 'lucide-react';
 import { MermaDialog } from '@/components/inventory/MermaDialog';
@@ -31,35 +31,16 @@ const POS = () => {
   const { profile, isOwner, isManager, isSuperAdmin, user } = useAuth();
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
-  const [searchParams] = useSearchParams();
-  const isEmployeeContext = searchParams.get('ctx') === 'emp';
-
-  // Fetch employee record for employee context
-  const { data: employeeRecord } = useQuery({
-    queryKey: ['employee-record-pos', profile?.email],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('employees')
-        .select('id, business_id, branch_id')
-        .eq('email', profile!.email)
-        .maybeSingle();
-      return data;
-    },
-    enabled: isEmployeeContext && !!profile?.email,
-  });
-
-  // Determine which business/branch to use
-  const effectiveBusinessId = isEmployeeContext && employeeRecord ? employeeRecord.business_id : profile?.business_id;
-  const effectiveBranchId = isEmployeeContext && employeeRecord ? (employeeRecord.branch_id || undefined) : undefined;
+  const { businessId: resolvedBusinessId, branchId: resolvedBranchId } = useResolvedBusinessId();
 
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
-  const { products, isLoading } = useProducts(isEmployeeContext ? effectiveBusinessId || undefined : undefined);
-  const { categories } = useCategories(isEmployeeContext ? effectiveBusinessId || undefined : undefined);
+  const { products, isLoading } = useProducts(resolvedBusinessId || undefined);
+  const { categories } = useCategories(resolvedBusinessId || undefined);
   const { data: branches } = useBranches();
   const { createSale, isCreating } = useSales();
   
 
-  const currentBranch = effectiveBranchId || profile?.branch_id || branches?.[0]?.id;
+  const currentBranch = resolvedBranchId || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
 
   // Check if the user has an open cash register

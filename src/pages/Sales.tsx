@@ -1,5 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -60,29 +60,14 @@ type SortKey = 'created_at' | 'total' | 'sale_number' | 'seller_name' | 'payment
 type SortDir = 'asc' | 'desc';
 
 const Sales = () => {
-  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const { profile, isOwner, isManager, isSuperAdmin, isSeller } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
-  const [searchParams] = useSearchParams();
-  const isEmployeeContext = searchParams.get('ctx') === 'emp';
+  const { businessId: resolvedBusinessId, branchId: resolvedBranchId } = useResolvedBusinessId();
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
+  const isSellOnly = isSeller && !isPrivileged;
 
-  // Fetch employee record for employee context
-  const { data: employeeRecord } = useQuery({
-    queryKey: ['employee-record-sales', profile?.email],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('employees')
-        .select('id, business_id, branch_id')
-        .eq('email', profile!.email)
-        .maybeSingle();
-      return data;
-    },
-    enabled: isEmployeeContext && !!profile?.email,
-  });
-
-  const effectiveBranchId = isEmployeeContext && employeeRecord ? (employeeRecord.branch_id || profile?.branch_id) : profile?.branch_id;
-  const branchId = effectiveBranchId;
+  const branchId = resolvedBranchId || profile?.branch_id;
   const { sales, isLoadingSales, useSaleItems, cancelSale, registerPayment } = useSales(branchId);
 
   // Fetch branch name
@@ -97,17 +82,17 @@ const Sales = () => {
   });
 
   // Fetch service entries for the branch
+  const bizId = resolvedBusinessId || profile?.business_id;
   const { data: serviceEntries = [], isLoading: isLoadingServices } = useQuery({
-    queryKey: ['branch-service-entries', branchId, employeeRecord?.business_id, profile?.business_id],
+    queryKey: ['branch-service-entries', branchId, bizId],
     queryFn: async () => {
-      const bizId = isEmployeeContext ? employeeRecord?.business_id : profile?.business_id;
       if (!bizId || !branchId) return [];
       let query = supabase
         .from('service_entries')
         .select('*, service_categories(name)')
         .eq('business_id', bizId)
         .eq('branch_id', branchId);
-      if (isEmployeeContext && profile?.user_id) {
+      if (isSellOnly && profile?.user_id) {
         query = query.eq('user_id', profile.user_id);
       }
       const { data } = await query.order('created_at', { ascending: false });
@@ -129,14 +114,13 @@ const Sales = () => {
         transfer_amount: 0,
       }));
     },
-    enabled: !!branchId && !!(isEmployeeContext ? employeeRecord?.business_id : profile?.business_id),
+    enabled: !!branchId && !!bizId,
   });
 
   // Build seller name map from employees table
   const { data: sellerNameMap = new Map<string, string>() } = useQuery({
-    queryKey: ['seller-name-map', isEmployeeContext ? employeeRecord?.business_id : profile?.business_id],
+    queryKey: ['seller-name-map', bizId],
     queryFn: async () => {
-      const bizId = isEmployeeContext ? employeeRecord?.business_id : profile?.business_id;
       if (!bizId) return new Map<string, string>();
       const { data: employees } = await supabase
         .from('employees')
@@ -162,7 +146,7 @@ const Sales = () => {
       }
       return map;
     },
-    enabled: !!(isEmployeeContext ? employeeRecord?.business_id : profile?.business_id),
+    enabled: !!bizId,
   });
 
   const sellerList = useMemo(() => {
@@ -170,23 +154,36 @@ const Sales = () => {
   }, [sellerNameMap]);
 
   // Merge sales + services into unified list
+  // Sellers only see their own sales, filtered to today
   const unifiedEntries = useMemo(() => {
-    const filteredSales = isEmployeeContext && profile?.user_id
+    let filteredSales = isSellOnly && profile?.user_id
       ? sales.filter((s: any) => s.user_id === profile.user_id)
       : sales;
+    // Sellers only see today
+    if (isSellOnly) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      filteredSales = filteredSales.filter((s: any) => s.created_at?.slice(0, 10) === todayStr);
+    }
     const salesWithType = filteredSales.map((s: any) => ({
       ...s,
       _type: 'sale' as const,
       seller_name: sellerNameMap.get(s.user_id) || s.seller_name || 'Desconocido',
     }));
-    const servicesWithSeller = serviceEntries.map((s: any) => ({
+    let filteredServices = isSellOnly && profile?.user_id
+      ? serviceEntries.filter((s: any) => s.user_id === profile.user_id)
+      : serviceEntries;
+    if (isSellOnly) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      filteredServices = filteredServices.filter((s: any) => s.created_at?.slice(0, 10) === todayStr);
+    }
+    const servicesWithSeller = filteredServices.map((s: any) => ({
       ...s,
       seller_name: sellerNameMap.get(s.user_id) || '',
     }));
     const merged = [...salesWithType, ...servicesWithSeller];
     merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return merged;
-  }, [sales, serviceEntries, isEmployeeContext, profile?.user_id, sellerNameMap]);
+  }, [sales, serviceEntries, isSellOnly, profile?.user_id, sellerNameMap]);
 
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
