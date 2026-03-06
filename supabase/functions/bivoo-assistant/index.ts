@@ -1,4 +1,4 @@
-// v2 - gemini fix
+// v3 - Lovable AI Gateway (replaces direct Gemini API)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
@@ -31,9 +31,8 @@ serve(async (req) => {
   try {
     const { messages, role, active_module, business_id } = await req.json();
 
-    const GEMINI_API_KEY = Deno.env.get("VITE_GEMINI_API_KEY");
-    console.log("GEMINI_API_KEY present:", !!Deno.env.get("VITE_GEMINI_API_KEY"));
-    if (!GEMINI_API_KEY) throw new Error("VITE_GEMINI_API_KEY is not configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -108,88 +107,57 @@ ${config?.base_instructions || ""}
 ${btInstructions ? "\nINSTRUCCIONES DEL TIPO DE NEGOCIO:\n" + btInstructions : ""}
 ${trainingSection}`;
 
-    // Formato nativo Gemini — roles: "user" y "model" (nunca "assistant")
-    const geminiContents = messages.map((m: any) => ({
-      role: m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
+    // Build OpenAI-compatible messages with system prompt
+    const gatewayMessages = [
+      { role: "system", content: systemPrompt },
+      ...messages.map((m: any) => ({
+        role: m.role === "model" ? "assistant" : m.role,
+        content: m.content,
+      })),
+    ];
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:streamGenerateContent?alt=sse`,
-      {
-        method: "POST",
-        headers: {
-          "x-goog-api-key": GEMINI_API_KEY,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [{ text: systemPrompt }],
-          },
-          contents: geminiContents,
-          generationConfig: {
-            temperature: 0.7,
-            maxOutputTokens: 1024,
-          },
-        }),
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash-lite",
+        messages: gatewayMessages,
+        stream: true,
+        temperature: 0.7,
+        max_tokens: 1024,
+      }),
+    });
 
     if (!response.ok) {
       const t = await response.text();
-      console.error("Gemini API error:", response.status, t);
+      console.error("AI Gateway error:", response.status, t);
+
+      if (response.status === 429) {
+        return new Response(JSON.stringify({ error: "Demasiadas solicitudes. Intenta de nuevo en unos segundos." }), {
+          status: 429,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (response.status === 402) {
+        return new Response(JSON.stringify({ error: "Créditos de IA agotados. Contacta al administrador." }), {
+          status: 402,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       return new Response(JSON.stringify({ error: "Error del asistente" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
-    // Transformar SSE de Gemini al formato OpenAI que espera AssistantPanel
-    const { readable, writable } = new TransformStream();
-    const writer = writable.getWriter();
-    const encoder = new TextEncoder();
-    const decoder = new TextDecoder();
+    // Lovable AI Gateway already returns OpenAI-compatible SSE format
+    // Just pass the stream through directly — AssistantPanel already parses this format
 
-    (async () => {
-      const reader = response.body!.getReader();
-      let buffer = "";
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-          for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || trimmed.startsWith(":")) continue;
-            if (!trimmed.startsWith("data: ")) continue;
-            const jsonStr = trimmed.slice(6).trim();
-            if (jsonStr === "[DONE]") {
-              await writer.write(encoder.encode("data: [DONE]\n\n"));
-              continue;
-            }
-            try {
-              const parsed = JSON.parse(jsonStr);
-              const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) {
-                const chunk = { choices: [{ delta: { content: text } }] };
-                await writer.write(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`));
-              }
-            } catch {
-              /* ignorar líneas malformadas */
-            }
-          }
-        }
-        await writer.write(encoder.encode("data: [DONE]\n\n"));
-      } catch (e) {
-        console.error("Stream error:", e);
-      } finally {
-        await writer.close();
-      }
-    })();
-
-    // Guardar conversación fire-and-forget
+    // Save conversation fire-and-forget
     if (business_id && messages.length > 0) {
       const authHeader = req.headers.get("authorization");
       const token = authHeader?.replace("Bearer ", "");
@@ -212,21 +180,17 @@ ${trainingSection}`;
               },
               { onConflict: "business_id,user_id" },
             )
-            .then(() => {
-              /* silent */
-            });
+            .then(() => { /* silent */ });
           sb.rpc("increment_feature_usage", {
             _business_id: business_id,
             _user_id: user.id,
             _feature_key: "assistant_chat",
-          }).then(() => {
-            /* silent */
-          });
+          }).then(() => { /* silent */ });
         }
       }
     }
 
-    return new Response(readable, {
+    return new Response(response.body, {
       headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
     });
   } catch (e) {
