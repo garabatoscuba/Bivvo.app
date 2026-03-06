@@ -1932,6 +1932,7 @@ export type Database = {
           commission_duration_months: number | null
           commission_percent: number
           created_at: string
+          discount_duration_months: number | null
           discount_type: string
           discount_value: number
           expires_at: string | null
@@ -1946,6 +1947,7 @@ export type Database = {
           commission_duration_months?: number | null
           commission_percent?: number
           created_at?: string
+          discount_duration_months?: number | null
           discount_type?: string
           discount_value?: number
           expires_at?: string | null
@@ -1960,6 +1962,7 @@ export type Database = {
           commission_duration_months?: number | null
           commission_percent?: number
           created_at?: string
+          discount_duration_months?: number | null
           discount_type?: string
           discount_value?: number
           expires_at?: string | null
