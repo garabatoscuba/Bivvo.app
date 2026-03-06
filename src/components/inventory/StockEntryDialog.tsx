@@ -153,7 +153,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     }
   };
 
-  const isValid = reason && origin.trim() && authorizedBy.trim() && totalQty > 0 && unitCost && parseFloat(unitCost) > 0 && newSalePrice && parseFloat(newSalePrice) > 0;
+  const isValid = totalQty > 0;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
