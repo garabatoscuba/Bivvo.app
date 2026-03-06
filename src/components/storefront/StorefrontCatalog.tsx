@@ -247,7 +247,7 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
                   </p>
                 </div>
                 <div className="flex flex-col items-center gap-1.5 shrink-0 justify-center">
-                  <button onClick={(e) => handleRequireAffiliate(e, () => toggleFavorite(e, product.id))} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
+                  <button onClick={(e) => { e.stopPropagation(); toggleFavorite(e, product.id); }} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
                     <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground/40'}`} />
                   </button>
                   {cartQty > 0 && (
