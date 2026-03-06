@@ -11,7 +11,7 @@ interface Props {
   currencySymbol: string;
 }
 
-const StorefrontCatalogView = ({ products, accent, branchId }: Props) => {
+const StorefrontCatalogView = ({ products, accent, branchId, currencySymbol }: Props) => {
   const [search, setSearch] = useState('');
 
   const filteredProducts = search.trim()
