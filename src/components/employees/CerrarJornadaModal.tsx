@@ -54,12 +54,14 @@ const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalP
       })
       .eq('id', jornada.id);
 
-    // Auto-close open cash register for this employee
-    await supabase
-      .from('cash_registers')
-      .update({ status: 'closed', closed_at: new Date().toISOString(), notes: 'Cierre automático al cerrar jornada' } as any)
-      .eq('user_id', jornada.empleado_id)
-      .eq('status', 'open');
+    // Auto-close open cash register for this employee (use auth user_id)
+    if (profile?.user_id) {
+      await supabase
+        .from('cash_registers')
+        .update({ status: 'closed', closed_at: new Date().toISOString(), notes: 'Cierre automático al cerrar jornada' } as any)
+        .eq('user_id', profile.user_id)
+        .eq('status', 'open');
+    }
 
     setClosing(false);
     if (error) {
