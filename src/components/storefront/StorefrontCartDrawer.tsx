@@ -137,7 +137,7 @@ const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, b
                 ))}
                 <div className="flex justify-between text-base font-bold pt-2 border-t border-border">
                   <span>Total</span>
-                  <span>Bs {subtotal.toFixed(2)}</span>
+                   <span>{currencySymbol} {subtotal.toFixed(2)}</span>
                 </div>
               </div>
 
