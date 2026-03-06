@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Copy, DollarSign, Users, Clock, CheckCircle, Network, Loader2 } from 'lucide-react';
+import { Copy, DollarSign, Users, Clock, CheckCircle, Network, Loader2, Link } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
