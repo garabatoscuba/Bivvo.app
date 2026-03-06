@@ -144,7 +144,8 @@ const AdminPartners = () => {
   // Search user by email
   const searchMutation = useMutation({
     mutationFn: async (email: string) => {
-      const { data } = await supabase.from('profiles').select('user_id, full_name, email').ilike('email', `%${email}%`).limit(5);
+      const { data, error } = await supabase.from('profiles').select('user_id, full_name, email').ilike('email', `%${email}%`).limit(5);
+      if (error) throw error;
       return data || [];
     },
   });
@@ -153,8 +154,15 @@ const AdminPartners = () => {
 
   const handleSearch = async () => {
     if (!searchEmail.trim()) return;
-    const results = await searchMutation.mutateAsync(searchEmail);
-    setSearchResults(results);
+    try {
+      const results = await searchMutation.mutateAsync(searchEmail);
+      setSearchResults(results);
+      if (results.length === 0) {
+        toast({ title: 'Sin resultados', description: 'No se encontró ningún usuario con ese email.' });
+      }
+    } catch (err: any) {
+      toast({ title: 'Error al buscar', description: err.message, variant: 'destructive' });
+    }
   };
 
   const openCreate = () => {
@@ -441,10 +449,11 @@ const AdminPartners = () => {
                     placeholder="email@ejemplo.com"
                     value={searchEmail}
                     onChange={e => setSearchEmail(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
                     className="flex-1"
                   />
-                  <Button size="sm" variant="outline" onClick={handleSearch} disabled={searchMutation.isPending}>
-                    <Search className="h-3.5 w-3.5" />
+                  <Button size="sm" variant="outline" onClick={handleSearch} disabled={searchMutation.isPending || !searchEmail.trim()}>
+                    {searchMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                   </Button>
                 </div>
                 {searchResults.length > 0 && (

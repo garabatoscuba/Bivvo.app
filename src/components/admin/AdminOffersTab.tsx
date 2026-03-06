@@ -42,12 +42,12 @@ type SortDir = 'asc' | 'desc';
 
 const EMPTY_FORM: {
   name: string; description: string; discount_type: 'percentage' | 'fixed';
-  discount_value: number; applies_to_plans: string[];
+  discount_value: number; discount_duration_months: string; applies_to_plans: string[];
   target_type: 'all' | 'specific'; target_user_ids: string;
   starts_at: string; expires_at: string; is_active: boolean;
 } = {
   name: '', description: '', discount_type: 'percentage',
-  discount_value: 0, applies_to_plans: ['basic', 'professional'],
+  discount_value: 0, discount_duration_months: '', applies_to_plans: ['basic', 'professional'],
   target_type: 'all', target_user_ids: '',
   starts_at: new Date().toISOString().slice(0, 16), expires_at: '', is_active: true,
 };
@@ -105,6 +105,7 @@ const AdminOffersTab = () => {
       const payload: any = {
         name: form.name, description: form.description || null,
         discount_type: form.discount_type, discount_value: form.discount_value,
+        discount_duration_months: form.discount_duration_months ? Number(form.discount_duration_months) : null,
         applies_to_plans: form.applies_to_plans, target_type: form.target_type,
         target_user_ids: form.target_type === 'specific' ? form.target_user_ids.split(',').map(s => s.trim()).filter(Boolean) : [],
         starts_at: new Date(form.starts_at).toISOString(),
@@ -134,7 +135,9 @@ const AdminOffersTab = () => {
     setEditingId(offer.id);
     setForm({
       name: offer.name, description: offer.description || '', discount_type: offer.discount_type,
-      discount_value: offer.discount_value, applies_to_plans: offer.applies_to_plans,
+      discount_value: offer.discount_value,
+      discount_duration_months: (offer as any).discount_duration_months ? String((offer as any).discount_duration_months) : '',
+      applies_to_plans: offer.applies_to_plans,
       target_type: offer.target_type, target_user_ids: offer.target_user_ids?.join(', ') || '',
       starts_at: new Date(offer.starts_at).toISOString().slice(0, 16),
       expires_at: offer.expires_at ? new Date(offer.expires_at).toISOString().slice(0, 16) : '',
@@ -304,6 +307,11 @@ const AdminOffersTab = () => {
                 <Label>Valor</Label>
                 <Input type="number" min={0} max={form.discount_type === 'percentage' ? 100 : undefined} step={form.discount_type === 'percentage' ? 1 : 0.01}
                   value={form.discount_value} onChange={(e) => setForm(f => ({ ...f, discount_value: parseFloat(e.target.value) || 0 }))} />
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label>Meses de descuento para usuarios</Label>
+                <Input type="number" min={1} value={form.discount_duration_months} onChange={(e) => setForm(f => ({ ...f, discount_duration_months: e.target.value }))} placeholder="Indefinido (aplica siempre)" />
+                <p className="text-[11px] text-muted-foreground">Cuántos meses el usuario mantiene el descuento. Vacío = indefinido.</p>
               </div>
             </div>
             <div className="space-y-1.5">
