@@ -40,7 +40,7 @@ import PayrollHistory from '@/components/nomina/PayrollHistory';
 import EmployeeSalaryView from '@/components/cobro/EmployeeSalaryView';
 import MyEmploymentDashboard from '@/components/employees/MyEmploymentDashboard';
 import { useDailySalary } from '@/hooks/useDailySalary';
-import MiCajaEmpleado from '@/components/caja/MiCajaEmpleado';
+
 
 /** Parse 'YYYY-MM-DD' as local date (avoids UTC shift) */
 function parseLocalDate(dateStr: string): Date {
