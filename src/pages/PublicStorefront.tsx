@@ -150,6 +150,7 @@ const PublicStorefront = () => {
   const open = isOpenNow(data.settings.schedule);
   const accent = data.settings.accent_color || '#18181b';
   const portalPath = branchSlug ? `/tienda/${bizSlug}/${branchSlug}` : `/s/${bizSlug}`;
+  const currencySymbol = getCurrencySymbol(data.settings.currency);
 
   const fontHeading = FONT_MAP[data.settings.font_heading] || FONT_MAP['Lora'];
   const fontBody = FONT_MAP[data.settings.font_body] || FONT_MAP['Work Sans'];
