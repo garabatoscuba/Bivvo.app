@@ -60,6 +60,7 @@ import {
   FileText,
   Bot,
   Tag,
+  Network,
 } from "lucide-react";
 import { getIconComponent } from "@/components/services/IconSelector";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -78,7 +79,7 @@ const AppSidebar = () => {
   const { settings: storeSettings } = useStoreSettings();
   const location = useLocation();
   const navigate = useNavigate();
-  const { profile, isSuperAdmin, isOwner, isManager, signOut, switchBranch, isCuba } = useAuth();
+  const { profile, isSuperAdmin, isOwner, isManager, signOut, switchBranch, isCuba, isPartner } = useAuth();
   const { data: branches = [] } = useBranches();
   const { planType } = useSubscription();
   const { isInstalled } = usePWAInstall();
@@ -778,6 +779,27 @@ const AppSidebar = () => {
                       ))}
                     </DropdownMenuContent>
                   </DropdownMenu>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Partner section — only visible to users with partner role */}
+        {isPartner && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              Partner
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/mi-red")}>
+                    <Link to="/mi-red">
+                      <Network className="h-4 w-4" />
+                      <span className="text-sm">Mi Red</span>
+                    </Link>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>

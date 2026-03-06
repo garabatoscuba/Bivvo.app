@@ -1849,6 +1849,127 @@ export type Database = {
           },
         ]
       }
+      partner_payouts: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          paid_at: string
+          partner_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string
+          partner_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          paid_at?: string
+          partner_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_payouts_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partner_referrals: {
+        Row: {
+          commission_earned: number
+          commission_status: string
+          created_at: string
+          id: string
+          partner_id: string
+          plan_type: string | null
+          referred_user_id: string
+          used_at: string
+        }
+        Insert: {
+          commission_earned?: number
+          commission_status?: string
+          created_at?: string
+          id?: string
+          partner_id: string
+          plan_type?: string | null
+          referred_user_id: string
+          used_at?: string
+        }
+        Update: {
+          commission_earned?: number
+          commission_status?: string
+          created_at?: string
+          id?: string
+          partner_id?: string
+          plan_type?: string | null
+          referred_user_id?: string
+          used_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "partner_referrals_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      partners: {
+        Row: {
+          applies_to_plans: string[]
+          code: string
+          commission_duration_months: number | null
+          commission_percent: number
+          created_at: string
+          discount_type: string
+          discount_value: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          user_id: string
+          user_limit: number | null
+        }
+        Insert: {
+          applies_to_plans?: string[]
+          code: string
+          commission_duration_months?: number | null
+          commission_percent?: number
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          user_id: string
+          user_limit?: number | null
+        }
+        Update: {
+          applies_to_plans?: string[]
+          code?: string
+          commission_duration_months?: number | null
+          commission_percent?: number
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          user_id?: string
+          user_limit?: number | null
+        }
+        Relationships: []
+      }
       petty_cash: {
         Row: {
           balance: number
@@ -2010,6 +2131,7 @@ export type Database = {
           discount_percent: number
           id: string
           months: number
+          partner_id: string | null
           plan_type: string
           price_per_branch: number
           status: string
@@ -2027,6 +2149,7 @@ export type Database = {
           discount_percent?: number
           id?: string
           months: number
+          partner_id?: string | null
           plan_type: string
           price_per_branch: number
           status?: string
@@ -2044,6 +2167,7 @@ export type Database = {
           discount_percent?: number
           id?: string
           months?: number
+          partner_id?: string | null
           plan_type?: string
           price_per_branch?: number
           status?: string
@@ -2052,7 +2176,15 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "plan_requests_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       platform_announcements: {
         Row: {
@@ -2533,6 +2665,7 @@ export type Database = {
           onboarding_completed: boolean
           phone: string | null
           plan_type: string
+          referral_code: string | null
           subscription_ends_at: string | null
           subscription_status: string
           trial_ends_at: string | null
@@ -2555,6 +2688,7 @@ export type Database = {
           onboarding_completed?: boolean
           phone?: string | null
           plan_type?: string
+          referral_code?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string
           trial_ends_at?: string | null
@@ -2577,6 +2711,7 @@ export type Database = {
           onboarding_completed?: boolean
           phone?: string | null
           plan_type?: string
+          referral_code?: string | null
           subscription_ends_at?: string | null
           subscription_status?: string
           trial_ends_at?: string | null
@@ -3353,6 +3488,7 @@ export type Database = {
         | "seller"
         | "accountant"
         | "affiliated"
+        | "partner"
       inventory_movement_type:
         | "purchase"
         | "sale"
@@ -3510,6 +3646,7 @@ export const Constants = {
         "seller",
         "accountant",
         "affiliated",
+        "partner",
       ],
       inventory_movement_type: [
         "purchase",

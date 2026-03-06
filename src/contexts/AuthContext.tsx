@@ -32,7 +32,7 @@ interface AuthContextType {
   roles: AppRole[];
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, referralCode?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   switchBranch: (branchId: string) => Promise<void>;
   isSuperAdmin: boolean;
@@ -41,6 +41,7 @@ interface AuthContextType {
   isSeller: boolean;
   isAccountant: boolean;
   isAffiliated: boolean;
+  isPartner: boolean;
   isCuba: boolean;
   isBivooAccount: boolean;
 }
@@ -193,7 +194,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return { error };
   };
 
-  const signUp = async (email: string, password: string, fullName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, referralCode?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
     const { data, error } = await supabase.auth.signUp({
@@ -202,10 +203,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       options: {
         emailRedirectTo: redirectUrl,
         data: {
-          full_name: fullName
+          full_name: fullName,
+          referral_code: referralCode || undefined,
         }
       }
     });
+
+    // Save referral code to profile after signup
+    if (!error && data?.user && referralCode) {
+      supabase.from('profiles').update({ referral_code: referralCode } as any).eq('user_id', data.user.id).then();
+    }
 
     return { error: error || null };
   };
@@ -244,6 +251,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isSeller: roles.includes('seller'),
     isAccountant: roles.includes('accountant'),
     isAffiliated: profile?.user_type === 'affiliated',
+    isPartner: roles.includes('partner'),
     isCuba: profile?.country === 'cuba',
     isBivooAccount: profile?.email?.endsWith('@bivoo.app') || false,
   };

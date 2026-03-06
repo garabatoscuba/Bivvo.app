@@ -36,6 +36,7 @@ type SortDir = 'asc' | 'desc';
 const ROLE_LABELS: Record<AppRole, string> = {
   super_admin: 'Super Admin', owner: 'Dueño', manager: 'Gerente',
   seller: 'Vendedor', accountant: 'Contable', affiliated: 'Afiliado',
+  partner: 'Partner',
 };
 
 const PLAN_LABELS: Record<string, string> = {
