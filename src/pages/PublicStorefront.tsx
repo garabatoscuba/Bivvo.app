@@ -97,6 +97,10 @@ const FONT_MAP: Record<string, string> = {
   'Source Code Pro': "'Source Code Pro', ui-monospace, monospace",
 };
 
+export function getCurrencySymbol(currency: string): string {
+  return '$';
+}
+
 const PublicStorefront = () => {
   const { bizSlug, branchSlug } = useParams<{ bizSlug: string; branchSlug?: string }>();
   const [data, setData] = useState<StorefrontData | null>(null);
