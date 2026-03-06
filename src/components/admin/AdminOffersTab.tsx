@@ -308,6 +308,11 @@ const AdminOffersTab = () => {
                 <Input type="number" min={0} max={form.discount_type === 'percentage' ? 100 : undefined} step={form.discount_type === 'percentage' ? 1 : 0.01}
                   value={form.discount_value} onChange={(e) => setForm(f => ({ ...f, discount_value: parseFloat(e.target.value) || 0 }))} />
               </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label>Meses de descuento para usuarios</Label>
+                <Input type="number" min={1} value={form.discount_duration_months} onChange={(e) => setForm(f => ({ ...f, discount_duration_months: e.target.value }))} placeholder="Indefinido (aplica siempre)" />
+                <p className="text-[11px] text-muted-foreground">Cuántos meses el usuario mantiene el descuento. Vacío = indefinido.</p>
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label>Aplica a planes</Label>
