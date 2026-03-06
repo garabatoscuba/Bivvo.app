@@ -13,7 +13,7 @@ interface Props {
   currencySymbol: string;
 }
 
-const StorefrontCatalog = ({ products, accent }: Props) => {
+const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
   const { addItem, items } = useStorefrontCart();
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
