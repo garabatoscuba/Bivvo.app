@@ -27,10 +27,9 @@ interface AssistantPanelProps {
   canNotifications?: boolean;
 }
 
-export default function AssistantPanel({ open, onClose, onStateChange, canChat = true, canNotifications = true }: AssistantPanelProps) {
-  const { profile, isOwner, isManager, isSeller } = useAuth();
+export default function AssistantPanel({ open, onClose, onStateChange, canNotifications = true }: AssistantPanelProps) {
+  const { profile, isOwner, isManager } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
-  const location = useLocation();
 
   const { data: assistantConfig } = useQuery({
     queryKey: ['assistant-config-name'],
