@@ -451,9 +451,7 @@ const AppSidebar = () => {
   const managerDynamicModules = sidebarModules
     .filter((m) => {
       if (!MANAGER_ALLOWED_MODULES.has(m.name)) return false;
-      // Owner sees Tesorería instead of Caja, but manager always sees Caja
       if (m.name === "Tesorería") return false;
-      // Without jornada, only allow Empleados
       if (!jornadaActiva && !MANAGER_NO_JORNADA_MODULES.has(m.name)) return false;
       return true;
     })
@@ -463,10 +461,30 @@ const AppSidebar = () => {
       icon: getIconComponent(m.icon),
     }));
 
+  // Seller-allowed module names
+  const SELLER_ALLOWED_MODULES = new Set([
+    "Punto de Venta", "Servicios", "Caja", "Ventas",
+  ]);
+
+  // Helper to resolve icon from sidebarModules by module name, with fallback
+  const getModuleIcon = (moduleName: string, fallback: React.ComponentType<any>) => {
+    const mod = sidebarModules.find((m) => m.name === moduleName);
+    return mod ? getIconComponent(mod.icon) : fallback;
+  };
+
+  const sellerDynamicModules = sidebarModules
+    .filter((m) => SELLER_ALLOWED_MODULES.has(m.name))
+    .map((m) => ({
+      title: m.sidebar_label,
+      url: moduleUrlMap[m.name] || "/",
+      icon: getIconComponent(m.icon),
+      name: m.name,
+    }));
+
   const ctxParam = new URLSearchParams(location.search).get("ctx");
   const isActive = (url: string) => {
     // If viewing in employee context (?ctx=emp), don't highlight the business menu items for overlapping paths
-    if (ctxParam === "emp" && (url === "/pos" || url === "/sales" || url === "/services" || url === "/cobros")) {
+    if (ctxParam === "emp" && (url === "/pos" || url === "/sales" || url === "/services" || url === "/cobros" || url === "/caja")) {
       return false;
     }
     if (url === "/") return location.pathname === "/";
@@ -539,49 +557,21 @@ const AppSidebar = () => {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 {/* Operational tools for seller/dependent only when jornada is active */}
-                {showEmployeeTools && (
-                  <>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={
-                          location.pathname === "/pos" && new URLSearchParams(location.search).get("ctx") === "emp"
-                        }
-                      >
-                        <Link to="/pos?ctx=emp">
-                          <ShoppingCart className="h-4 w-4" />
-                          <span className="text-sm">POS</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={
-                          location.pathname === "/services" && new URLSearchParams(location.search).get("ctx") === "emp"
-                        }
-                      >
-                        <Link to="/services?ctx=emp">
-                          <Wrench className="h-4 w-4" />
-                          <span className="text-sm">Servicios</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={
-                          location.pathname === "/caja" && new URLSearchParams(location.search).get("ctx") === "emp"
-                        }
-                      >
-                        <Link to="/caja?ctx=emp">
-                          <DollarSign className="h-4 w-4" />
-                          <span className="text-sm">Caja</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </>
-                )}
+                {showEmployeeTools && sellerDynamicModules.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={
+                        location.pathname === item.url && new URLSearchParams(location.search).get("ctx") === "emp"
+                      }
+                    >
+                      <Link to={`${item.url}?ctx=emp`}>
+                        <item.icon className="h-4 w-4" />
+                        <span className="text-sm">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
