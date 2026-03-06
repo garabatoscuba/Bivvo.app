@@ -186,6 +186,7 @@ const PublicStorefront = () => {
               accent={accent}
               portalPath={portalPath}
               onGoToCatalog={() => setActiveTab('catalog')}
+              currencySymbol={currencySymbol}
             />
           )}
           {activeTab === 'catalog' && (
