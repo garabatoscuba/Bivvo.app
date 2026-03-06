@@ -5,11 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Chrome, Apple, ArrowRight, ArrowLeft, Mail, Lock, User } from "lucide-react";
+import { Loader2, Chrome, Apple, ArrowRight, ArrowLeft, Mail, Lock, User, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { z } from "zod";
+import logoLight from "@/assets/logo-light.png";
+import logoDark from "@/assets/logo-dark.png";
 
 const emailSchema = z.string().email("Email inválido");
 const passwordSchema = z.string().min(6, "La contraseña debe tener al menos 6 caracteres");
