@@ -17,7 +17,7 @@ interface Props {
   currencySymbol: string;
 }
 
-const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, branchName, hasDelivery, branchPhone }: Props) => {
+const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, branchName, hasDelivery, branchPhone, currencySymbol }: Props) => {
   const { items, updateQuantity, removeItem, clearCart, subtotal, totalItems } = useStorefrontCart();
   const [step, setStep] = useState<'cart' | 'checkout' | 'success'>('cart');
   const [name, setName] = useState('');
