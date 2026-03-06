@@ -184,6 +184,15 @@ const PartnerDashboard = () => {
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2 text-muted-foreground">
+                <CheckCircle className="h-4 w-4" />
+                <span className="text-xs font-medium">Total cobrado</span>
+              </div>
+              <p className="text-2xl font-bold">${totalPaid.toFixed(2)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2 text-muted-foreground">
                 <Users className="h-4 w-4" />
                 <span className="text-xs font-medium">Total referidos</span>
               </div>
