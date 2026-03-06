@@ -205,6 +205,7 @@ const AdminPartners = () => {
         expires_at: expiresAt || null,
         commission_percent: Number(commissionPercent),
         commission_duration_months: commissionDuration ? Number(commissionDuration) : null,
+        discount_duration_months: discountDuration ? Number(discountDuration) : null,
         is_active: isActive,
       };
 
