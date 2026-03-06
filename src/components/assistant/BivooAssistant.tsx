@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAssistantFeatures } from '@/hooks/useAssistantFeatures';
@@ -14,6 +15,7 @@ export default function BivooAssistant() {
   const { unreadCount } = useNotifications();
   const { hasAnyFeature, canContextMenu, canNotifications, canChat } = useAssistantFeatures();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [visible, setVisible] = useState<VisibleElement>('none');
   const [faceState, setFaceState] = useState<BivooState>('idle');
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,9 +27,9 @@ export default function BivooAssistant() {
   const showNotificationDot = canNotifications && unreadCount > 0 && visible !== 'panel';
   const derivedState: BivooState = faceState !== 'idle' ? faceState : showNotificationDot ? 'notification' : 'idle';
 
-  // Click-outside listener
+  // Click-outside listener — only on mobile
   useEffect(() => {
-    if (visible === 'none') return;
+    if (visible === 'none' || !isMobile) return;
     const handler = (e: MouseEvent) => {
       if (longPressTriggered.current) return;
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
@@ -39,7 +41,7 @@ export default function BivooAssistant() {
       clearTimeout(id);
       document.removeEventListener('mousedown', handler);
     };
-  }, [visible]);
+  }, [visible, isMobile]);
 
   const handleClick = useCallback(() => {
     if (longPressTriggered.current) {
