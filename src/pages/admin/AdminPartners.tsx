@@ -170,6 +170,7 @@ const AdminPartners = () => {
     setExpiresAt('');
     setCommissionPercent('10');
     setCommissionDuration('');
+    setDiscountDuration('');
     setIsActive(true);
     setSearchResults([]);
     setDialogOpen(true);
