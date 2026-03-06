@@ -327,10 +327,10 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
           ) : config?.opening_type === "small_bills" ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Cuenta los billetes de denominaciones 1–10:
+                Cuenta los billetes de las denominaciones seleccionadas:
               </p>
               <div className="grid grid-cols-2 gap-3">
-                {DENOMINATIONS_SMALL.map((d) => (
+                {configDenominations.map((d) => (
                   <div key={d} className="flex items-center gap-2">
                     <Label className="w-10 text-right text-sm font-mono">${d}</Label>
                     <Input
