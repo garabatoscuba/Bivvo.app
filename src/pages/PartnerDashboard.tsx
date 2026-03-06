@@ -123,7 +123,16 @@ const PartnerDashboard = () => {
               <code className="text-2xl font-bold tracking-wider bg-muted px-4 py-2 rounded-lg">
                 {partner.code}
               </code>
-              <Button variant="outline" size="icon" onClick={copyCode}>
+              <Button variant="outline" size="icon" onClick={copyCode} title="Copiar código">
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link className="h-4 w-4 text-muted-foreground shrink-0" />
+              <code className="text-xs bg-muted px-3 py-1.5 rounded-lg truncate max-w-[300px]">
+                {referralLink}
+              </code>
+              <Button variant="outline" size="icon" onClick={copyLink} title="Copiar link">
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
