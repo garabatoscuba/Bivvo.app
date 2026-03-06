@@ -99,13 +99,14 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
 
   // COGS (Operativo): sum of (quantity * cost_price) from sale_items of completed sales
   const { data: productCost = 0 } = useQuery({
-    queryKey: ["bp-product-cost", businessId, branchId, period],
+    queryKey: ["bp-product-cost", businessId, branchId, period, saleBranchIds],
     queryFn: async () => {
+      if (saleBranchIds.length === 0) return 0;
       let sq = supabase
         .from("sales")
         .select("id")
-        .eq("status", "completed");
-      if (branchId) sq = sq.eq("branch_id", branchId);
+        .eq("status", "completed")
+        .in("branch_id", saleBranchIds);
       if (from) sq = sq.gte("created_at", from);
       sq = sq.lte("created_at", to);
       const { data: sales } = await sq;
@@ -123,7 +124,7 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
       }
       return total;
     },
-    enabled: !!businessId && mode === "operativo",
+    enabled: !!businessId && mode === "operativo" && saleBranchIds.length > 0,
   });
 
   // Inventory purchases (Real): sum of (unit_cost * quantity) from product_stock_entries
