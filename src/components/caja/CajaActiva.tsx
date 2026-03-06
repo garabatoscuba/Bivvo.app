@@ -350,7 +350,7 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
                 ))}
               </div>
               <div className="text-sm font-semibold">
-                Total apertura: ${DENOMINATIONS_SMALL.reduce((s, d) => s + d * (billCounts[d] || 0), 0)}
+                Total apertura: ${configDenominations.reduce((s: number, d: number) => s + d * (billCounts[d] || 0), 0)}
               </div>
             </div>
           ) : config?.opening_type === "fixed" ? (
