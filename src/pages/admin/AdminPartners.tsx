@@ -197,7 +197,7 @@ const AdminPartners = () => {
         code: code.trim().toUpperCase(),
         discount_type: discountType,
         discount_value: Number(discountValue),
-        applies_to_plans: appliesTo.split(',').map(s => s.trim()).filter(Boolean),
+        applies_to_plans: appliesToPlans,
         user_limit: userLimit ? Number(userLimit) : null,
         expires_at: expiresAt || null,
         commission_percent: Number(commissionPercent),
