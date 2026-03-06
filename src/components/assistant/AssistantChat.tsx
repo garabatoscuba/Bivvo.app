@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useResolvedBusinessId } from "@/hooks/useResolvedBusinessId";
 import bivooFaceSvg from "@/assets/bivoo-face.svg";
 import type { BivooState } from "./BivooFace";
 
@@ -106,6 +108,7 @@ const DEFAULT_QUESTIONS = [
 
 export default function AssistantChat({ onStateChange, assistantName, announcements = [], onDismissAnnouncement }: AssistantChatProps) {
   const { profile, isOwner, isManager, isSeller, isSuperAdmin } = useAuth();
+  const { businessId: resolvedBusinessId } = useResolvedBusinessId();
   const { pathname } = useLocation();
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadPersistedMessages());
   const [input, setInput] = useState("");
@@ -160,11 +163,15 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
     onStateChange("thinking");
 
     try {
+      // Get the user's session token for proper auth
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const authToken = currentSession?.access_token || SUPABASE_KEY;
+
       const res = await fetch(`${SUPABASE_URL}/functions/v1/bivoo-assistant`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${SUPABASE_KEY}`,
+          Authorization: `Bearer ${authToken}`,
           apikey: SUPABASE_KEY,
         },
         body: JSON.stringify({
@@ -174,7 +181,7 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
           })),
           role: userRole,
           active_module: currentModule,
-          business_id: profile?.business_id || null,
+          business_id: resolvedBusinessId || profile?.business_id || null,
         }),
       });
 
