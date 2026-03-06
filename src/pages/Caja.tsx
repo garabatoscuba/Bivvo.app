@@ -8,6 +8,7 @@ import CajaActiva from "@/components/caja/CajaActiva";
 import CajaChica from "@/components/caja/CajaChica";
 import CajaHistorial from "@/components/caja/CajaHistorial";
 import CajaConfig from "@/components/caja/CajaConfig";
+import CajaOwnerOverview from "@/components/caja/CajaOwnerOverview";
 import SinJornadaActiva from "@/components/employees/SinJornadaActiva";
 import { Loader2 } from "lucide-react";
 
@@ -18,7 +19,8 @@ const Caja = () => {
   const activeBranch = branches.find((b) => b.id === profile?.branch_id);
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
-  const [tab, setTab] = useState("activa");
+  const showCajasTab = isOwner || isSuperAdmin;
+  const [tab, setTab] = useState(showCajasTab ? "cajas" : "activa");
 
   if (!canBypassJornada && jornadaLoading) {
     return (
@@ -38,6 +40,8 @@ const Caja = () => {
     );
   }
 
+  const tabCount = (showCajasTab ? 1 : 0) + 3 + (isPrivileged ? 1 : 0);
+
   return (
     <AppLayout>
       <div className="p-4 md:p-6 space-y-4 max-w-5xl mx-auto">
@@ -49,7 +53,10 @@ const Caja = () => {
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="w-full grid grid-cols-4 h-9">
+          <TabsList className="w-full grid h-9" style={{ gridTemplateColumns: `repeat(${tabCount}, 1fr)` }}>
+            {showCajasTab && (
+              <TabsTrigger value="cajas" className="text-xs">Cajas</TabsTrigger>
+            )}
             <TabsTrigger value="activa" className="text-xs">Caja activa</TabsTrigger>
             <TabsTrigger value="chica" className="text-xs">Caja chica</TabsTrigger>
             <TabsTrigger value="historial" className="text-xs">Historial</TabsTrigger>
@@ -58,6 +65,11 @@ const Caja = () => {
             )}
           </TabsList>
 
+          {showCajasTab && (
+            <TabsContent value="cajas">
+              <CajaOwnerOverview />
+            </TabsContent>
+          )}
           <TabsContent value="activa">
             <CajaActiva />
           </TabsContent>

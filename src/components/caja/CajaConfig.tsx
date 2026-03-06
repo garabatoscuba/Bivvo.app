@@ -88,6 +88,9 @@ const CajaConfig = () => {
 
   if (isLoading) return <div className="py-8 text-center text-sm text-muted-foreground">Cargando...</div>;
 
+  // All available denominations - owner picks which ones count as "low bills"
+  const ALL_DENOMINATIONS = [1, 2, 3, 5, 10, 20, 50, 100, 200, 500, 1000];
+
   return (
     <div className="space-y-4">
       <Card>
@@ -129,7 +132,7 @@ const CajaConfig = () => {
               <div className="flex items-center gap-2">
                 <RadioGroupItem value="small_bills" id="open-small" />
                 <Label htmlFor="open-small" className="text-sm cursor-pointer">
-                  Conteo de billetes chicos <span className="text-muted-foreground">(1, 3, 5, 10)</span>
+                  Conteo de billetes chicos
                 </Label>
               </div>
             </RadioGroup>
@@ -145,6 +148,38 @@ const CajaConfig = () => {
                 onChange={(e) => setFixedAmount(e.target.value)}
                 className="max-w-xs"
               />
+            </div>
+          )}
+
+          {openingType === "small_bills" && (
+            <div className="space-y-2">
+              <Label className="text-sm">Denominaciones para conteo de apertura</Label>
+              <p className="text-xs text-muted-foreground">
+                Selecciona qué billetes se contarán al abrir caja.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {ALL_DENOMINATIONS.map((d) => {
+                  const selected = lowBillDenominations.includes(d);
+                  return (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => {
+                        setLowBillDenominations((prev) =>
+                          selected ? prev.filter((v) => v !== d) : [...prev, d].sort((a, b) => a - b)
+                        );
+                      }}
+                      className={`px-3 py-1.5 rounded-md border text-sm font-mono transition-colors ${
+                        selected
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-input hover:bg-muted"
+                      }`}
+                    >
+                      ${d}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
 
@@ -194,7 +229,7 @@ const CajaConfig = () => {
             <div className="flex items-center gap-2">
               <RadioGroupItem value="low_bills" id="fund-low-bills" />
               <Label htmlFor="fund-low-bills" className="text-sm cursor-pointer">
-                Billetes bajos <span className="text-muted-foreground">(suma de billetes $1, $2, $5, $10 contados al cierre)</span>
+                Billetes bajos <span className="text-muted-foreground">(suma de billetes seleccionados contados al cierre)</span>
               </Label>
             </div>
           </RadioGroup>
@@ -219,7 +254,7 @@ const CajaConfig = () => {
                 Selecciona qué billetes se suman como fondo al cerrar caja.
               </p>
               <div className="flex flex-wrap gap-2">
-                {[1, 2, 3, 5, 10, 20, 50].map((d) => {
+                {ALL_DENOMINATIONS.map((d) => {
                   const selected = lowBillDenominations.includes(d);
                   return (
                     <button

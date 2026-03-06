@@ -3,7 +3,6 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBranches } from "@/hooks/useBranches";
 import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -11,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import CajaOwnerOverview from "@/components/caja/CajaOwnerOverview";
 import TreasuryMovimientos from "@/components/tesoreria/TreasuryMovimientos";
 
 const Tesoreria = () => {
@@ -20,10 +18,7 @@ const Tesoreria = () => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const prefillType = searchParams.get("prefill") as "extraccion" | "inyeccion" | null;
-  const initialTab = prefillType ? "movimientos" : "caja";
 
-  const [mainTab, setMainTab] = useState(initialTab === "caja" ? "movimientos" : initialTab);
-  // "all" means consolidated view across all branches
   const [selectedBranchId, setSelectedBranchId] = useState<string>("all");
 
   const handlePrefillConsumed = () => {
@@ -37,7 +32,6 @@ const Tesoreria = () => {
   return (
     <AppLayout>
       <div className="p-4 md:p-6 space-y-4 max-w-5xl mx-auto">
-        {/* Branch selector replaces header */}
         <div className="flex items-center gap-2">
           {singleBranch ? (
             <h1 className="text-xl font-bold tracking-tight">{branches[0].name}</h1>
@@ -58,27 +52,14 @@ const Tesoreria = () => {
           )}
         </div>
 
-        <Tabs value={mainTab} onValueChange={setMainTab}>
-          <TabsList className="w-full grid grid-cols-2 h-9">
-            <TabsTrigger value="movimientos" className="text-xs">Balance Personal</TabsTrigger>
-            <TabsTrigger value="caja" className="text-xs">Cajas</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="movimientos">
-            {profile?.business_id && (
-              <TreasuryMovimientos
-                businessId={profile.business_id}
-                branchId={filterBranchId}
-                prefillType={prefillType}
-                onPrefillConsumed={handlePrefillConsumed}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="caja">
-            <CajaOwnerOverview />
-          </TabsContent>
-        </Tabs>
+        {profile?.business_id && (
+          <TreasuryMovimientos
+            businessId={profile.business_id}
+            branchId={filterBranchId}
+            prefillType={prefillType}
+            onPrefillConsumed={handlePrefillConsumed}
+          />
+        )}
       </div>
     </AppLayout>
   );
