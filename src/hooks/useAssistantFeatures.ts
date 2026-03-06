@@ -87,11 +87,14 @@ export function useAssistantFeatures() {
     return true;
   };
 
+  const canChat = isFeatureEnabled('assistant_chat');
+
   return {
     isLoading,
     canNotifications: isFeatureEnabled('notifications'),
     canContextMenu: isFeatureEnabled('context_menu'),
+    canChat,
     /** True if at least one feature is available (show the button) */
-    hasAnyFeature: isFeatureEnabled('notifications') || isFeatureEnabled('context_menu'),
+    hasAnyFeature: isFeatureEnabled('notifications') || isFeatureEnabled('context_menu') || canChat,
   };
 }
