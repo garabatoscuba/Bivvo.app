@@ -44,11 +44,19 @@ const CerrarJornadaGerenteModal = ({
       .eq('id', jornada.id);
 
     // Auto-close open cash register for this employee
-    await supabase
-      .from('cash_registers')
-      .update({ status: 'closed', closed_at: new Date().toISOString(), notes: 'Cierre automático al cerrar jornada por gerente' } as any)
-      .eq('user_id', jornada.empleado_id)
-      .eq('status', 'open');
+    // Resolve auth user_id from profile id (empleado_id)
+    const { data: empProfile } = await supabase
+      .from('profiles')
+      .select('user_id')
+      .eq('id', jornada.empleado_id)
+      .maybeSingle();
+    if (empProfile?.user_id) {
+      await supabase
+        .from('cash_registers')
+        .update({ status: 'closed', closed_at: new Date().toISOString(), notes: 'Cierre automático al cerrar jornada por gerente' } as any)
+        .eq('user_id', empProfile.user_id)
+        .eq('status', 'open');
+    }
 
     setClosing(false);
     if (error) {
