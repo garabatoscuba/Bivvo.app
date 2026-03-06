@@ -227,7 +227,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
             }
             try {
               const parsed = JSON.parse(jsonStr);
-              const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text as string | undefined;
+              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
               if (content) upsertAssistant(content);
             } catch {
               textBuffer = line + "\n" + textBuffer;
