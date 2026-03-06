@@ -137,6 +137,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             setProfile(p);
             setRoles(r);
+            // Fire-and-forget: track last login
+            if (event === 'SIGNED_IN') {
+              supabase.from('profiles').update({ last_login_at: new Date().toISOString() } as any).eq('user_id', newSession.user.id).then();
+            }
           }, 0);
         } else {
           setProfile(null);
@@ -185,10 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   };
 

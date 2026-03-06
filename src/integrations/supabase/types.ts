@@ -2529,6 +2529,7 @@ export type Database = {
           email: string
           full_name: string
           id: string
+          last_login_at: string | null
           onboarding_completed: boolean
           phone: string | null
           plan_type: string
@@ -2550,6 +2551,7 @@ export type Database = {
           email: string
           full_name: string
           id?: string
+          last_login_at?: string | null
           onboarding_completed?: boolean
           phone?: string | null
           plan_type?: string
@@ -2571,6 +2573,7 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
+          last_login_at?: string | null
           onboarding_completed?: boolean
           phone?: string | null
           plan_type?: string
