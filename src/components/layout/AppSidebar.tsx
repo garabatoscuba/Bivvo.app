@@ -484,7 +484,7 @@ const AppSidebar = () => {
   const ctxParam = new URLSearchParams(location.search).get("ctx");
   const isActive = (url: string) => {
     // If viewing in employee context (?ctx=emp), don't highlight the business menu items for overlapping paths
-    if (ctxParam === "emp" && (url === "/pos" || url === "/sales" || url === "/services" || url === "/cobros")) {
+    if (ctxParam === "emp" && (url === "/pos" || url === "/sales" || url === "/services" || url === "/cobros" || url === "/caja")) {
       return false;
     }
     if (url === "/") return location.pathname === "/";
