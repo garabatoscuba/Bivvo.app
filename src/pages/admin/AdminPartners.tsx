@@ -530,6 +530,11 @@ const AdminPartners = () => {
                 <Label className="text-sm">Meses comisión</Label>
                 <Input type="number" value={commissionDuration} onChange={e => setCommissionDuration(e.target.value)} placeholder="Indefinido" />
               </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label className="text-sm">Meses de descuento para referidos</Label>
+                <Input type="number" value={discountDuration} onChange={e => setDiscountDuration(e.target.value)} placeholder="Indefinido (aplica siempre)" />
+                <p className="text-[11px] text-muted-foreground">Cuántos meses el referido mantiene el descuento tras registrarse.</p>
+              </div>
             </div>
 
             <div className="flex items-center gap-2">
