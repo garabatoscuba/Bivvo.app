@@ -179,33 +179,29 @@ const Auth = () => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
-      {/* Theme toggle */}
-      <button
-        onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-        className="absolute top-4 right-4 p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
-        aria-label="Cambiar tema"
-      >
-        {theme === "dark" ? <Sun className="h-5 w-5 text-foreground" /> : <Moon className="h-5 w-5 text-foreground" />}
-      </button>
-
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-md overflow-hidden">
         <CardHeader className="text-center space-y-4">
-          <img
-            src={theme === "dark" ? logoLight : logoDark}
-            alt="Bivoo"
-            className="h-10 mx-auto object-contain"
-          />
-          <div>
-            <CardTitle className="text-2xl font-bold">
-              {isAffiliateFlow ? "Únete como Afiliado" : "Bienvenido"}
-            </CardTitle>
-            <CardDescription>
-              {step === "email" && "Ingresa tu email para continuar"}
-              {step === "password" && "Ingresa tu contraseña"}
-              {step === "signup" && "Completa tus datos para crear tu cuenta"}
-            </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="w-8" />
+            <img
+              src={theme === "dark" ? logoLight : logoDark}
+              alt="Bivoo"
+              className="h-10 object-contain"
+            />
+            <button
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+              aria-label="Cambiar tema"
+            >
+              {theme === "dark" ? <Sun className="h-4 w-4 text-foreground" /> : <Moon className="h-4 w-4 text-foreground" />}
+            </button>
           </div>
+          <CardDescription>
+            {step === "email" && (isAffiliateFlow ? "Únete como Afiliado" : "Ingresa tu email para continuar")}
+            {step === "password" && "Ingresa tu contraseña"}
+            {step === "signup" && "Completa tus datos para crear tu cuenta"}
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Step: Email */}
