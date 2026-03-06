@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +20,55 @@ interface AssistantChatProps {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
+/** Quick questions by current route/module */
+const MODULE_QUESTIONS: Record<string, string[]> = {
+  dashboard: [
+    "¿Cómo va mi negocio hoy?",
+    "¿Qué producto vendí más esta semana?",
+  ],
+  pos: [
+    "¿Cuántas ventas llevo hoy?",
+    "¿Cuál es mi ticket promedio?",
+  ],
+  inventory: [
+    "¿Qué productos tienen stock bajo?",
+    "¿Cuál es mi producto más rentable?",
+  ],
+  services: [
+    "¿Cuántos servicios completé hoy?",
+    "¿Qué servicio genera más ingresos?",
+  ],
+  employees: [
+    "¿Quién trabajó más horas esta semana?",
+    "¿Cuántos empleados tengo activos?",
+  ],
+  tesoreria: [
+    "¿Cuál es mi balance del día?",
+    "¿Cuánto gasté esta semana?",
+  ],
+  caja: [
+    "¿Cuánto hay en caja ahora?",
+    "¿Cuál fue el movimiento más grande hoy?",
+  ],
+  sales: [
+    "¿Cuáles fueron mis ventas de hoy?",
+    "¿Qué método de pago usan más?",
+  ],
+  cobros: [
+    "¿Cuánto debo pagar en nómina?",
+    "¿Quién tiene más comisiones?",
+  ],
+  settings: [
+    "¿Cómo configuro mi negocio?",
+    "¿Cómo cambio mi plan?",
+  ],
+};
+
+const DEFAULT_QUESTIONS = [
+  "¿Cómo puedo mejorar mis ventas?",
+  "¿Qué puedes hacer por mí?",
+];
+
 export default function AssistantChat({ onStateChange, assistantName }: AssistantChatProps) {
   const { profile, isOwner, isManager, isSeller, isSuperAdmin } = useAuth();
   const { pathname } = useLocation();
@@ -37,17 +86,23 @@ export default function AssistantChat({ onStateChange, assistantName }: Assistan
         ? "seller"
         : "employee";
 
+  const currentModule = pathname.replace("/", "").split("?")[0] || "dashboard";
+
+  const quickQuestions = useMemo(() => {
+    return MODULE_QUESTIONS[currentModule] || DEFAULT_QUESTIONS;
+  }, [currentModule]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
 
-  const sendMessage = useCallback(async () => {
-    const text = input.trim();
-    if (!text || isStreaming) return;
+  const sendMessage = useCallback(async (text?: string) => {
+    const msg = (text || input).trim();
+    if (!msg || isStreaming) return;
 
-    const userMsg: ChatMessage = { role: "user", content: text };
+    const userMsg: ChatMessage = { role: "user", content: msg };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setInput("");
@@ -68,14 +123,13 @@ export default function AssistantChat({ onStateChange, assistantName }: Assistan
             content: m.content,
           })),
           role: userRole,
-          active_module: pathname.replace("/", "") || "dashboard",
+          active_module: currentModule,
           business_id: profile?.business_id || null,
         }),
       });
 
       if (!res.ok) {
-        const errText = await res.text();
-        console.error("Assistant error:", res.status, errText);
+        console.error("Assistant error:", res.status, await res.text());
         setMessages((prev) => [
           ...prev,
           { role: "assistant", content: "Lo siento, ocurrió un error. Intenta de nuevo." },
@@ -86,14 +140,11 @@ export default function AssistantChat({ onStateChange, assistantName }: Assistan
       }
 
       onStateChange("responding");
-
-      // Read SSE stream
       const reader = res.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
       let assistantText = "";
 
-      // Add empty assistant message
       setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
 
       while (true) {
@@ -116,10 +167,7 @@ export default function AssistantChat({ onStateChange, assistantName }: Assistan
               assistantText += content;
               setMessages((prev) => {
                 const updated = [...prev];
-                updated[updated.length - 1] = {
-                  role: "assistant",
-                  content: assistantText,
-                };
+                updated[updated.length - 1] = { role: "assistant", content: assistantText };
                 return updated;
               });
             }
@@ -138,7 +186,7 @@ export default function AssistantChat({ onStateChange, assistantName }: Assistan
       onStateChange("idle");
       setIsStreaming(false);
     }
-  }, [input, isStreaming, messages, onStateChange, pathname, profile?.business_id, userRole]);
+  }, [input, isStreaming, messages, onStateChange, currentModule, profile?.business_id, userRole]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -149,17 +197,32 @@ export default function AssistantChat({ onStateChange, assistantName }: Assistan
 
   return (
     <div className="flex flex-col flex-1 min-h-0">
-      {/* Messages */}
+      {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
         {messages.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
+          <div className="flex flex-col items-center justify-center pt-6 pb-2 text-center">
             <div className="w-12 h-12 rounded-full overflow-hidden mb-3">
               <img src={bivooFaceSvg} alt={assistantName} className="w-full h-full object-cover" />
             </div>
             <p className="text-sm font-medium">¡Hola! Soy {assistantName}</p>
-            <p className="text-xs text-muted-foreground mt-1">¿En qué puedo ayudarte hoy?</p>
+            <p className="text-xs text-muted-foreground mt-1 mb-4">¿En qué puedo ayudarte hoy?</p>
+
+            {/* Quick questions */}
+            <div className="w-full space-y-2">
+              {quickQuestions.map((q, i) => (
+                <button
+                  key={i}
+                  onClick={() => sendMessage(q)}
+                  disabled={isStreaming}
+                  className="w-full text-left text-xs px-3 py-2.5 rounded-xl border border-border/60 hover:bg-muted/60 transition-colors text-foreground/80 disabled:opacity-50"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
           </div>
         )}
+
         {messages.map((m, i) => (
           <div
             key={i}
@@ -207,7 +270,7 @@ export default function AssistantChat({ onStateChange, assistantName }: Assistan
           <Button
             size="icon"
             className="h-8 w-8 rounded-xl shrink-0"
-            onClick={sendMessage}
+            onClick={() => sendMessage()}
             disabled={!input.trim() || isStreaming}
           >
             {isStreaming ? (
