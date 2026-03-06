@@ -44,7 +44,7 @@ Deno.serve(async (req) => {
     const { data: callerRoles } = await admin
       .from("user_roles")
       .select("role")
-      .eq("user_id", caller.id);
+      .eq("user_id", callerId);
     const roles = (callerRoles || []).map((r: any) => r.role);
     if (!roles.includes("owner") && !roles.includes("manager") && !roles.includes("super_admin")) {
       return new Response(JSON.stringify({ error: "Sin permisos" }), {
