@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useResolvedBusinessId } from "@/hooks/useResolvedBusinessId";
 import bivooFaceSvg from "@/assets/bivoo-face.svg";
 import type { BivooState } from "./BivooFace";
 
