@@ -228,7 +228,7 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
       if (autoOpeningAmount && autoOpeningAmount > 0) {
         amount = autoOpeningAmount;
       } else if (config?.opening_type === "small_bills") {
-        amount = DENOMINATIONS_SMALL.reduce((s, d) => s + d * (billCounts[d] || 0), 0);
+        amount = configDenominations.reduce((s: number, d: number) => s + d * (billCounts[d] || 0), 0);
       } else if (config?.opening_type === "fixed") {
         amount = Number(config.fixed_opening_amount) || 0;
       }
