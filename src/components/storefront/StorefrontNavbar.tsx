@@ -18,7 +18,7 @@ interface Props {
   currencySymbol: string;
 }
 
-const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portalPath, hasDelivery }: Props) => {
+const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portalPath, hasDelivery, currencySymbol }: Props) => {
   const { theme, setTheme } = useTheme();
   const isDark = theme === 'dark';
   const [showAnnouncements, setShowAnnouncements] = useState(false);
