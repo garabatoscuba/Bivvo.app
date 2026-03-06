@@ -158,7 +158,7 @@ const Auth = () => {
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("apple", {
-      redirect_dir: window.location.origin,
+      redirect_uri: window.location.origin,
     });
     if (error) {
       toast({ title: "Error", description: "No se pudo iniciar sesión con Apple.", variant: "destructive" });
