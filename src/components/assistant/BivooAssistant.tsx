@@ -12,7 +12,7 @@ type VisibleElement = 'none' | 'panel' | 'menu';
 export default function BivooAssistant() {
   const { isOwner, isManager } = useAuth();
   const { unreadCount } = useNotifications();
-  const { hasAnyFeature, canContextMenu, canNotifications } = useAssistantFeatures();
+  const { hasAnyFeature, canContextMenu, canNotifications, canChat } = useAssistantFeatures();
   const navigate = useNavigate();
   const [visible, setVisible] = useState<VisibleElement>('none');
   const [faceState, setFaceState] = useState<BivooState>('idle');
@@ -46,9 +46,9 @@ export default function BivooAssistant() {
       longPressTriggered.current = false;
       return;
     }
-    if (!canNotifications) return;
+    if (!canNotifications && !canChat) return;
     setVisible(prev => (prev === 'panel' ? 'none' : 'panel'));
-  }, [canNotifications]);
+  }, [canNotifications, canChat]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (!showContextMenu) return;
@@ -110,12 +110,13 @@ export default function BivooAssistant() {
       ) : (
         button
       )}
-      {canNotifications && (
+      {(canNotifications || canChat) && (
         <AssistantPanel
           open={visible === 'panel'}
           onClose={() => setVisible('none')}
           onStateChange={setFaceState}
           canNotifications={canNotifications}
+          canChat={canChat}
         />
       )}
     </div>
