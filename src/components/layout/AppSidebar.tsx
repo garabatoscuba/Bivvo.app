@@ -423,12 +423,8 @@ const AppSidebar = () => {
     Impresiones2: "/impresiones",
   };
 
-  // For owner: replace Caja with Tesorería in sidebar
-  const ownerFilteredModules = sidebarModules.filter((m) => {
-    // Owner sees Tesorería instead of standalone Caja
-    if ((isOwner || isSuperAdmin) && !isEmployeeSession && m.name === "Caja") return false;
-    return true;
-  });
+  // Owner sees both Tesorería and Caja as separate sidebar items
+  const ownerFilteredModules = sidebarModules;
 
   const businessItems = [
     ...ownerFilteredModules.map((m) => ({
