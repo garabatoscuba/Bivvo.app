@@ -228,7 +228,7 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
       if (autoOpeningAmount && autoOpeningAmount > 0) {
         amount = autoOpeningAmount;
       } else if (config?.opening_type === "small_bills") {
-        amount = DENOMINATIONS_SMALL.reduce((s, d) => s + d * (billCounts[d] || 0), 0);
+        amount = configDenominations.reduce((s: number, d: number) => s + d * (billCounts[d] || 0), 0);
       } else if (config?.opening_type === "fixed") {
         amount = Number(config.fixed_opening_amount) || 0;
       }
@@ -327,10 +327,10 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
           ) : config?.opening_type === "small_bills" ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Cuenta los billetes de denominaciones 1–10:
+                Cuenta los billetes de las denominaciones seleccionadas:
               </p>
               <div className="grid grid-cols-2 gap-3">
-                {DENOMINATIONS_SMALL.map((d) => (
+                {configDenominations.map((d) => (
                   <div key={d} className="flex items-center gap-2">
                     <Label className="w-10 text-right text-sm font-mono">${d}</Label>
                     <Input
@@ -350,7 +350,7 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
                 ))}
               </div>
               <div className="text-sm font-semibold">
-                Total apertura: ${DENOMINATIONS_SMALL.reduce((s, d) => s + d * (billCounts[d] || 0), 0)}
+                Total apertura: ${configDenominations.reduce((s: number, d: number) => s + d * (billCounts[d] || 0), 0)}
               </div>
             </div>
           ) : config?.opening_type === "fixed" ? (
