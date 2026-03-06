@@ -328,35 +328,58 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
           </div>
         )}
 
-        {messages.map((m, i) => (
-          <div
-            key={i}
-            className={cn(
-              "flex gap-2",
-              m.role === "user" ? "justify-end" : "justify-start"
-            )}
-          >
-            {m.role === "assistant" && (
-              <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 mt-0.5">
-                <img src={bivooFaceSvg} alt={assistantName} className="w-full h-full object-cover" />
+        {messages.map((m, i) => {
+          const isLastAssistant = m.role === "assistant" && !isStreaming && i === messages.length - 1;
+          const { clean, suggestions } = m.role === "assistant" && m.content
+            ? parseSuggestions(m.content)
+            : { clean: m.content, suggestions: [] };
+
+          return (
+            <div key={i}>
+              <div
+                className={cn(
+                  "flex gap-2",
+                  m.role === "user" ? "justify-end" : "justify-start"
+                )}
+              >
+                {m.role === "assistant" && (
+                  <div className="w-6 h-6 rounded-full overflow-hidden shrink-0 mt-0.5">
+                    <img src={bivooFaceSvg} alt={assistantName} className="w-full h-full object-cover" />
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    "max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap",
+                    m.role === "user"
+                      ? "bg-primary text-primary-foreground rounded-br-sm"
+                      : "bg-white dark:bg-zinc-800 text-foreground rounded-bl-sm"
+                  )}
+                >
+                  {clean || (
+                    <span className="inline-flex items-center gap-1 text-muted-foreground">
+                      <Loader2 className="h-3 w-3 animate-spin" /> Escribiendo...
+                    </span>
+                  )}
+                </div>
               </div>
-            )}
-            <div
-              className={cn(
-                "max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap",
-                m.role === "user"
-                  ? "bg-primary text-primary-foreground rounded-br-sm"
-                  : "bg-white dark:bg-zinc-800 text-foreground rounded-bl-sm"
-              )}
-            >
-              {m.content || (
-                <span className="inline-flex items-center gap-1 text-muted-foreground">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Escribiendo...
-                </span>
+              {/* Follow-up suggestions after last assistant message */}
+              {isLastAssistant && suggestions.length > 0 && (
+                <div className="mt-2 ml-8 space-y-1.5">
+                  {suggestions.map((s, si) => (
+                    <button
+                      key={si}
+                      onClick={() => sendMessage(s)}
+                      disabled={isStreaming}
+                      className="w-full text-left text-xs px-3 py-2 rounded-xl border border-border/60 hover:bg-muted/60 transition-colors text-foreground/80 disabled:opacity-50"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
               )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Input */}
