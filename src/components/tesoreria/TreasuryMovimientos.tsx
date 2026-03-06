@@ -11,13 +11,16 @@ import {
   Bell,
   Check,
   X,
+  Info,
 } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import TreasuryCategoryManager from "./TreasuryCategoryManager";
 import TreasuryMovementModal from "./TreasuryMovementModal";
 import BalancePersonalCards from "./BalancePersonalCards";
 import BalanceHistoryTable from "./BalanceHistoryTable";
 
 type Period = "today" | "week" | "month" | "all";
+type TreasuryMode = "operativo" | "real";
 
 interface Props {
   businessId: string;
@@ -26,13 +29,23 @@ interface Props {
   onPrefillConsumed?: () => void;
 }
 
+const LS_KEY_PREFIX = "bivoo-treasury-mode-";
+
 export default function TreasuryMovimientos({ businessId, branchId, prefillType, onPrefillConsumed }: Props) {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const [modalOpen, setModalOpen] = useState(false);
   const [modalPrefill, setModalPrefill] = useState<"extraccion" | "inyeccion" | null>(null);
   const [period, setPeriod] = useState<Period>("today");
-  
+  const [mode, setMode] = useState<TreasuryMode>(() => {
+    const saved = localStorage.getItem(`${LS_KEY_PREFIX}${businessId}`);
+    return (saved === "real" ? "real" : "operativo") as TreasuryMode;
+  });
+
+  const toggleMode = (m: TreasuryMode) => {
+    setMode(m);
+    localStorage.setItem(`${LS_KEY_PREFIX}${businessId}`, m);
+  };
 
   // Handle prefill from assistant
   useEffect(() => {
