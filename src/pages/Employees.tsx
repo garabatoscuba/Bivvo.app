@@ -44,6 +44,7 @@ const ROLE_CONFIG: Record<AppRole, { label: string; icon: typeof Shield; color: 
   seller: { label: 'Vendedor', icon: ShoppingCart, color: 'bg-secondary text-secondary-foreground' },
   accountant: { label: 'Contable', icon: Calculator, color: 'bg-muted text-muted-foreground' },
   affiliated: { label: 'Afiliado', icon: Users, color: 'bg-muted text-muted-foreground' },
+  partner: { label: 'Partner', icon: Users, color: 'bg-muted text-muted-foreground' },
 };
 
 const POSITION_OPTIONS = [

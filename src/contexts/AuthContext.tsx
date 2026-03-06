@@ -251,6 +251,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isSeller: roles.includes('seller'),
     isAccountant: roles.includes('accountant'),
     isAffiliated: profile?.user_type === 'affiliated',
+    isPartner: roles.includes('partner'),
     isCuba: profile?.country === 'cuba',
     isBivooAccount: profile?.email?.endsWith('@bivoo.app') || false,
   };
