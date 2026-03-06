@@ -146,7 +146,7 @@ const Auth = () => {
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_dir: window.location.origin,
+      redirect_uri: window.location.origin,
       extraParams: { prompt: "select_account" },
     });
     if (error) {
