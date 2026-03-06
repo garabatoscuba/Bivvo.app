@@ -202,7 +202,9 @@ export const useCategories = (overrideBusinessId?: string) => {
 
 export const useBranchStock = (branchId?: string) => {
   const { profile } = useAuth();
+  const { businessId: resolvedBusinessId } = useResolvedBusinessId();
   const { isOnline } = useOffline();
+  const effectiveBusinessId = resolvedBusinessId || profile?.business_id;
 
   return useQuery({
     queryKey: ['branch-stock', branchId],
@@ -226,6 +228,6 @@ export const useBranchStock = (branchId?: string) => {
 
       return getAllFromStore<any>('branch_stock', 'by-branch', branchId);
     },
-    enabled: !!branchId && !!profile?.business_id,
+    enabled: !!branchId && !!effectiveBusinessId,
   });
 };
