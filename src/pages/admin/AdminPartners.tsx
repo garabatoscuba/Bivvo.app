@@ -181,7 +181,7 @@ const AdminPartners = () => {
     setCode(p.code);
     setDiscountType(p.discount_type);
     setDiscountValue(String(p.discount_value));
-    setAppliesTo((p.applies_to_plans as string[]).join(','));
+    setAppliesToPlans(p.applies_to_plans as string[]);
     setUserLimit(p.user_limit ? String(p.user_limit) : '');
     setExpiresAt(p.expires_at ? p.expires_at.split('T')[0] : '');
     setCommissionPercent(String(p.commission_percent));
