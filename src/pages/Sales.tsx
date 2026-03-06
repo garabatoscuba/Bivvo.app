@@ -119,9 +119,8 @@ const Sales = () => {
 
   // Build seller name map from employees table
   const { data: sellerNameMap = new Map<string, string>() } = useQuery({
-    queryKey: ['seller-name-map', isEmployeeContext ? employeeRecord?.business_id : profile?.business_id],
+    queryKey: ['seller-name-map', bizId],
     queryFn: async () => {
-      const bizId = isEmployeeContext ? employeeRecord?.business_id : profile?.business_id;
       if (!bizId) return new Map<string, string>();
       const { data: employees } = await supabase
         .from('employees')
@@ -147,7 +146,7 @@ const Sales = () => {
       }
       return map;
     },
-    enabled: !!(isEmployeeContext ? employeeRecord?.business_id : profile?.business_id),
+    enabled: !!bizId,
   });
 
   const sellerList = useMemo(() => {
