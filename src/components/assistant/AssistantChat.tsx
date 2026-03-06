@@ -58,50 +58,50 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 /** Quick questions by current route/module */
 const MODULE_QUESTIONS: Record<string, string[]> = {
   dashboard: [
-    "¿Cómo va mi negocio hoy?",
-    "¿Qué producto vendí más esta semana?",
+    "¿Qué significa cada tarjeta del dashboard?",
+    "¿Cómo interpreto las alertas de stock?",
   ],
   pos: [
-    "¿Cuántas ventas llevo hoy?",
-    "¿Cuál es mi ticket promedio?",
+    "¿Cómo proceso un pago mixto?",
+    "¿Por qué no aparece un producto aquí?",
   ],
   inventory: [
-    "¿Qué productos tienen stock bajo?",
-    "¿Cuál es mi producto más rentable?",
+    "¿Cómo agrego stock a un producto?",
+    "¿Cuál es la diferencia entre almacén y venta?",
   ],
   services: [
-    "¿Cuántos servicios completé hoy?",
-    "¿Qué servicio genera más ingresos?",
+    "¿Cómo creo un servicio nuevo?",
+    "¿Qué es un servicio en vivo?",
   ],
   employees: [
-    "¿Quién trabajó más horas esta semana?",
-    "¿Cuántos empleados tengo activos?",
+    "¿Cómo agrego un empleado nuevo?",
+    "¿Cómo inicio una jornada?",
+  ],
+  nomina: [
+    "¿Cómo funciona el Mixto Personalizado?",
+    "¿Cómo asigno una modalidad a un empleado?",
   ],
   tesoreria: [
-    "¿Cuál es mi balance del día?",
-    "¿Cuánto gasté esta semana?",
+    "¿Qué diferencia hay entre modo Real y Operativo?",
+    "¿Cómo registro un gasto personal?",
   ],
   caja: [
-    "¿Cuánto hay en caja ahora?",
-    "¿Cuál fue el movimiento más grande hoy?",
+    "¿Cómo abro y cierro la caja?",
+    "¿Qué pasa con el dinero al cerrar la jornada?",
   ],
   sales: [
-    "¿Cuáles fueron mis ventas de hoy?",
-    "¿Qué método de pago usan más?",
-  ],
-  cobros: [
-    "¿Cuánto debo pagar en nómina?",
-    "¿Quién tiene más comisiones?",
+    "¿Cómo anulo una venta?",
+    "¿Qué métodos de pago puedo usar?",
   ],
   settings: [
-    "¿Cómo configuro mi negocio?",
-    "¿Cómo cambio mi plan?",
+    "¿Cómo configuro el stock mínimo?",
+    "¿Cómo agrego una sucursal?",
   ],
 };
 
 const DEFAULT_QUESTIONS = [
-  "¿Cómo puedo mejorar mis ventas?",
-  "¿Qué puedes hacer por mí?",
+  "¿Por dónde empiezo a configurar mi negocio?",
+  "¿Qué puedes ayudarme a hacer?",
 ];
 
 export default function AssistantChat({ onStateChange, assistantName, announcements = [], onDismissAnnouncement }: AssistantChatProps) {
