@@ -46,6 +46,7 @@ const JornadaEntrada = lazy(() => import("./pages/JornadaEntrada"));
 const OnboardingEmpleado = lazy(() => import("./pages/OnboardingEmpleado"));
 const MyEmployment = lazy(() => import("./pages/MyEmployment"));
 const ReviewPage = lazy(() => import("./pages/ReviewPage"));
+const PartnerDashboard = lazy(() => import("./pages/PartnerDashboard"));
 
 const queryClient = new QueryClient();
 
