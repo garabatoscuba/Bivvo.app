@@ -60,6 +60,7 @@ import {
   FileText,
   Bot,
   Tag,
+  Network,
 } from "lucide-react";
 import { getIconComponent } from "@/components/services/IconSelector";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
