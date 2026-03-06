@@ -59,8 +59,12 @@ const CajaOwnerOverview = () => {
     }
   }, [branches, selectedBranchId]);
 
-  // Fetch all open registers for the selected branch (excluding owner)
-  const { data: openRegisters = [], isLoading } = useQuery({
+  const [closeAllDialog, setCloseAllDialog] = useState(false);
+  const [closeOneDialog, setCloseOneDialog] = useState<{ id: string; name: string } | null>(null);
+  const [closing, setClosing] = useState(false);
+
+  // Fetch all open registers for the selected branch (including owner's for management)
+  const { data: allOpenRegisters = [], isLoading } = useQuery({
     queryKey: ["owner-open-registers", selectedBranchId],
     queryFn: async () => {
       if (!selectedBranchId) return [];
@@ -71,11 +75,13 @@ const CajaOwnerOverview = () => {
         .eq("status", "open")
         .order("opened_at", { ascending: true });
       if (error) throw error;
-      // Exclude the owner's own register
-      return (data || []).filter((r) => r.user_id !== profile?.user_id);
+      return data || [];
     },
     enabled: !!selectedBranchId,
   });
+
+  // For display: exclude owner's register
+  const openRegisters = allOpenRegisters.filter((r) => r.user_id !== profile?.user_id);
 
   // Fetch employee names
   const userIds = useMemo(
