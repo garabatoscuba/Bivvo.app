@@ -1,14 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import { X, Send, CheckCheck, ExternalLink, Bell } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { X, CheckCheck, ExternalLink, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications, type Notification } from "@/hooks/useNotifications";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { es } from "date-fns/locale";
-import { useLocation } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { BivooState } from "./BivooFace";
