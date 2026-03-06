@@ -12,11 +12,6 @@ import { supabase } from "@/integrations/supabase/client";
 import type { BivooState } from "./BivooFace";
 import bivooFaceSvg from "@/assets/bivoo-face.svg";
 
-interface Message {
-  role: "user" | "assistant";
-  content: string;
-}
-
 const NOTIFICATION_COLORS: Record<string, string> = {
   storefront_order: "bg-primary",
   low_stock: "bg-warning",
