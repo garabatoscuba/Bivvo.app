@@ -80,8 +80,31 @@ const Plans = () => {
     enabled: !!user,
   });
 
+  // Fetch partner discount from profile referral_code or sessionStorage
+  const { data: partnerOffer } = useQuery({
+    queryKey: ['partner-offer', user?.id, (profile as any)?.referral_code],
+    queryFn: async () => {
+      const code = (profile as any)?.referral_code || sessionStorage.getItem('referral_code');
+      if (!code) return null;
+      const { data } = await supabase
+        .from('partners')
+        .select('*')
+        .eq('code', code.toUpperCase())
+        .eq('is_active', true)
+        .maybeSingle();
+      if (!data) return null;
+      // Check expiry
+      if (data.expires_at && new Date(data.expires_at) < new Date()) return null;
+      return data;
+    },
+    enabled: !!user,
+  });
+
   // Find the best offer for the selected plan
   const bestOffer = activeOffers?.find((o: any) => o.applies_to_plans?.includes(selectedPlan));
+
+  // Check if partner offer applies to selected plan
+  const partnerApplies = partnerOffer && (partnerOffer.applies_to_plans as string[])?.includes(selectedPlan);
 
   const expirationDate = subscriptionEndsAt || trialEndsAt;
 
@@ -102,7 +125,18 @@ const Plans = () => {
       offerDiscount = Math.min(Number(bestOffer.discount_value), afterDuration);
     }
   }
-  const requestTotal = afterDuration - offerDiscount;
+  const afterOfferDiscount = afterDuration - offerDiscount;
+
+  // Apply partner discount on top of offer discount
+  let partnerDiscount = 0;
+  if (partnerApplies && partnerOffer) {
+    if (partnerOffer.discount_type === 'percentage') {
+      partnerDiscount = afterOfferDiscount * (Number(partnerOffer.discount_value) / 100);
+    } else {
+      partnerDiscount = Math.min(Number(partnerOffer.discount_value), afterOfferDiscount);
+    }
+  }
+  const requestTotal = afterOfferDiscount - partnerDiscount;
 
   // Trial activation
   const trialMutation = useMutation({
