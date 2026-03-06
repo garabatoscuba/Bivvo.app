@@ -58,7 +58,7 @@ const AdminPartners = () => {
   const [code, setCode] = useState('');
   const [discountType, setDiscountType] = useState('percentage');
   const [discountValue, setDiscountValue] = useState('10');
-  const [appliesTo, setAppliesTo] = useState('basic');
+  const [appliesToPlans, setAppliesToPlans] = useState<string[]>(['basic']);
   const [userLimit, setUserLimit] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [commissionPercent, setCommissionPercent] = useState('10');
