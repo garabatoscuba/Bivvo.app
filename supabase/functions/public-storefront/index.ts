@@ -199,11 +199,16 @@ serve(async (req) => {
           }
         }
 
-        const itemLines = items.map((i: any) => `• ${i.quantity}x ${i.product_name} — Bs ${Number(i.total).toFixed(2)}`).join("\n");
+        // Get currency symbol
+        const { data: bizData } = await supabase.from("businesses").select("base_currency").eq("id", branchData.business_id).single();
+        const cur = bizData?.base_currency || 'USD';
+        const sym = cur === 'CUP' ? '$' : '$';
+
+        const itemLines = items.map((i: any) => `• ${i.quantity}x ${i.product_name} — ${sym} ${Number(i.total).toFixed(2)}`).join("\n");
         const deliveryLine = delivery_address ? `\n📍 Dirección: ${delivery_address}` : "\n🏪 Retiro en tienda";
         const notesLine = notes ? `\n📝 Notas: ${notes}` : "";
 
-        const message = `Pedido de ${customer_name.trim()} (${customer_phone.trim()}):\n${itemLines}\n\n💰 Total: Bs ${Number(subtotal).toFixed(2)}${deliveryLine}${notesLine}`;
+        const message = `Pedido de ${customer_name.trim()} (${customer_phone.trim()}):\n${itemLines}\n\n💰 Total: ${sym} ${Number(subtotal).toFixed(2)}${deliveryLine}${notesLine}`;
 
         await supabase.from("notifications").insert({
           business_id: branchData.business_id,

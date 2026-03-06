@@ -177,6 +177,7 @@ const PublicStorefront = () => {
           onTabChange={setActiveTab}
           portalPath={portalPath}
           hasDelivery={data.settings.has_delivery}
+          currencySymbol={currencySymbol}
         />
 
         <main className="flex-1" style={{ fontFamily: fontBody, paddingTop: activeTab !== 'home' ? '56px' : undefined }}>
