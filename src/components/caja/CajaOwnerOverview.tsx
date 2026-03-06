@@ -45,7 +45,7 @@ import { es } from "date-fns/locale";
 import { toast } from "sonner";
 
 const CajaOwnerOverview = () => {
-  const { profile } = useAuth();
+  const { profile, isOwner, isSuperAdmin } = useAuth();
   const { data: branches = [] } = useBranches();
   const queryClient = useQueryClient();
 
