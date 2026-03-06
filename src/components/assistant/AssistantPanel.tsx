@@ -177,7 +177,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
           },
           body: JSON.stringify({
             messages: allMessages.map((m) => ({ role: m.role, content: m.content })),
@@ -227,7 +227,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
             }
             try {
               const parsed = JSON.parse(jsonStr);
-              const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text as string | undefined;
+              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
               if (content) upsertAssistant(content);
             } catch {
               textBuffer = line + "\n" + textBuffer;
@@ -247,7 +247,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
             if (jsonStr === "[DONE]") continue;
             try {
               const parsed = JSON.parse(jsonStr);
-              const content = parsed.candidates?.[0]?.content?.parts?.[0]?.text as string | undefined;
+              const content = parsed.choices?.[0]?.delta?.content as string | undefined;
               if (content) upsertAssistant(content);
             } catch {
               /* ignore */
@@ -259,7 +259,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canChat =
         if (assistantContent && profile?.business_id) {
           const finalMessages = [...allMessages, { role: "assistant" as const, content: assistantContent }];
           const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-          const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+          const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
           fetch(`${SUPABASE_URL}/rest/v1/assistant_conversations`, {
             method: "POST",
             headers: {
