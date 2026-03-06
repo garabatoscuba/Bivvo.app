@@ -338,6 +338,7 @@ serve(async (req) => {
           social_tiktok: settings.social_tiktok,
           social_twitter: settings.social_twitter,
           contact_email: settings.contact_email || null,
+          currency: business.base_currency || 'USD',
         },
         products,
         reviews: (reviewsResult.data || []).map((r: any) => ({
