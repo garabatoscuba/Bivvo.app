@@ -342,6 +342,30 @@ const Plans = () => {
           </Card>
         )}
 
+        {/* Referral code input */}
+        <Card>
+          <CardContent className="flex items-center gap-3 py-3 px-4">
+            <Tag className="h-5 w-5 text-muted-foreground shrink-0" />
+            <div className="flex-1 flex items-center gap-2">
+              <label htmlFor="referral-code" className="text-sm font-medium whitespace-nowrap">Código de referido</label>
+              <input
+                id="referral-code"
+                type="text"
+                placeholder="Ej: BIVOO2026"
+                value={manualCode}
+                onChange={(e) => setManualCode(e.target.value.toUpperCase())}
+                className="flex h-9 w-full max-w-[200px] rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+              />
+              {manualCode && !partnerOffer && (
+                <span className="text-xs text-destructive whitespace-nowrap">Código no válido</span>
+              )}
+              {partnerOffer && (
+                <Check className="h-4 w-4 text-green-600 shrink-0" />
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Plan cards */}
         <div className="grid gap-6 md:grid-cols-3">
           {/* Free */}
