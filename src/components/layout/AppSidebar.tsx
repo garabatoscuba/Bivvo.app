@@ -806,7 +806,7 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-
+        {!isInstalled && (
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
