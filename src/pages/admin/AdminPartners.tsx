@@ -486,9 +486,29 @@ const AdminPartners = () => {
                 <Label className="text-sm">Valor descuento</Label>
                 <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 col-span-2">
                 <Label className="text-sm">Aplica a planes</Label>
-                <Input value={appliesTo} onChange={e => setAppliesTo(e.target.value)} placeholder="basic,professional" />
+                <div className="flex items-center gap-4 mt-1">
+                  {[
+                    { value: 'free', label: 'Gratuito' },
+                    { value: 'basic', label: 'Básico' },
+                    { value: 'professional', label: 'Profesional' },
+                  ].map(plan => (
+                    <label key={plan.value} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={appliesToPlans.includes(plan.value)}
+                        onCheckedChange={(checked) => {
+                          setAppliesToPlans(prev =>
+                            checked
+                              ? [...prev, plan.value]
+                              : prev.filter(p => p !== plan.value)
+                          );
+                        }}
+                      />
+                      {plan.label}
+                    </label>
+                  ))}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm">Límite usuarios</Label>

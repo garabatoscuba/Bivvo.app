@@ -201,6 +201,11 @@ const PartnerDashboard = () => {
           </Card>
         </div>
 
+        {/* Grid changed to 4 cols */}
+        <div className="hidden">
+          {/* This hidden div is intentionally left to keep line structure clean */}
+        </div>
+
         {/* Referrals list */}
         <Card>
           <CardHeader>
