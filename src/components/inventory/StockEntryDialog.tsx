@@ -67,14 +67,6 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
   const handleSubmit = async () => {
     if (!product || !profile?.user_id || !branchId) return;
     if (totalQty <= 0) return;
-    if (!reason) {
-      toast({ title: 'Selecciona el motivo de entrada', variant: 'destructive' });
-      return;
-    }
-    if (!origin.trim()) {
-      toast({ title: 'Indica el origen', variant: 'destructive' });
-      return;
-    }
 
     setSubmitting(true);
     try {
@@ -161,7 +153,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     }
   };
 
-  const isValid = reason && origin.trim() && authorizedBy.trim() && totalQty > 0 && unitCost && parseFloat(unitCost) > 0 && newSalePrice && parseFloat(newSalePrice) > 0;
+  const isValid = totalQty > 0;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -203,7 +195,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-              Motivo de entrada *
+              Motivo de entrada
             </Label>
             <Select value={reason} onValueChange={setReason}>
               <SelectTrigger>
@@ -221,7 +213,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-              Origen / Proveedor *
+              Origen / Proveedor
             </Label>
             <Input
               placeholder="Ej: Proveedor X, Sucursal Norte, Cliente Y..."
@@ -234,7 +226,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <User className="h-3.5 w-3.5 text-muted-foreground" />
-              Autorizado por *
+              Autorizado por
             </Label>
             <Input
               placeholder="Nombre de quien autoriza"
@@ -248,7 +240,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">
                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-                Costo unitario *
+                Costo unitario
               </Label>
               <Input
                 type="number"
@@ -263,7 +255,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">
                 <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                Precio de venta *
+                Precio de venta
               </Label>
               <Input
                 type="number"
