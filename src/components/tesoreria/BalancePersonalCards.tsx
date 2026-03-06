@@ -5,11 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, TrendingDown, Wallet, ShoppingCart, Wrench, ArrowDownToLine, Package, Users, ArrowUpFromLine, ReceiptText } from "lucide-react";
 
 type Period = "today" | "week" | "month" | "all";
+type TreasuryMode = "operativo" | "real";
 
 interface Props {
   businessId: string;
   branchId?: string | null;
   period: Period;
+  mode: TreasuryMode;
 }
 
 function getDateRange(period: Period): { from: string | null; to: string } {
@@ -23,7 +25,7 @@ function getDateRange(period: Period): { from: string | null; to: string } {
   return { from: d.toISOString(), to };
 }
 
-export default function BalancePersonalCards({ businessId, branchId, period }: Props) {
+export default function BalancePersonalCards({ businessId, branchId, period, mode }: Props) {
   const { from, to } = useMemo(() => getDateRange(period), [period]);
 
   // Product sales (from sales table, completed only)
@@ -78,11 +80,10 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
     enabled: !!businessId,
   });
 
-  // COGS: sum of (quantity * cost_price) from sale_items of completed sales
+  // COGS (Operativo): sum of (quantity * cost_price) from sale_items of completed sales
   const { data: productCost = 0 } = useQuery({
     queryKey: ["bp-product-cost", businessId, branchId, period],
     queryFn: async () => {
-      // First get completed sale IDs in the period
       let sq = supabase
         .from("sales")
         .select("id")
@@ -94,7 +95,6 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
       if (!sales || sales.length === 0) return 0;
 
       const saleIds = sales.map((s: any) => s.id);
-      // Batch in chunks of 50 to avoid URI limits
       let total = 0;
       for (let i = 0; i < saleIds.length; i += 50) {
         const chunk = saleIds.slice(i, i + 50);
@@ -106,7 +106,24 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
       }
       return total;
     },
-    enabled: !!businessId,
+    enabled: !!businessId && mode === "operativo",
+  });
+
+  // Inventory purchases (Real): sum of (unit_cost * quantity) from product_stock_entries
+  const { data: inventoryPurchases = 0 } = useQuery({
+    queryKey: ["bp-inventory-purchases", businessId, branchId, period],
+    queryFn: async () => {
+      let q = supabase
+        .from("product_stock_entries")
+        .select("unit_cost, quantity")
+        .eq("business_id", businessId);
+      if (branchId) q = q.eq("branch_id", branchId);
+      if (from) q = q.gte("created_at", from);
+      q = q.lte("created_at", to);
+      const { data } = await q;
+      return (data || []).reduce((sum: number, e: any) => sum + Number(e.unit_cost || 0) * Number(e.quantity || 0), 0);
+    },
+    enabled: !!businessId && mode === "real",
   });
 
   // Salaries paid (from employee_salary_records)
@@ -152,8 +169,18 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
 
   const extractions = extractionData || { retiro: 0, otros: 0, total: 0 };
   const totalIngresos = productSales + serviceSales + injections;
-  const totalGastos = productCost + salariesPaid + extractions.total;
-  const disponible = totalIngresos - totalGastos;
+
+  // Disponible formula: ingresos - salarios - extracciones (COGS never enters)
+  // In Real mode, inventory purchases also subtract
+  const compromisos = salariesPaid + extractions.total;
+  const disponible = mode === "real"
+    ? totalIngresos - compromisos - inventoryPurchases
+    : totalIngresos - compromisos;
+
+  // Total gastos for display (includes informational COGS or inventory)
+  const totalGastosDisplay = mode === "real"
+    ? inventoryPurchases + salariesPaid + extractions.total
+    : productCost + salariesPaid + extractions.total;
 
   const fmt = (n: number) => "$" + n.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -194,14 +221,24 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
             </h3>
           </div>
           <div className="space-y-1.5 pl-9">
-            <Row icon={<Package className="h-3.5 w-3.5" />} label="Costo de productos vendidos" value={fmt(productCost)} />
+            {mode === "operativo" ? (
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <Package className="h-3.5 w-3.5" />
+                  <span>Costo de productos vendidos <span className="text-xs text-muted-foreground/60 italic">(recuperado en ventas)</span></span>
+                </div>
+                <span className="font-semibold text-muted-foreground">{fmt(productCost)}</span>
+              </div>
+            ) : (
+              <Row icon={<Package className="h-3.5 w-3.5" />} label="Compras de inventario" value={fmt(inventoryPurchases)} />
+            )}
             <Row icon={<Users className="h-3.5 w-3.5" />} label="Salarios pagados" value={fmt(salariesPaid)} />
             <Row icon={<ArrowUpFromLine className="h-3.5 w-3.5" />} label="Dinero que sacaste" value={fmt(extractions?.retiro || 0)} />
             <Row icon={<ReceiptText className="h-3.5 w-3.5" />} label="Otros gastos" value={fmt(extractions?.otros || 0)} />
           </div>
           <div className="border-t pt-2 pl-9 flex items-center justify-between">
             <span className="text-xs font-semibold text-muted-foreground uppercase">Total Gastos</span>
-            <span className="text-base font-bold text-red-600">{fmt(totalGastos)}</span>
+            <span className="text-base font-bold text-red-600">{fmt(totalGastosDisplay)}</span>
           </div>
         </CardContent>
       </Card>
@@ -222,7 +259,9 @@ export default function BalancePersonalCards({ businessId, branchId, period }: P
               {fmt(disponible)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              {fmt(totalIngresos)} ingresos − {fmt(totalGastos)} gastos
+              {mode === "operativo"
+                ? `${fmt(totalIngresos)} ingresos − ${fmt(compromisos)} compromisos`
+                : `${fmt(totalIngresos)} ingresos − ${fmt(compromisos + inventoryPurchases)} gastos reales`}
             </p>
             {disponible >= 0 && (
               <p className="text-xs text-green-600 dark:text-green-400 mt-1 font-medium">
