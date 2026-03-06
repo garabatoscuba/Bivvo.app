@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Send, Loader2, X, ExternalLink } from "lucide-react";
+import { Send, Loader2, X, ExternalLink, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -245,10 +245,23 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
     }
   };
 
+  const clearChat = useCallback(() => {
+    setMessages([]);
+    localStorage.removeItem(STORAGE_KEY);
+  }, []);
+
   return (
     <div className="flex flex-col flex-1 min-h-0">
+      {/* Reset button */}
+      {messages.length > 0 && (
+        <div className="shrink-0 flex justify-end px-3 pt-1">
+          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={clearChat} title="Reiniciar chat">
+            <RotateCcw className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+      )}
       {/* Messages area */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0 bg-zinc-100 dark:bg-black/40 rounded-lg">
         {/* Inline announcements — scrollable with chat */}
         {announcements.length > 0 && (
           <div className="space-y-1.5 mb-2">
@@ -316,7 +329,7 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
                 "max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap",
                 m.role === "user"
                   ? "bg-primary text-primary-foreground rounded-br-sm"
-                  : "bg-muted text-foreground rounded-bl-sm"
+                  : "bg-white dark:bg-zinc-800 text-foreground rounded-bl-sm"
               )}
             >
               {m.content || (
