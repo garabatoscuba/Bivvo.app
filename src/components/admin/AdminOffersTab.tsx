@@ -71,6 +71,7 @@ const AdminOffersTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<PlanOffer | null>(null);
+  const [userSearch, setUserSearch] = useState('');
 
   // Filters
   const [search, setSearch] = useState('');
