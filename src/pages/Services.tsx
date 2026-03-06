@@ -218,6 +218,19 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
         <p className="text-sm text-muted-foreground">Registra cobros de servicios</p>
       </div>
 
+      {loadingRegister ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      ) : !hasOpenRegister ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+            <DollarSign className="h-10 w-10 opacity-40 mb-3" />
+            <p className="text-sm font-medium">Debes abrir tu caja primero</p>
+            <p className="text-xs mt-1">Ve al módulo Caja para abrir tu caja antes de registrar servicios.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+
       <Card>
         <CardContent className="p-4 flex items-center justify-between">
           <div>
