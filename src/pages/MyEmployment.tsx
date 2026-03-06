@@ -426,22 +426,6 @@ const MyEmployment = () => {
           )}
         </TabsContent>
 
-        {/* ===== TAB: CAJA ===== */}
-        <TabsContent value="caja" className="space-y-4">
-          {businessId && (myJornada?.sucursal_id || myEmployeeRecord?.branch_id) && (
-            <MiCajaEmpleado
-              businessId={businessId}
-              branchId={myJornada?.sucursal_id || myEmployeeRecord?.branch_id || profile?.branch_id || ''}
-            />
-          )}
-          {!businessId && (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                Sin negocio asociado.
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
 
         {/* ===== TAB: COBROS ===== */}
         <TabsContent value="cobros" className="space-y-4">
