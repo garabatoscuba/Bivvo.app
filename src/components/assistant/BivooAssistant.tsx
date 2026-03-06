@@ -46,7 +46,7 @@ export default function BivooAssistant() {
       longPressTriggered.current = false;
       return;
     }
-    if (!canChat && !canNotifications) return;
+    if (!canNotifications) return;
     setVisible(prev => (prev === 'panel' ? 'none' : 'panel'));
   }, [canChat, canNotifications]);
 
