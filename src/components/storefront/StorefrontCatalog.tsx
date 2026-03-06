@@ -260,7 +260,7 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
                   )}
                   {product.stock > cartQty && (
                     <button
-                      onClick={(e) => handleRequireAffiliate(e, () => addItem(product))}
+                      onClick={(e) => { e.stopPropagation(); addItem(product); }}
                       className="h-8 w-8 rounded-lg border border-border flex items-center justify-center text-muted-foreground hover:text-white hover:bg-foreground transition-all"
                     >
                       <Plus className="h-3.5 w-3.5" />
