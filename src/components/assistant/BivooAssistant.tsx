@@ -15,6 +15,7 @@ export default function BivooAssistant() {
   const { unreadCount } = useNotifications();
   const { hasAnyFeature, canContextMenu, canNotifications, canChat } = useAssistantFeatures();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [visible, setVisible] = useState<VisibleElement>('none');
   const [faceState, setFaceState] = useState<BivooState>('idle');
   const containerRef = useRef<HTMLDivElement>(null);
