@@ -154,23 +154,36 @@ const Sales = () => {
   }, [sellerNameMap]);
 
   // Merge sales + services into unified list
+  // Sellers only see their own sales, filtered to today
   const unifiedEntries = useMemo(() => {
-    const filteredSales = isEmployeeContext && profile?.user_id
+    let filteredSales = isSellOnly && profile?.user_id
       ? sales.filter((s: any) => s.user_id === profile.user_id)
       : sales;
+    // Sellers only see today
+    if (isSellOnly) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      filteredSales = filteredSales.filter((s: any) => s.created_at?.slice(0, 10) === todayStr);
+    }
     const salesWithType = filteredSales.map((s: any) => ({
       ...s,
       _type: 'sale' as const,
       seller_name: sellerNameMap.get(s.user_id) || s.seller_name || 'Desconocido',
     }));
-    const servicesWithSeller = serviceEntries.map((s: any) => ({
+    let filteredServices = isSellOnly && profile?.user_id
+      ? serviceEntries.filter((s: any) => s.user_id === profile.user_id)
+      : serviceEntries;
+    if (isSellOnly) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      filteredServices = filteredServices.filter((s: any) => s.created_at?.slice(0, 10) === todayStr);
+    }
+    const servicesWithSeller = filteredServices.map((s: any) => ({
       ...s,
       seller_name: sellerNameMap.get(s.user_id) || '',
     }));
     const merged = [...salesWithType, ...servicesWithSeller];
     merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return merged;
-  }, [sales, serviceEntries, isEmployeeContext, profile?.user_id, sellerNameMap]);
+  }, [sales, serviceEntries, isSellOnly, profile?.user_id, sellerNameMap]);
 
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
