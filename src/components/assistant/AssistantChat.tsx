@@ -104,10 +104,10 @@ const DEFAULT_QUESTIONS = [
   "¿Qué puedes hacer por mí?",
 ];
 
-export default function AssistantChat({ onStateChange, assistantName }: AssistantChatProps) {
+export default function AssistantChat({ onStateChange, assistantName, announcements = [], onDismissAnnouncement }: AssistantChatProps) {
   const { profile, isOwner, isManager, isSeller, isSuperAdmin } = useAuth();
   const { pathname } = useLocation();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadPersistedMessages());
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
