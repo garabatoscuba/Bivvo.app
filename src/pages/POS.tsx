@@ -32,30 +32,11 @@ const POS = () => {
   const { profile, isOwner, isManager, isSuperAdmin, user } = useAuth();
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
-  const [searchParams] = useSearchParams();
-  const isEmployeeContext = searchParams.get('ctx') === 'emp';
-
-  // Fetch employee record for employee context
-  const { data: employeeRecord } = useQuery({
-    queryKey: ['employee-record-pos', profile?.email],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('employees')
-        .select('id, business_id, branch_id')
-        .eq('email', profile!.email)
-        .maybeSingle();
-      return data;
-    },
-    enabled: isEmployeeContext && !!profile?.email,
-  });
-
-  // Determine which business/branch to use
-  const effectiveBusinessId = isEmployeeContext && employeeRecord ? employeeRecord.business_id : profile?.business_id;
-  const effectiveBranchId = isEmployeeContext && employeeRecord ? (employeeRecord.branch_id || undefined) : undefined;
+  const { businessId: resolvedBusinessId, branchId: resolvedBranchId } = useResolvedBusinessId();
 
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
-  const { products, isLoading } = useProducts(isEmployeeContext ? effectiveBusinessId || undefined : undefined);
-  const { categories } = useCategories(isEmployeeContext ? effectiveBusinessId || undefined : undefined);
+  const { products, isLoading } = useProducts(resolvedBusinessId || undefined);
+  const { categories } = useCategories(resolvedBusinessId || undefined);
   const { data: branches } = useBranches();
   const { createSale, isCreating } = useSales();
   
