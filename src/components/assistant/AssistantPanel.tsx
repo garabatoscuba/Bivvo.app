@@ -20,45 +20,10 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   business_request_rejected: "bg-destructive",
 };
 
-function getActiveModule(pathname: string): string {
-  if (pathname.startsWith("/pos")) return "POS";
-  if (pathname.startsWith("/inventory")) return "Inventario";
-  if (pathname.startsWith("/services")) return "Servicios";
-  if (pathname.startsWith("/caja")) return "Caja";
-  if (pathname.startsWith("/employees")) return "Empleados";
-  if (pathname.startsWith("/sales")) return "Ventas";
-  if (pathname.startsWith("/cobros")) return "Reportes";
-  if (pathname.startsWith("/orders")) return "Pedidos";
-  if (pathname.startsWith("/nomina")) return "Nómina";
-  if (pathname.startsWith("/settings")) return "Configuración";
-  if (pathname.startsWith("/plans")) return "Planes";
-  if (pathname.startsWith("/store-settings")) return "Portal";
-  if (pathname === "/") return "Dashboard";
-  return "General";
-}
-
-function getSuggestions(module: string): string[] {
-  const map: Record<string, string[]> = {
-    POS: ["¿Cómo registro una venta?", "¿Cómo aplico un descuento?", "¿Cómo cancelo una venta?"],
-    Inventario: ["¿Cómo agrego un producto?", "¿Cómo configuro stock mínimo?", "¿Cómo hago una entrada de mercancía?"],
-    Servicios: ["¿Cómo creo un servicio?", "¿Cómo cobro un servicio?", "¿Cómo veo los cobros del día?"],
-    Caja: ["¿Cómo abro la caja del día?", "¿Cómo configuro el fondo fijo?", "¿Cómo cierro la caja?"],
-    Empleados: ["¿Cómo agrego un empleado?", "¿Cómo asigno un rol?", "¿Cómo inicio una jornada?"],
-    Ventas: ["¿Cómo filtro ventas por fecha?", "¿Cómo veo el detalle de una venta?", "¿Cómo exporto las ventas?"],
-    Reportes: ["¿Cómo veo el resumen del día?", "¿Cómo comparo períodos?", "¿Cómo veo ventas por empleado?"],
-    Nómina: ["¿Cómo configuro una modalidad?", "¿Cómo asigno un preset?", "¿Cómo calculo el salario?"],
-    Dashboard: ["¿Cómo abro la caja del día?", "¿Cómo registro una venta?", "¿Cómo agrego un empleado?"],
-  };
-  return (
-    map[module] || ["¿Cómo empiezo a usar Bivoo?", "¿Qué módulos tengo disponibles?", "¿Cómo configuro mi negocio?"]
-  );
-}
-
 interface AssistantPanelProps {
   open: boolean;
   onClose: () => void;
   onStateChange: (state: BivooState) => void;
-  canChat?: boolean;
   canNotifications?: boolean;
 }
 
