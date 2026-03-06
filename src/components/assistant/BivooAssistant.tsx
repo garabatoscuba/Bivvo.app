@@ -110,12 +110,13 @@ export default function BivooAssistant() {
       ) : (
         button
       )}
-      {canNotifications && (
+      {(canNotifications || canChat) && (
         <AssistantPanel
           open={visible === 'panel'}
           onClose={() => setVisible('none')}
           onStateChange={setFaceState}
           canNotifications={canNotifications}
+          canChat={canChat}
         />
       )}
     </div>
