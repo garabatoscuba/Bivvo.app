@@ -192,7 +192,7 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
                   </div>
                   <div className="flex items-center justify-between pt-1">
                     <p className="text-sm font-bold text-foreground">
-                      {Number(product.price).toFixed(2)}
+                      {currencySymbol} {Number(product.price).toFixed(2)}
                     </p>
                     {cartQty > 0 && (
                       <span
