@@ -40,7 +40,7 @@ const POS = () => {
   const { createSale, isCreating } = useSales();
   
 
-  const currentBranch = resolvedBranchId || profile?.branch_id || branches?.[0]?.id;
+  const currentBranch = resolvedBranchId || jornada?.sucursal_id || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
 
   // Check if the user has an open cash register
