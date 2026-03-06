@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
@@ -57,7 +58,7 @@ const AdminPartners = () => {
   const [code, setCode] = useState('');
   const [discountType, setDiscountType] = useState('percentage');
   const [discountValue, setDiscountValue] = useState('10');
-  const [appliesTo, setAppliesTo] = useState('basic');
+  const [appliesToPlans, setAppliesToPlans] = useState<string[]>(['basic']);
   const [userLimit, setUserLimit] = useState('');
   const [expiresAt, setExpiresAt] = useState('');
   const [commissionPercent, setCommissionPercent] = useState('10');
@@ -163,7 +164,7 @@ const AdminPartners = () => {
     setCode('');
     setDiscountType('percentage');
     setDiscountValue('10');
-    setAppliesTo('basic');
+    setAppliesToPlans(['basic']);
     setUserLimit('');
     setExpiresAt('');
     setCommissionPercent('10');
@@ -180,7 +181,7 @@ const AdminPartners = () => {
     setCode(p.code);
     setDiscountType(p.discount_type);
     setDiscountValue(String(p.discount_value));
-    setAppliesTo((p.applies_to_plans as string[]).join(','));
+    setAppliesToPlans(p.applies_to_plans as string[]);
     setUserLimit(p.user_limit ? String(p.user_limit) : '');
     setExpiresAt(p.expires_at ? p.expires_at.split('T')[0] : '');
     setCommissionPercent(String(p.commission_percent));
@@ -196,7 +197,7 @@ const AdminPartners = () => {
         code: code.trim().toUpperCase(),
         discount_type: discountType,
         discount_value: Number(discountValue),
-        applies_to_plans: appliesTo.split(',').map(s => s.trim()).filter(Boolean),
+        applies_to_plans: appliesToPlans,
         user_limit: userLimit ? Number(userLimit) : null,
         expires_at: expiresAt || null,
         commission_percent: Number(commissionPercent),
@@ -485,9 +486,29 @@ const AdminPartners = () => {
                 <Label className="text-sm">Valor descuento</Label>
                 <Input type="number" value={discountValue} onChange={e => setDiscountValue(e.target.value)} />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 col-span-2">
                 <Label className="text-sm">Aplica a planes</Label>
-                <Input value={appliesTo} onChange={e => setAppliesTo(e.target.value)} placeholder="basic,professional" />
+                <div className="flex items-center gap-4 mt-1">
+                  {[
+                    { value: 'free', label: 'Gratuito' },
+                    { value: 'basic', label: 'Básico' },
+                    { value: 'professional', label: 'Profesional' },
+                  ].map(plan => (
+                    <label key={plan.value} className="flex items-center gap-1.5 text-sm cursor-pointer">
+                      <Checkbox
+                        checked={appliesToPlans.includes(plan.value)}
+                        onCheckedChange={(checked) => {
+                          setAppliesToPlans(prev =>
+                            checked
+                              ? [...prev, plan.value]
+                              : prev.filter(p => p !== plan.value)
+                          );
+                        }}
+                      />
+                      {plan.label}
+                    </label>
+                  ))}
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-sm">Límite usuarios</Label>

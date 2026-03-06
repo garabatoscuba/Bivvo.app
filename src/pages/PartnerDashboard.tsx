@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
-import { Copy, DollarSign, Users, Clock, CheckCircle, Network, Loader2 } from 'lucide-react';
+import { Copy, DollarSign, Users, Clock, CheckCircle, Network, Loader2, Link } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -68,11 +68,21 @@ const PartnerDashboard = () => {
 
   const totalEarned = referrals.reduce((sum, r) => sum + Number(r.commission_earned), 0);
   const pendingAmount = referrals.filter(r => r.commission_status === 'pending').reduce((sum, r) => sum + Number(r.commission_earned), 0);
+  const totalPaid = payouts.reduce((sum, p) => sum + Number(p.amount), 0);
+
+  const referralLink = partner?.code ? `${window.location.origin}/auth?ref=${partner.code}` : '';
 
   const copyCode = () => {
     if (partner?.code) {
       navigator.clipboard.writeText(partner.code);
       toast({ title: 'Código copiado', description: partner.code });
+    }
+  };
+
+  const copyLink = () => {
+    if (referralLink) {
+      navigator.clipboard.writeText(referralLink);
+      toast({ title: 'Link copiado', description: 'Comparte este link para que se registren con tu código.' });
     }
   };
 
@@ -113,7 +123,16 @@ const PartnerDashboard = () => {
               <code className="text-2xl font-bold tracking-wider bg-muted px-4 py-2 rounded-lg">
                 {partner.code}
               </code>
-              <Button variant="outline" size="icon" onClick={copyCode}>
+              <Button variant="outline" size="icon" onClick={copyCode} title="Copiar código">
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link className="h-4 w-4 text-muted-foreground shrink-0" />
+              <code className="text-xs bg-muted px-3 py-1.5 rounded-lg truncate max-w-[300px]">
+                {referralLink}
+              </code>
+              <Button variant="outline" size="icon" onClick={copyLink} title="Copiar link">
                 <Copy className="h-4 w-4" />
               </Button>
             </div>
@@ -143,7 +162,7 @@ const PartnerDashboard = () => {
         </Card>
 
         {/* Earnings summary */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2 mb-2 text-muted-foreground">
@@ -160,6 +179,15 @@ const PartnerDashboard = () => {
                 <span className="text-xs font-medium">Pendiente de cobro</span>
               </div>
               <p className="text-2xl font-bold">${pendingAmount.toFixed(2)}</p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-2 text-muted-foreground">
+                <CheckCircle className="h-4 w-4" />
+                <span className="text-xs font-medium">Total cobrado</span>
+              </div>
+              <p className="text-2xl font-bold">${totalPaid.toFixed(2)}</p>
             </CardContent>
           </Card>
           <Card>
