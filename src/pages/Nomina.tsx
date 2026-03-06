@@ -16,12 +16,12 @@ const Nomina = () => {
   return (
     <AppLayout title="Nómina">
       <Tabs defaultValue="modalidades" className="space-y-4">
-        <TabsList className="w-full flex overflow-x-auto">
-          <TabsTrigger value="modalidades" className="flex-1 text-xs">Modalidades</TabsTrigger>
-          <TabsTrigger value="comisiones" className="flex-1 text-xs">Comisiones</TabsTrigger>
-          <TabsTrigger value="config" className="flex-1 text-xs">Puestos</TabsTrigger>
-          <TabsTrigger value="propinas" className="flex-1 text-xs">Propinas</TabsTrigger>
-          <TabsTrigger value="historial" className="flex-1 text-xs">Historial</TabsTrigger>
+        <TabsList className="w-full flex flex-nowrap overflow-x-auto scrollbar-hide h-9">
+          <TabsTrigger value="modalidades" className="shrink-0 text-xs">Modalidades</TabsTrigger>
+          <TabsTrigger value="comisiones" className="shrink-0 text-xs">Comisiones</TabsTrigger>
+          <TabsTrigger value="config" className="shrink-0 text-xs">Puestos</TabsTrigger>
+          <TabsTrigger value="propinas" className="shrink-0 text-xs">Propinas</TabsTrigger>
+          <TabsTrigger value="historial" className="shrink-0 text-xs">Historial</TabsTrigger>
         </TabsList>
 
         <TabsContent value="modalidades">
