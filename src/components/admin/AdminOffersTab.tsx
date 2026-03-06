@@ -42,12 +42,12 @@ type SortDir = 'asc' | 'desc';
 
 const EMPTY_FORM: {
   name: string; description: string; discount_type: 'percentage' | 'fixed';
-  discount_value: number; applies_to_plans: string[];
+  discount_value: number; discount_duration_months: string; applies_to_plans: string[];
   target_type: 'all' | 'specific'; target_user_ids: string;
   starts_at: string; expires_at: string; is_active: boolean;
 } = {
   name: '', description: '', discount_type: 'percentage',
-  discount_value: 0, applies_to_plans: ['basic', 'professional'],
+  discount_value: 0, discount_duration_months: '', applies_to_plans: ['basic', 'professional'],
   target_type: 'all', target_user_ids: '',
   starts_at: new Date().toISOString().slice(0, 16), expires_at: '', is_active: true,
 };
