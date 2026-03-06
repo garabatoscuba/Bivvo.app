@@ -35,6 +35,7 @@ function calcDuration(apertura: string): { text: string; minutes: number } {
 const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalProps) => {
   const [closing, setClosing] = useState(false);
   const queryClient = useQueryClient();
+  const { profile } = useAuth();
 
   const duration = calcDuration(jornada.apertura_at);
   const entryTime = new Date(jornada.apertura_at).toLocaleTimeString('es', {
