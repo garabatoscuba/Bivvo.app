@@ -250,7 +250,7 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
                     ))}
                   </div>
                   <p className="text-sm font-bold text-foreground">
-                    {Number(product.price).toFixed(2)}
+                    {currencySymbol} {Number(product.price).toFixed(2)}
                   </p>
                 </div>
                 <div className="flex flex-col items-center gap-1.5 shrink-0 justify-center">
