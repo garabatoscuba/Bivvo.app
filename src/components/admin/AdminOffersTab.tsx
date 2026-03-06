@@ -71,6 +71,7 @@ const AdminOffersTab = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [deleteTarget, setDeleteTarget] = useState<PlanOffer | null>(null);
+  const [userSearch, setUserSearch] = useState('');
 
   // Filters
   const [search, setSearch] = useState('');
@@ -323,23 +324,44 @@ const AdminOffersTab = () => {
             {form.target_type === 'specific' && (
               <div className="space-y-1.5">
                 <Label>Seleccionar usuarios</Label>
-                <div className="rounded-md border border-input max-h-40 overflow-y-auto p-2 space-y-1">
-                  {allProfiles?.map((p: any) => {
-                    const selectedIds = form.target_user_ids.split(',').map(s => s.trim()).filter(Boolean);
-                    const isSelected = selectedIds.includes(p.user_id);
-                    return (
-                      <label key={p.id} className="flex items-center gap-2 text-sm py-1 px-1 rounded hover:bg-accent/50 cursor-pointer">
-                        <Checkbox checked={isSelected} onCheckedChange={() => {
-                          const ids = form.target_user_ids.split(',').map(s => s.trim()).filter(Boolean);
-                          const next = isSelected ? ids.filter(id => id !== p.user_id) : [...ids, p.user_id];
-                          setForm(f => ({ ...f, target_user_ids: next.join(', ') }));
-                        }} />
-                        <span>{p.full_name}</span>
-                        <span className="text-[10px] text-muted-foreground ml-auto">{p.email}</span>
-                      </label>
-                    );
-                  })}
+                <div className="relative mb-1.5">
+                  <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                  <Input placeholder="Buscar por nombre o email..." value={userSearch} onChange={(e) => setUserSearch(e.target.value)} className="pl-8 h-8 text-sm" />
                 </div>
+                <div className="rounded-md border border-input max-h-48 overflow-y-auto p-2 space-y-1">
+                  {(() => {
+                    const selectedIds = form.target_user_ids.split(',').map(s => s.trim()).filter(Boolean);
+                    const q = userSearch.toLowerCase().trim();
+                    const filtered = (allProfiles || []).filter((p: any) =>
+                      !q || (p.full_name || '').toLowerCase().includes(q) || (p.email || '').toLowerCase().includes(q)
+                    );
+                    // Show selected first, then the rest
+                    const sorted = [...filtered].sort((a: any, b: any) => {
+                      const aSelected = selectedIds.includes(a.user_id) ? 0 : 1;
+                      const bSelected = selectedIds.includes(b.user_id) ? 0 : 1;
+                      return aSelected - bSelected;
+                    });
+                    if (sorted.length === 0) return <p className="text-xs text-muted-foreground py-2 text-center">No se encontraron usuarios</p>;
+                    return sorted.map((p: any) => {
+                      const isSelected = selectedIds.includes(p.user_id);
+                      return (
+                        <label key={p.id} className="flex items-center gap-2 text-sm py-1 px-1 rounded hover:bg-accent/50 cursor-pointer">
+                          <Checkbox checked={isSelected} onCheckedChange={() => {
+                            const ids = form.target_user_ids.split(',').map(s => s.trim()).filter(Boolean);
+                            const next = isSelected ? ids.filter(id => id !== p.user_id) : [...ids, p.user_id];
+                            setForm(f => ({ ...f, target_user_ids: next.join(', ') }));
+                          }} />
+                          <span>{p.full_name}</span>
+                          <span className="text-[10px] text-muted-foreground ml-auto">{p.email}</span>
+                        </label>
+                      );
+                    });
+                  })()}
+                </div>
+                {(() => {
+                  const count = form.target_user_ids.split(',').map(s => s.trim()).filter(Boolean).length;
+                  return count > 0 ? <p className="text-[11px] text-muted-foreground">{count} usuario{count !== 1 ? 's' : ''} seleccionado{count !== 1 ? 's' : ''}</p> : null;
+                })()}
               </div>
             )}
             <div className="grid grid-cols-2 gap-3">
