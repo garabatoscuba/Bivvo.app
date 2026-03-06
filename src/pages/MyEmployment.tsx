@@ -40,7 +40,7 @@ import PayrollHistory from '@/components/nomina/PayrollHistory';
 import EmployeeSalaryView from '@/components/cobro/EmployeeSalaryView';
 import MyEmploymentDashboard from '@/components/employees/MyEmploymentDashboard';
 import { useDailySalary } from '@/hooks/useDailySalary';
-import MiCajaEmpleado from '@/components/caja/MiCajaEmpleado';
+
 
 /** Parse 'YYYY-MM-DD' as local date (avoids UTC shift) */
 function parseLocalDate(dateStr: string): Date {
@@ -379,14 +379,10 @@ const MyEmployment = () => {
   return (
     <AppLayout title="Mi Empleo">
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="w-full grid grid-cols-6 text-xs sm:text-sm overflow-x-auto">
+        <TabsList className="w-full grid grid-cols-5 text-xs sm:text-sm overflow-x-auto">
           <TabsTrigger value="dashboard" className="gap-1">
             <LayoutDashboard className="h-3.5 w-3.5 hidden sm:block" />
             Dashboard
-          </TabsTrigger>
-          <TabsTrigger value="caja" className="gap-1">
-            <DollarSign className="h-3.5 w-3.5 hidden sm:block" />
-            Caja
           </TabsTrigger>
           <TabsTrigger value="cobros" className="gap-1">
             <DollarSign className="h-3.5 w-3.5 hidden sm:block" />
@@ -430,22 +426,6 @@ const MyEmployment = () => {
           )}
         </TabsContent>
 
-        {/* ===== TAB: CAJA ===== */}
-        <TabsContent value="caja" className="space-y-4">
-          {businessId && (myJornada?.sucursal_id || myEmployeeRecord?.branch_id) && (
-            <MiCajaEmpleado
-              businessId={businessId}
-              branchId={myJornada?.sucursal_id || myEmployeeRecord?.branch_id || profile?.branch_id || ''}
-            />
-          )}
-          {!businessId && (
-            <Card>
-              <CardContent className="py-8 text-center text-muted-foreground text-sm">
-                Sin negocio asociado.
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
 
         {/* ===== TAB: COBROS ===== */}
         <TabsContent value="cobros" className="space-y-4">
