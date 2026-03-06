@@ -14,6 +14,7 @@ interface Props {
   branchName: string;
   hasDelivery: boolean;
   branchPhone: string | null;
+  currencySymbol: string;
 }
 
 const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, branchName, hasDelivery, branchPhone }: Props) => {
