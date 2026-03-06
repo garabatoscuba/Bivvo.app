@@ -21,7 +21,7 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  const [showAffiliateMsg, setShowAffiliateMsg] = useState(false);
+  
 
   const toggleFavorite = (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
