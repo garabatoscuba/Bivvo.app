@@ -46,6 +46,9 @@ const Plans = () => {
   const [requestOpen, setRequestOpen] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<'basic' | 'professional'>('basic');
   const [selectedMonths, setSelectedMonths] = useState('1');
+  const [manualCode, setManualCode] = useState(() => {
+    return (profile as any)?.referral_code || sessionStorage.getItem('referral_code') || '';
+  });
 
   // React Router search params for reactive updates
   const [searchParams, setSearchParams] = useSearchParams();
