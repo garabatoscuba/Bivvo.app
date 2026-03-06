@@ -189,6 +189,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       email,
       password
     });
+    if (!error) {
+      // Fire-and-forget: update last_login_at
+      supabase.from('profiles').update({ last_login_at: new Date().toISOString() } as any).eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '').then();
+    }
     return { error };
   };
 

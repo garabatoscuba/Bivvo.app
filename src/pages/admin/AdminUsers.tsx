@@ -21,13 +21,14 @@ import {
 } from '@/components/ui/select';
 import {
   Users, Search, Loader2, Trash2, Shield, RotateCcw, Clock, UserX, Pencil, Save,
-  ArrowUp, ArrowDown, ArrowUpDown,
+  ArrowUp, ArrowDown, ArrowUpDown, Building2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
-import { differenceInDays } from 'date-fns';
+import { differenceInDays, formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 type AppRole = Database['public']['Enums']['app_role'];
 type SortDir = 'asc' | 'desc';
@@ -75,7 +76,6 @@ const AdminUsers = () => {
   const [editSubStatus, setEditSubStatus] = useState('');
   const [editSaving, setEditSaving] = useState(false);
 
-  // Sort state
   const [sortKey, setSortKey] = useState('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const toggleSort = useCallback((k: string) => {
@@ -99,6 +99,59 @@ const AdminUsers = () => {
         business_name: p.business_id ? businessMap.get(p.business_id) || 'Sin nombre' : 'Sin negocio',
         primary_role: (roleMap.get(p.user_id) || [])[0] || '',
       }));
+    },
+  });
+
+  // Fetch @bivoo.app employees with employer info
+  const { data: bivooEmployees, isLoading: bivooLoading } = useQuery({
+    queryKey: ['admin-bivoo-employees'],
+    queryFn: async () => {
+      // Get all @bivoo.app profiles
+      const { data: bivooProfiles, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .like('email', '%@bivoo.app')
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      if (!bivooProfiles?.length) return [];
+
+      // Get employee records to find employer business
+      const userIds = bivooProfiles.map(p => p.user_id);
+      const { data: employees } = await supabase
+        .from('employees')
+        .select('auth_user_id, business_id, full_name, position')
+        .in('auth_user_id', userIds);
+
+      // Get all relevant businesses
+      const empBizIds = [...new Set((employees || []).map(e => e.business_id).filter(Boolean))];
+      const { data: businesses } = await supabase
+        .from('businesses')
+        .select('id, name, owner_id')
+        .in('id', empBizIds.length > 0 ? empBizIds : ['none']);
+
+      // Get owner profiles for country
+      const ownerProfileIds = [...new Set((businesses || []).map(b => b.owner_id).filter(Boolean))];
+      const { data: ownerProfiles } = await supabase
+        .from('profiles')
+        .select('id, full_name, country')
+        .in('id', ownerProfileIds.length > 0 ? ownerProfileIds : ['none']);
+
+      const bizMap = new Map((businesses || []).map(b => [b.id, b]));
+      const ownerMap = new Map((ownerProfiles || []).map(o => [o.id, o]));
+      const empMap = new Map((employees || []).map(e => [e.auth_user_id, e]));
+
+      return bivooProfiles.map(p => {
+        const emp = empMap.get(p.user_id);
+        const biz = emp ? bizMap.get(emp.business_id) : null;
+        const owner = biz?.owner_id ? ownerMap.get(biz.owner_id) : null;
+        return {
+          ...p,
+          employer_name: biz?.name || 'Sin empleador',
+          employer_owner: owner?.full_name || '—',
+          employer_country: owner?.country || null,
+          position: emp?.position || '—',
+        };
+      });
     },
   });
 
@@ -144,19 +197,28 @@ const AdminUsers = () => {
   };
 
   // Filter + sort
-  const activeUsers = useMemo(() => users?.filter(u => !u.deleted_at) || [], [users]);
+  const activeUsers = useMemo(() => users?.filter(u => !u.deleted_at && !u.email.endsWith('@bivoo.app')) || [], [users]);
   const pendingDeletion = useMemo(() => users?.filter(u => !!u.deleted_at) || [], [users]);
 
   const filterAndSort = useCallback((list: any[]) => {
     const q = search.toLowerCase().trim();
     let filtered = list;
-    if (q) filtered = filtered.filter(u => u.full_name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.business_name.toLowerCase().includes(q));
-    if (filterRole !== 'all') filtered = filtered.filter(u => u.roles.includes(filterRole));
+    if (q) filtered = filtered.filter(u =>
+      (u.full_name || '').toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q) ||
+      (u.business_name || u.employer_name || '').toLowerCase().includes(q)
+    );
+    if (filterRole !== 'all') filtered = filtered.filter(u => u.roles?.includes(filterRole));
     if (filterPlan !== 'all') filtered = filtered.filter(u => u.plan_type === filterPlan);
     return [...filtered].sort((a, b) => {
       let va: any, vb: any;
-      if (sortKey === 'created_at') { va = new Date(a.created_at).getTime(); vb = new Date(b.created_at).getTime(); }
-      else { va = (a[sortKey] || '').toString().toLowerCase(); vb = (b[sortKey] || '').toString().toLowerCase(); }
+      if (sortKey === 'created_at' || sortKey === 'last_login_at') {
+        va = a[sortKey] ? new Date(a[sortKey]).getTime() : 0;
+        vb = b[sortKey] ? new Date(b[sortKey]).getTime() : 0;
+      } else {
+        va = (a[sortKey] || '').toString().toLowerCase();
+        vb = (b[sortKey] || '').toString().toLowerCase();
+      }
       if (va < vb) return sortDir === 'asc' ? -1 : 1;
       if (va > vb) return sortDir === 'asc' ? 1 : -1;
       return 0;
@@ -165,22 +227,49 @@ const AdminUsers = () => {
 
   const filteredActive = useMemo(() => filterAndSort(activeUsers), [filterAndSort, activeUsers]);
   const filteredPending = useMemo(() => filterAndSort(pendingDeletion), [filterAndSort, pendingDeletion]);
+  const filteredBivoo = useMemo(() => {
+    const q = search.toLowerCase().trim();
+    let list = bivooEmployees || [];
+    if (q) list = list.filter(u =>
+      (u.full_name || '').toLowerCase().includes(q) ||
+      (u.email || '').toLowerCase().includes(q) ||
+      (u.employer_name || '').toLowerCase().includes(q)
+    );
+    return [...list].sort((a, b) => {
+      let va: any, vb: any;
+      if (sortKey === 'created_at' || sortKey === 'last_login_at') {
+        va = a[sortKey] ? new Date(a[sortKey]).getTime() : 0;
+        vb = b[sortKey] ? new Date(b[sortKey]).getTime() : 0;
+      } else {
+        va = (a[sortKey] || '').toString().toLowerCase();
+        vb = (b[sortKey] || '').toString().toLowerCase();
+      }
+      if (va < vb) return sortDir === 'asc' ? -1 : 1;
+      if (va > vb) return sortDir === 'asc' ? 1 : -1;
+      return 0;
+    });
+  }, [bivooEmployees, search, sortKey, sortDir]);
+
+  const formatLastLogin = (dateStr: string | null) => {
+    if (!dateStr) return <span className="text-xs text-muted-foreground">Nunca</span>;
+    return <span className="text-xs">{formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: es })}</span>;
+  };
+
+  const COUNTRY_FLAGS: Record<string, string> = {
+    cuba: '🇨🇺', usa: '🇺🇸', americas: '🌎', europe: '🇪🇺', asia: '🌏', africa: '🌍',
+  };
 
   const renderUserRow = (u: any, isPending: boolean) => {
-    const isSuperAdmin = u.roles.includes('super_admin');
+    const isSuperAdmin = u.roles?.includes('super_admin');
     const daysLeft = u.deletion_scheduled_at ? differenceInDays(new Date(u.deletion_scheduled_at), new Date()) : null;
     return (
       <TableRow key={u.id}>
-        <TableCell>
-          <p className="text-sm font-medium">{u.full_name}</p>
-        </TableCell>
-        <TableCell>
-          <p className="text-sm text-muted-foreground">{u.email}</p>
-        </TableCell>
+        <TableCell><p className="text-sm font-medium">{u.full_name}</p></TableCell>
+        <TableCell><p className="text-sm text-muted-foreground">{u.email}</p></TableCell>
         <TableCell className="text-sm">{u.business_name}</TableCell>
         <TableCell>
           <div className="flex flex-wrap gap-1">
-            {u.roles.map((r: AppRole) => (
+            {u.roles?.map((r: AppRole) => (
               <Badge key={r} variant={r === 'super_admin' ? 'default' : 'secondary'} className="text-[10px]">
                 {r === 'super_admin' && <Shield className="mr-1 h-3 w-3" />}
                 {ROLE_LABELS[r] || r}
@@ -199,6 +288,7 @@ const AdminUsers = () => {
             return <Badge variant="secondary" className="text-[10px] gap-1"><Clock className="h-3 w-3" />{trialDays}d</Badge>;
           })()}
         </TableCell>
+        <TableCell>{formatLastLogin((u as any).last_login_at)}</TableCell>
         <TableCell className="text-right">
           <div className="flex items-center justify-end gap-1">
             {!isPending && (
@@ -219,6 +309,23 @@ const AdminUsers = () => {
     );
   };
 
+  const renderBivooRow = (u: any) => (
+    <TableRow key={u.id}>
+      <TableCell><p className="text-sm font-medium">{u.full_name}</p></TableCell>
+      <TableCell><p className="text-sm text-muted-foreground">{u.email}</p></TableCell>
+      <TableCell className="text-sm">{u.employer_name}</TableCell>
+      <TableCell className="text-sm">{u.employer_owner}</TableCell>
+      <TableCell className="text-sm">{u.position}</TableCell>
+      <TableCell className="text-sm">
+        {u.employer_country
+          ? <span>{COUNTRY_FLAGS[u.employer_country] || ''} {u.employer_country}</span>
+          : <span className="text-muted-foreground">—</span>
+        }
+      </TableCell>
+      <TableCell>{formatLastLogin((u as any).last_login_at)}</TableCell>
+    </TableRow>
+  );
+
   const UserTable = ({ data: tableData, isPending }: { data: any[]; isPending: boolean }) => (
     <Card className="border-border/60">
       <CardContent className="p-0">
@@ -233,6 +340,7 @@ const AdminUsers = () => {
                   <SortHead label="Rol" sortKey="primary_role" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                   <SortHead label="Plan" sortKey="plan_type" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                   <TableHead className="text-[11px] uppercase tracking-wide">Prueba</TableHead>
+                  <SortHead label="Último acceso" sortKey="last_login_at" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                   <TableHead className="text-[11px] uppercase tracking-wide text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
@@ -245,6 +353,35 @@ const AdminUsers = () => {
       </CardContent>
     </Card>
   );
+
+  const BivooTable = ({ data: tableData }: { data: any[] }) => (
+    <Card className="border-border/60">
+      <CardContent className="p-0">
+        {tableData.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <SortHead label="Nombre" sortKey="full_name" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
+                  <SortHead label="Email" sortKey="email" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
+                  <SortHead label="Empleador" sortKey="employer_name" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
+                  <TableHead className="text-[11px] uppercase tracking-wide">Dueño</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Cargo</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">País</TableHead>
+                  <SortHead label="Último acceso" sortKey="last_login_at" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
+                </TableRow>
+              </TableHeader>
+              <TableBody>{tableData.map(u => renderBivooRow(u))}</TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="py-12 text-center text-sm text-muted-foreground">No se encontraron empleados @bivoo.app</div>
+        )}
+      </CardContent>
+    </Card>
+  );
+
+  const totalCount = filteredActive.length + filteredPending.length + filteredBivoo.length;
 
   return (
     <AppLayout title="Gestión de Usuarios">
@@ -273,18 +410,20 @@ const AdminUsers = () => {
               <SelectItem value="professional">Profesional</SelectItem>
             </SelectContent>
           </Select>
-          <span className="text-xs text-muted-foreground ml-auto">{filteredActive.length + filteredPending.length} usuario{filteredActive.length + filteredPending.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-muted-foreground ml-auto">{totalCount} usuario{totalCount !== 1 ? 's' : ''}</span>
         </div>
 
-        {isLoading ? (
+        {isLoading || bivooLoading ? (
           <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (
           <Tabs defaultValue="active" className="space-y-4">
             <TabsList className="bg-muted/60">
               <TabsTrigger value="active" className="gap-1.5 text-xs"><Users className="h-3.5 w-3.5" /> Activos ({filteredActive.length})</TabsTrigger>
-              <TabsTrigger value="pending" className="gap-1.5 text-xs"><Clock className="h-3.5 w-3.5" /> Pendientes de baja ({filteredPending.length})</TabsTrigger>
+              <TabsTrigger value="bivoo" className="gap-1.5 text-xs"><Building2 className="h-3.5 w-3.5" /> Empleados ({filteredBivoo.length})</TabsTrigger>
+              <TabsTrigger value="pending" className="gap-1.5 text-xs"><Clock className="h-3.5 w-3.5" /> Pendientes ({filteredPending.length})</TabsTrigger>
             </TabsList>
             <TabsContent value="active" className="mt-0"><UserTable data={filteredActive} isPending={false} /></TabsContent>
+            <TabsContent value="bivoo" className="mt-0"><BivooTable data={filteredBivoo} /></TabsContent>
             <TabsContent value="pending" className="mt-0"><UserTable data={filteredPending} isPending={true} /></TabsContent>
           </Tabs>
         )}
