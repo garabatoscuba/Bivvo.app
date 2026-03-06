@@ -46,9 +46,9 @@ export default function BivooAssistant() {
       longPressTriggered.current = false;
       return;
     }
-    if (!canNotifications) return;
+    if (!canNotifications && !canChat) return;
     setVisible(prev => (prev === 'panel' ? 'none' : 'panel'));
-  }, [canNotifications]);
+  }, [canNotifications, canChat]);
 
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     if (!showContextMenu) return;
