@@ -10,6 +10,7 @@ type SortMode = 'default' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc
 interface Props {
   products: StorefrontProduct[];
   accent: string;
+  currencySymbol: string;
 }
 
 const StorefrontCatalog = ({ products, accent }: Props) => {
