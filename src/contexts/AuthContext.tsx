@@ -189,14 +189,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    if (!error) {
-      // Fire-and-forget: update last_login_at
-      supabase.from('profiles').update({ last_login_at: new Date().toISOString() } as any).eq('user_id', (await supabase.auth.getUser()).data.user?.id ?? '').then();
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
     return { error };
   };
 
