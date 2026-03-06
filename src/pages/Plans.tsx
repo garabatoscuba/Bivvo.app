@@ -518,6 +518,15 @@ const Plans = () => {
                   <span>-${offerDiscount.toFixed(2)}</span>
                 </div>
               )}
+              {partnerApplies && partnerOffer && partnerDiscount > 0 && (
+                <div className="flex justify-between text-sm text-green-600">
+                  <span className="flex items-center gap-1">
+                    <Tag className="h-3 w-3" />
+                    Partner {partnerOffer.code} ({partnerOffer.discount_type === 'percentage' ? `${partnerOffer.discount_value}%` : `$${Number(partnerOffer.discount_value).toFixed(2)}`})
+                  </span>
+                  <span>-${partnerDiscount.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-base font-bold border-t pt-2">
                 <span>Total a pagar</span>
                 <span>${requestTotal.toFixed(2)} USD</span>
