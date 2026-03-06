@@ -108,6 +108,7 @@ const DEFAULT_QUESTIONS = [
 
 export default function AssistantChat({ onStateChange, assistantName, announcements = [], onDismissAnnouncement }: AssistantChatProps) {
   const { profile, isOwner, isManager, isSeller, isSuperAdmin } = useAuth();
+  const { businessId: resolvedBusinessId } = useResolvedBusinessId();
   const { pathname } = useLocation();
   const [messages, setMessages] = useState<ChatMessage[]>(() => loadPersistedMessages());
   const [input, setInput] = useState("");
