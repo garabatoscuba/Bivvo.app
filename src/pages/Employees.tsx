@@ -652,6 +652,7 @@ const Employees = () => {
       salary_assignments: generalLoaded,
       use_bivoo_id: emp.email?.endsWith('@bivoo.app') || false,
       bivoo_password: '',
+      new_password: '',
       modality_id: first?.modality_id || '',
       preset_id: first?.preset_id || '',
       pay_frequency: first?.pay_frequency || 'monthly',
