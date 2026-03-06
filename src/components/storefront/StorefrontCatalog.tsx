@@ -52,13 +52,6 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
 
   return (
     <div>
-      {/* Affiliate message */}
-      {showAffiliateMsg && (
-        <div className="mb-6 p-4 rounded-xl border border-border bg-card text-center space-y-1 animate-in fade-in slide-in-from-top-2">
-          <p className="text-sm font-medium text-foreground">Debes estar afiliado para comprar y marcar favoritos</p>
-          <p className="text-xs text-muted-foreground">Ve al <span className="font-semibold">Home</span> y únete como miembro para acceder a todas las funciones.</p>
-        </div>
-      )}
       {/* Toolbar: categories + sort + view toggle */}
       <div className="flex flex-col gap-4 mb-8">
         {/* Categories */}
