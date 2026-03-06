@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     // 1. Close jornadas open for more than 13 hours
     const { data: staleJornadas, error: staleErr } = await supabase
       .from('jornadas')
-      .select('id, apertura_at')
+      .select('id, apertura_at, empleado_id')
       .is('cierre_at', null)
       .lt('apertura_at', new Date(Date.now() - 13 * 60 * 60 * 1000).toISOString())
 
