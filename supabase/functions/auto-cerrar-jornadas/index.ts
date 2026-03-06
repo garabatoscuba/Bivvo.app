@@ -67,7 +67,7 @@ Deno.serve(async (req) => {
 
     const { data: oldJornadas, error: oldErr } = await supabase
       .from('jornadas')
-      .select('id, apertura_at')
+      .select('id, apertura_at, empleado_id')
       .is('cierre_at', null)
       .lt('apertura_at', today.toISOString())
 
