@@ -441,10 +441,11 @@ const AdminPartners = () => {
                     placeholder="email@ejemplo.com"
                     value={searchEmail}
                     onChange={e => setSearchEmail(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSearch(); } }}
                     className="flex-1"
                   />
-                  <Button size="sm" variant="outline" onClick={handleSearch} disabled={searchMutation.isPending}>
-                    <Search className="h-3.5 w-3.5" />
+                  <Button size="sm" variant="outline" onClick={handleSearch} disabled={searchMutation.isPending || !searchEmail.trim()}>
+                    {searchMutation.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Search className="h-3.5 w-3.5" />}
                   </Button>
                 </div>
                 {searchResults.length > 0 && (
