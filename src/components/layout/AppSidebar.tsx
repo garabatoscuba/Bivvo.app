@@ -451,9 +451,7 @@ const AppSidebar = () => {
   const managerDynamicModules = sidebarModules
     .filter((m) => {
       if (!MANAGER_ALLOWED_MODULES.has(m.name)) return false;
-      // Owner sees Tesorería instead of Caja, but manager always sees Caja
       if (m.name === "Tesorería") return false;
-      // Without jornada, only allow Empleados
       if (!jornadaActiva && !MANAGER_NO_JORNADA_MODULES.has(m.name)) return false;
       return true;
     })
@@ -461,6 +459,26 @@ const AppSidebar = () => {
       title: m.sidebar_label,
       url: moduleUrlMap[m.name] || "/",
       icon: getIconComponent(m.icon),
+    }));
+
+  // Seller-allowed module names
+  const SELLER_ALLOWED_MODULES = new Set([
+    "Punto de Venta", "Servicios", "Caja", "Ventas",
+  ]);
+
+  // Helper to resolve icon from sidebarModules by module name, with fallback
+  const getModuleIcon = (moduleName: string, fallback: React.ComponentType<any>) => {
+    const mod = sidebarModules.find((m) => m.name === moduleName);
+    return mod ? getIconComponent(mod.icon) : fallback;
+  };
+
+  const sellerDynamicModules = sidebarModules
+    .filter((m) => SELLER_ALLOWED_MODULES.has(m.name))
+    .map((m) => ({
+      title: m.sidebar_label,
+      url: moduleUrlMap[m.name] || "/",
+      icon: getIconComponent(m.icon),
+      name: m.name,
     }));
 
   const ctxParam = new URLSearchParams(location.search).get("ctx");
