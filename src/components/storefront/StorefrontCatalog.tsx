@@ -199,7 +199,7 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
                 </div>
                 {product.stock > cartQty && (
                   <button
-                    onClick={(e) => handleRequireAffiliate(e, () => addItem(product))}
+                    onClick={(e) => { e.stopPropagation(); addItem(product); }}
                     className="w-full py-2 flex items-center justify-center gap-1 text-xs font-medium border-t border-border text-muted-foreground hover:text-white hover:bg-foreground transition-all"
                   >
                     <Plus className="h-3.5 w-3.5" /> Agregar
