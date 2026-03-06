@@ -181,7 +181,7 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
           })),
           role: userRole,
           active_module: currentModule,
-          business_id: profile?.business_id || null,
+          business_id: resolvedBusinessId || profile?.business_id || null,
         }),
       });
 
