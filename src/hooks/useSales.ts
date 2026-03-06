@@ -168,15 +168,40 @@ export const useSales = (branchId?: string | null) => {
 
         if (saleError) throw saleError;
 
-        const saleItems = items.map(item => ({
-          sale_id: sale.id,
-          product_id: item.product.id,
-          quantity: item.quantity,
-          unit_price: item.unitPrice,
-          cost_price: item.product.cost_price,
-          discount: item.discount,
-          total: item.total,
-        }));
+        const itemsNeedingFallback = items.filter((item) => Number(item.product.cost_price || 0) <= 0);
+        const fallbackCostMap = new Map<string, number>();
+
+        if (itemsNeedingFallback.length > 0) {
+          const productIds = [...new Set(itemsNeedingFallback.map((item) => item.product.id))];
+          const { data: stockEntries } = await supabase
+            .from('product_stock_entries')
+            .select('product_id, unit_cost, created_at')
+            .eq('branch_id', branchId)
+            .in('product_id', productIds)
+            .gt('unit_cost', 0)
+            .order('created_at', { ascending: false });
+
+          (stockEntries || []).forEach((entry: any) => {
+            if (!fallbackCostMap.has(entry.product_id)) {
+              fallbackCostMap.set(entry.product_id, Number(entry.unit_cost));
+            }
+          });
+        }
+
+        const saleItems = items.map(item => {
+          const baseCost = Number(item.product.cost_price || 0);
+          const fallbackCost = fallbackCostMap.get(item.product.id) || 0;
+
+          return {
+            sale_id: sale.id,
+            product_id: item.product.id,
+            quantity: item.quantity,
+            unit_price: item.unitPrice,
+            cost_price: baseCost > 0 ? baseCost : fallbackCost,
+            discount: item.discount,
+            total: item.total,
+          };
+        });
 
         const { error: itemsError } = await supabase
           .from('sale_items')
