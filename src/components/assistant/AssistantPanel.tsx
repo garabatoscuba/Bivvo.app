@@ -170,8 +170,8 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
       {/* View: Main (default) = announcements + unread notifs + chat */}
       {view === "main" && (
         <>
-          {/* Announcements */}
-          {visibleAnnouncements.length > 0 && (
+          {/* Announcements — only show standalone when NO chat */}
+          {!canChat && visibleAnnouncements.length > 0 && (
             <div className="shrink-0 border-b">
               <div className="max-h-[200px] overflow-y-auto scrollbar-hide">
                 {visibleAnnouncements.map((a: any) => (
@@ -232,9 +232,14 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
             </div>
           )}
 
-          {/* Chat (with quick questions built in) */}
+          {/* Chat (announcements passed inline) */}
           {canChat ? (
-            <AssistantChat onStateChange={onStateChange} assistantName={assistantName} />
+            <AssistantChat
+              onStateChange={onStateChange}
+              assistantName={assistantName}
+              announcements={visibleAnnouncements}
+              onDismissAnnouncement={handleDismissAnnouncement}
+            />
           ) : (
             /* Empty state when no chat */
             <div className="flex-1 overflow-y-auto p-4 min-h-0">

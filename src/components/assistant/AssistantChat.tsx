@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, X, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { cn } from "@/lib/utils";
@@ -12,9 +12,44 @@ interface ChatMessage {
   content: string;
 }
 
+interface AnnouncementItem {
+  id: string;
+  title: string;
+  message: string;
+  link_url?: string | null;
+  link_label?: string | null;
+  is_persistent?: boolean;
+}
+
 interface AssistantChatProps {
   onStateChange: (state: BivooState) => void;
   assistantName: string;
+  announcements?: AnnouncementItem[];
+  onDismissAnnouncement?: (id: string) => void;
+}
+
+const STORAGE_KEY = "bivoo-chat-history";
+const ONE_DAY_MS = 24 * 60 * 60 * 1000;
+
+function loadPersistedMessages(): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return [];
+    const { messages, timestamp } = JSON.parse(raw);
+    if (Date.now() - timestamp > ONE_DAY_MS) {
+      localStorage.removeItem(STORAGE_KEY);
+      return [];
+    }
+    return messages || [];
+  } catch {
+    return [];
+  }
+}
+
+function persistMessages(messages: ChatMessage[]) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ messages, timestamp: Date.now() }));
+  } catch { /* ignore quota errors */ }
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -69,10 +104,10 @@ const DEFAULT_QUESTIONS = [
   "¿Qué puedes hacer por mí?",
 ];
 
-export default function AssistantChat({ onStateChange, assistantName }: AssistantChatProps) {
+export default function AssistantChat({ onStateChange, assistantName, announcements = [], onDismissAnnouncement }: AssistantChatProps) {
   const { profile, isOwner, isManager, isSeller, isSuperAdmin } = useAuth();
   const { pathname } = useLocation();
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(() => loadPersistedMessages());
   const [input, setInput] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -91,6 +126,11 @@ export default function AssistantChat({ onStateChange, assistantName }: Assistan
   const quickQuestions = useMemo(() => {
     return MODULE_QUESTIONS[currentModule] || DEFAULT_QUESTIONS;
   }, [currentModule]);
+
+  // Persist messages whenever they change (skip empty)
+  useEffect(() => {
+    if (messages.length > 0) persistMessages(messages);
+  }, [messages]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -199,6 +239,31 @@ export default function AssistantChat({ onStateChange, assistantName }: Assistan
     <div className="flex flex-col flex-1 min-h-0">
       {/* Messages area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+        {/* Inline announcements — scrollable with chat */}
+        {announcements.length > 0 && (
+          <div className="space-y-1.5 mb-2">
+            {announcements.map((a) => (
+              <div key={a.id} className="flex items-start gap-2 rounded-xl border border-border/60 px-3 py-2.5 bg-muted/30">
+                <div className="w-[3px] self-stretch rounded-full bg-primary shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-medium leading-tight">{a.title}</p>
+                  <p className="text-[11px] text-muted-foreground line-clamp-2">{a.message}</p>
+                  {a.link_url && (
+                    <a href={a.link_url} target="_blank" rel="noopener noreferrer" className="text-[11px] text-primary flex items-center gap-0.5 mt-0.5 hover:underline">
+                      <ExternalLink className="h-3 w-3" /> {a.link_label || 'Ver más'}
+                    </a>
+                  )}
+                </div>
+                {!a.is_persistent && onDismissAnnouncement && (
+                  <Button variant="ghost" size="icon" className="h-5 w-5 shrink-0" onClick={() => onDismissAnnouncement(a.id)}>
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center pt-6 pb-2 text-center">
             <div className="w-12 h-12 rounded-full overflow-hidden mb-3">
