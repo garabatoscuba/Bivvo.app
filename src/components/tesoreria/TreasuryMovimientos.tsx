@@ -171,8 +171,8 @@ export default function TreasuryMovimientos({ businessId, branchId, prefillType,
 
   return (
     <div className="space-y-4">
-      {/* Period selector */}
-      <div className="flex items-center gap-2 flex-wrap">
+      {/* Period selector + mode toggle */}
+      <div className="flex items-center gap-2 flex-wrap justify-between">
         <div className="flex gap-1.5 overflow-x-auto">
           {([
             { key: "today", label: "Hoy" },
@@ -191,10 +191,38 @@ export default function TreasuryMovimientos({ businessId, branchId, prefillType,
             </Button>
           ))}
         </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <div className="flex rounded-md border border-border overflow-hidden">
+            <button
+              className={`px-2.5 py-1 text-xs font-medium transition-colors ${mode === "operativo" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}
+              onClick={() => toggleMode("operativo")}
+            >
+              Operativo
+            </button>
+            <button
+              className={`px-2.5 py-1 text-xs font-medium transition-colors ${mode === "real" ? "bg-primary text-primary-foreground" : "bg-muted/50 text-muted-foreground hover:bg-muted"}`}
+              onClick={() => toggleMode("real")}
+            >
+              Real
+            </button>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Info className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[220px] text-xs">
+                {mode === "operativo"
+                  ? "Mide la rentabilidad de lo que vendiste. El inventario no vendido no afecta el resultado."
+                  : "Muestra el flujo de caja real. Cada compra de inventario aparece como gasto en la fecha en que se realizó."}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
       </div>
 
       {/* Balance Personal Cards */}
-      <BalancePersonalCards businessId={businessId} branchId={branchId} period={period} />
+      <BalancePersonalCards businessId={businessId} branchId={branchId} period={period} mode={mode} />
 
       {/* Action buttons */}
       <div className="flex items-center justify-between pt-2 border-t">
