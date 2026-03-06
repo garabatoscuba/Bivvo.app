@@ -132,10 +132,20 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
     if (messages.length > 0) persistMessages(messages);
   }, [messages]);
 
+  const prevMsgCount = useRef(messages.length);
+  const didMount = useRef(false);
+
   useEffect(() => {
-    if (scrollRef.current) {
+    if (!scrollRef.current) return;
+    if (!didMount.current) {
+      // On mount, scroll to top so announcements are visible
+      scrollRef.current.scrollTop = 0;
+      didMount.current = true;
+    } else if (messages.length > prevMsgCount.current) {
+      // New message added — scroll to bottom
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
+    prevMsgCount.current = messages.length;
   }, [messages]);
 
   const sendMessage = useCallback(async (text?: string) => {
