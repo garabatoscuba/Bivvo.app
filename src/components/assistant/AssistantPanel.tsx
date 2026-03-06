@@ -205,130 +205,17 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
         </div>
       )}
 
-      {/* Chat area */}
+      {/* Empty state when no notifications/announcements */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
-        {/* Suggestions when empty */}
-        {canChat && messages.length === 0 && (
-          <>
-            {showNotifications && unreadNotifs.length === 0 && (
-              <p className="text-[10px] uppercase tracking-widest text-muted-foreground text-center mb-2">Chat</p>
-            )}
-            <div className="space-y-2">
-              {suggestions.map((s) => (
-                <button
-                  key={s}
-                  onClick={() => sendMessage(s)}
-                  className="w-full text-left text-sm px-3 py-2 rounded-xl border hover:bg-muted/50 transition-colors text-foreground"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
-            {/* Greeting bubble */}
-            <div className="flex items-end gap-2 mt-3">
-              <div className="w-6 h-6 rounded-full overflow-hidden shrink-0">
-                <img src={bivooFaceSvg} alt="Bivoo" className="w-full h-full object-cover" />
-              </div>
-              <div className="bg-muted/60 rounded-2xl rounded-bl-md px-3 py-2 max-w-[85%]">
-                <p className="text-sm">Hola {profile?.full_name?.split(" ")[0]} 👋 ¿En qué te ayudo hoy?</p>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Messages */}
-        {messages.map((m, i) => {
-          const isLastAssistant =
-            m.role === "assistant" &&
-            !isLoading &&
-            (i === messages.length - 1 || messages.slice(i + 1).every((x) => x.role !== "assistant"));
-          return (
-            <div key={i}>
-              <div className={cn("flex", m.role === "user" ? "justify-end" : "justify-start items-end gap-2")}>
-                {m.role === "assistant" && (
-                  <div className="w-6 h-6 rounded-full overflow-hidden shrink-0">
-                    <img src={bivooFaceSvg} alt="Bivoo" className="w-full h-full object-cover" />
-                  </div>
-                )}
-                <div
-                  className={cn(
-                    "max-w-[85%] rounded-2xl px-3 py-2 text-sm whitespace-pre-wrap",
-                    m.role === "user"
-                      ? "bg-primary text-primary-foreground rounded-br-md"
-                      : "bg-muted/60 text-foreground rounded-bl-md",
-                  )}
-                >
-                  {m.content}
-                </div>
-              </div>
-              {isLastAssistant && (
-                <div className="flex flex-wrap gap-1.5 mt-2 ml-8">
-                  {suggestions.slice(0, 3).map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => sendMessage(s)}
-                      className="text-[11px] px-2.5 py-1 rounded-full border border-primary/30 text-primary hover:bg-primary/10 transition-colors"
-                    >
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        })}
-
-        {isLoading && messages[messages.length - 1]?.role === "user" && (
-          <div className="flex items-end gap-2">
-            <div className="w-6 h-6 rounded-full overflow-hidden shrink-0">
+        {visibleAnnouncements.length === 0 && (!showNotifications || (unreadNotifs.length === 0 && !showAllNotifs)) && (
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="w-12 h-12 rounded-full overflow-hidden mb-3">
               <img src={bivooFaceSvg} alt="Bivoo" className="w-full h-full object-cover" />
             </div>
-            <div className="bg-muted/60 rounded-2xl rounded-bl-md px-3 py-2">
-              <div className="flex gap-1">
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce"
-                  style={{ animationDelay: "0ms" }}
-                />
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce"
-                  style={{ animationDelay: "150ms" }}
-                />
-                <span
-                  className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce"
-                  style={{ animationDelay: "300ms" }}
-                />
-              </div>
-            </div>
+            <p className="text-sm text-muted-foreground">Sin novedades por ahora 👍</p>
           </div>
         )}
       </div>
-
-      {/* Input — only if chat is enabled */}
-      {canChat ? (
-        <div className="shrink-0 border-t p-3 flex gap-2">
-          <Input
-            ref={inputRef}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage(input)}
-            placeholder="Escribe tu pregunta..."
-            className="text-sm rounded-full h-9"
-            disabled={isLoading}
-          />
-          <Button
-            size="icon"
-            className="h-9 w-9 rounded-full shrink-0"
-            disabled={!input.trim() || isLoading}
-            onClick={() => sendMessage(input)}
-          >
-            <Send className="h-4 w-4" />
-          </Button>
-        </div>
-      ) : (
-        <div className="shrink-0 border-t p-3 text-center">
-          <p className="text-xs text-muted-foreground">El chat no está disponible en tu plan actual.</p>
-        </div>
-      )}
     </div>
   );
 }

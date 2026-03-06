@@ -89,10 +89,9 @@ export function useAssistantFeatures() {
 
   return {
     isLoading,
-    canChat: isFeatureEnabled('assistant_chat'),
     canNotifications: isFeatureEnabled('notifications'),
     canContextMenu: isFeatureEnabled('context_menu'),
     /** True if at least one feature is available (show the button) */
-    hasAnyFeature: isFeatureEnabled('assistant_chat') || isFeatureEnabled('notifications') || isFeatureEnabled('context_menu'),
+    hasAnyFeature: isFeatureEnabled('notifications') || isFeatureEnabled('context_menu'),
   };
 }
