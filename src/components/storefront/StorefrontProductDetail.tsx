@@ -53,7 +53,7 @@ const StorefrontProductDetail = ({ product, accent, currencySymbol, onClose }: P
           {product.description && (
             <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
           )}
-          <p className="text-2xl font-bold text-foreground">Bs {Number(product.price).toFixed(2)}</p>
+          <p className="text-2xl font-bold text-foreground">{currencySymbol} {Number(product.price).toFixed(2)}</p>
 
           {product.stock > 0 && (
             <p className="text-xs text-muted-foreground">
