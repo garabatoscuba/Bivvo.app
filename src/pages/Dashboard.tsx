@@ -279,15 +279,15 @@ const Dashboard = () => {
         {/* Charts Row */}
         <div className="grid gap-3 md:gap-4 lg:grid-cols-3 border-transparent">
           {/* Sales over time */}
-          <Card className="lg:col-span-2">
+          <Card className="lg:col-span-2 max-w-full overflow-hidden">
             <CardHeader>
               <CardTitle className="text-base">Ventas por Período</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="w-full overflow-hidden">
               {isLoading ?
               <Skeleton className="h-[180px] md:h-[250px] w-full" /> :
 
-              <ChartContainer config={areaChartConfig} className="h-[180px] md:h-[250px] w-full">
+              <ChartContainer config={areaChartConfig} className="h-[180px] md:h-[250px] w-full" style={{ minWidth: 0 }}>
                   <AreaChart data={stats?.salesOverTime || []}>
                     <defs>
                       <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
