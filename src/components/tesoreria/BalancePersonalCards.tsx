@@ -28,21 +28,38 @@ function getDateRange(period: Period): { from: string | null; to: string } {
 export default function BalancePersonalCards({ businessId, branchId, period, mode }: Props) {
   const { from, to } = useMemo(() => getDateRange(period), [period]);
 
+  // Fetch all branch IDs for this business (needed when branchId is null = "all branches")
+  const { data: businessBranchIds = [] } = useQuery({
+    queryKey: ["bp-branch-ids", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("branches")
+        .select("id")
+        .eq("business_id", businessId);
+      return (data || []).map((b) => b.id);
+    },
+    enabled: !!businessId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const saleBranchIds = branchId ? [branchId] : businessBranchIds;
+
   // Product sales (from sales table, completed only)
   const { data: productSales = 0 } = useQuery({
-    queryKey: ["bp-product-sales", businessId, branchId, period],
+    queryKey: ["bp-product-sales", businessId, branchId, period, saleBranchIds],
     queryFn: async () => {
+      if (saleBranchIds.length === 0) return 0;
       let q = supabase
         .from("sales")
         .select("total")
-        .eq("status", "completed");
-      if (branchId) q = q.eq("branch_id", branchId);
+        .eq("status", "completed")
+        .in("branch_id", saleBranchIds);
       if (from) q = q.gte("created_at", from);
       q = q.lte("created_at", to);
       const { data } = await q;
       return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
     },
-    enabled: !!businessId,
+    enabled: !!businessId && saleBranchIds.length > 0,
   });
 
   // Service sales (from service_entries)
@@ -82,13 +99,14 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
 
   // COGS (Operativo): sum of (quantity * cost_price) from sale_items of completed sales
   const { data: productCost = 0 } = useQuery({
-    queryKey: ["bp-product-cost", businessId, branchId, period],
+    queryKey: ["bp-product-cost", businessId, branchId, period, saleBranchIds],
     queryFn: async () => {
+      if (saleBranchIds.length === 0) return 0;
       let sq = supabase
         .from("sales")
         .select("id")
-        .eq("status", "completed");
-      if (branchId) sq = sq.eq("branch_id", branchId);
+        .eq("status", "completed")
+        .in("branch_id", saleBranchIds);
       if (from) sq = sq.gte("created_at", from);
       sq = sq.lte("created_at", to);
       const { data: sales } = await sq;
@@ -106,7 +124,7 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
       }
       return total;
     },
-    enabled: !!businessId && mode === "operativo",
+    enabled: !!businessId && mode === "operativo" && saleBranchIds.length > 0,
   });
 
   // Inventory purchases (Real): sum of (unit_cost * quantity) from product_stock_entries
