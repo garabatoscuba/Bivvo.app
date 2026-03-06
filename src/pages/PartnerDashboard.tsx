@@ -68,11 +68,21 @@ const PartnerDashboard = () => {
 
   const totalEarned = referrals.reduce((sum, r) => sum + Number(r.commission_earned), 0);
   const pendingAmount = referrals.filter(r => r.commission_status === 'pending').reduce((sum, r) => sum + Number(r.commission_earned), 0);
+  const totalPaid = payouts.reduce((sum, p) => sum + Number(p.amount), 0);
+
+  const referralLink = partner?.code ? `${window.location.origin}/auth?ref=${partner.code}` : '';
 
   const copyCode = () => {
     if (partner?.code) {
       navigator.clipboard.writeText(partner.code);
       toast({ title: 'Código copiado', description: partner.code });
+    }
+  };
+
+  const copyLink = () => {
+    if (referralLink) {
+      navigator.clipboard.writeText(referralLink);
+      toast({ title: 'Link copiado', description: 'Comparte este link para que se registren con tu código.' });
     }
   };
 
