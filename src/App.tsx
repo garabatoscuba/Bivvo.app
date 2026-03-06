@@ -97,6 +97,7 @@ const App = () => {
                         <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsers /></ProtectedRoute>} />
                         <Route path="/admin/assistant" element={<ProtectedRoute requireSuperAdmin><AdminAssistant /></ProtectedRoute>} />
                         <Route path="/admin/modules" element={<ProtectedRoute requireSuperAdmin><AdminModules /></ProtectedRoute>} />
+                        <Route path="/admin/partners" element={<ProtectedRoute requireSuperAdmin><AdminPartners /></ProtectedRoute>} />
                         <Route path="/install" element={<Install />} />
                         <Route path="/jornada/entrada" element={<JornadaEntrada />} />
                         <Route path="/onboarding/empleado" element={<OnboardingEmpleado />} />

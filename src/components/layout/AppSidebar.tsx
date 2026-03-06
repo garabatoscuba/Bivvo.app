@@ -328,6 +328,7 @@ const AppSidebar = () => {
     { title: "Negocios", url: "/admin/businesses", icon: Store },
     { title: "Ofertas", url: "/admin/offers", icon: Tag },
     { title: "Módulos y Plugins", url: "/admin/modules", icon: Settings2 },
+    { title: "Partners", url: "/admin/partners", icon: Network },
     { title: "Asistente IA", url: "/admin/assistant", icon: Bot },
   ];
 
