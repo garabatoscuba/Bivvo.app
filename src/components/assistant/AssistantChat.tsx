@@ -161,11 +161,15 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
     onStateChange("thinking");
 
     try {
+      // Get the user's session token for proper auth
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      const authToken = currentSession?.access_token || SUPABASE_KEY;
+
       const res = await fetch(`${SUPABASE_URL}/functions/v1/bivoo-assistant`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${SUPABASE_KEY}`,
+          Authorization: `Bearer ${authToken}`,
           apikey: SUPABASE_KEY,
         },
         body: JSON.stringify({
