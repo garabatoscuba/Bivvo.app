@@ -82,17 +82,17 @@ const Sales = () => {
   });
 
   // Fetch service entries for the branch
+  const bizId = resolvedBusinessId || profile?.business_id;
   const { data: serviceEntries = [], isLoading: isLoadingServices } = useQuery({
-    queryKey: ['branch-service-entries', branchId, employeeRecord?.business_id, profile?.business_id],
+    queryKey: ['branch-service-entries', branchId, bizId],
     queryFn: async () => {
-      const bizId = isEmployeeContext ? employeeRecord?.business_id : profile?.business_id;
       if (!bizId || !branchId) return [];
       let query = supabase
         .from('service_entries')
         .select('*, service_categories(name)')
         .eq('business_id', bizId)
         .eq('branch_id', branchId);
-      if (isEmployeeContext && profile?.user_id) {
+      if (isSellOnly && profile?.user_id) {
         query = query.eq('user_id', profile.user_id);
       }
       const { data } = await query.order('created_at', { ascending: false });
@@ -114,7 +114,7 @@ const Sales = () => {
         transfer_amount: 0,
       }));
     },
-    enabled: !!branchId && !!(isEmployeeContext ? employeeRecord?.business_id : profile?.business_id),
+    enabled: !!branchId && !!bizId,
   });
 
   // Build seller name map from employees table
