@@ -135,7 +135,9 @@ const AdminOffersTab = () => {
     setEditingId(offer.id);
     setForm({
       name: offer.name, description: offer.description || '', discount_type: offer.discount_type,
-      discount_value: offer.discount_value, applies_to_plans: offer.applies_to_plans,
+      discount_value: offer.discount_value,
+      discount_duration_months: (offer as any).discount_duration_months ? String((offer as any).discount_duration_months) : '',
+      applies_to_plans: offer.applies_to_plans,
       target_type: offer.target_type, target_user_ids: offer.target_user_ids?.join(', ') || '',
       starts_at: new Date(offer.starts_at).toISOString().slice(0, 16),
       expires_at: offer.expires_at ? new Date(offer.expires_at).toISOString().slice(0, 16) : '',
