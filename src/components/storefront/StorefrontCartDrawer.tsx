@@ -132,7 +132,7 @@ const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, b
                 {items.map(item => (
                   <div key={item.product.id} className="flex justify-between text-sm">
                     <span className="text-foreground">{item.quantity}x {item.product.name}</span>
-                    <span className="font-medium">Bs {(item.quantity * item.product.price).toFixed(2)}</span>
+                    <span className="font-medium">{currencySymbol} {(item.quantity * item.product.price).toFixed(2)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-base font-bold pt-2 border-t border-border">
