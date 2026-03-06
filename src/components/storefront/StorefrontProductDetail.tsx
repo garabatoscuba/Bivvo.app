@@ -10,7 +10,7 @@ interface Props {
   onClose: () => void;
 }
 
-const StorefrontProductDetail = ({ product, accent, onClose }: Props) => {
+const StorefrontProductDetail = ({ product, accent, currencySymbol, onClose }: Props) => {
   const { items, addItem } = useStorefrontCart();
   const [qty, setQty] = useState(1);
 
