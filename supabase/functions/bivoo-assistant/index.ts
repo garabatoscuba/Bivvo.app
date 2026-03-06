@@ -167,9 +167,16 @@ Deno.serve(async (req) => {
           .join("\n");
     }
 
+    /* ── Fetch real-time module context ── */
+    const contextData = await fetchModuleContext(supabase, business_id, active_module);
+
     /* ── Build system prompt ── */
     const moduleContext = active_module
       ? `\nEl usuario está actualmente en el módulo: ${active_module}.`
+      : "";
+
+    const dataBlock = contextData
+      ? `\n\nDATOS ACTUALES DEL NEGOCIO:\n${contextData}`
       : "";
 
     const systemPrompt = [
@@ -179,6 +186,7 @@ Deno.serve(async (req) => {
       baseInstructions,
       moduleContext,
       trainingBlock,
+      dataBlock,
       `Responde siempre en español, de forma concisa y útil. No inventes datos.`,
     ]
       .filter(Boolean)
