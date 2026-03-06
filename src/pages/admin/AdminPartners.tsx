@@ -63,6 +63,7 @@ const AdminPartners = () => {
   const [expiresAt, setExpiresAt] = useState('');
   const [commissionPercent, setCommissionPercent] = useState('10');
   const [commissionDuration, setCommissionDuration] = useState('');
+  const [discountDuration, setDiscountDuration] = useState('');
   const [isActive, setIsActive] = useState(true);
 
   // Referidos filter
