@@ -231,7 +231,7 @@ const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, b
                         </button>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold">Bs {(item.quantity * item.product.price).toFixed(2)}</span>
+                        <span className="text-sm font-bold">{currencySymbol} {(item.quantity * item.product.price).toFixed(2)}</span>
                         <button
                           onClick={() => removeItem(item.product.id)}
                           className="h-7 w-7 rounded-md flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors"
