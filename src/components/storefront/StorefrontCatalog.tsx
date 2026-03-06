@@ -285,6 +285,7 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
         <StorefrontProductDetail
           product={selectedProduct}
           accent={accent}
+          currencySymbol={currencySymbol}
           onClose={() => setSelectedProduct(null)}
         />
       )}

@@ -7,6 +7,7 @@ interface Props {
   accent: string;
   portalPath: string;
   onGoToCatalog: () => void;
+  currencySymbol: string;
 }
 
 const StorefrontHome = ({ data, accent, portalPath }: Props) => {

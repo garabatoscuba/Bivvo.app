@@ -252,7 +252,7 @@ const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, b
           <div className="border-t border-border p-5 space-y-3">
             <div className="flex justify-between text-base font-bold">
               <span>Total</span>
-              <span>Bs {subtotal.toFixed(2)}</span>
+              <span>{currencySymbol} {subtotal.toFixed(2)}</span>
             </div>
             <button
               onClick={() => setStep('checkout')}

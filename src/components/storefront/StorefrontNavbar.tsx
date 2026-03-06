@@ -209,6 +209,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
         branchName={data.branch.name}
         hasDelivery={data.settings.has_delivery}
         branchPhone={data.branch.phone}
+        currencySymbol={currencySymbol}
       />
     </>
   );

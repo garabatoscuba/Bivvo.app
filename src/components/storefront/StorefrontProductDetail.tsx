@@ -86,7 +86,7 @@ const StorefrontProductDetail = ({ product, accent, currencySymbol, onClose }: P
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
                 style={{ backgroundColor: accent }}
               >
-                Agregar · Bs {(qty * product.price).toFixed(2)}
+                Agregar · {currencySymbol} {(qty * product.price).toFixed(2)}
               </button>
             </div>
           ) : (

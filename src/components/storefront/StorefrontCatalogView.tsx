@@ -35,7 +35,7 @@ const StorefrontCatalogView = ({ products, accent, branchId, currencySymbol }: P
           <StorefrontSearch value={search} onChange={setSearch} />
         </div>
       </div>
-      <StorefrontCatalog products={filteredProducts} accent={accent} />
+      <StorefrontCatalog products={filteredProducts} accent={accent} currencySymbol={currencySymbol} />
 
       {/* Review section */}
       {branchId && (
