@@ -165,7 +165,7 @@ const Plans = () => {
 
   const requestMutation = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from('plan_requests').insert({
+      const insertData: any = {
         user_id: user!.id,
         plan_type: selectedPlan,
         months,
@@ -173,7 +173,11 @@ const Plans = () => {
         total_branches: branchCount,
         discount_percent: durationOpt.discount,
         total_amount: requestTotal,
-      });
+      };
+      if (partnerApplies && partnerOffer) {
+        insertData.partner_id = partnerOffer.id;
+      }
+      const { error } = await supabase.from('plan_requests').insert(insertData);
       if (error) throw error;
     },
     onSuccess: () => {
