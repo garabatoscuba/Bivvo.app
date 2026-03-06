@@ -60,29 +60,14 @@ type SortKey = 'created_at' | 'total' | 'sale_number' | 'seller_name' | 'payment
 type SortDir = 'asc' | 'desc';
 
 const Sales = () => {
-  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const { profile, isOwner, isManager, isSuperAdmin, isSeller } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
-  const [searchParams] = useSearchParams();
-  const isEmployeeContext = searchParams.get('ctx') === 'emp';
+  const { businessId: resolvedBusinessId, branchId: resolvedBranchId } = useResolvedBusinessId();
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
+  const isSellOnly = isSeller && !isPrivileged;
 
-  // Fetch employee record for employee context
-  const { data: employeeRecord } = useQuery({
-    queryKey: ['employee-record-sales', profile?.email],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('employees')
-        .select('id, business_id, branch_id')
-        .eq('email', profile!.email)
-        .maybeSingle();
-      return data;
-    },
-    enabled: isEmployeeContext && !!profile?.email,
-  });
-
-  const effectiveBranchId = isEmployeeContext && employeeRecord ? (employeeRecord.branch_id || profile?.branch_id) : profile?.branch_id;
-  const branchId = effectiveBranchId;
+  const branchId = resolvedBranchId || profile?.branch_id;
   const { sales, isLoadingSales, useSaleItems, cancelSale, registerPayment } = useSales(branchId);
 
   // Fetch branch name
