@@ -32,7 +32,7 @@ interface AuthContextType {
   roles: AppRole[];
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, referralCode?: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   switchBranch: (branchId: string) => Promise<void>;
   isSuperAdmin: boolean;
@@ -41,6 +41,7 @@ interface AuthContextType {
   isSeller: boolean;
   isAccountant: boolean;
   isAffiliated: boolean;
+  isPartner: boolean;
   isCuba: boolean;
   isBivooAccount: boolean;
 }
