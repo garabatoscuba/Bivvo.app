@@ -96,6 +96,7 @@ interface EmployeeForm {
   salary_assignments: SalaryAssignmentEntry[];
   use_bivoo_id: boolean;
   bivoo_password: string;
+  new_password: string;
   
   // Legacy single fields kept for backward compat
   modality_id: string;
