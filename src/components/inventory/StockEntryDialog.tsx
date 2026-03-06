@@ -67,14 +67,6 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
   const handleSubmit = async () => {
     if (!product || !profile?.user_id || !branchId) return;
     if (totalQty <= 0) return;
-    if (!reason) {
-      toast({ title: 'Selecciona el motivo de entrada', variant: 'destructive' });
-      return;
-    }
-    if (!origin.trim()) {
-      toast({ title: 'Indica el origen', variant: 'destructive' });
-      return;
-    }
 
     setSubmitting(true);
     try {
