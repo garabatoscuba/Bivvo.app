@@ -43,6 +43,13 @@ const CerrarJornadaGerenteModal = ({
       })
       .eq('id', jornada.id);
 
+    // Auto-close open cash register for this employee
+    await supabase
+      .from('cash_registers')
+      .update({ status: 'closed', closed_at: new Date().toISOString(), notes: 'Cierre automático al cerrar jornada por gerente' } as any)
+      .eq('user_id', jornada.empleado_id)
+      .eq('status', 'open');
+
     setClosing(false);
     if (error) {
       toast.error('Error: ' + error.message);
@@ -51,6 +58,8 @@ const CerrarJornadaGerenteModal = ({
 
     queryClient.invalidateQueries({ queryKey: ['jornadas-activas-business'] });
     queryClient.invalidateQueries({ queryKey: ['jornada-activa'] });
+    queryClient.invalidateQueries({ queryKey: ['active-cash-register'] });
+    queryClient.invalidateQueries({ queryKey: ['owner-open-registers'] });
     toast.success(`Jornada de ${employeeName} cerrada`);
     onOpenChange(false);
     setNotas('');

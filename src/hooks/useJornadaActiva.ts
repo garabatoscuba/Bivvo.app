@@ -76,9 +76,19 @@ export const useJornadaActiva = () => {
       })
       .eq('id', data.id);
 
+    // Auto-close open cash register
+    if (profile?.user_id) {
+      await supabase
+        .from('cash_registers')
+        .update({ status: 'closed', closed_at: now.toISOString(), notes: 'Cierre automático por inactividad' } as any)
+        .eq('user_id', profile.user_id)
+        .eq('status', 'open');
+    }
+
     setMostrarAlertaInactividad(false);
     clearTimer();
     queryClient.invalidateQueries({ queryKey: ['jornada-activa'] });
+    queryClient.invalidateQueries({ queryKey: ['active-cash-register'] });
     toast({ title: 'Jornada cerrada por inactividad', description: 'Tu jornada fue cerrada automáticamente.' });
   }, [data, queryClient, clearTimer]);
 
