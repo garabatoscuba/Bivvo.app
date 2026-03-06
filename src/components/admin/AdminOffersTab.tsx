@@ -105,6 +105,7 @@ const AdminOffersTab = () => {
       const payload: any = {
         name: form.name, description: form.description || null,
         discount_type: form.discount_type, discount_value: form.discount_value,
+        discount_duration_months: form.discount_duration_months ? Number(form.discount_duration_months) : null,
         applies_to_plans: form.applies_to_plans, target_type: form.target_type,
         target_user_ids: form.target_type === 'specific' ? form.target_user_ids.split(',').map(s => s.trim()).filter(Boolean) : [],
         starts_at: new Date(form.starts_at).toISOString(),
