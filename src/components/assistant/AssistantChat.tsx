@@ -329,7 +329,7 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
                 "max-w-[80%] rounded-2xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap",
                 m.role === "user"
                   ? "bg-primary text-primary-foreground rounded-br-sm"
-                  : "bg-muted text-foreground rounded-bl-sm"
+                  : "bg-white dark:bg-zinc-800 text-foreground rounded-bl-sm"
               )}
             >
               {m.content || (
