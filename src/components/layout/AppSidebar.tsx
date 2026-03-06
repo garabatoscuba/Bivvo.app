@@ -557,49 +557,21 @@ const AppSidebar = () => {
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 {/* Operational tools for seller/dependent only when jornada is active */}
-                {showEmployeeTools && (
-                  <>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={
-                          location.pathname === "/pos" && new URLSearchParams(location.search).get("ctx") === "emp"
-                        }
-                      >
-                        <Link to="/pos?ctx=emp">
-                          <ShoppingCart className="h-4 w-4" />
-                          <span className="text-sm">POS</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={
-                          location.pathname === "/services" && new URLSearchParams(location.search).get("ctx") === "emp"
-                        }
-                      >
-                        <Link to="/services?ctx=emp">
-                          <Wrench className="h-4 w-4" />
-                          <span className="text-sm">Servicios</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                      <SidebarMenuButton
-                        asChild
-                        isActive={
-                          location.pathname === "/caja" && new URLSearchParams(location.search).get("ctx") === "emp"
-                        }
-                      >
-                        <Link to="/caja?ctx=emp">
-                          <DollarSign className="h-4 w-4" />
-                          <span className="text-sm">Caja</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  </>
-                )}
+                {showEmployeeTools && sellerDynamicModules.map((item) => (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={
+                        location.pathname === item.url && new URLSearchParams(location.search).get("ctx") === "emp"
+                      }
+                    >
+                      <Link to={`${item.url}?ctx=emp`}>
+                        <item.icon className="h-4 w-4" />
+                        <span className="text-sm">{item.title}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
