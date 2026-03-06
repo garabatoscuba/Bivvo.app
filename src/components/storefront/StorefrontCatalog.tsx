@@ -168,7 +168,7 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
                   )}
                   {/* Favorite button */}
                   <button
-                    onClick={(e) => handleRequireAffiliate(e, () => toggleFavorite(e, product.id))}
+                    onClick={(e) => { e.stopPropagation(); toggleFavorite(e, product.id); }}
                     className="absolute top-2.5 right-2.5 h-8 w-8 rounded-full bg-background/70 backdrop-blur flex items-center justify-center transition-colors hover:bg-background"
                   >
                     <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
