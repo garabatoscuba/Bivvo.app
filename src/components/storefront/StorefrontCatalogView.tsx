@@ -8,9 +8,10 @@ interface Props {
   products: StorefrontProduct[];
   accent: string;
   branchId?: string;
+  currencySymbol: string;
 }
 
-const StorefrontCatalogView = ({ products, accent, branchId }: Props) => {
+const StorefrontCatalogView = ({ products, accent, branchId, currencySymbol }: Props) => {
   const [search, setSearch] = useState('');
 
   const filteredProducts = search.trim()
@@ -34,7 +35,7 @@ const StorefrontCatalogView = ({ products, accent, branchId }: Props) => {
           <StorefrontSearch value={search} onChange={setSearch} />
         </div>
       </div>
-      <StorefrontCatalog products={filteredProducts} accent={accent} />
+      <StorefrontCatalog products={filteredProducts} accent={accent} currencySymbol={currencySymbol} />
 
       {/* Review section */}
       {branchId && (

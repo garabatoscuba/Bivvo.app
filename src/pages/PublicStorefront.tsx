@@ -52,6 +52,7 @@ export interface StorefrontData {
     social_tiktok: string | null;
     social_twitter: string | null;
     contact_email: string | null;
+    currency: string;
     schedule: Record<string, { open: string | null; close: string | null; enabled: boolean }>;
   };
   products: StorefrontProduct[];
@@ -95,6 +96,10 @@ const FONT_MAP: Record<string, string> = {
   'Roboto Mono': "'Roboto Mono', ui-monospace, monospace",
   'Source Code Pro': "'Source Code Pro', ui-monospace, monospace",
 };
+
+export function getCurrencySymbol(currency: string): string {
+  return '$';
+}
 
 const PublicStorefront = () => {
   const { bizSlug, branchSlug } = useParams<{ bizSlug: string; branchSlug?: string }>();
@@ -149,6 +154,7 @@ const PublicStorefront = () => {
   const open = isOpenNow(data.settings.schedule);
   const accent = data.settings.accent_color || '#18181b';
   const portalPath = branchSlug ? `/tienda/${bizSlug}/${branchSlug}` : `/s/${bizSlug}`;
+  const currencySymbol = getCurrencySymbol(data.settings.currency);
 
   const fontHeading = FONT_MAP[data.settings.font_heading] || FONT_MAP['Lora'];
   const fontBody = FONT_MAP[data.settings.font_body] || FONT_MAP['Work Sans'];
@@ -171,6 +177,7 @@ const PublicStorefront = () => {
           onTabChange={setActiveTab}
           portalPath={portalPath}
           hasDelivery={data.settings.has_delivery}
+          currencySymbol={currencySymbol}
         />
 
         <main className="flex-1" style={{ fontFamily: fontBody, paddingTop: activeTab !== 'home' ? '56px' : undefined }}>
@@ -180,10 +187,11 @@ const PublicStorefront = () => {
               accent={accent}
               portalPath={portalPath}
               onGoToCatalog={() => setActiveTab('catalog')}
+              currencySymbol={currencySymbol}
             />
           )}
           {activeTab === 'catalog' && (
-            <StorefrontCatalogView products={data.products} accent={accent} branchId={data.branch.id} />
+            <StorefrontCatalogView products={data.products} accent={accent} branchId={data.branch.id} currencySymbol={currencySymbol} />
           )}
           {activeTab === 'contact' && (
             <StorefrontContact data={data} accent={accent} />

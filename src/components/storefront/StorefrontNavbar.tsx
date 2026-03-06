@@ -15,9 +15,10 @@ interface Props {
   onTabChange: (tab: StorefrontTab) => void;
   portalPath: string;
   hasDelivery?: boolean;
+  currencySymbol: string;
 }
 
-const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portalPath, hasDelivery }: Props) => {
+const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portalPath, hasDelivery, currencySymbol }: Props) => {
   const { theme, setTheme } = useTheme();
   const isDark = theme === 'dark';
   const [showAnnouncements, setShowAnnouncements] = useState(false);
@@ -208,6 +209,7 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
         branchName={data.branch.name}
         hasDelivery={data.settings.has_delivery}
         branchPhone={data.branch.phone}
+        currencySymbol={currencySymbol}
       />
     </>
   );

@@ -199,11 +199,16 @@ serve(async (req) => {
           }
         }
 
-        const itemLines = items.map((i: any) => `• ${i.quantity}x ${i.product_name} — Bs ${Number(i.total).toFixed(2)}`).join("\n");
+        // Get currency symbol
+        const { data: bizData } = await supabase.from("businesses").select("base_currency").eq("id", branchData.business_id).single();
+        const cur = bizData?.base_currency || 'USD';
+        const sym = cur === 'CUP' ? '$' : '$';
+
+        const itemLines = items.map((i: any) => `• ${i.quantity}x ${i.product_name} — ${sym} ${Number(i.total).toFixed(2)}`).join("\n");
         const deliveryLine = delivery_address ? `\n📍 Dirección: ${delivery_address}` : "\n🏪 Retiro en tienda";
         const notesLine = notes ? `\n📝 Notas: ${notes}` : "";
 
-        const message = `Pedido de ${customer_name.trim()} (${customer_phone.trim()}):\n${itemLines}\n\n💰 Total: Bs ${Number(subtotal).toFixed(2)}${deliveryLine}${notesLine}`;
+        const message = `Pedido de ${customer_name.trim()} (${customer_phone.trim()}):\n${itemLines}\n\n💰 Total: ${sym} ${Number(subtotal).toFixed(2)}${deliveryLine}${notesLine}`;
 
         await supabase.from("notifications").insert({
           business_id: branchData.business_id,
@@ -243,7 +248,7 @@ serve(async (req) => {
     }
 
     const { data: business, error: bizErr } = await supabase
-      .from("businesses").select("id, name, slug, logo_url").eq("slug", bizSlug).single();
+      .from("businesses").select("id, name, slug, logo_url, base_currency").eq("slug", bizSlug).single();
     if (bizErr || !business) {
       return new Response(JSON.stringify({ error: "Negocio no encontrado" }), {
         status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -338,6 +343,7 @@ serve(async (req) => {
           social_tiktok: settings.social_tiktok,
           social_twitter: settings.social_twitter,
           contact_email: settings.contact_email || null,
+          currency: business.base_currency || 'USD',
         },
         products,
         reviews: (reviewsResult.data || []).map((r: any) => ({

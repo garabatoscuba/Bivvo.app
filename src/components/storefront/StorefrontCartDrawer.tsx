@@ -14,9 +14,10 @@ interface Props {
   branchName: string;
   hasDelivery: boolean;
   branchPhone: string | null;
+  currencySymbol: string;
 }
 
-const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, branchName, hasDelivery, branchPhone }: Props) => {
+const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, branchName, hasDelivery, branchPhone, currencySymbol }: Props) => {
   const { items, updateQuantity, removeItem, clearCart, subtotal, totalItems } = useStorefrontCart();
   const [step, setStep] = useState<'cart' | 'checkout' | 'success'>('cart');
   const [name, setName] = useState('');
@@ -131,12 +132,12 @@ const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, b
                 {items.map(item => (
                   <div key={item.product.id} className="flex justify-between text-sm">
                     <span className="text-foreground">{item.quantity}x {item.product.name}</span>
-                    <span className="font-medium">Bs {(item.quantity * item.product.price).toFixed(2)}</span>
+                    <span className="font-medium">{currencySymbol} {(item.quantity * item.product.price).toFixed(2)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-base font-bold pt-2 border-t border-border">
                   <span>Total</span>
-                  <span>Bs {subtotal.toFixed(2)}</span>
+                   <span>{currencySymbol} {subtotal.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -211,7 +212,7 @@ const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, b
                   )}
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-medium truncate">{item.product.name}</h4>
-                    <p className="text-xs text-muted-foreground">Bs {Number(item.product.price).toFixed(2)} c/u</p>
+                    <p className="text-xs text-muted-foreground">{currencySymbol} {Number(item.product.price).toFixed(2)} c/u</p>
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-1.5">
                         <button
@@ -230,7 +231,7 @@ const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, b
                         </button>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-bold">Bs {(item.quantity * item.product.price).toFixed(2)}</span>
+                        <span className="text-sm font-bold">{currencySymbol} {(item.quantity * item.product.price).toFixed(2)}</span>
                         <button
                           onClick={() => removeItem(item.product.id)}
                           className="h-7 w-7 rounded-md flex items-center justify-center text-destructive hover:bg-destructive/10 transition-colors"
@@ -251,7 +252,7 @@ const StorefrontCartDrawer = ({ open, onClose, accent, branchId, businessName, b
           <div className="border-t border-border p-5 space-y-3">
             <div className="flex justify-between text-base font-bold">
               <span>Total</span>
-              <span>Bs {subtotal.toFixed(2)}</span>
+              <span>{currencySymbol} {subtotal.toFixed(2)}</span>
             </div>
             <button
               onClick={() => setStep('checkout')}

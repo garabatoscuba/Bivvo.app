@@ -7,9 +7,10 @@ interface Props {
   accent: string;
   portalPath: string;
   onGoToCatalog: () => void;
+  currencySymbol: string;
 }
 
-const StorefrontHome = ({ data, accent, portalPath }: Props) => {
+const StorefrontHome = ({ data, accent, portalPath, currencySymbol }: Props) => {
   const heroTitle = data.settings.hero_title || data.business.name;
   const heroSubtitle = data.settings.hero_subtitle || data.branch.name;
   const heroImage = data.settings.hero_image_url;

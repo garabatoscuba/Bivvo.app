@@ -6,10 +6,11 @@ import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
 interface Props {
   product: StorefrontProduct;
   accent: string;
+  currencySymbol: string;
   onClose: () => void;
 }
 
-const StorefrontProductDetail = ({ product, accent, onClose }: Props) => {
+const StorefrontProductDetail = ({ product, accent, currencySymbol, onClose }: Props) => {
   const { items, addItem } = useStorefrontCart();
   const [qty, setQty] = useState(1);
 
@@ -52,7 +53,7 @@ const StorefrontProductDetail = ({ product, accent, onClose }: Props) => {
           {product.description && (
             <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
           )}
-          <p className="text-2xl font-bold text-foreground">Bs {Number(product.price).toFixed(2)}</p>
+          <p className="text-2xl font-bold text-foreground">{currencySymbol} {Number(product.price).toFixed(2)}</p>
 
           {product.stock > 0 && (
             <p className="text-xs text-muted-foreground">
@@ -85,7 +86,7 @@ const StorefrontProductDetail = ({ product, accent, onClose }: Props) => {
                 className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-all hover:opacity-90"
                 style={{ backgroundColor: accent }}
               >
-                Agregar · Bs {(qty * product.price).toFixed(2)}
+                Agregar · {currencySymbol} {(qty * product.price).toFixed(2)}
               </button>
             </div>
           ) : (
