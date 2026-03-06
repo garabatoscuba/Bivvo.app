@@ -74,9 +74,12 @@ Deno.serve(async (req) => {
     });
 
     if (updateError) {
+      const msg = updateError.message?.includes("weak")
+        ? "La contraseña es muy débil o común. Elige una diferente."
+        : updateError.message || "Error al actualizar contraseña";
       return new Response(
-        JSON.stringify({ error: updateError.message || "Error al actualizar contraseña" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: msg }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
