@@ -7,26 +7,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Chrome, Apple } from "lucide-react";
+import { Loader2, Chrome, Apple, ArrowRight, ArrowLeft, Mail, Lock, User } from "lucide-react";
 import { z } from "zod";
 
 const emailSchema = z.string().email("Email inválido");
 const passwordSchema = z.string().min(6, "La contraseña debe tener al menos 6 caracteres");
 const nameSchema = z.string().min(2, "El nombre debe tener al menos 2 caracteres");
 
+type Step = "email" | "password" | "signup";
+
 const Auth = () => {
   const navigate = useNavigate();
   const { signIn, signUp, user, loading: authLoading } = useAuth();
   const { toast } = useToast();
 
+  const [step, setStep] = useState<Step>("email");
   const [isLoading, setIsLoading] = useState(false);
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [signupName, setSignupName] = useState("");
-  const [signupEmail, setSignupEmail] = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
@@ -66,61 +66,91 @@ const Auth = () => {
     }
   }, [user, authLoading, navigate]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleEmailContinue = (e: React.FormEvent) => {
     e.preventDefault();
-
     try {
-      emailSchema.parse(loginEmail);
-      passwordSchema.parse(loginPassword);
+      emailSchema.parse(email);
     } catch (err) {
       if (err instanceof z.ZodError) {
-        toast({
-          title: "Error de validación",
-          description: err.errors[0].message,
-          variant: "destructive",
-        });
+        toast({ title: "Error", description: err.errors[0].message, variant: "destructive" });
+        return;
+      }
+    }
+    setStep("password");
+  };
+
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      passwordSchema.parse(password);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        toast({ title: "Error", description: err.errors[0].message, variant: "destructive" });
         return;
       }
     }
 
     setIsLoading(true);
-    const { error } = await signIn(loginEmail, loginPassword);
+    const { error } = await signIn(email, password);
     setIsLoading(false);
 
     if (error) {
-      let message = "Error al iniciar sesión";
       if (error.message.includes("Invalid login credentials")) {
-        message = "Credenciales inválidas. Verifica tu email y contraseña.";
+        setStep("signup");
+        toast({
+          title: "Cuenta no encontrada",
+          description: "No encontramos una cuenta con esas credenciales. Completa los datos para crear una.",
+        });
       } else if (error.message.includes("Email not confirmed")) {
-        message = "Por favor confirma tu email antes de iniciar sesión.";
+        toast({ title: "Email no confirmado", description: "Revisa tu bandeja de entrada para confirmar tu cuenta.", variant: "destructive" });
+      } else {
+        toast({ title: "Error", description: "Error al iniciar sesión", variant: "destructive" });
       }
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
     } else {
-      toast({
-        title: "¡Bienvenido!",
-        description: "Has iniciado sesión correctamente.",
-      });
+      toast({ title: "¡Bienvenido!", description: "Has iniciado sesión correctamente." });
+    }
+  };
+
+  const handleSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      nameSchema.parse(signupName);
+      passwordSchema.parse(password);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        toast({ title: "Error", description: err.errors[0].message, variant: "destructive" });
+        return;
+      }
+    }
+    if (password !== signupConfirmPassword) {
+      toast({ title: "Error", description: "Las contraseñas no coinciden", variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await signUp(email, password, signupName);
+    setIsLoading(false);
+
+    if (error) {
+      let message = "Error al crear la cuenta";
+      if (error.message.includes("already registered")) {
+        message = "Este email ya está registrado. Intenta iniciar sesión.";
+        setStep("password");
+      }
+      toast({ title: "Error", description: message, variant: "destructive" });
+    } else {
+      toast({ title: "¡Cuenta creada!", description: "Revisa tu email para confirmar tu cuenta." });
     }
   };
 
   const handleGoogleSignIn = async () => {
     setGoogleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-      extraParams: {
-        prompt: "select_account",
-      },
+      redirect_dir: window.location.origin,
+      extraParams: { prompt: "select_account" },
     });
     if (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo iniciar sesión con Google. Intenta de nuevo.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "No se pudo iniciar sesión con Google.", variant: "destructive" });
     }
     setGoogleLoading(false);
   };
@@ -128,65 +158,12 @@ const Auth = () => {
   const handleAppleSignIn = async () => {
     setAppleLoading(true);
     const { error } = await lovable.auth.signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
+      redirect_dir: window.location.origin,
     });
     if (error) {
-      toast({
-        title: "Error",
-        description: "No se pudo iniciar sesión con Apple. Intenta de nuevo.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "No se pudo iniciar sesión con Apple.", variant: "destructive" });
     }
     setAppleLoading(false);
-  };
-
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    try {
-      nameSchema.parse(signupName);
-      emailSchema.parse(signupEmail);
-      passwordSchema.parse(signupPassword);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        toast({
-          title: "Error de validación",
-          description: err.errors[0].message,
-          variant: "destructive",
-        });
-        return;
-      }
-    }
-
-    if (signupPassword !== signupConfirmPassword) {
-      toast({
-        title: "Error",
-        description: "Las contraseñas no coinciden",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    const { error } = await signUp(signupEmail, signupPassword, signupName);
-    setIsLoading(false);
-
-    if (error) {
-      let message = "Error al crear la cuenta";
-      if (error.message.includes("already registered")) {
-        message = "Este email ya está registrado.";
-      }
-      toast({
-        title: "Error",
-        description: message,
-        variant: "destructive",
-      });
-    } else {
-      toast({
-        title: "¡Cuenta creada!",
-        description: "Revisa tu email para confirmar tu cuenta.",
-      });
-    }
   };
 
   if (authLoading) {
@@ -199,126 +176,183 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
+      <Card className="w-full max-w-md overflow-hidden">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">{isAffiliateFlow ? "Únete como Afiliado" : "Bienvenido"}</CardTitle>
+          <CardTitle className="text-2xl font-bold">
+            {isAffiliateFlow ? "Únete como Afiliado" : "Bienvenido"}
+          </CardTitle>
           <CardDescription>
-            {isAffiliateFlow
-              ? "Crea una cuenta o inicia sesión para completar tu afiliación"
-              : "Inicia sesión o crea una cuenta"}
+            {step === "email" && "Ingresa tu email para continuar"}
+            {step === "password" && "Ingresa tu contraseña"}
+            {step === "signup" && "Completa tus datos para crear tu cuenta"}
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3 mb-6">
-            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading}>
-              {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
-              Continuar con Google
-            </Button>
-            <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading}>
-              {appleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Apple className="mr-2 h-4 w-4" />}
-              Continuar con Apple
-            </Button>
-          </div>
+        <CardContent className="space-y-6">
+          {/* Step: Email */}
+          {step === "email" && (
+            <>
+              <div className="space-y-3">
+                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading}>
+                  {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
+                  Continuar con Google
+                </Button>
+                <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading}>
+                  {appleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Apple className="mr-2 h-4 w-4" />}
+                  Continuar con Apple
+                </Button>
+              </div>
 
-          <div className="relative mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">o con email</span>
-            </div>
-          </div>
-
-          <Tabs defaultValue="login" className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
-              <TabsTrigger value="signup">Registrarse</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="login-email">Email</Label>
-                  <Input
-                    id="login-email"
-                    type="email"
-                    placeholder="tu@email.com"
-                    value={loginEmail}
-                    onChange={(e) => setLoginEmail(e.target.value)}
-                    required
-                  />
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="login-password">Contraseña</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    required
-                  />
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">o con email</span>
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Iniciar Sesión
+              </div>
+
+              <form onSubmit={handleEmailContinue} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email" className="text-sm">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="tu@email.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="pl-10"
+                      required
+                      autoFocus
+                    />
+                  </div>
+                </div>
+                <Button type="submit" className="w-full gap-2">
+                  Continuar <ArrowRight className="h-4 w-4" />
                 </Button>
               </form>
-            </TabsContent>
+            </>
+          )}
 
-            <TabsContent value="signup">
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="signup-name">Nombre completo</Label>
+          {/* Step: Password (login attempt) */}
+          {step === "password" && (
+            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+              <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm">
+                <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="truncate">{email}</span>
+                <button
+                  type="button"
+                  onClick={() => { setStep("email"); setPassword(""); }}
+                  className="ml-auto text-xs text-primary hover:underline shrink-0"
+                >
+                  Cambiar
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-sm">Contraseña</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
+                    required
+                    autoFocus
+                  />
+                </div>
+              </div>
+
+              <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Iniciar sesión <ArrowRight className="h-4 w-4" />
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => { setStep("email"); setPassword(""); }}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mx-auto"
+              >
+                <ArrowLeft className="h-3 w-3" /> Volver
+              </button>
+            </form>
+          )}
+
+          {/* Step: Signup (after failed login) */}
+          {step === "signup" && (
+            <form onSubmit={handleSignup} className="space-y-4">
+              <div className="flex items-center gap-2 rounded-lg border bg-muted/50 px-3 py-2 text-sm">
+                <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                <span className="truncate">{email}</span>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="signup-name" className="text-sm">Nombre completo</Label>
+                <div className="relative">
+                  <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signup-name"
                     type="text"
                     placeholder="Tu nombre"
                     value={signupName}
                     onChange={(e) => setSignupName(e.target.value)}
+                    className="pl-10"
                     required
+                    autoFocus
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-email">Email</Label>
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="tu@email.com"
-                    value={signupEmail}
-                    onChange={(e) => setSignupEmail(e.target.value)}
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-password">Contraseña</Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="signup-password" className="text-sm">Contraseña</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signup-password"
                     type="password"
                     placeholder="••••••••"
-                    value={signupPassword}
-                    onChange={(e) => setSignupPassword(e.target.value)}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="pl-10"
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="signup-confirm">Confirmar contraseña</Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="signup-confirm" className="text-sm">Confirmar contraseña</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signup-confirm"
                     type="password"
                     placeholder="••••••••"
                     value={signupConfirmPassword}
                     onChange={(e) => setSignupConfirmPassword(e.target.value)}
+                    className="pl-10"
                     required
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                  Crear Cuenta
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+              </div>
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                Crear cuenta
+              </Button>
+
+              <button
+                type="button"
+                onClick={() => { setStep("password"); setSignupName(""); setSignupConfirmPassword(""); }}
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mx-auto"
+              >
+                <ArrowLeft className="h-3 w-3" /> Ya tengo cuenta
+              </button>
+            </form>
+          )}
         </CardContent>
       </Card>
     </div>
