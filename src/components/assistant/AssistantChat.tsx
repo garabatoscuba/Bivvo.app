@@ -127,6 +127,11 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
     return MODULE_QUESTIONS[currentModule] || DEFAULT_QUESTIONS;
   }, [currentModule]);
 
+  // Persist messages whenever they change (skip empty)
+  useEffect(() => {
+    if (messages.length > 0) persistMessages(messages);
+  }, [messages]);
+
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
