@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.bivoo-assistant]
 verify_jwt = false
+
+[functions.update-employee-password]
+verify_jwt = false
