@@ -482,6 +482,8 @@ interface RegisterCardProps {
   transfers: number;
   expectedCash: number;
   movements: any[];
+  canManage?: boolean;
+  onClose?: () => void;
 }
 
 const RegisterCard = ({
@@ -492,6 +494,8 @@ const RegisterCard = ({
   transfers,
   expectedCash,
   movements,
+  canManage,
+  onClose,
 }: RegisterCardProps) => {
   const [open, setOpen] = useState(false);
 
