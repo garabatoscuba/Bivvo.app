@@ -1,0 +1,1 @@
+ALTER TABLE public.plan_offers ADD COLUMN discount_duration_months integer DEFAULT NULL;

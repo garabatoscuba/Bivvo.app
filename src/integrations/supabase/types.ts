@@ -2081,6 +2081,7 @@ export type Database = {
           applies_to_plans: string[]
           created_at: string
           description: string | null
+          discount_duration_months: number | null
           discount_type: string
           discount_value: number
           expires_at: string | null
@@ -2096,6 +2097,7 @@ export type Database = {
           applies_to_plans?: string[]
           created_at?: string
           description?: string | null
+          discount_duration_months?: number | null
           discount_type?: string
           discount_value?: number
           expires_at?: string | null
@@ -2111,6 +2113,7 @@ export type Database = {
           applies_to_plans?: string[]
           created_at?: string
           description?: string | null
+          discount_duration_months?: number | null
           discount_type?: string
           discount_value?: number
           expires_at?: string | null
