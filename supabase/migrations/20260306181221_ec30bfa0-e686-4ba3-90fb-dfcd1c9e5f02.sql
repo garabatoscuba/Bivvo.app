@@ -1,0 +1,1 @@
+ALTER TABLE public.partners ADD COLUMN discount_duration_months integer DEFAULT NULL;

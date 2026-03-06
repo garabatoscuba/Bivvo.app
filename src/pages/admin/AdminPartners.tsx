@@ -63,6 +63,7 @@ const AdminPartners = () => {
   const [expiresAt, setExpiresAt] = useState('');
   const [commissionPercent, setCommissionPercent] = useState('10');
   const [commissionDuration, setCommissionDuration] = useState('');
+  const [discountDuration, setDiscountDuration] = useState('');
   const [isActive, setIsActive] = useState(true);
 
   // Referidos filter
@@ -169,6 +170,7 @@ const AdminPartners = () => {
     setExpiresAt('');
     setCommissionPercent('10');
     setCommissionDuration('');
+    setDiscountDuration('');
     setIsActive(true);
     setSearchResults([]);
     setDialogOpen(true);
@@ -186,6 +188,7 @@ const AdminPartners = () => {
     setExpiresAt(p.expires_at ? p.expires_at.split('T')[0] : '');
     setCommissionPercent(String(p.commission_percent));
     setCommissionDuration(p.commission_duration_months ? String(p.commission_duration_months) : '');
+    setDiscountDuration((p as any).discount_duration_months ? String((p as any).discount_duration_months) : '');
     setIsActive(p.is_active);
     setDialogOpen(true);
   };
@@ -202,6 +205,7 @@ const AdminPartners = () => {
         expires_at: expiresAt || null,
         commission_percent: Number(commissionPercent),
         commission_duration_months: commissionDuration ? Number(commissionDuration) : null,
+        discount_duration_months: discountDuration ? Number(discountDuration) : null,
         is_active: isActive,
       };
 
@@ -525,6 +529,11 @@ const AdminPartners = () => {
               <div className="space-y-1.5">
                 <Label className="text-sm">Meses comisión</Label>
                 <Input type="number" value={commissionDuration} onChange={e => setCommissionDuration(e.target.value)} placeholder="Indefinido" />
+              </div>
+              <div className="space-y-1.5 col-span-2">
+                <Label className="text-sm">Meses de descuento para referidos</Label>
+                <Input type="number" value={discountDuration} onChange={e => setDiscountDuration(e.target.value)} placeholder="Indefinido (aplica siempre)" />
+                <p className="text-[11px] text-muted-foreground">Cuántos meses el referido mantiene el descuento tras registrarse.</p>
               </div>
             </div>
 
