@@ -43,7 +43,22 @@ Deno.serve(async (req) => {
         })
         .eq('id', j.id)
 
-      if (!error) closedCount++
+      if (!error) {
+        closedCount++
+        // Auto-close orphaned cash register for this employee
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('user_id')
+          .eq('id', j.empleado_id)
+          .maybeSingle()
+        if (profileData?.user_id) {
+          await supabase
+            .from('cash_registers')
+            .update({ status: 'closed', closed_at: new Date().toISOString(), notes: 'Cierre automático: jornada mayor a 13 horas' })
+            .eq('user_id', profileData.user_id)
+            .eq('status', 'open')
+        }
+      }
     }
 
     // 2. Close jornadas from previous days
