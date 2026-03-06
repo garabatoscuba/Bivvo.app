@@ -40,7 +40,7 @@ const DURATION_OPTIONS = [
 
 const Plans = () => {
   const { status, daysLeft, planType, trialEndsAt, subscriptionEndsAt, totalBranches, totalMonthly } = useSubscription();
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
 
   const [requestOpen, setRequestOpen] = useState(false);
