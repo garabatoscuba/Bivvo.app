@@ -173,7 +173,7 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
           {/* Announcements */}
           {visibleAnnouncements.length > 0 && (
             <div className="shrink-0 border-b">
-              <div className="max-h-[120px] overflow-y-auto scrollbar-hide">
+              <div className="max-h-[200px] overflow-y-auto scrollbar-hide">
                 {visibleAnnouncements.map((a: any) => (
                   <div key={a.id} className="px-4 py-3 flex items-start gap-2 hover:bg-muted/40 transition-colors">
                     <div className="w-[3px] self-stretch rounded-full bg-primary shrink-0" />
