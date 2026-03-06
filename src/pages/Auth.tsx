@@ -190,7 +190,7 @@ const Auth = () => {
                 alt="Bivoo"
                 className="h-10 object-contain"
               />
-              <span className="text-[11px] text-muted-foreground tracking-wide mt-1">Automatización de Empresas</span>
+              <span className="text-[11px] font-semibold text-muted-foreground tracking-wide mt-2.5">Automatización de Empresas</span>
             </div>
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
