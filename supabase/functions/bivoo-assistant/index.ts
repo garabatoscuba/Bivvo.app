@@ -25,6 +25,89 @@ function buildRoleBlock(role: string): string {
   }
 }
 
+/* ── Fetch real business data based on active module ── */
+async function fetchModuleContext(
+  supabase: any,
+  business_id: string | null,
+  active_module: string | null
+): Promise<string> {
+  if (!business_id || !active_module) return "";
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const todayISO = today.toISOString();
+
+  try {
+    switch (active_module) {
+      case "tesoreria": {
+        const { data } = await supabase
+          .from("treasury_movements")
+          .select("amount, type")
+          .eq("business_id", business_id)
+          .gte("created_at", todayISO);
+        if (!data || data.length === 0) return "";
+        let income = 0, expense = 0;
+        for (const r of data) {
+          if (r.type === "income") income += Number(r.amount);
+          else if (r.type === "expense") expense += Number(r.amount);
+        }
+        return `Datos de hoy — Ingresos: $${income.toFixed(2)}, Gastos: $${expense.toFixed(2)}, Balance: $${(income - expense).toFixed(2)}`;
+      }
+      case "pos":
+      case "sales": {
+        const { data } = await supabase
+          .from("sales")
+          .select("total")
+          .eq("business_id", business_id)
+          .eq("status", "completed")
+          .gte("created_at", todayISO);
+        if (!data || data.length === 0) return "";
+        const count = data.length;
+        const total = data.reduce((s: number, r: any) => s + Number(r.total), 0);
+        const avg = count > 0 ? total / count : 0;
+        return `Ventas de hoy — Cantidad: ${count}, Total: $${total.toFixed(2)}, Ticket promedio: $${avg.toFixed(2)}`;
+      }
+      case "inventory": {
+        const { data } = await supabase
+          .from("products")
+          .select("name, stock_quantity")
+          .eq("business_id", business_id)
+          .gt("stock_quantity", 0)
+          .order("stock_quantity", { ascending: true })
+          .limit(5);
+        if (!data || data.length === 0) return "";
+        const items = data.map((p: any) => `${p.name} (${p.stock_quantity})`).join(", ");
+        return `Productos con stock bajo: ${items}`;
+      }
+      case "caja": {
+        const { data } = await supabase
+          .from("cash_register_movements")
+          .select("amount, movement_type")
+          .eq("business_id", business_id)
+          .gte("created_at", todayISO);
+        if (!data || data.length === 0) return "";
+        let ins = 0, outs = 0;
+        for (const r of data) {
+          if (r.movement_type === "insertion") ins += Number(r.amount);
+          else if (r.movement_type === "extraction") outs += Number(r.amount);
+        }
+        return `Movimientos de caja hoy — Entradas: $${ins.toFixed(2)}, Salidas: $${outs.toFixed(2)}`;
+      }
+      case "employees": {
+        const { count } = await supabase
+          .from("employees")
+          .select("id", { count: "exact", head: true })
+          .eq("business_id", business_id);
+        if (!count) return "";
+        return `Empleados activos: ${count}`;
+      }
+      default:
+        return "";
+    }
+  } catch {
+    return "";
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -84,9 +167,16 @@ Deno.serve(async (req) => {
           .join("\n");
     }
 
+    /* ── Fetch real-time module context ── */
+    const contextData = await fetchModuleContext(supabase, business_id, active_module);
+
     /* ── Build system prompt ── */
     const moduleContext = active_module
       ? `\nEl usuario está actualmente en el módulo: ${active_module}.`
+      : "";
+
+    const dataBlock = contextData
+      ? `\n\nDATOS ACTUALES DEL NEGOCIO:\n${contextData}`
       : "";
 
     const systemPrompt = [
@@ -96,6 +186,7 @@ Deno.serve(async (req) => {
       baseInstructions,
       moduleContext,
       trainingBlock,
+      dataBlock,
       `Responde siempre en español, de forma concisa y útil. No inventes datos.`,
     ]
       .filter(Boolean)
