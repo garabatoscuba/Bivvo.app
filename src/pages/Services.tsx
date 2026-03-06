@@ -357,6 +357,8 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
           <RecentEntriesList entries={todayEntries} isLoading={loadingEntries} isOwner={false} />
         </CardContent>
       </Card>
+      </>
+      )}
     </div>
   );
 };
