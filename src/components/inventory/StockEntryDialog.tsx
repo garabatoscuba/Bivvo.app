@@ -195,7 +195,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <FileText className="h-3.5 w-3.5 text-muted-foreground" />
-              Motivo de entrada *
+              Motivo de entrada
             </Label>
             <Select value={reason} onValueChange={setReason}>
               <SelectTrigger>
