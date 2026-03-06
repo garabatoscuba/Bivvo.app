@@ -785,7 +785,28 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-        {!isInstalled && (
+        {/* Partner section — only visible to users with partner role */}
+        {isPartner && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              Partner
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/mi-red")}>
+                    <Link to="/mi-red">
+                      <Network className="h-4 w-4" />
+                      <span className="text-sm">Mi Red</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+
           <SidebarGroup>
             <SidebarGroupContent>
               <SidebarMenu>
