@@ -1461,7 +1461,7 @@ export type Database = {
           business_id: string
           created_at: string
           employee_name: string
-          employee_user_id: string
+          employee_user_id: string | null
           id: string
           jornada_id: string | null
           payment_method: string
@@ -1473,7 +1473,7 @@ export type Database = {
           business_id: string
           created_at?: string
           employee_name: string
-          employee_user_id: string
+          employee_user_id?: string | null
           id?: string
           jornada_id?: string | null
           payment_method?: string
@@ -1485,7 +1485,7 @@ export type Database = {
           business_id?: string
           created_at?: string
           employee_name?: string
-          employee_user_id?: string
+          employee_user_id?: string | null
           id?: string
           jornada_id?: string | null
           payment_method?: string
@@ -1629,7 +1629,7 @@ export type Database = {
           product_id: string
           quantity: number
           reference_id: string | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           branch_id: string
@@ -1640,7 +1640,7 @@ export type Database = {
           product_id: string
           quantity: number
           reference_id?: string | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           branch_id?: string
@@ -1651,7 +1651,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           reference_id?: string | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2461,7 +2461,7 @@ export type Database = {
           product_id: string
           quantity: number
           sale_price_per_unit: number
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           branch_id: string
@@ -2474,7 +2474,7 @@ export type Database = {
           product_id: string
           quantity?: number
           sale_price_per_unit?: number
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           branch_id?: string
@@ -2487,7 +2487,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           sale_price_per_unit?: number
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -2944,7 +2944,7 @@ export type Database = {
           total: number
           transfer_amount: number
           updated_at: string
-          user_id: string
+          user_id: string | null
         }
         Insert: {
           amount_paid?: number
@@ -2963,7 +2963,7 @@ export type Database = {
           total?: number
           transfer_amount?: number
           updated_at?: string
-          user_id: string
+          user_id?: string | null
         }
         Update: {
           amount_paid?: number
@@ -2982,7 +2982,7 @@ export type Database = {
           total?: number
           transfer_amount?: number
           updated_at?: string
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
