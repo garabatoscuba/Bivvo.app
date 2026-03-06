@@ -15,6 +15,7 @@ interface Props {
   onTabChange: (tab: StorefrontTab) => void;
   portalPath: string;
   hasDelivery?: boolean;
+  currencySymbol: string;
 }
 
 const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portalPath, hasDelivery }: Props) => {
