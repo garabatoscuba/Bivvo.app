@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -32,6 +33,7 @@ const ENTRY_REASONS = [
 export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: StockEntryDialogProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
 
   const [qtyForSale, setQtyForSale] = useState(0);
   const [qtyWarehouse, setQtyWarehouse] = useState(0);
@@ -145,6 +147,12 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['bp-product-cost'] });
       toast({ title: `Entrada de ${totalQty} unidades registrada` });
+      auditLog(
+        'inventory_entry',
+        `Entrada de ${totalQty} unidades de ${product?.name} a $${parseFloat(unitCost || '0').toFixed(2)} c/u`,
+        product?.id,
+        'product'
+      );
       handleClose(false);
     } catch (err: any) {
       toast({ title: 'Error al dar entrada', description: err.message, variant: 'destructive' });

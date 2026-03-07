@@ -17,6 +17,7 @@ import DowngradeModal from '@/components/DowngradeModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft } from 'lucide-react';
 import { MovementsLog } from '@/components/inventory/MovementsLog';
 import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowDialog';
@@ -74,6 +75,7 @@ const Inventory = () => {
   const { categories, isLoading: categoriesLoading, deleteCategory } = useCategories();
   const { data: branches } = useBranches();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
   
   const [search, setSearch] = useState('');
   const [selectedBranch, setSelectedBranch] = useState<string>(() => {
@@ -307,6 +309,12 @@ const Inventory = () => {
 
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       toast({ title: `${transferQty} unidades pasadas a venta` });
+      auditLog(
+        'stock_transfer',
+        `Transferencia de ${transferQty} unidades de ${selectedProduct?.name} de almacén a venta`,
+        selectedProduct?.id,
+        'product'
+      );
       setTransferQty(0);
       setShowTransfer(false);
     } catch (err: any) {

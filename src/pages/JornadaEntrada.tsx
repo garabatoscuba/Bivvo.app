@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +16,7 @@ const JornadaEntrada = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { profile, user } = useAuth();
+  const auditLog = useAuditLog();
 
   const sucursalId = searchParams.get('sucursal');
 
@@ -135,6 +137,7 @@ const JornadaEntrada = () => {
 
     setStep('success');
     toast.success('¡Jornada iniciada! Bienvenido 👋');
+    auditLog('shift_started', `Jornada iniciada en ${branchName}`);
     setTimeout(() => navigate('/'), 1500);
   };
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -141,6 +142,7 @@ const Employees = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: branches = [] } = useBranches();
+  const auditLog = useAuditLog();
 
 
 
@@ -346,6 +348,7 @@ const Employees = () => {
       sonnerToast.error(error.message);
     } else {
       sonnerToast.success(`Jornada iniciada para ${emp.full_name}`);
+      auditLog('shift_started', `Jornada iniciada en sucursal (por gerente) para ${emp.full_name}`, undefined, 'jornada');
       queryClient.invalidateQueries({ queryKey: ['jornadas-activas-business'] });
       queryClient.invalidateQueries({ queryKey: ['equipo-activo'] });
     }
@@ -425,6 +428,7 @@ const Employees = () => {
         if (error) throw error;
         employeeId = editingEmployee.id;
         sonnerToast.success('Empleado actualizado');
+        auditLog('employee_edited', `Empleado ${form.full_name} editado`, editingEmployee.id, 'employee');
       } else {
         const { data, error } = await supabase
           .from('employees')
@@ -445,6 +449,7 @@ const Employees = () => {
           .single();
         if (error) throw error;
         employeeId = data.id;
+        auditLog('employee_created', `Empleado ${form.full_name} creado con rol ${form.assigned_roles[0] || 'seller'}`, data.id, 'employee');
 
         if (form.use_bivoo_id) {
           // Create @bivoo.app account via edge function
@@ -578,12 +583,14 @@ const Employees = () => {
   };
 
   const handleDeleteEmployee = async (id: string) => {
+    const emp = hrEmployees.find(e => e.id === id);
     const { error } = await supabase.from('employees').delete().eq('id', id);
     if (error) {
       sonnerToast.error(error.message);
     } else {
       queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
       sonnerToast.success('Empleado eliminado');
+      auditLog('employee_deleted', `Empleado ${emp?.full_name || 'desconocido'} eliminado`, id, 'employee');
     }
   };
 

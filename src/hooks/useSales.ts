@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
 import { toast } from '@/hooks/use-toast';
@@ -22,6 +23,7 @@ export const useSales = (branchId?: string | null) => {
   const { user } = useAuth();
   const { isOnline } = useOffline();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
 
   // Query: list sales with seller and customer names
   const salesQuery = useQuery({
@@ -315,6 +317,14 @@ export const useSales = (branchId?: string | null) => {
         title: 'Venta completada',
         description: `Venta ${sale.sale_number} por $${sale.total.toFixed(2)}${!isOnline ? ' (guardada offline)' : ''}`
       });
+      // Audit log
+      const itemCount = (sale as any)._offline ? 0 : undefined;
+      auditLog(
+        'sale_created',
+        `Venta registrada por $${sale.total.toFixed(2)} — ${sale.sale_number}`,
+        sale.id,
+        'sale'
+      );
     },
     onError: (error) => {
       toast({
@@ -349,9 +359,15 @@ export const useSales = (branchId?: string | null) => {
         });
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       toast({ title: 'Venta cancelada' });
+      auditLog(
+        'sale_cancelled',
+        `Venta cancelada — motivo: ${variables.reason}`,
+        variables.saleId,
+        'sale'
+      );
     },
     onError: (error) => {
       toast({ title: 'Error al cancelar', description: error.message, variant: 'destructive' });

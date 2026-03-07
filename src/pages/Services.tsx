@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { useIsDowngraded } from '@/hooks/useIsDowngraded';
 import DowngradeModal from '@/components/DowngradeModal';
 import { useSearchParams } from 'react-router-dom';
@@ -95,6 +96,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isDowngraded } = useIsDowngraded();
+  const auditLog = useAuditLog();
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const businessId = employeeBusinessId;
   const branchId = employeeBranchId;
@@ -178,6 +180,13 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       queryClient.invalidateQueries({ queryKey: ['service-entries'] });
       queryClient.invalidateQueries({ queryKey: ['service-entries-recent'] });
       toast({ title: '✓ Servicio registrado' });
+      const catName = isLiveService ? liveServiceName : categories.find((c: any) => c.id === selectedCatId)?.name || 'Servicio';
+      auditLog(
+        'service_charge_created',
+        `Cobro de servicio ${catName} por $${parseFloat(amount).toFixed(2)}`,
+        undefined,
+        'service_entry'
+      );
       setDescription('');
       setAmount('');
       setSelectedCatId(null);
@@ -376,6 +385,7 @@ const OwnerServicesView = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isDowngraded } = useIsDowngraded();
+  const auditLog = useAuditLog();
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const canManage = isOwner || isManager;
   const businessId = profile?.business_id;
@@ -496,6 +506,13 @@ const OwnerServicesView = () => {
       queryClient.invalidateQueries({ queryKey: ['service-entries'] });
       queryClient.invalidateQueries({ queryKey: ['service-entries-recent'] });
       toast({ title: 'Servicio registrado' });
+      const catName = entryIsLive ? entryLiveName : categories.find((c: any) => c.id === entryCategoryId)?.name || 'Servicio';
+      auditLog(
+        'service_charge_created',
+        `Cobro de servicio ${catName} por $${parseFloat(entryAmount).toFixed(2)}`,
+        undefined,
+        'service_entry'
+      );
       setEntryDialogOpen(false);
       setEntryDescription('');
       setEntryAmount('');

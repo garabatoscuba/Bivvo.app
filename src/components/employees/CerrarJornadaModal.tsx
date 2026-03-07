@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 interface CerrarJornadaModalProps {
   open: boolean;
@@ -36,6 +37,7 @@ const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalP
   const [closing, setClosing] = useState(false);
   const queryClient = useQueryClient();
   const { profile } = useAuth();
+  const auditLog = useAuditLog();
 
   const duration = calcDuration(jornada.apertura_at);
   const entryTime = new Date(jornada.apertura_at).toLocaleTimeString('es', {
@@ -73,6 +75,7 @@ const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalP
     queryClient.invalidateQueries({ queryKey: ['active-cash-register'] });
     queryClient.invalidateQueries({ queryKey: ['owner-open-registers'] });
     toast.success('Jornada cerrada. ¡Hasta luego! 👋');
+    auditLog('shift_ended', `Jornada cerrada — Duración: ${duration.text}`, jornada.id, 'jornada');
     onOpenChange(false);
   };
 

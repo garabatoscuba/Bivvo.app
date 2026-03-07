@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -46,6 +47,7 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
 
   const [openingAmount, setOpeningAmount] = useState("");
   const [showCloseDialog, setShowCloseDialog] = useState(false);
@@ -244,6 +246,8 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
       queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
       queryClient.invalidateQueries({ queryKey: ["last-closed-fund"] });
       toast({ title: "Caja abierta" });
+      const openAmount = autoOpeningAmount || Number(openingAmount) || 0;
+      auditLog('cash_register_opened', `Caja abierta con fondo de $${openAmount.toFixed(2)}`);
       setOpeningAmount("");
       setBillCounts({});
     },
@@ -294,6 +298,15 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
       setBillCounts({});
       setCloseNotes("");
       toast({ title: "Caja cerrada exitosamente" });
+      const totalCash = salesData?.cash || 0;
+      const totalTransfersVal = (salesData?.transfer || 0) + (servicesData?.transfer || 0);
+      const totalAll = totalCash + totalTransfersVal;
+      auditLog(
+        'cash_register_closed',
+        `Caja cerrada — Efectivo: $${totalCash.toFixed(2)}, Transferencias: $${totalTransfersVal.toFixed(2)}, Total: $${totalAll.toFixed(2)}`,
+        activeRegister?.id,
+        'cash_register'
+      );
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });

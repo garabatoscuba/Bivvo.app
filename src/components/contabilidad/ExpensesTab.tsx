@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, addYears, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isBefore, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -83,6 +84,7 @@ interface ExpensesTabProps {
 const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const auditLog = useAuditLog();
   const [period, setPeriod] = useState<PeriodKey>("month");
   const [fixedDialog, setFixedDialog] = useState(false);
   const [unexpectedDialog, setUnexpectedDialog] = useState(false);
@@ -319,10 +321,16 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
         });
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, expense) => {
       toast.success("Gasto marcado como pagado");
       qc.invalidateQueries({ queryKey: ["accounting-expenses"] });
       qc.invalidateQueries({ queryKey: ["treasury-movements"] });
+      auditLog(
+        'expense_paid',
+        `Gasto '${expense.name}' marcado como pagado por $${expense.amount.toLocaleString()}`,
+        expense.id,
+        'accounting_expense'
+      );
     },
     onError: (err: any) => toast.error(err.message),
   });

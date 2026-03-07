@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -52,6 +53,7 @@ export const MermaDialog = ({
 }: MermaDialogProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
 
   const [productId, setProductId] = useState(preselectedProductId || '');
   const [quantity, setQuantity] = useState(1);
@@ -108,6 +110,13 @@ export const MermaDialog = ({
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       toast({ title: 'Merma registrada', description: `${quantity} unidad(es) de ${selectedProduct?.name} descontadas del inventario` });
+      const reasonLabel = MERMA_REASONS.find(r => r.value === reason)?.label || reason;
+      auditLog(
+        'shrinkage_registered',
+        `Merma de ${quantity} unidades de ${selectedProduct?.name} — motivo: ${reasonLabel}`,
+        productId,
+        'product'
+      );
       resetForm();
       onOpenChange(false);
     },

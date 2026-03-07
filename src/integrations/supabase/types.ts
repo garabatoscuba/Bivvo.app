@@ -708,6 +708,72 @@ export type Database = {
         }
         Relationships: []
       }
+      audit_logs: {
+        Row: {
+          action_description: string
+          action_type: string
+          branch_id: string | null
+          business_id: string
+          code: string
+          created_at: string
+          device_info: string | null
+          entity_id: string | null
+          entity_type: string | null
+          id: string
+          ip_address: string | null
+          user_id: string
+          user_name: string
+          user_role: string
+        }
+        Insert: {
+          action_description?: string
+          action_type: string
+          branch_id?: string | null
+          business_id: string
+          code: string
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          user_id: string
+          user_name?: string
+          user_role?: string
+        }
+        Update: {
+          action_description?: string
+          action_type?: string
+          branch_id?: string | null
+          business_id?: string
+          code?: string
+          created_at?: string
+          device_info?: string | null
+          entity_id?: string | null
+          entity_type?: string | null
+          id?: string
+          ip_address?: string | null
+          user_id?: string
+          user_name?: string
+          user_role?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       branch_stock: {
         Row: {
           branch_id: string
@@ -3717,6 +3783,21 @@ export type Database = {
       }
       increment_feature_usage: {
         Args: { _business_id: string; _feature_key: string; _user_id: string }
+        Returns: undefined
+      }
+      insert_audit_log: {
+        Args: {
+          _action_description: string
+          _action_type: string
+          _branch_id: string
+          _business_id: string
+          _device_info?: string
+          _entity_id?: string
+          _entity_type?: string
+          _user_id: string
+          _user_name: string
+          _user_role: string
+        }
         Returns: undefined
       }
       is_employee_of_business: {
