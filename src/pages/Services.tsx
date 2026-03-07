@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useIsDowngraded } from '@/hooks/useIsDowngraded';
+import DowngradeModal from '@/components/DowngradeModal';
 import { useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
@@ -92,6 +94,8 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isDowngraded } = useIsDowngraded();
+  const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const businessId = employeeBusinessId;
   const branchId = employeeBranchId;
 
@@ -212,6 +216,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     : !!selectedCatId && !!amount && parseFloat(amount) > 0 && !createEntryMutation.isPending;
 
   return (
+    <>
     <div className="space-y-4 md:space-y-6">
       <div>
         <h1 className="text-xl md:text-2xl font-bold">Servicios</h1>
@@ -342,7 +347,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
             </div>
           </div>
 
-          <Button className="w-full" onClick={() => createEntryMutation.mutate()} disabled={!canSubmit}>
+          <Button className="w-full" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } createEntryMutation.mutate(); }} disabled={!canSubmit}>
             {createEntryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
             Registrar Cobro
           </Button>
@@ -360,6 +365,8 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       </>
       )}
     </div>
+    <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
+    </>
   );
 };
 
@@ -368,6 +375,8 @@ const OwnerServicesView = () => {
   const { profile, user, isOwner, isManager } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isDowngraded } = useIsDowngraded();
+  const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const canManage = isOwner || isManager;
   const businessId = profile?.business_id;
   const branchId = profile?.branch_id;
@@ -554,7 +563,7 @@ const OwnerServicesView = () => {
           <h1 className="text-xl md:text-2xl font-bold">Servicios</h1>
           <p className="text-sm text-muted-foreground">Gestión de servicios y cobros</p>
         </div>
-        <Button onClick={() => setEntryDialogOpen(true)}>
+        <Button onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } setEntryDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Nuevo Cobro
         </Button>
       </div>
@@ -583,7 +592,7 @@ const OwnerServicesView = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Categorías de Servicio</CardTitle>
                 {canManage && (
-                  <Button variant="outline" size="sm" onClick={handleOpenNewCat}>
+                  <Button variant="outline" size="sm" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } handleOpenNewCat(); }}>
                     <Plus className="h-3.5 w-3.5 mr-1" /> Agregar
                   </Button>
                 )}
@@ -611,10 +620,10 @@ const OwnerServicesView = () => {
                         </div>
                         {canManage && (
                           <div className="flex items-center gap-0.5 shrink-0">
-                            <button className="p-1 rounded hover:bg-muted" onClick={() => handleEditCat(cat)}>
+                            <button className="p-1 rounded hover:bg-muted" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } handleEditCat(cat); }}>
                               <Pencil className="h-3 w-3 text-muted-foreground" />
                             </button>
-                            <button className="p-1 rounded hover:bg-muted" onClick={() => deleteCatMutation.mutate(cat.id)}>
+                            <button className="p-1 rounded hover:bg-muted" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } deleteCatMutation.mutate(cat.id); }}>
                               <Trash2 className="h-3 w-3 text-destructive" />
                             </button>
                           </div>
@@ -832,6 +841,7 @@ const OwnerServicesView = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
     </div>
   );
 };

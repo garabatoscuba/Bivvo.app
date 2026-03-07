@@ -12,6 +12,8 @@ import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
 import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useIsDowngraded } from '@/hooks/useIsDowngraded';
+import DowngradeModal from '@/components/DowngradeModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -117,6 +119,8 @@ const Inventory = () => {
   const [outflowProduct, setOutflowProduct] = useState<Product | null>(null);
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [mermaOpen, setMermaOpen] = useState(false);
+  const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
+  const { isDowngraded } = useIsDowngraded();
 
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
 
@@ -380,6 +384,15 @@ const Inventory = () => {
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
 
+  // Downgrade guard: returns true (blocked) if downgraded, showing the modal
+  const guardDowngrade = (): boolean => {
+    if (isDowngraded) {
+      setDowngradeModalOpen(true);
+      return true;
+    }
+    return false;
+  };
+
   if (!canBypassJornada && jornadaLoading) {
     return (
       <AppLayout>
@@ -448,6 +461,7 @@ const Inventory = () => {
                   className="inline-flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (guardDowngrade()) return;
                     if (!canCreateProduct) {
                       toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos. Mejora tu plan para agregar más.`, variant: 'destructive' });
                       return;
@@ -468,6 +482,7 @@ const Inventory = () => {
                   className="inline-flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
                   onClick={(e) => {
                     e.stopPropagation();
+                    if (guardDowngrade()) return;
                     if (!canCreateCategory) {
                       toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_CATEGORY_LIMIT} categorías. Mejora tu plan para agregar más.`, variant: 'destructive' });
                       return;
@@ -557,6 +572,7 @@ const Inventory = () => {
                 </p>
                 {canManage && !search && (
                   <Button className="mt-4" onClick={() => {
+                    if (guardDowngrade()) return;
                     if (!canCreateProduct) {
                       toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos.`, variant: 'destructive' });
                       return;
@@ -582,10 +598,10 @@ const Inventory = () => {
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
-                        onAddStock={() => { setStockEntryProduct(product); }}
-                        onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
-                        onOutflow={() => setOutflowProduct(product)}
-                        onReturnToWarehouse={() => { setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                        onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                        onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                        onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                        onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
                       />
                     ))}
                     <Separator className="my-2" />
@@ -603,10 +619,10 @@ const Inventory = () => {
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
-                        onAddStock={() => { setStockEntryProduct(product); }}
-                        onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
-                        onOutflow={() => setOutflowProduct(product)}
-                        onReturnToWarehouse={() => { setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                        onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                        onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                        onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                        onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
                       />
                     ))}
                   </div>
@@ -683,7 +699,7 @@ const Inventory = () => {
           <TabsContent value="mermas" className="mt-4">
             <MermasTab
               branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
-              onRegisterMerma={() => setMermaOpen(true)}
+              onRegisterMerma={() => { if (!guardDowngrade()) setMermaOpen(true); }}
             />
           </TabsContent>
         </Tabs>
@@ -791,6 +807,7 @@ const Inventory = () => {
                         variant="outline" 
                         className="w-full justify-start"
                          onClick={() => {
+                           if (guardDowngrade()) return;
                            const prod = selectedProduct;
                            setStockEntryProduct(prod);
                            setSelectedProduct(null);
@@ -804,6 +821,7 @@ const Inventory = () => {
                           variant="outline" 
                           className="w-full justify-start"
                           onClick={() => {
+                            if (guardDowngrade()) return;
                             const dir = selectedWarehouseStock > 0 ? 'toSale' : 'toWarehouse';
                             setTransferDirection(dir);
                             setShowTransfer(true);
@@ -819,6 +837,7 @@ const Inventory = () => {
                           variant="outline" 
                           className="w-full justify-start"
                           onClick={() => {
+                            if (guardDowngrade()) return;
                             setOutflowProduct(selectedProduct);
                             setSelectedProduct(null);
                           }}
@@ -976,6 +995,7 @@ const Inventory = () => {
         products={products.map(p => ({ id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price) }))}
         stockMap={stockMap}
       />
+      <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
     </AppLayout>
   );
 };
