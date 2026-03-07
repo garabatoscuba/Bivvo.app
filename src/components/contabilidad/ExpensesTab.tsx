@@ -16,8 +16,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
+import { ChartContainer } from "@/components/ui/chart";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RTooltip } from "recharts";
 import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt } from "lucide-react";
 
 // ── Types ──
@@ -427,7 +427,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <RTooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '8px' }} labelStyle={{ color: '#fff' }} itemStyle={{ color: '#fff' }} />
                 <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
