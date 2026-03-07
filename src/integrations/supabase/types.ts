@@ -1924,6 +1924,74 @@ export type Database = {
           },
         ]
       }
+      inventory_counts: {
+        Row: {
+          branch_id: string
+          business_id: string
+          counted_stock: number
+          created_at: string
+          difference: number
+          id: string
+          product_id: string
+          shift_id: string | null
+          system_stock: number
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          business_id: string
+          counted_stock?: number
+          created_at?: string
+          difference?: number
+          id?: string
+          product_id: string
+          shift_id?: string | null
+          system_stock?: number
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          business_id?: string
+          counted_stock?: number
+          created_at?: string
+          difference?: number
+          id?: string
+          product_id?: string
+          shift_id?: string | null
+          system_stock?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_counts_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_counts_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_counts_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_counts_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "jornadas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_movements: {
         Row: {
           branch_id: string
