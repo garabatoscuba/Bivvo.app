@@ -92,10 +92,8 @@ const Contabilidad = () => {
           <AssetsTab businessId={profile.business_id} branchId={filterBranchId} />
         )}
 
-        {activeTab === "analisis" && (
-          <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-            Próximamente
-          </div>
+        {activeTab === "analisis" && profile?.business_id && (
+          <AnalysisTab businessId={profile.business_id} branchId={filterBranchId} />
         )}
       </div>
     </AppLayout>
