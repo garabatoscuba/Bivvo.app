@@ -58,12 +58,7 @@ export default function AssistantContextMenu({ open, onOpenChange, onAction, chi
       else if (value === 'capital') onAction('capital');
       else onAction('custom', a.action_payload);
     } else if (a.action_type === 'navigate') {
-      // For navigate actions, resolve owner vs employee routing
-      let route = value;
-      if (route === '/tesoreria' && !isOwner && !isSuperAdmin) {
-        route = '/caja';
-      }
-      navigate(route);
+      navigate(value);
     } else {
       onAction('custom', a.action_payload);
     }

@@ -200,7 +200,7 @@ function ConfigGlobalTab() {
                 {actionType === 'treasury_action' ? 'Valor: "gasto" o "capital"' : actionType === 'navigate' ? 'Ruta del sistema, ej: /caja' : 'Identificador del recurso'}
               </p>
             </div>
-            <div><Label>{actionType === 'navigate' ? 'Ruta del sistema' : 'Valor'}</Label><Input value={actionPayload} onChange={e => setActionPayload(e.target.value)} placeholder={actionType === 'navigate' ? '/tesoreria' : actionType === 'treasury_action' ? 'gasto' : 'valor'} className="mt-1" /></div>
+            <div><Label>{actionType === 'navigate' ? 'Ruta del sistema' : 'Valor'}</Label><Input value={actionPayload} onChange={e => setActionPayload(e.target.value)} placeholder={actionType === 'navigate' ? '/caja' : actionType === 'treasury_action' ? 'gasto' : 'valor'} className="mt-1" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog(false)}>Cancelar</Button>

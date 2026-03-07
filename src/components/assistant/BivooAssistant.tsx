@@ -76,9 +76,9 @@ export default function BivooAssistant() {
 
   const handleAction = useCallback((type: 'gasto' | 'capital' | 'custom', payload?: any) => {
     if (type === 'gasto') {
-      navigate('/tesoreria?prefill=extraccion');
+      navigate('/caja');
     } else if (type === 'capital') {
-      navigate('/tesoreria?prefill=inyeccion');
+      navigate('/caja');
     }
   }, [navigate]);
 
