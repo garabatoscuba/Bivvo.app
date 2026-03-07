@@ -348,6 +348,7 @@ const Employees = () => {
       sonnerToast.error(error.message);
     } else {
       sonnerToast.success(`Jornada iniciada para ${emp.full_name}`);
+      auditLog('shift_started', `Jornada iniciada en sucursal (por gerente) para ${emp.full_name}`, undefined, 'jornada');
       queryClient.invalidateQueries({ queryKey: ['jornadas-activas-business'] });
       queryClient.invalidateQueries({ queryKey: ['equipo-activo'] });
     }
