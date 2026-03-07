@@ -43,6 +43,7 @@ const Cobros = lazy(() => import("./pages/Cobros"));
 const Nomina = lazy(() => import("./pages/Nomina"));
 const Caja = lazy(() => import("./pages/Caja"));
 const Tesoreria = lazy(() => import("./pages/Tesoreria"));
+const Contabilidad = lazy(() => import("./pages/Contabilidad"));
 const JornadaEntrada = lazy(() => import("./pages/JornadaEntrada"));
 const OnboardingEmpleado = lazy(() => import("./pages/OnboardingEmpleado"));
 const MyEmployment = lazy(() => import("./pages/MyEmployment"));

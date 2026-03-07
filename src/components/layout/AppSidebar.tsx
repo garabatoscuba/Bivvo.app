@@ -422,6 +422,7 @@ const AppSidebar = () => {
     Nómina: "/nomina",
     Caja: "/caja",
     Tesorería: "/tesoreria",
+    Contabilidad: "/contabilidad",
     Impresiones2: "/impresiones",
   };
 
