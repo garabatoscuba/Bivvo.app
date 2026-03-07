@@ -74,7 +74,7 @@ const Contabilidad = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="gastos">
+          <TabsContent value="gastos" forceMount className={activeTab !== "gastos" ? "hidden" : ""}>
             {profile?.business_id && (
               <ExpensesTab businessId={profile.business_id} branchId={filterBranchId} />
             )}
