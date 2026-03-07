@@ -47,6 +47,7 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
 
   const [openingAmount, setOpeningAmount] = useState("");
   const [showCloseDialog, setShowCloseDialog] = useState(false);
