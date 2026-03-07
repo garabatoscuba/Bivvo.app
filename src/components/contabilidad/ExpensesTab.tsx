@@ -249,7 +249,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
         amount: parseFloat(formAmount) || 0,
         expense_type: type,
         frequency: type === "fixed" ? formFrequency : null,
-        category_id: formCategoryId || null,
+        category_id: formCategoryId && formCategoryId !== "none" ? formCategoryId : null,
         status: type === "unexpected" ? "paid" : "pending",
         due_date: type === "fixed" ? (formDueDate || getNextDueDate(null, formFrequency)) : (formDueDate || new Date().toISOString()),
         paid_at: type === "unexpected" ? new Date().toISOString() : null,
