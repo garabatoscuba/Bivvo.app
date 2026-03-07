@@ -85,7 +85,7 @@ const Dashboard = () => {
   }, [profile?.user_id, profile?.country, (profile as any)?.onboarding_completed, isEmployee, isBivooAccount]);
 
   const planNoticeStorageKey = profile?.user_id ? `bivoo-plan-notice-${profile.user_id}` : null;
-  const planNoticeValue = `${planType}:${profile?.subscription_ends_at || profile?.trial_ends_at || 'active'}`;
+  const planNoticeValue = `${planType}:${profile?.subscription_status || 'none'}`;
 
   // Show info-only popup when a paid plan becomes active (without asking business name/type again)
   useEffect(() => {
