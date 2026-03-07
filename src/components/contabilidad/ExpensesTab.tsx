@@ -476,7 +476,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditFixed(e)} title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteMutation.mutate(e.id)} title="Eliminar">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(e.id)} title="Eliminar">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
