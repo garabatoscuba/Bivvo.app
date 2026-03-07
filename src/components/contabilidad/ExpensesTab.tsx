@@ -84,6 +84,7 @@ interface ExpensesTabProps {
 const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const { user } = useAuth();
   const qc = useQueryClient();
+  const auditLog = useAuditLog();
   const [period, setPeriod] = useState<PeriodKey>("month");
   const [fixedDialog, setFixedDialog] = useState(false);
   const [unexpectedDialog, setUnexpectedDialog] = useState(false);
