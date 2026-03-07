@@ -251,6 +251,31 @@ const AdminPartners = () => {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (partner: PartnerRow) => {
+      // Delete payouts, referrals, then partner, then remove role if no other partner entries
+      await supabase.from('partner_payouts').delete().eq('partner_id', partner.id);
+      await supabase.from('partner_referrals').delete().eq('partner_id', partner.id);
+      const { error } = await supabase.from('partners').delete().eq('id', partner.id);
+      if (error) throw error;
+      // Check if user has other partner entries
+      const { data: remaining } = await supabase.from('partners').select('id').eq('user_id', partner.user_id);
+      if (!remaining?.length) {
+        await supabase.from('user_roles').delete().eq('user_id', partner.user_id).eq('role', 'partner');
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-partners'] });
+      qc.invalidateQueries({ queryKey: ['admin-partner-referrals'] });
+      toast({ title: 'Partner eliminado' });
+      setDeleteDialogOpen(false);
+      setDeletingPartner(null);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error al eliminar', description: err.message, variant: 'destructive' });
+    },
+  });
+
   const toggleActive = async (p: PartnerRow) => {
     await supabase.from('partners').update({ is_active: !p.is_active }).eq('id', p.id);
     qc.invalidateQueries({ queryKey: ['admin-partners'] });
