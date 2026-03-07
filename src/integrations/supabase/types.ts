@@ -1115,6 +1115,8 @@ export type Database = {
       cash_register_movements: {
         Row: {
           amount: number
+          archived: boolean
+          archived_at: string | null
           branch_id: string
           business_id: string
           cash_register_id: string
@@ -1126,6 +1128,8 @@ export type Database = {
         }
         Insert: {
           amount: number
+          archived?: boolean
+          archived_at?: string | null
           branch_id: string
           business_id: string
           cash_register_id: string
@@ -1137,6 +1141,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          archived?: boolean
+          archived_at?: string | null
           branch_id?: string
           business_id?: string
           cash_register_id?: string
@@ -1419,6 +1425,8 @@ export type Database = {
       daily_reports: {
         Row: {
           active_workers: number
+          archived: boolean
+          archived_at: string | null
           branch_id: string
           business_id: string
           cash_counted: number
@@ -1452,6 +1460,8 @@ export type Database = {
         }
         Insert: {
           active_workers?: number
+          archived?: boolean
+          archived_at?: string | null
           branch_id: string
           business_id: string
           cash_counted?: number
@@ -1485,6 +1495,8 @@ export type Database = {
         }
         Update: {
           active_workers?: number
+          archived?: boolean
+          archived_at?: string | null
           branch_id?: string
           business_id?: string
           cash_counted?: number
@@ -2046,6 +2058,8 @@ export type Database = {
       jornadas: {
         Row: {
           apertura_at: string
+          archived: boolean
+          archived_at: string | null
           cierre_at: string | null
           created_at: string
           duracion_min: number | null
@@ -2060,6 +2074,8 @@ export type Database = {
         }
         Insert: {
           apertura_at?: string
+          archived?: boolean
+          archived_at?: string | null
           cierre_at?: string | null
           created_at?: string
           duracion_min?: number | null
@@ -2074,6 +2090,8 @@ export type Database = {
         }
         Update: {
           apertura_at?: string
+          archived?: boolean
+          archived_at?: string | null
           cierre_at?: string | null
           created_at?: string
           duracion_min?: number | null
@@ -3302,6 +3320,8 @@ export type Database = {
       sales: {
         Row: {
           amount_paid: number
+          archived: boolean
+          archived_at: string | null
           branch_id: string
           cancellation_reason: string | null
           cash_amount: number
@@ -3321,6 +3341,8 @@ export type Database = {
         }
         Insert: {
           amount_paid?: number
+          archived?: boolean
+          archived_at?: string | null
           branch_id: string
           cancellation_reason?: string | null
           cash_amount?: number
@@ -3340,6 +3362,8 @@ export type Database = {
         }
         Update: {
           amount_paid?: number
+          archived?: boolean
+          archived_at?: string | null
           branch_id?: string
           cancellation_reason?: string | null
           cash_amount?: number
@@ -3687,6 +3711,8 @@ export type Database = {
       treasury_movements: {
         Row: {
           amount: number
+          archived: boolean
+          archived_at: string | null
           branch_id: string | null
           business_id: string
           cash_amount: number
@@ -3703,6 +3729,8 @@ export type Database = {
         }
         Insert: {
           amount: number
+          archived?: boolean
+          archived_at?: string | null
           branch_id?: string | null
           business_id: string
           cash_amount?: number
@@ -3719,6 +3747,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          archived?: boolean
+          archived_at?: string | null
           branch_id?: string | null
           business_id?: string
           cash_amount?: number
