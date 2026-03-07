@@ -837,6 +837,7 @@ const Inventory = () => {
                           variant="outline" 
                           className="w-full justify-start"
                           onClick={() => {
+                            if (guardDowngrade()) return;
                             setOutflowProduct(selectedProduct);
                             setSelectedProduct(null);
                           }}
