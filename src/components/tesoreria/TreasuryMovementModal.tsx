@@ -99,7 +99,7 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
         transfer_amount: transfer,
         reason: reason.trim() || null,
         origin: origin.trim() || null,
-        category_id: categoryId || null,
+        category_id: null,
         label,
         registered_by: profile!.user_id,
       });
