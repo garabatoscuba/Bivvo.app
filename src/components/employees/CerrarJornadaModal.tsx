@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { useAuditLog } from '@/hooks/useAuditLog';
 
 interface CerrarJornadaModalProps {
   open: boolean;
