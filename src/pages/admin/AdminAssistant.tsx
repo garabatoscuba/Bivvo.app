@@ -197,7 +197,7 @@ function ConfigGlobalTab() {
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-muted-foreground mt-1">
-                {actionType === 'treasury_action' ? 'Valor: "gasto" o "capital"' : actionType === 'navigate' ? 'Ruta del sistema, ej: /tesoreria' : 'Identificador del recurso'}
+                {actionType === 'treasury_action' ? 'Valor: "gasto" o "capital"' : actionType === 'navigate' ? 'Ruta del sistema, ej: /caja' : 'Identificador del recurso'}
               </p>
             </div>
             <div><Label>{actionType === 'navigate' ? 'Ruta del sistema' : 'Valor'}</Label><Input value={actionPayload} onChange={e => setActionPayload(e.target.value)} placeholder={actionType === 'navigate' ? '/tesoreria' : actionType === 'treasury_action' ? 'gasto' : 'valor'} className="mt-1" /></div>
