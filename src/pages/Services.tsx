@@ -216,7 +216,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     : !!selectedCatId && !!amount && parseFloat(amount) > 0 && !createEntryMutation.isPending;
 
   return (
-    <div className="space-y-4 md:space-y-6">
+    <>
       <div>
         <h1 className="text-xl md:text-2xl font-bold">Servicios</h1>
         <p className="text-sm text-muted-foreground">Registra cobros de servicios</p>
