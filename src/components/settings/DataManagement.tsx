@@ -68,45 +68,14 @@ function PeriodCloseModal({ open, onOpenChange }: { open: boolean; onOpenChange:
       const now = new Date().toISOString();
       const businessId = profile.business_id;
 
-      // Archive sales
-      const { error: e1 } = await supabase
-        .from('sales')
-        .update({ archived: true, archived_at: now } as any)
-        .eq('business_id' as any, businessId)
-        .eq('archived' as any, false);
-      if (e1) console.error('Archive sales:', e1);
-
-      // Archive cash_register_movements  
-      const { error: e2 } = await supabase
-        .from('cash_register_movements')
-        .update({ archived: true, archived_at: now } as any)
-        .eq('business_id' as any, businessId)
-        .eq('archived' as any, false);
-      if (e2) console.error('Archive cash_register_movements:', e2);
-
-      // Archive treasury_movements
-      const { error: e3 } = await supabase
-        .from('treasury_movements')
-        .update({ archived: true, archived_at: now } as any)
-        .eq('business_id' as any, businessId)
-        .eq('archived' as any, false);
-      if (e3) console.error('Archive treasury_movements:', e3);
-
-      // Archive jornadas
-      const { error: e4 } = await supabase
-        .from('jornadas')
-        .update({ archived: true, archived_at: now } as any)
-        .eq('business_id' as any, businessId)
-        .eq('archived' as any, false);
-      if (e4) console.error('Archive jornadas:', e4);
-
-      // Archive daily_reports
-      const { error: e5 } = await supabase
-        .from('daily_reports')
-        .update({ archived: true, archived_at: now } as any)
-        .eq('business_id' as any, businessId)
-        .eq('archived' as any, false);
-      if (e5) console.error('Archive daily_reports:', e5);
+      const archiveTables = ['sales', 'cash_register_movements', 'treasury_movements', 'jornadas', 'daily_reports'] as const;
+      for (const table of archiveTables) {
+        const { error } = await (supabase.from(table) as any)
+          .update({ archived: true, archived_at: now })
+          .eq('business_id', businessId)
+          .eq('archived', false);
+        if (error) console.error(`Archive ${table}:`, error);
+      }
 
       // Reset dashboard
       await supabase
