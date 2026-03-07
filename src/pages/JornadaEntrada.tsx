@@ -137,6 +137,7 @@ const JornadaEntrada = () => {
 
     setStep('success');
     toast.success('¡Jornada iniciada! Bienvenido 👋');
+    auditLog('shift_started', `Jornada iniciada en ${branchName}`);
     setTimeout(() => navigate('/'), 1500);
   };
 

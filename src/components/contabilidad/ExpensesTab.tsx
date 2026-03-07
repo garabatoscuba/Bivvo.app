@@ -321,10 +321,16 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
         });
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, expense) => {
       toast.success("Gasto marcado como pagado");
       qc.invalidateQueries({ queryKey: ["accounting-expenses"] });
       qc.invalidateQueries({ queryKey: ["treasury-movements"] });
+      auditLog(
+        'expense_paid',
+        `Gasto '${expense.name}' marcado como pagado por $${expense.amount.toLocaleString()}`,
+        expense.id,
+        'accounting_expense'
+      );
     },
     onError: (err: any) => toast.error(err.message),
   });

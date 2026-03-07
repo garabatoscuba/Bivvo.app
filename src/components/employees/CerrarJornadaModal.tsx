@@ -75,6 +75,7 @@ const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalP
     queryClient.invalidateQueries({ queryKey: ['active-cash-register'] });
     queryClient.invalidateQueries({ queryKey: ['owner-open-registers'] });
     toast.success('Jornada cerrada. ¡Hasta luego! 👋');
+    auditLog('shift_ended', `Jornada cerrada — Duración: ${duration.text}`, jornada.id, 'jornada');
     onOpenChange(false);
   };
 
