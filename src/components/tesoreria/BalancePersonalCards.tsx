@@ -285,12 +285,12 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
               Mis Ingresos
             </h3>
           </div>
-          <div className="space-y-1.5 pl-9">
-            <Row icon={<ShoppingCart className="h-3.5 w-3.5" />} label="Ventas de Productos" value={fmt(productSales)} />
-            <Row icon={<Wrench className="h-3.5 w-3.5" />} label="Ventas de Servicios" value={fmt(serviceSales)} />
-            <Row icon={<ArrowDownToLine className="h-3.5 w-3.5" />} label="Inyecciones" value={fmt(injections)} />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+            <MiniCard icon={<ShoppingCart className="h-3.5 w-3.5" />} label="Ventas de Productos" value={fmt(productSales)} />
+            <MiniCard icon={<Wrench className="h-3.5 w-3.5" />} label="Ventas de Servicios" value={fmt(serviceSales)} />
+            <MiniCard icon={<ArrowDownToLine className="h-3.5 w-3.5" />} label="Inyecciones" value={fmt(injections)} />
           </div>
-          <div className="border-t pt-2 pl-9">
+          <div className="border-t pt-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground uppercase">Total Ingresos</span>
               <span className="text-base font-bold text-green-600">{fmt(totalIngresos)}</span>
@@ -311,24 +311,18 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
               Mis Gastos
             </h3>
           </div>
-          <div className="space-y-1.5 pl-9">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {mode === "operativo" ? (
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Package className="h-3.5 w-3.5" />
-                  <span>Costo de productos vendidos <span className="text-xs text-muted-foreground/60 italic">(recuperado en ventas)</span></span>
-                </div>
-                <span className="font-semibold text-muted-foreground">{fmt(productCost)}</span>
-              </div>
+              <MiniCard icon={<Package className="h-3.5 w-3.5" />} label="Costo productos vendidos" value={fmt(productCost)} muted />
             ) : (
-              <Row icon={<Package className="h-3.5 w-3.5" />} label="Compras de inventario" value={fmt(inventoryPurchases)} />
+              <MiniCard icon={<Package className="h-3.5 w-3.5" />} label="Compras de inventario" value={fmt(inventoryPurchases)} />
             )}
-            <Row icon={<Users className="h-3.5 w-3.5" />} label="Salarios pagados" value={fmt(salariesPaid)} />
-            <Row icon={<ArrowUpFromLine className="h-3.5 w-3.5" />} label="Dinero que sacaste" value={fmt(extractions?.retiro || 0)} />
-            <Row icon={<ReceiptText className="h-3.5 w-3.5" />} label="Otros gastos" value={fmt(extractions?.otros || 0)} />
-            <Row icon={<FileText className="h-3.5 w-3.5" />} label="Gastos fijos pagados" value={fmt(fixedExpensesPaid)} />
+            <MiniCard icon={<Users className="h-3.5 w-3.5" />} label="Salarios pagados" value={fmt(salariesPaid)} />
+            <MiniCard icon={<ArrowUpFromLine className="h-3.5 w-3.5" />} label="Dinero que sacaste" value={fmt(extractions?.retiro || 0)} />
+            <MiniCard icon={<ReceiptText className="h-3.5 w-3.5" />} label="Otros gastos" value={fmt(extractions?.otros || 0)} />
+            <MiniCard icon={<FileText className="h-3.5 w-3.5" />} label="Gastos fijos pagados" value={fmt(fixedExpensesPaid)} />
           </div>
-          <div className="border-t pt-2 pl-9">
+          <div className="border-t pt-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-muted-foreground uppercase">Total Gastos</span>
               <span className="text-base font-bold text-red-600">{fmt(totalGastosDisplay)}</span>
