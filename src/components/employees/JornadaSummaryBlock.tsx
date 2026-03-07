@@ -26,7 +26,7 @@ const JornadaSummaryBlock = ({ jornadaId, aperturaAt, userId }: JornadaSummaryBl
       const endTime = new Date().toISOString();
 
       // Sales during shift
-      const { data: sales } = await (supabase
+      const { data: sales }: any = await supabase
         .from('sales')
         .select('total')
         .eq('business_id', businessId as string) as any)
