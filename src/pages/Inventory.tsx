@@ -699,7 +699,7 @@ const Inventory = () => {
           <TabsContent value="mermas" className="mt-4">
             <MermasTab
               branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
-              onRegisterMerma={() => setMermaOpen(true)}
+              onRegisterMerma={() => { if (!guardDowngrade()) setMermaOpen(true); }}
             />
           </TabsContent>
         </Tabs>
