@@ -55,7 +55,7 @@ const Contabilidad = () => {
           )}
         </div>
 
-        <Tabs defaultValue="balance" className="space-y-4" activationMode="manual">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="w-full flex flex-nowrap overflow-x-auto scrollbar-hide h-9">
             <TabsTrigger value="balance" className="shrink-0 text-xs">Balance</TabsTrigger>
             <TabsTrigger value="gastos" className="shrink-0 text-xs">Gastos</TabsTrigger>
