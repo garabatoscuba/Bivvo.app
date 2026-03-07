@@ -207,20 +207,6 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     ).then(() => qc.invalidateQueries({ queryKey: ["accounting-expenses"] }));
   }, [expenses]);
 
-  // ── Chart data ──
-  const chartData = useMemo(() => {
-    const map: Record<string, number> = {};
-    filteredExpenses.forEach((e) => {
-      const cat = categories.find((c) => c.id === e.category_id);
-      const name = cat?.name || "Sin categoría";
-      map[name] = (map[name] || 0) + e.amount;
-    });
-    return Object.entries(map).map(([name, total]) => ({ name, total }));
-  }, [filteredExpenses, categories]);
-
-  const chartConfig = {
-    total: { label: "Monto", color: "hsl(var(--primary))" },
-  };
 
   // ── Mutations ──
   const saveMutation = useMutation({
