@@ -51,9 +51,9 @@ const BitacoraTab = ({ businessId }: BitacoraTabProps) => {
     queryFn: async () => {
       const { data } = await supabase
         .from('employees')
-        .select('id, name')
+        .select('id, full_name')
         .eq('business_id', businessId)
-        .order('name');
+        .order('full_name');
       return data || [];
     },
   });
