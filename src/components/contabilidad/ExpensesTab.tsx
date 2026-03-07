@@ -133,29 +133,39 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     },
   });
 
-  // ── Seed default fixed expenses ──
+  // ── Seed default fixed expenses (check all fixed for business, not filtered by branch) ──
+  const [seeded, setSeeded] = useState(false);
   useEffect(() => {
-    if (!businessId || isLoading) return;
-    const existingFixed = expenses.filter((e) => e.expense_type === "fixed");
-    const existingNames = new Set(existingFixed.map((e) => e.name));
-    const missing = DEFAULT_FIXED_NAMES.filter((n) => !existingNames.has(n));
-    if (missing.length === 0) return;
+    if (!businessId || seeded) return;
+    // Query ALL fixed expenses for the business to avoid re-seeding
+    supabase
+      .from("accounting_expenses")
+      .select("name")
+      .eq("business_id", businessId)
+      .eq("expense_type", "fixed")
+      .then(({ data }) => {
+        const existingNames = new Set((data ?? []).map((e: any) => e.name));
+        const missing = DEFAULT_FIXED_NAMES.filter((n) => !existingNames.has(n));
+        setSeeded(true);
+        if (missing.length === 0) return;
 
-    const rows = missing.map((name) => ({
-      business_id: businessId,
-      name,
-      amount: 0,
-      expense_type: "fixed",
-      frequency: "monthly",
-      status: "pending",
-      due_date: addMonths(new Date(), 1).toISOString(),
-      created_by: user?.id ?? null,
-    }));
+        const rows = missing.map((name) => ({
+          business_id: businessId,
+          branch_id: branchId,
+          name,
+          amount: 0,
+          expense_type: "fixed",
+          frequency: "monthly",
+          status: "pending",
+          due_date: addMonths(new Date(), 1).toISOString(),
+          created_by: user?.id ?? null,
+        }));
 
-    supabase.from("accounting_expenses").insert(rows).then(({ error }) => {
-      if (!error) qc.invalidateQueries({ queryKey: ["accounting-expenses"] });
-    });
-  }, [businessId, isLoading, expenses.length]);
+        supabase.from("accounting_expenses").insert(rows).then(({ error }) => {
+          if (!error) qc.invalidateQueries({ queryKey: ["accounting-expenses"] });
+        });
+      });
+  }, [businessId, seeded]);
 
   // ── Period filtering ──
   const range = useMemo(() => getPeriodRange(period), [period]);
