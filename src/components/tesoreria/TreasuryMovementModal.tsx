@@ -40,6 +40,7 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: branches = [] } = useBranches();
+  const auditLog = useAuditLog();
 
   const [type, setType] = useState<"extraccion" | "inyeccion">("extraccion");
   const [amount, setAmount] = useState("");
