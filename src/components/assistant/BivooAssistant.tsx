@@ -16,6 +16,7 @@ export default function BivooAssistant() {
   const { isOwner, isManager } = useAuth();
   const { unreadCount } = useNotifications();
   const { hasAnyFeature, canContextMenu, canNotifications, canChat } = useAssistantFeatures();
+  const { businessId } = useResolvedBusinessId();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [visible, setVisible] = useState<VisibleElement>('none');
@@ -24,6 +25,10 @@ export default function BivooAssistant() {
 
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressTriggered = useRef(false);
+
+  // Treasury modal state
+  const [treasuryModalOpen, setTreasuryModalOpen] = useState(false);
+  const [treasuryPrefill, setTreasuryPrefill] = useState<'extraccion' | 'inyeccion' | null>(null);
 
   const showContextMenu = canContextMenu && (isOwner || isManager);
   const showNotificationDot = canNotifications && unreadCount > 0 && visible !== 'panel';
@@ -78,11 +83,13 @@ export default function BivooAssistant() {
 
   const handleAction = useCallback((type: 'gasto' | 'capital' | 'custom', payload?: any) => {
     if (type === 'gasto') {
-      navigate('/caja');
+      setTreasuryPrefill('extraccion');
+      setTreasuryModalOpen(true);
     } else if (type === 'capital') {
-      navigate('/caja');
+      setTreasuryPrefill('inyeccion');
+      setTreasuryModalOpen(true);
     }
-  }, [navigate]);
+  }, []);
 
   // Don't render at all if no features available
   if (!hasAnyFeature) return null;
@@ -121,6 +128,14 @@ export default function BivooAssistant() {
           onStateChange={setFaceState}
           canNotifications={canNotifications}
           canChat={canChat}
+        />
+      )}
+      {businessId && (
+        <TreasuryMovementModal
+          open={treasuryModalOpen}
+          onOpenChange={setTreasuryModalOpen}
+          businessId={businessId}
+          prefillType={treasuryPrefill}
         />
       )}
     </div>
