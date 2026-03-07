@@ -359,7 +359,7 @@ const AdminPartners = () => {
                   </thead>
                   <tbody className="divide-y">
                     {partners.length === 0 ? (
-                      <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Sin partners registrados</td></tr>
+                      <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Sin partners registrados</td></tr>
                     ) : partners.map(p => (
                       <tr key={p.id}>
                         <td className="p-3">
@@ -374,6 +374,7 @@ const AdminPartners = () => {
                         </td>
                         <td className="p-3 text-center">{p.referral_count}</td>
                         <td className="p-3 text-right font-medium">${(p.total_earned || 0).toFixed(2)}</td>
+                        <td className="p-3 text-right font-medium text-green-600 dark:text-green-400">${(p.total_paid || 0).toFixed(2)}</td>
                         <td className="p-3 text-center">
                           <Badge
                             variant={p.is_active ? 'default' : 'secondary'}
@@ -390,6 +391,9 @@ const AdminPartners = () => {
                             </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openPayout(p.id)} title="Registrar pago">
                               <DollarSign className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => { setDeletingPartner(p); setDeleteDialogOpen(true); }} title="Eliminar">
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </td>
