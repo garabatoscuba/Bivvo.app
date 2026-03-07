@@ -1,448 +1,244 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Eye, CalendarClock, Trash2, Loader2, AlertTriangle, ShieldAlert, Info } from 'lucide-react';
+import { Database, CalendarClock, Trash2, Loader2, AlertTriangle, ShieldAlert, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useQueryClient } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { useNavigate } from 'react-router-dom';
 
-/* ─── Layer 1: Visual Reset ─── */
-function Layer1Reset() {
-  const { profile } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const queryClient = useQueryClient();
-
-  const handleReset = async () => {
-    if (!profile?.business_id) return;
-    setLoading(true);
-    const { error } = await supabase
-      .from('businesses')
-      .update({ dashboard_reset_at: new Date().toISOString() } as any)
-      .eq('id', profile.business_id);
-    setLoading(false);
-    if (error) {
-      toast.error('Error al resetear los indicadores');
-    } else {
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      toast.success('Indicadores visuales reseteados');
-      setOpen(false);
-    }
-  };
-
-  return (
-    <>
-      <Card className="border-blue-500/30">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-blue-500/10 p-2">
-              <Eye className="h-5 w-5 text-blue-500" />
-            </div>
-            <div>
-              <CardTitle className="text-base">Reset Visual</CardTitle>
-              <CardDescription>Limpia los contadores del dashboard</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Reinicia los indicadores de ventas (día, semana, mes) en el dashboard a cero.
-            Los reportes y el historial de ventas <strong>no se ven afectados</strong>.
-            Esta acción es reversible.
-          </p>
-          <Button variant="outline" className="border-blue-500/50 text-blue-600 hover:bg-blue-500/10" onClick={() => setOpen(true)}>
-            <Eye className="h-4 w-4 mr-1" /> Resetear Vista
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reset Visual</DialogTitle>
-            <DialogDescription>
-              Los contadores del dashboard se reiniciarán a cero. Los datos reales (ventas, reportes, historial) no se eliminan.
-            </DialogDescription>
-          </DialogHeader>
-          <Alert>
-            <Info className="h-4 w-4" />
-            <AlertTitle>Solo afecta la vista</AlertTitle>
-            <AlertDescription>Los reportes y el historial seguirán intactos. Puedes revertir esto cambiando el periodo del dashboard.</AlertDescription>
-          </Alert>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="bg-blue-600 hover:bg-blue-700 text-white" onClick={handleReset} disabled={loading}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
-              Confirmar Reset Visual
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-/* ─── Layer 2: Period Reset ─── */
-function Layer2Reset() {
-  const { profile } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [periodName, setPeriodName] = useState('');
-  const queryClient = useQueryClient();
-
-  const handleReset = async () => {
-    if (!profile?.business_id || !periodName.trim()) return;
-    setLoading(true);
-
-    // Close active period
-    await supabase
-      .from('business_periods' as any)
-      .update({ is_active: false, ended_at: new Date().toISOString() })
-      .eq('business_id', profile.business_id)
-      .eq('is_active', true);
-
-    // Create new period
-    const { error } = await supabase
-      .from('business_periods' as any)
-      .insert({
-        business_id: profile.business_id,
-        name: periodName.trim(),
-        is_active: true,
-      });
-
-    // Also set dashboard_reset_at so indicators start fresh
-    await supabase
-      .from('businesses')
-      .update({ dashboard_reset_at: new Date().toISOString() } as any)
-      .eq('id', profile.business_id);
-
-    setLoading(false);
-    if (error) {
-      toast.error('Error al cerrar el periodo');
-    } else {
-      queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      toast.success(`Periodo "${periodName}" iniciado`);
-      setPeriodName('');
-      setOpen(false);
-    }
-  };
-
-  return (
-    <>
-      <Card className="border-amber-500/30">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-amber-500/10 p-2">
-              <CalendarClock className="h-5 w-5 text-amber-500" />
-            </div>
-            <div>
-              <CardTitle className="text-base">Reset de Periodo</CardTitle>
-              <CardDescription>Cierra el periodo actual y abre uno nuevo</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Las ventas anteriores quedan <strong>archivadas en el historial</strong> pero dejan de contar en los indicadores activos.
-            Los reportes históricos siguen accesibles. Moderadamente destructivo.
-          </p>
-          <Button variant="outline" className="border-amber-500/50 text-amber-600 hover:bg-amber-500/10" onClick={() => setOpen(true)}>
-            <CalendarClock className="h-4 w-4 mr-1" /> Cerrar Periodo
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Cerrar Periodo Actual</DialogTitle>
-            <DialogDescription>
-              Se cerrará el periodo actual ({format(new Date(), 'dd/MM/yyyy')}) y se abrirá uno nuevo. Las ventas anteriores quedan archivadas.
-            </DialogDescription>
-          </DialogHeader>
-          <Alert className="border-amber-500/50">
-            <AlertTriangle className="h-4 w-4 text-amber-500" />
-            <AlertTitle>Impacto moderado</AlertTitle>
-            <AlertDescription>Los indicadores activos se reinician. El historial y reportes anteriores permanecen accesibles.</AlertDescription>
-          </Alert>
-          <div className="space-y-2">
-            <Label>Nombre del nuevo periodo</Label>
-            <Input placeholder="Ej: Temporada 2026" value={periodName} onChange={e => setPeriodName(e.target.value)} />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={handleReset} disabled={loading || !periodName.trim()}>
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CalendarClock className="h-4 w-4 mr-1" />}
-              Confirmar Cierre de Periodo
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-/* ─── Layer 3: Complete Reset ─── */
-function Layer3Reset() {
-  const { profile, user } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [step, setStep] = useState<1 | 2>(1);
-  const [loading, setLoading] = useState(false);
-  const [counting, setCounting] = useState(false);
-  const [password, setPassword] = useState('');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [counts, setCounts] = useState<{ sales: number; movements: number; cashMovements: number } | null>(null);
-  const queryClient = useQueryClient();
-
-  const resolveBranchId = async (): Promise<string | null> => {
-    if (profile?.branch_id) return profile.branch_id;
-    if (!profile?.business_id) return null;
-    const { data } = await supabase
-      .from('branches').select('id')
-      .eq('business_id', profile.business_id)
-      .eq('is_main', true)
-      .limit(1);
-    return data?.[0]?.id ?? null;
-  };
-
-  const countRecords = async () => {
-    if (!profile?.business_id || !dateFrom || !dateTo) return;
-    setCounting(true);
-    const fromISO = new Date(dateFrom).toISOString();
-    const toISO = new Date(dateTo + 'T23:59:59').toISOString();
-    const branchId = await resolveBranchId();
-
-    if (!branchId) {
-      setCounting(false);
-      toast.error('No se encontró una sucursal asociada al negocio');
-      return;
-    }
-
-    const [salesRes, movRes, cashRes] = await Promise.all([
-      supabase.from('sales').select('id', { count: 'exact', head: true })
-        .eq('branch_id', branchId).gte('created_at', fromISO).lte('created_at', toISO),
-      supabase.from('inventory_movements').select('id', { count: 'exact', head: true })
-        .eq('branch_id', branchId).gte('created_at', fromISO).lte('created_at', toISO),
-      supabase.from('cash_register_movements').select('id', { count: 'exact', head: true })
-        .eq('business_id', profile.business_id).gte('created_at', fromISO).lte('created_at', toISO),
-    ]);
-
-    setCounts({
-      sales: salesRes.count ?? 0,
-      movements: movRes.count ?? 0,
-      cashMovements: cashRes.count ?? 0,
-    });
-    setCounting(false);
-    setStep(2);
-  };
-
-  const handleDelete = async () => {
-    if (!profile?.business_id || !user?.email || !password) {
-      toast.error('Faltan datos para continuar');
-      return;
-    }
-    setLoading(true);
-
-    try {
-      // Verify password
-      const { error: authError } = await supabase.auth.signInWithPassword({
-        email: user.email,
-        password,
-      });
-
-      if (authError) {
-        setLoading(false);
-        toast.error('Contraseña incorrecta');
-        return;
-      }
-
-      const fromISO = new Date(dateFrom).toISOString();
-      const toISO = new Date(dateTo + 'T23:59:59').toISOString();
-      const branchId = await resolveBranchId();
-
-      if (!branchId) {
-        setLoading(false);
-        toast.error('No se encontró una sucursal asociada al negocio');
-        return;
-      }
-
-      // Delete sale_items first (FK), then sales
-      {
-        const { data: salesData, error: salesFetchErr } = await supabase
-          .from('sales').select('id')
-          .eq('branch_id', branchId)
-          .gte('created_at', fromISO)
-          .lte('created_at', toISO);
-
-        if (salesFetchErr) {
-          console.error('Error fetching sales:', salesFetchErr);
-          throw salesFetchErr;
-        }
-
-        const saleIds = (salesData || []).map(s => s.id);
-
-        if (saleIds.length > 0) {
-          // Delete in batches to avoid URI too long
-          const batchSize = 100;
-          for (let i = 0; i < saleIds.length; i += batchSize) {
-            const batch = saleIds.slice(i, i + batchSize);
-            const { error: itemsErr } = await supabase.from('sale_items').delete().in('sale_id', batch);
-            if (itemsErr) { console.error('Error deleting sale_items:', itemsErr); throw itemsErr; }
-            const { error: salesErr } = await supabase.from('sales').delete().in('id', batch);
-            if (salesErr) { console.error('Error deleting sales:', salesErr); throw salesErr; }
-          }
-        }
-
-      // Delete inventory movements
-      const { error: movErr } = await supabase.from('inventory_movements').delete()
-        .eq('branch_id', branchId)
-        .gte('created_at', fromISO)
-        .lte('created_at', toISO);
-      if (movErr) { console.error('Error deleting inventory_movements:', movErr); throw movErr; }
-      }
-
-      // Delete cash register movements
-      const { error: cashErr } = await supabase.from('cash_register_movements').delete()
-        .eq('business_id', profile.business_id)
-        .gte('created_at', fromISO)
-        .lte('created_at', toISO);
-      if (cashErr) { console.error('Error deleting cash_register_movements:', cashErr); throw cashErr; }
-
-      setLoading(false);
-      queryClient.invalidateQueries();
-      toast.success('Datos eliminados exitosamente');
-      setOpen(false);
-      setStep(1);
-      setCounts(null);
-      setPassword('');
-      setDateFrom('');
-      setDateTo('');
-    } catch (err: any) {
-      setLoading(false);
-      console.error('Reset completo error:', err);
-      toast.error(err?.message || 'Error al eliminar los datos. Revisa los permisos.');
-    }
-  };
-
-  const handleClose = () => {
-    setOpen(false);
-    setStep(1);
-    setCounts(null);
-    setPassword('');
-  };
-
-  const totalRecords = counts ? counts.sales + counts.movements + counts.cashMovements : 0;
-
-  return (
-    <>
-      <Card className="border-destructive/30">
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <div className="rounded-lg bg-destructive/10 p-2">
-              <Trash2 className="h-5 w-5 text-destructive" />
-            </div>
-            <div>
-              <CardTitle className="text-base">Reset Completo</CardTitle>
-              <CardDescription>Elimina datos de un rango de fechas</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <p className="text-sm text-muted-foreground">
-            Borra ventas, movimientos de caja e inventario de un rango de fechas seleccionado.
-            <strong className="text-destructive"> Irreversible.</strong> Requiere contraseña del dueño.
-          </p>
-          <Button variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setOpen(true)}>
-            <Trash2 className="h-4 w-4 mr-1" /> Reset Completo
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Dialog open={open} onOpenChange={handleClose}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-destructive">Reset Completo — Irreversible</DialogTitle>
-            <DialogDescription>
-              Selecciona el rango de fechas. Los datos eliminados no se pueden recuperar.
-            </DialogDescription>
-          </DialogHeader>
-
-          {step === 1 && (
-            <>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <Label>Desde</Label>
-                  <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-                </div>
-                <div className="space-y-1.5">
-                  <Label>Hasta</Label>
-                  <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={handleClose}>Cancelar</Button>
-                <Button variant="destructive" onClick={countRecords} disabled={counting || !dateFrom || !dateTo}>
-                  {counting ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-                  Contar registros
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-
-          {step === 2 && counts && (
-            <>
-              <Alert variant="destructive">
-                <ShieldAlert className="h-4 w-4" />
-                <AlertTitle>Esta operación NO tiene vuelta atrás</AlertTitle>
-                <AlertDescription>
-                  Se eliminarán permanentemente:
-                  <ul className="mt-2 list-disc pl-4 space-y-1">
-                    <li><strong>{counts.sales}</strong> ventas</li>
-                    <li><strong>{counts.movements}</strong> movimientos de inventario</li>
-                    <li><strong>{counts.cashMovements}</strong> movimientos de caja</li>
-                  </ul>
-                  <p className="mt-2 font-semibold">Total: {totalRecords} registros</p>
-                </AlertDescription>
-              </Alert>
-              <div className="space-y-2">
-                <Label>Confirma tu contraseña</Label>
-                <Input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Contraseña del dueño" />
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => { setStep(1); setCounts(null); }}>Volver</Button>
-                <Button variant="destructive" onClick={handleDelete} disabled={loading || !password || totalRecords === 0}>
-                  {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
-                  Eliminar {totalRecords} registros
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-}
-
-/* ─── Main Export ─── */
 export default function DataManagement() {
+  const [periodOpen, setPeriodOpen] = useState(false);
+  const [resetOpen, setResetOpen] = useState(false);
+
   return (
     <div className="space-y-4">
       <div>
         <h3 className="text-lg font-semibold">Gestión de Datos</h3>
         <p className="text-sm text-muted-foreground">
-          Controla los indicadores y datos de tu negocio. Cada nivel tiene un impacto diferente.
+          Controla los datos operativos de tu negocio.
         </p>
       </div>
-      <Layer1Reset />
-      <Layer2Reset />
-      <Layer3Reset />
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" className="gap-2">
+            <Database className="h-4 w-4" />
+            Gestión de Datos
+            <ChevronDown className="h-4 w-4 opacity-50" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-56">
+          <DropdownMenuItem onClick={() => setPeriodOpen(true)} className="gap-2 cursor-pointer">
+            <CalendarClock className="h-4 w-4" />
+            Cerrar Período
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => setResetOpen(true)} className="gap-2 cursor-pointer text-destructive focus:text-destructive">
+            <Trash2 className="h-4 w-4" />
+            Reset Completo
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      <PeriodCloseModal open={periodOpen} onOpenChange={setPeriodOpen} />
+      <ResetCompletoModal open={resetOpen} onOpenChange={setResetOpen} />
     </div>
+  );
+}
+
+/* ─── Cerrar Período ─── */
+function PeriodCloseModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { profile } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleConfirm = async () => {
+    if (!profile?.business_id) return;
+    setLoading(true);
+
+    try {
+      const now = new Date().toISOString();
+      const businessId = profile.business_id;
+
+      // Archive sales
+      await supabase
+        .from('sales')
+        .update({ archived: true, archived_at: now } as any)
+        .eq('business_id', businessId)
+        .eq('archived', false);
+
+      // Archive cash_register_movements
+      await supabase
+        .from('cash_register_movements')
+        .update({ archived: true, archived_at: now } as any)
+        .eq('business_id', businessId)
+        .eq('archived', false);
+
+      // Archive treasury_movements
+      await supabase
+        .from('treasury_movements')
+        .update({ archived: true, archived_at: now } as any)
+        .eq('business_id', businessId)
+        .eq('archived', false);
+
+      // Archive jornadas
+      await supabase
+        .from('jornadas')
+        .update({ archived: true, archived_at: now } as any)
+        .eq('business_id', businessId)
+        .eq('archived', false);
+
+      // Archive daily_reports
+      await supabase
+        .from('daily_reports')
+        .update({ archived: true, archived_at: now } as any)
+        .eq('business_id', businessId)
+        .eq('archived', false);
+
+      // Reset dashboard
+      await supabase
+        .from('businesses')
+        .update({ dashboard_reset_at: now } as any)
+        .eq('id', businessId);
+
+      queryClient.invalidateQueries();
+      toast.success('Período cerrado. Los indicadores activos están en cero.');
+      onOpenChange(false);
+    } catch (err: any) {
+      console.error('Period close error:', err);
+      toast.error('Error al cerrar el período');
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <CalendarClock className="h-5 w-5" />
+            Cerrar Período
+          </DialogTitle>
+          <DialogDescription>
+            ¿Estás seguro? Las ventas del período actual quedarán archivadas y los indicadores activos volverán a cero. Los reportes históricos seguirán accesibles.
+          </DialogDescription>
+        </DialogHeader>
+        <Alert className="border-amber-500/50">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertTitle>Acción moderada</AlertTitle>
+          <AlertDescription>
+            Los datos no se eliminan, solo se archivan. El historial y reportes seguirán disponibles.
+          </AlertDescription>
+        </Alert>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button className="bg-amber-600 hover:bg-amber-700 text-white" onClick={handleConfirm} disabled={loading}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <CalendarClock className="h-4 w-4 mr-1" />}
+            Confirmar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ─── Reset Completo ─── */
+function ResetCompletoModal({ open, onOpenChange }: { open: boolean; onOpenChange: (v: boolean) => void }) {
+  const { profile } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+
+  const isConfirmed = confirmText === 'CONFIRMAR';
+
+  const handleClose = () => {
+    setConfirmText('');
+    onOpenChange(false);
+  };
+
+  const handleReset = async () => {
+    if (!profile?.business_id || !isConfirmed) return;
+    setLoading(true);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('reset-business-data', {
+        body: { business_id: profile.business_id },
+      });
+
+      if (error) {
+        console.error('Reset error:', error);
+        toast.error('Error al ejecutar el reset');
+        setLoading(false);
+        return;
+      }
+
+      if (data?.errors?.length) {
+        console.warn('Partial reset errors:', data.errors);
+      }
+
+      queryClient.invalidateQueries();
+      toast.success('Reset completado. Los datos operativos han sido eliminados.');
+      handleClose();
+      navigate('/');
+    } catch (err: any) {
+      console.error('Reset exception:', err);
+      toast.error('Error al ejecutar el reset');
+    }
+
+    setLoading(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2 text-destructive">
+            <Trash2 className="h-5 w-5" />
+            Reset Completo — Irreversible
+          </DialogTitle>
+          <DialogDescription>
+            Esta acción es irreversible. Se eliminarán permanentemente todos los datos operativos del negocio: ventas, movimientos de caja, jornadas, gastos y activos de Contabilidad, y registros de Bitácora.
+          </DialogDescription>
+        </DialogHeader>
+
+        <Alert variant="destructive">
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>No se verán afectados</AlertTitle>
+          <AlertDescription>
+            Los empleados, el inventario, el catálogo de productos y la configuración del negocio se preservan intactos.
+          </AlertDescription>
+        </Alert>
+
+        <div className="space-y-2">
+          <p className="text-sm text-muted-foreground">
+            Escribe <strong className="text-foreground">CONFIRMAR</strong> para habilitar el botón.
+          </p>
+          <Input
+            value={confirmText}
+            onChange={e => setConfirmText(e.target.value)}
+            placeholder="CONFIRMAR"
+            className={isConfirmed ? 'border-destructive' : ''}
+          />
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={handleClose}>Cancelar</Button>
+          <Button variant="destructive" onClick={handleReset} disabled={loading || !isConfirmed}>
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trash2 className="h-4 w-4 mr-1" />}
+            Eliminar datos operativos
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
