@@ -12,6 +12,7 @@ import CashCalculator from '@/components/cobro/CashCalculator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import JornadaSummaryBlock from '@/components/employees/JornadaSummaryBlock';
 import InventoryCountStep from '@/components/employees/InventoryCountStep';
+import CashDifferenceAlert from '@/components/employees/CashDifferenceAlert';
 
 interface DailySalaryBreakdown {
   total: number;
@@ -55,6 +56,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
   const [closing, setClosing] = useState(false);
   const [tipSurplus, setTipSurplus] = useState(0);
   const [calculatorBreakdown, setCalculatorBreakdown] = useState<any>(null);
+  const [cashBlocked, setCashBlocked] = useState(false);
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
 
@@ -291,6 +293,14 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
               />
             </ScrollArea>
 
+            <CashDifferenceAlert
+              businessId={employeeBusinessId}
+              branchId={jornada.sucursal_id}
+              totalCash={calculatorBreakdown?.totalCash || 0}
+              expectedCashFromSales={calculatorBreakdown?.totalExpectedCash || 0}
+              onDifferenceChange={setCashBlocked}
+            />
+
             {/* Salary + Tips summary */}
             {dailySalary && (
               <div className="px-6 py-3 border-t space-y-2">
@@ -349,7 +359,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
               <Button variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button variant="destructive" onClick={handleClose} disabled={closing} className="gap-2">
+              <Button variant="destructive" onClick={handleClose} disabled={closing || cashBlocked} className="gap-2">
                 {closing ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                 Cerrar Jornada
               </Button>
