@@ -598,10 +598,10 @@ const Inventory = () => {
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
-                        onAddStock={() => { setStockEntryProduct(product); }}
-                        onTransferToSale={() => { setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
-                        onOutflow={() => setOutflowProduct(product)}
-                        onReturnToWarehouse={() => { setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                        onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                        onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                        onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                        onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
                       />
                     ))}
                     <Separator className="my-2" />
