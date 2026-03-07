@@ -97,6 +97,12 @@ const Cobros = () => {
           <TabsContent value="historial">
             <AdminReportesTab businessId={businessId} />
           </TabsContent>
+
+          {isOwner && (
+            <TabsContent value="bitacora">
+              <BitacoraTab businessId={businessId} />
+            </TabsContent>
+          )}
         </Tabs>
       )}
     </AppLayout>
