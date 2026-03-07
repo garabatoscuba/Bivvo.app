@@ -199,7 +199,7 @@ export default function AssetDetailSheet({ open, onOpenChange, asset, businessId
   /* save maintenance */
   const maintMut = useMutation({
     mutationFn: async () => {
-      const { error } = await supabase.from("accounting_asset_maintenances" as any).insert({
+      const { error } = await (supabase as any).from("accounting_asset_maintenances").insert({
         asset_id: asset.id,
         scheduled_date: maintDate,
         description: maintDesc,
