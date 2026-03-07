@@ -14,7 +14,11 @@ import {
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
-import { Network, Users, Plus, Pencil, DollarSign, Loader2, Search, CheckCircle, Clock } from 'lucide-react';
+import { Network, Users, Plus, Pencil, DollarSign, Loader2, Search, CheckCircle, Clock, Trash2 } from 'lucide-react';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +42,7 @@ interface PartnerRow {
   user_name?: string;
   referral_count?: number;
   total_earned?: number;
+  total_paid?: number;
 }
 
 const AdminPartners = () => {
@@ -50,6 +55,8 @@ const AdminPartners = () => {
   const [payoutPartnerId, setPayoutPartnerId] = useState('');
   const [payoutAmount, setPayoutAmount] = useState('');
   const [payoutNote, setPayoutNote] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingPartner, setDeletingPartner] = useState<PartnerRow | null>(null);
 
   // Form state
   const [searchEmail, setSearchEmail] = useState('');
@@ -82,9 +89,10 @@ const AdminPartners = () => {
       const userIds = partnerList.map(p => p.user_id);
       const partnerIds = partnerList.map(p => p.id);
 
-      const [profilesRes, referralsRes] = await Promise.all([
+      const [profilesRes, referralsRes, payoutsRes] = await Promise.all([
         supabase.from('profiles').select('user_id, full_name, email').in('user_id', userIds),
         supabase.from('partner_referrals').select('partner_id, commission_earned').in('partner_id', partnerIds),
+        supabase.from('partner_payouts').select('partner_id, amount').in('partner_id', partnerIds),
       ]);
 
       const profileMap = new Map((profilesRes.data || []).map(p => [p.user_id, p]));
@@ -95,6 +103,10 @@ const AdminPartners = () => {
         existing.total += Number(r.commission_earned);
         referralsByPartner.set(r.partner_id, existing);
       });
+      const paidByPartner = new Map<string, number>();
+      (payoutsRes.data || []).forEach(p => {
+        paidByPartner.set(p.partner_id, (paidByPartner.get(p.partner_id) || 0) + Number(p.amount));
+      });
 
       return partnerList.map(p => ({
         ...p,
@@ -102,6 +114,7 @@ const AdminPartners = () => {
         user_name: profileMap.get(p.user_id)?.full_name || '',
         referral_count: referralsByPartner.get(p.id)?.count || 0,
         total_earned: referralsByPartner.get(p.id)?.total || 0,
+        total_paid: paidByPartner.get(p.id) || 0,
       })) as PartnerRow[];
     },
   });
@@ -238,6 +251,31 @@ const AdminPartners = () => {
     },
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (partner: PartnerRow) => {
+      // Delete payouts, referrals, then partner, then remove role if no other partner entries
+      await supabase.from('partner_payouts').delete().eq('partner_id', partner.id);
+      await supabase.from('partner_referrals').delete().eq('partner_id', partner.id);
+      const { error } = await supabase.from('partners').delete().eq('id', partner.id);
+      if (error) throw error;
+      // Check if user has other partner entries
+      const { data: remaining } = await supabase.from('partners').select('id').eq('user_id', partner.user_id);
+      if (!remaining?.length) {
+        await supabase.from('user_roles').delete().eq('user_id', partner.user_id).eq('role', 'partner');
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-partners'] });
+      qc.invalidateQueries({ queryKey: ['admin-partner-referrals'] });
+      toast({ title: 'Partner eliminado' });
+      setDeleteDialogOpen(false);
+      setDeletingPartner(null);
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error al eliminar', description: err.message, variant: 'destructive' });
+    },
+  });
+
   const toggleActive = async (p: PartnerRow) => {
     await supabase.from('partners').update({ is_active: !p.is_active }).eq('id', p.id);
     qc.invalidateQueries({ queryKey: ['admin-partners'] });
@@ -314,13 +352,14 @@ const AdminPartners = () => {
                       <th className="p-3 font-medium">Descuento</th>
                       <th className="p-3 font-medium text-center">Referidos</th>
                       <th className="p-3 font-medium text-right">Ganancias</th>
+                      <th className="p-3 font-medium text-right">Pagado</th>
                       <th className="p-3 font-medium text-center">Estado</th>
                       <th className="p-3 font-medium text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y">
                     {partners.length === 0 ? (
-                      <tr><td colSpan={7} className="p-6 text-center text-muted-foreground">Sin partners registrados</td></tr>
+                      <tr><td colSpan={8} className="p-6 text-center text-muted-foreground">Sin partners registrados</td></tr>
                     ) : partners.map(p => (
                       <tr key={p.id}>
                         <td className="p-3">
@@ -335,6 +374,7 @@ const AdminPartners = () => {
                         </td>
                         <td className="p-3 text-center">{p.referral_count}</td>
                         <td className="p-3 text-right font-medium">${(p.total_earned || 0).toFixed(2)}</td>
+                        <td className="p-3 text-right font-medium text-green-600 dark:text-green-400">${(p.total_paid || 0).toFixed(2)}</td>
                         <td className="p-3 text-center">
                           <Badge
                             variant={p.is_active ? 'default' : 'secondary'}
@@ -351,6 +391,9 @@ const AdminPartners = () => {
                             </Button>
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openPayout(p.id)} title="Registrar pago">
                               <DollarSign className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => { setDeletingPartner(p); setDeleteDialogOpen(true); }} title="Eliminar">
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </div>
                         </td>
@@ -593,6 +636,29 @@ const AdminPartners = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar partner?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará el código <strong>{deletingPartner?.code}</strong> junto con sus referidos y pagos asociados. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => deletingPartner && deleteMutation.mutate(deletingPartner)}
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 };
