@@ -179,6 +179,14 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
                     <p className="text-[10px] text-muted-foreground/60 mt-0.5">
                       {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: es })}
                     </p>
+                    {NOTIFICATION_ROUTES[n.type] && (
+                      <button
+                        onClick={() => handleNotifNavigate(n.type)}
+                        className="mt-1 inline-flex items-center gap-1 text-[11px] text-primary font-medium hover:underline"
+                      >
+                        Ir al detalle <ArrowRight className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
