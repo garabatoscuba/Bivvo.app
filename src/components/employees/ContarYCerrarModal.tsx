@@ -307,6 +307,14 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
           </div>
         )}
 
+        <div className="px-6">
+          <JornadaSummaryBlock
+            jornadaId={jornada.id}
+            aperturaAt={jornada.apertura_at}
+            userId={user?.id || ''}
+          />
+        </div>
+
         <DialogFooter className="gap-2 sm:gap-0 px-6 pb-6 pt-3 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
