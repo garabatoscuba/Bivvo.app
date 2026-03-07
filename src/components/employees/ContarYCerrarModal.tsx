@@ -359,7 +359,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
               <Button variant="outline" onClick={() => handleOpenChange(false)}>
                 Cancelar
               </Button>
-              <Button variant="destructive" onClick={handleClose} disabled={closing} className="gap-2">
+              <Button variant="destructive" onClick={handleClose} disabled={closing || cashBlocked} className="gap-2">
                 {closing ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
                 Cerrar Jornada
               </Button>
