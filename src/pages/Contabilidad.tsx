@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import TreasuryMovimientos from "@/components/tesoreria/TreasuryMovimientos";
+import ExpensesTab from "@/components/contabilidad/ExpensesTab";
 
 const Contabilidad = () => {
   const { profile } = useAuth();
@@ -73,9 +74,9 @@ const Contabilidad = () => {
           </TabsContent>
 
           <TabsContent value="gastos">
-            <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-              Próximamente
-            </div>
+            {profile?.business_id && (
+              <ExpensesTab businessId={profile.business_id} branchId={filterBranchId} />
+            )}
           </TabsContent>
 
           <TabsContent value="activos">
