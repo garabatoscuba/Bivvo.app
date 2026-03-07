@@ -156,28 +156,22 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
   const handleFinish = async () => {
     setSaving(true);
     try {
-      await supabase
-        .from("profiles")
-        .update({
+      const { data, error } = await supabase.functions.invoke('complete-onboarding', {
+        body: {
+          business_name: businessName.trim(),
+          business_type: selectedBizType,
+          base_currency: selectedCurrency,
           country: selectedCountry,
-          onboarding_completed: true,
-        } as any)
-        .eq("user_id", profile.user_id);
+        },
+      });
 
-      if (profile.business_id) {
-        await supabase
-          .from("businesses")
-          .update({
-            name: businessName.trim(),
-            business_type: selectedBizType,
-            base_currency: selectedCurrency,
-          } as any)
-          .eq("id", profile.business_id);
-      }
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
 
       toast.success("¡Todo listo! Tu negocio está configurado 🎉");
       window.location.reload();
     } catch (err: any) {
+      console.error('Onboarding error:', err);
       toast.error(err.message || "Error al guardar");
     } finally {
       setSaving(false);
