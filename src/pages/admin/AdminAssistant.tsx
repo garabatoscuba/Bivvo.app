@@ -163,7 +163,7 @@ function ConfigGlobalTab() {
                     <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-sm flex-1">{a.label}</span>
                     <Badge variant="outline" className="text-[10px]">
-                      {a.action_type === 'treasury_action' ? 'Tesorería' : a.action_type === 'navigate' ? 'Navegar' : a.action_type}
+                      {a.action_type === 'treasury_action' ? 'Caja' : a.action_type === 'navigate' ? 'Navegar' : a.action_type}
                     </Badge>
                     <Badge variant="secondary" className="text-[10px] font-mono">
                       {a.action_payload?.value || '—'}
