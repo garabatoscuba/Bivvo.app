@@ -995,6 +995,7 @@ const Inventory = () => {
         products={products.map(p => ({ id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price) }))}
         stockMap={stockMap}
       />
+      <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
     </AppLayout>
   );
 };
