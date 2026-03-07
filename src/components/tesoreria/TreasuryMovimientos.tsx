@@ -233,7 +233,7 @@ export default function TreasuryMovimientos({ businessId, branchId, prefillType,
         <Button onClick={() => handleNewMovement()} className="gap-2" size="sm">
           <Plus className="h-4 w-4" /> Nuevo movimiento
         </Button>
-        <TreasuryCategoryManager businessId={businessId} />
+        
       </div>
 
       {/* Pending entries */}

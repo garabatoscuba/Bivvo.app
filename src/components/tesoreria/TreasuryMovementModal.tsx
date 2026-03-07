@@ -245,23 +245,8 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
                 />
               </div>
 
-              {/* Label */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Etiqueta</Label>
-                <RadioGroup value={label} onValueChange={setLabel} className="flex gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <RadioGroupItem value="negocio" id="lbl-biz" />
-                    <Label htmlFor="lbl-biz" className="text-sm cursor-pointer">Negocio</Label>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <RadioGroupItem value="personal" id="lbl-personal" />
-                    <Label htmlFor="lbl-personal" className="text-sm cursor-pointer">Personal</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
               {/* Branch selector */}
-              {label === "negocio" && branches.length > 1 && (
+              {branches.length > 1 && (
                 <div className="space-y-1">
                   <Label className="text-sm">Sucursal</Label>
                   <Select value={branchId} onValueChange={setBranchId}>
