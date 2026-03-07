@@ -46,7 +46,15 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
   const { profile, isOwner, isManager } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [view, setView] = useState<PanelView>("main");
+  const navigate = useNavigate();
 
+  const handleNotifNavigate = (type: string) => {
+    const route = NOTIFICATION_ROUTES[type];
+    if (route) {
+      onClose();
+      navigate(route);
+    }
+  };
   const { data: assistantConfig } = useQuery({
     queryKey: ['assistant-config-name'],
     queryFn: async () => {
