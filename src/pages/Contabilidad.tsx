@@ -62,36 +62,32 @@ const Contabilidad = () => {
             <TabsTrigger value="activos" className="shrink-0 text-xs">Activos</TabsTrigger>
             <TabsTrigger value="analisis" className="shrink-0 text-xs">Análisis</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="balance">
-            {profile?.business_id && (
-              <TreasuryMovimientos
-                businessId={profile.business_id}
-                branchId={filterBranchId}
-                prefillType={prefillType}
-                onPrefillConsumed={handlePrefillConsumed}
-              />
-            )}
-          </TabsContent>
-
-          <TabsContent value="gastos" forceMount className={activeTab !== "gastos" ? "hidden" : ""}>
-            {profile?.business_id && (
-              <ExpensesTab businessId={profile.business_id} branchId={filterBranchId} />
-            )}
-          </TabsContent>
-
-          <TabsContent value="activos">
-            <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-              Próximamente
-            </div>
-          </TabsContent>
-
-          <TabsContent value="analisis">
-            <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-              Próximamente
-            </div>
-          </TabsContent>
         </Tabs>
+
+        {activeTab === "balance" && profile?.business_id && (
+          <TreasuryMovimientos
+            businessId={profile.business_id}
+            branchId={filterBranchId}
+            prefillType={prefillType}
+            onPrefillConsumed={handlePrefillConsumed}
+          />
+        )}
+
+        {activeTab === "gastos" && profile?.business_id && (
+          <ExpensesTab businessId={profile.business_id} branchId={filterBranchId} />
+        )}
+
+        {activeTab === "activos" && (
+          <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
+            Próximamente
+          </div>
+        )}
+
+        {activeTab === "analisis" && (
+          <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
+            Próximamente
+          </div>
+        )}
       </div>
     </AppLayout>
   );
