@@ -61,9 +61,9 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
       setTransferAmount("");
       setReason("");
       setOrigin("");
-      setCategoryId("");
       setLabel("negocio");
       setBranchId(defaultBranchId || "all");
+      setMoreOpen(false);
     }
   }, [open, prefillType, defaultBranchId]);
 
