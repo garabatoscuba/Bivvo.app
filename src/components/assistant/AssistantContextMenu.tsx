@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+
 import { getIconComponent } from '@/components/services/IconSelector';
 
 interface ContextAction {
@@ -24,7 +24,7 @@ export default function AssistantContextMenu({ open, onOpenChange, onAction, chi
   const [actions, setActions] = useState<ContextAction[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { isOwner, isSuperAdmin } = useAuth();
+  
 
   useEffect(() => {
     supabase
@@ -58,12 +58,7 @@ export default function AssistantContextMenu({ open, onOpenChange, onAction, chi
       else if (value === 'capital') onAction('capital');
       else onAction('custom', a.action_payload);
     } else if (a.action_type === 'navigate') {
-      // For navigate actions, resolve owner vs employee routing
-      let route = value;
-      if (route === '/tesoreria' && !isOwner && !isSuperAdmin) {
-        route = '/caja';
-      }
-      navigate(route);
+      navigate(value);
     } else {
       onAction('custom', a.action_payload);
     }

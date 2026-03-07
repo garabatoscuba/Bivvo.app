@@ -163,7 +163,7 @@ function ConfigGlobalTab() {
                     <Icon className="h-4 w-4 text-muted-foreground shrink-0" />
                     <span className="text-sm flex-1">{a.label}</span>
                     <Badge variant="outline" className="text-[10px]">
-                      {a.action_type === 'treasury_action' ? 'Tesorería' : a.action_type === 'navigate' ? 'Navegar' : a.action_type}
+                      {a.action_type === 'treasury_action' ? 'Caja' : a.action_type === 'navigate' ? 'Navegar' : a.action_type}
                     </Badge>
                     <Badge variant="secondary" className="text-[10px] font-mono">
                       {a.action_payload?.value || '—'}
@@ -191,16 +191,16 @@ function ConfigGlobalTab() {
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="navigate">Navegar a ruta</SelectItem>
-                  <SelectItem value="treasury_action">Acción de Tesorería</SelectItem>
+                  <SelectItem value="treasury_action">Acción de Caja</SelectItem>
                   <SelectItem value="open_module">Abrir módulo</SelectItem>
                   <SelectItem value="quick_action">Acción rápida</SelectItem>
                 </SelectContent>
               </Select>
               <p className="text-[11px] text-muted-foreground mt-1">
-                {actionType === 'treasury_action' ? 'Valor: "gasto" o "capital"' : actionType === 'navigate' ? 'Ruta del sistema, ej: /tesoreria' : 'Identificador del recurso'}
+                {actionType === 'treasury_action' ? 'Valor: "gasto" o "capital"' : actionType === 'navigate' ? 'Ruta del sistema, ej: /caja' : 'Identificador del recurso'}
               </p>
             </div>
-            <div><Label>{actionType === 'navigate' ? 'Ruta del sistema' : 'Valor'}</Label><Input value={actionPayload} onChange={e => setActionPayload(e.target.value)} placeholder={actionType === 'navigate' ? '/tesoreria' : actionType === 'treasury_action' ? 'gasto' : 'valor'} className="mt-1" /></div>
+            <div><Label>{actionType === 'navigate' ? 'Ruta del sistema' : 'Valor'}</Label><Input value={actionPayload} onChange={e => setActionPayload(e.target.value)} placeholder={actionType === 'navigate' ? '/caja' : actionType === 'treasury_action' ? 'gasto' : 'valor'} className="mt-1" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setActionDialog(false)}>Cancelar</Button>
