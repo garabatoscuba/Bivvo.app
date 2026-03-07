@@ -47,7 +47,7 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
   const [transferAmount, setTransferAmount] = useState("");
   const [reason, setReason] = useState("");
   const [origin, setOrigin] = useState("");
-  const [label, setLabel] = useState("negocio");
+  
   const [branchId, setBranchId] = useState<string>("all");
   const [moreOpen, setMoreOpen] = useState(false);
 
@@ -61,7 +61,7 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
       setTransferAmount("");
       setReason("");
       setOrigin("");
-      setLabel("negocio");
+      
       setBranchId(defaultBranchId || "all");
       setMoreOpen(false);
     }
@@ -86,8 +86,8 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
         }
       }
 
-      const resolvedBranchId = label === "negocio" && branchId !== "all" ? branchId : 
-                                label === "negocio" && branches.length === 1 ? branches[0].id : null;
+      const resolvedBranchId = branchId !== "all" ? branchId : 
+                                branches.length === 1 ? branches[0].id : null;
 
       const { error } = await supabase.from("treasury_movements" as any).insert({
         business_id: businessId,
@@ -100,7 +100,7 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
         reason: reason.trim() || null,
         origin: origin.trim() || null,
         category_id: null,
-        label,
+        label: null,
         registered_by: profile!.user_id,
       });
       if (error) throw error;
@@ -245,23 +245,8 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
                 />
               </div>
 
-              {/* Label */}
-              <div className="space-y-2">
-                <Label className="text-sm font-medium">Etiqueta</Label>
-                <RadioGroup value={label} onValueChange={setLabel} className="flex gap-4">
-                  <div className="flex items-center gap-1.5">
-                    <RadioGroupItem value="negocio" id="lbl-biz" />
-                    <Label htmlFor="lbl-biz" className="text-sm cursor-pointer">Negocio</Label>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <RadioGroupItem value="personal" id="lbl-personal" />
-                    <Label htmlFor="lbl-personal" className="text-sm cursor-pointer">Personal</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-
               {/* Branch selector */}
-              {label === "negocio" && branches.length > 1 && (
+              {branches.length > 1 && (
                 <div className="space-y-1">
                   <Label className="text-sm">Sucursal</Label>
                   <Select value={branchId} onValueChange={setBranchId}>

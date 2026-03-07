@@ -14,7 +14,7 @@ import {
   Info,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import TreasuryCategoryManager from "./TreasuryCategoryManager";
+
 import TreasuryMovementModal from "./TreasuryMovementModal";
 import BalancePersonalCards from "./BalancePersonalCards";
 import BalanceHistoryTable from "./BalanceHistoryTable";
@@ -233,7 +233,7 @@ export default function TreasuryMovimientos({ businessId, branchId, prefillType,
         <Button onClick={() => handleNewMovement()} className="gap-2" size="sm">
           <Plus className="h-4 w-4" /> Nuevo movimiento
         </Button>
-        <TreasuryCategoryManager businessId={businessId} />
+        
       </div>
 
       {/* Pending entries */}
