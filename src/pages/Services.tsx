@@ -563,7 +563,7 @@ const OwnerServicesView = () => {
           <h1 className="text-xl md:text-2xl font-bold">Servicios</h1>
           <p className="text-sm text-muted-foreground">Gestión de servicios y cobros</p>
         </div>
-        <Button onClick={() => setEntryDialogOpen(true)}>
+        <Button onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } setEntryDialogOpen(true); }}>
           <Plus className="h-4 w-4 mr-1" /> Nuevo Cobro
         </Button>
       </div>
