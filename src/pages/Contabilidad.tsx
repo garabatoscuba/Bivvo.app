@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranches } from "@/hooks/useBranches";
 import { useSearchParams } from "react-router-dom";
