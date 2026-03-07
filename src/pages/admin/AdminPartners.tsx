@@ -42,6 +42,7 @@ interface PartnerRow {
   user_name?: string;
   referral_count?: number;
   total_earned?: number;
+  total_paid?: number;
 }
 
 const AdminPartners = () => {
