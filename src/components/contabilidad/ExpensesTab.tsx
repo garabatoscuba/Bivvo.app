@@ -253,11 +253,11 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
 
         // Auto-create treasury movement for unexpected expenses
         if (type === "unexpected" && user) {
-          await supabase.from("treasury_movements").insert({
+          const { error: tmErr } = await supabase.from("treasury_movements" as any).insert({
             business_id: businessId,
             branch_id: branchId,
             amount: parseFloat(formAmount) || 0,
-            movement_type: "expense",
+            movement_type: "extraccion",
             label: formDescription || "Gasto imprevisto",
             category_id: formCategoryId || null,
             reason: formDescription || null,
@@ -266,6 +266,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
             cash_amount: parseFloat(formAmount) || 0,
             transfer_amount: 0,
           });
+          if (tmErr) console.error("Error creating treasury movement:", tmErr);
         }
       }
     },
