@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
       .select("question, answer")
       .eq("is_active", true)
       .order("sort_order", { ascending: true })
-      .limit(20);
+      .limit(5);
 
     let trainingBlock = "";
     if (examples && examples.length > 0) {
