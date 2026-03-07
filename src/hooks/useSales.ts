@@ -317,6 +317,14 @@ export const useSales = (branchId?: string | null) => {
         title: 'Venta completada',
         description: `Venta ${sale.sale_number} por $${sale.total.toFixed(2)}${!isOnline ? ' (guardada offline)' : ''}`
       });
+      // Audit log
+      const itemCount = (sale as any)._offline ? 0 : undefined;
+      auditLog(
+        'sale_created',
+        `Venta registrada por $${sale.total.toFixed(2)} — ${sale.sale_number}`,
+        sale.id,
+        'sale'
+      );
     },
     onError: (error) => {
       toast({
