@@ -620,10 +620,10 @@ const OwnerServicesView = () => {
                         </div>
                         {canManage && (
                           <div className="flex items-center gap-0.5 shrink-0">
-                            <button className="p-1 rounded hover:bg-muted" onClick={() => handleEditCat(cat)}>
+                            <button className="p-1 rounded hover:bg-muted" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } handleEditCat(cat); }}>
                               <Pencil className="h-3 w-3 text-muted-foreground" />
                             </button>
-                            <button className="p-1 rounded hover:bg-muted" onClick={() => deleteCatMutation.mutate(cat.id)}>
+                            <button className="p-1 rounded hover:bg-muted" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } deleteCatMutation.mutate(cat.id); }}>
                               <Trash2 className="h-3 w-3 text-destructive" />
                             </button>
                           </div>
