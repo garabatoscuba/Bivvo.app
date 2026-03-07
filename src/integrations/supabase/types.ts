@@ -14,6 +14,210 @@ export type Database = {
   }
   public: {
     Tables: {
+      accounting_asset_interventions: {
+        Row: {
+          asset_id: string
+          cost: number
+          created_at: string
+          description: string
+          id: string
+          intervention_date: string
+          intervention_type: string
+          responsible: string | null
+        }
+        Insert: {
+          asset_id: string
+          cost?: number
+          created_at?: string
+          description: string
+          id?: string
+          intervention_date?: string
+          intervention_type?: string
+          responsible?: string | null
+        }
+        Update: {
+          asset_id?: string
+          cost?: number
+          created_at?: string
+          description?: string
+          id?: string
+          intervention_date?: string
+          intervention_type?: string
+          responsible?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_asset_interventions_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_assets: {
+        Row: {
+          acquisition_cost: number
+          acquisition_date: string | null
+          adjusted_cost: number
+          asset_class: string
+          branch_id: string | null
+          business_id: string
+          code: string | null
+          condition: string
+          created_at: string
+          depreciation_method: string | null
+          description: string
+          id: string
+          location: string | null
+          observations: string | null
+          quantity: number
+          residual_value: number | null
+          responsible: string | null
+          retirement_date: string | null
+          state: string
+          supplier: string | null
+          useful_life_months: number | null
+        }
+        Insert: {
+          acquisition_cost?: number
+          acquisition_date?: string | null
+          adjusted_cost?: number
+          asset_class?: string
+          branch_id?: string | null
+          business_id: string
+          code?: string | null
+          condition?: string
+          created_at?: string
+          depreciation_method?: string | null
+          description: string
+          id?: string
+          location?: string | null
+          observations?: string | null
+          quantity?: number
+          residual_value?: number | null
+          responsible?: string | null
+          retirement_date?: string | null
+          state?: string
+          supplier?: string | null
+          useful_life_months?: number | null
+        }
+        Update: {
+          acquisition_cost?: number
+          acquisition_date?: string | null
+          adjusted_cost?: number
+          asset_class?: string
+          branch_id?: string | null
+          business_id?: string
+          code?: string | null
+          condition?: string
+          created_at?: string
+          depreciation_method?: string | null
+          description?: string
+          id?: string
+          location?: string | null
+          observations?: string | null
+          quantity?: number
+          residual_value?: number | null
+          responsible?: string | null
+          retirement_date?: string | null
+          state?: string
+          supplier?: string | null
+          useful_life_months?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_assets_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_assets_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_expenses: {
+        Row: {
+          amount: number
+          branch_id: string | null
+          business_id: string
+          category_id: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          due_date: string | null
+          expense_type: string
+          frequency: string | null
+          id: string
+          name: string
+          paid_at: string | null
+          receipt_url: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number
+          branch_id?: string | null
+          business_id: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          expense_type?: string
+          frequency?: string | null
+          id?: string
+          name: string
+          paid_at?: string | null
+          receipt_url?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          branch_id?: string | null
+          business_id?: string
+          category_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          due_date?: string | null
+          expense_type?: string
+          frequency?: string | null
+          id?: string
+          name?: string
+          paid_at?: string | null
+          receipt_url?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_expenses_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_expenses_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "treasury_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       affiliates: {
         Row: {
           branch_id: string

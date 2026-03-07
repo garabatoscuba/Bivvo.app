@@ -43,6 +43,7 @@ const Cobros = lazy(() => import("./pages/Cobros"));
 const Nomina = lazy(() => import("./pages/Nomina"));
 const Caja = lazy(() => import("./pages/Caja"));
 const Tesoreria = lazy(() => import("./pages/Tesoreria"));
+const Contabilidad = lazy(() => import("./pages/Contabilidad"));
 const JornadaEntrada = lazy(() => import("./pages/JornadaEntrada"));
 const OnboardingEmpleado = lazy(() => import("./pages/OnboardingEmpleado"));
 const MyEmployment = lazy(() => import("./pages/MyEmployment"));
@@ -91,6 +92,7 @@ const App = () => {
                         <Route path="/nomina" element={<ProtectedRoute><Nomina /></ProtectedRoute>} />
                         <Route path="/caja" element={<ProtectedRoute><Caja /></ProtectedRoute>} />
                         <Route path="/tesoreria" element={<ProtectedRoute><Tesoreria /></ProtectedRoute>} />
+                        <Route path="/contabilidad" element={<ProtectedRoute><Contabilidad /></ProtectedRoute>} />
                         <Route path="/mi-red" element={<ProtectedRoute><PartnerDashboard /></ProtectedRoute>} />
                         <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminBusinesses /></ProtectedRoute>} />
                         <Route path="/admin/offers" element={<ProtectedRoute requireSuperAdmin><AdminOffers /></ProtectedRoute>} />
