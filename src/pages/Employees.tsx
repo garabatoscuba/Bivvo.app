@@ -142,6 +142,7 @@ const Employees = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { data: branches = [] } = useBranches();
+  const auditLog = useAuditLog();
 
 
 
