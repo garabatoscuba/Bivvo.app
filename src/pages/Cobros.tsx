@@ -60,6 +60,7 @@ const Cobros = () => {
             <TabsTrigger value="vs" className="flex-1 text-xs sm:text-sm">Ventas vs Serv.</TabsTrigger>
             <TabsTrigger value="comparativa" className="flex-1 text-xs sm:text-sm">Comparativa</TabsTrigger>
             <TabsTrigger value="historial" className="flex-1 text-xs sm:text-sm">Historial</TabsTrigger>
+            {isOwner && <TabsTrigger value="bitacora" className="flex-1 text-xs sm:text-sm">Bitácora</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="resumen">
