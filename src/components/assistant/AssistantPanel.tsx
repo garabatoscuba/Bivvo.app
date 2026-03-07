@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { X, CheckCheck, ExternalLink, Bell } from "lucide-react";
+import { X, CheckCheck, ExternalLink, Bell, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
