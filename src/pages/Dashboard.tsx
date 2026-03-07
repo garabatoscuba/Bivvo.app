@@ -57,7 +57,6 @@ const Dashboard = () => {
   const currentBranch = profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
   const { planType, status: subStatus, totalMonthly } = useSubscription();
-  const { toast } = useToast();
 
   const navigate = useNavigate();
   const isEmployee = !isOwner && !isManager && !isSuperAdmin;
