@@ -90,6 +90,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const [unexpectedDialog, setUnexpectedDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Form state
   const [formName, setFormName] = useState("");
