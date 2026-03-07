@@ -8,12 +8,9 @@ import { useBranches } from '@/hooks/useBranches';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { PeriodFilter, type Period } from '@/components/ui/period-filter';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Button as DialogButton } from '@/components/ui/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import {
@@ -55,13 +52,12 @@ const ChangeIndicator = ({ value }: {value: number;}) => {
 };
 
 const Dashboard = () => {
-  const { profile, roles, isAffiliated, isCuba, isOwner, isManager, isSuperAdmin, isBivooAccount } = useAuth();
+  const { profile, roles, isAffiliated, isOwner, isManager, isSuperAdmin, isBivooAccount } = useAuth();
   const { products } = useProducts();
   const { data: branches } = useBranches();
   const currentBranch = profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
-  const { planType, status: subStatus } = useSubscription();
-  const queryClient = useQueryClient();
+  const { planType, status: subStatus, totalMonthly } = useSubscription();
   const { toast } = useToast();
 
   const navigate = useNavigate();
@@ -75,10 +71,7 @@ const Dashboard = () => {
   }, [isEmployee, isBivooAccount, navigate]);
 
   const [period, setPeriod] = useState<Period>('today');
-  const [newPlanPopup, setNewPlanPopup] = useState(false);
-  const [newBizName, setNewBizName] = useState('');
-  const [newBizType, setNewBizType] = useState('store');
-  const [creatingBiz, setCreatingBiz] = useState(false);
+  const [planInfoPopupOpen, setPlanInfoPopupOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
 
@@ -91,46 +84,36 @@ const Dashboard = () => {
     }
   }, [profile?.user_id, profile?.country, (profile as any)?.onboarding_completed, isEmployee, isBivooAccount]);
 
-  // Show popup reactively when plan changes from free to paid/trial
+  const planNoticeStorageKey = profile?.user_id ? `bivoo-plan-notice-${profile.user_id}` : null;
+  const planNoticeValue = `${planType}:${profile?.subscription_ends_at || profile?.trial_ends_at || 'active'}`;
+
+  // Show info-only popup when a paid plan becomes active (without asking business name/type again)
   useEffect(() => {
-    const checkBizName = async () => {
-      if (isEmployee || isBivooAccount) return; // Skip for employees
-      if (!profile?.business_id || planType === 'free') return;
-      if (subStatus === 'blocked') return;
-      const { data } = await supabase
-        .from('businesses')
-        .select('name')
-        .eq('id', profile.business_id)
-        .single();
-      if (data?.name === 'Negocio de prueba') {
-        setNewPlanPopup(true);
-      }
-    };
-    checkBizName();
-  }, [profile?.business_id, planType, subStatus]);
+    if (!planNoticeStorageKey) return;
+    if (isEmployee || isBivooAccount) return;
+    if (planType === 'free' || subStatus === 'blocked') return;
 
-  const handleCreateAndReplace = async () => {
-    if (!newBizName.trim() || !profile?.business_id) return;
-    setCreatingBiz(true);
-    try {
-      // Instead of creating a new business, rename the trial business
-      // This preserves all existing data (products, sales, categories, etc.)
-      const { error } = await supabase
-        .from('businesses')
-        .update({ name: newBizName.trim(), business_type: newBizType as any })
-        .eq('id', profile.business_id);
-      if (error) throw error;
-
-      toast({ title: '¡Negocio actualizado!', description: `${newBizName.trim()} está listo con toda tu información.` });
-      setNewPlanPopup(false);
-      queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
-      window.location.reload();
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    } finally {
-      setCreatingBiz(false);
+    const alreadySeen = localStorage.getItem(planNoticeStorageKey);
+    if (alreadySeen !== planNoticeValue) {
+      setPlanInfoPopupOpen(true);
     }
+  }, [
+    planNoticeStorageKey,
+    planNoticeValue,
+    planType,
+    subStatus,
+    isEmployee,
+    isBivooAccount,
+  ]);
+
+  const handleClosePlanInfo = () => {
+    if (planNoticeStorageKey) {
+      localStorage.setItem(planNoticeStorageKey, planNoticeValue);
+    }
+    setPlanInfoPopupOpen(false);
   };
+
+  const planLabel = planType === 'professional' ? 'Profesional' : planType === 'basic' ? 'Básico' : 'Gratuito';
 
   const lowStockProducts = branchStock?.filter((bs: any) => {
     const product = products.find((p) => p.id === bs.product_id);
