@@ -53,6 +53,7 @@ export const MermaDialog = ({
 }: MermaDialogProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
 
   const [productId, setProductId] = useState(preselectedProductId || '');
   const [quantity, setQuantity] = useState(1);
