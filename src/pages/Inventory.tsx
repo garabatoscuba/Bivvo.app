@@ -384,6 +384,15 @@ const Inventory = () => {
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
 
+  // Downgrade guard: returns true (blocked) if downgraded, showing the modal
+  const guardDowngrade = (): boolean => {
+    if (isDowngraded) {
+      setDowngradeModalOpen(true);
+      return true;
+    }
+    return false;
+  };
+
   if (!canBypassJornada && jornadaLoading) {
     return (
       <AppLayout>
