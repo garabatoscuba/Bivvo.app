@@ -597,16 +597,6 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
               <Input type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
             </div>
             <div>
-              <Label>Categoría (opcional)</Label>
-              <Select value={formCategoryId} onValueChange={setFormCategoryId}>
-                <SelectTrigger><SelectValue placeholder="Sin categoría" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin categoría</SelectItem>
-                  {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
               <Label>Comprobante (opcional)</Label>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" className="gap-1" onClick={() => document.getElementById("receipt-input")?.click()}>

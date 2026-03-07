@@ -370,18 +370,14 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   );
 }
 
-function Row({ icon, label, value, placeholder }: { icon: React.ReactNode; label: string; value: string | null; placeholder?: string }) {
+function MiniCard({ icon, label, value, muted }: { icon: React.ReactNode; label: string; value: string; muted?: boolean }) {
   return (
-    <div className="flex items-center justify-between text-sm">
-      <div className="flex items-center gap-2 text-muted-foreground">
+    <div className="rounded-lg border bg-muted/30 p-2.5 space-y-0.5">
+      <div className="flex items-center gap-1.5 text-muted-foreground">
         {icon}
-        <span>{label}</span>
       </div>
-      {value ? (
-        <span className="font-semibold">{value}</span>
-      ) : (
-        <span className="text-xs text-muted-foreground/60 italic">{placeholder || "$0.00"}</span>
-      )}
+      <p className={`text-sm font-bold ${muted ? "text-muted-foreground" : "text-foreground"}`}>{value}</p>
+      <p className="text-[10px] leading-tight text-muted-foreground">{label}</p>
     </div>
   );
 }
