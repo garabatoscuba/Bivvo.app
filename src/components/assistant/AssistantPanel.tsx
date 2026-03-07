@@ -1,5 +1,6 @@
 import { useState, useRef } from "react";
-import { X, CheckCheck, ExternalLink, Bell } from "lucide-react";
+import { X, CheckCheck, ExternalLink, Bell, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNotifications } from "@/hooks/useNotifications";
@@ -20,6 +21,17 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   business_request_rejected: "bg-destructive",
 };
 
+const NOTIFICATION_ROUTES: Record<string, string> = {
+  low_stock: "/inventory",
+  sale_cancelled: "/sales",
+  sale: "/sales",
+  inventory_movement: "/inventory",
+  business_request_approved: "/",
+  business_request_rejected: "/plans",
+  storefront_order: "/orders",
+  treasury_pending: "/contabilidad",
+};
+
 type PanelView = "main" | "read-notifications";
 
 interface AssistantPanelProps {
@@ -34,7 +46,15 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
   const { profile, isOwner, isManager } = useAuth();
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [view, setView] = useState<PanelView>("main");
+  const navigate = useNavigate();
 
+  const handleNotifNavigate = (type: string) => {
+    const route = NOTIFICATION_ROUTES[type];
+    if (route) {
+      onClose();
+      navigate(route);
+    }
+  };
   const { data: assistantConfig } = useQuery({
     queryKey: ['assistant-config-name'],
     queryFn: async () => {
@@ -159,6 +179,14 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
                     <p className="text-[10px] text-muted-foreground/60 mt-0.5">
                       {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: es })}
                     </p>
+                    {NOTIFICATION_ROUTES[n.type] && (
+                      <button
+                        onClick={() => handleNotifNavigate(n.type)}
+                        className="mt-1 inline-flex items-center gap-1 text-[11px] text-primary font-medium hover:underline"
+                      >
+                        Ir al detalle <ArrowRight className="h-3 w-3" />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -212,9 +240,8 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
               </div>
               <div className="max-h-[130px] overflow-y-auto scrollbar-hide">
                 {unreadNotifs.slice(0, 5).map((n) => (
-                  <button
+                  <div
                     key={n.id}
-                    onClick={() => markAsRead(n.id)}
                     className="w-full text-left flex items-start gap-2 px-4 py-2.5 hover:bg-muted/40 transition-colors"
                   >
                     <div className={cn("w-[3px] self-stretch rounded-full shrink-0", NOTIFICATION_COLORS[n.type] || "bg-primary")} />
@@ -224,9 +251,19 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
                       <p className="text-[10px] text-muted-foreground/60 mt-0.5">
                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: es })}
                       </p>
+                      {NOTIFICATION_ROUTES[n.type] && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); markAsRead(n.id); handleNotifNavigate(n.type); }}
+                          className="mt-1 inline-flex items-center gap-1 text-[11px] text-primary font-medium hover:underline"
+                        >
+                          Ir al detalle <ArrowRight className="h-3 w-3" />
+                        </button>
+                      )}
                     </div>
-                    <CheckCheck className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                  </button>
+                    <button onClick={() => markAsRead(n.id)} className="shrink-0 mt-0.5 hover:opacity-70" title="Marcar como leída">
+                      <CheckCheck className="h-3.5 w-3.5 text-primary" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
