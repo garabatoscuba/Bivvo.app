@@ -111,6 +111,12 @@ const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalP
           </p>
         </div>
 
+        <JornadaSummaryBlock
+          jornadaId={jornada.id}
+          aperturaAt={jornada.apertura_at}
+          userId={profile?.user_id || ''}
+        />
+
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
