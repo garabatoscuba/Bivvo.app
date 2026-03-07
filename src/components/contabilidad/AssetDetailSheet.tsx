@@ -150,8 +150,8 @@ export default function AssetDetailSheet({ open, onOpenChange, asset, businessId
     queryKey: ["asset-maintenances", asset.id],
     enabled: open,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("accounting_asset_maintenances" as any)
+      const { data, error } = await (supabase as any)
+        .from("accounting_asset_maintenances")
         .select("*")
         .eq("asset_id", asset.id)
         .order("scheduled_date", { ascending: true });
