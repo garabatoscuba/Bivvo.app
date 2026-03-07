@@ -396,50 +396,43 @@ const Dashboard = () => {
         />
       )}
 
-      {/* New Plan — Create Business Popup */}
-      <Dialog open={newPlanPopup} onOpenChange={setNewPlanPopup}>
+      {/* Plan activated info popup */}
+      <Dialog
+        open={planInfoPopupOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            setPlanInfoPopupOpen(true);
+          } else {
+            handleClosePlanInfo();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>🎉 ¡Tu plan está activo!</DialogTitle>
             <DialogDescription>
-              Configura tu negocio real. El negocio de prueba se eliminará automáticamente si está vacío.
+              Conservamos el nombre y el tipo de negocio que configuraste en tus primeros pasos.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <label htmlFor="biz-name" className="text-sm font-medium">Nombre del negocio</label>
-              <Input
-                id="biz-name"
-                placeholder="Ej: Mi Tienda, Ferretería López..."
-                value={newBizName}
-                onChange={(e) => setNewBizName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateAndReplace()}
-              />
+
+          <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Plan</span>
+              <span className="font-medium">{planLabel}</span>
             </div>
-            <div className="space-y-1.5">
-              <label htmlFor="biz-type" className="text-sm font-medium">Tipo de negocio</label>
-              <select
-                id="biz-type"
-                value={newBizType}
-                onChange={(e) => setNewBizType(e.target.value)}
-                className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="store">🏪 Tienda</option>
-                {isCuba && <option value="copy_shop">📄 Punto de Copias</option>}
-                <option value="gym" disabled>🏋️ Gym (próximamente)</option>
-              </select>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Estado</span>
+              <span className="font-medium">{subStatus === 'trial' ? 'Prueba activa' : 'Activo'}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Total mensual</span>
+              <span className="font-medium">{formatCurrency(totalMonthly)}</span>
             </div>
           </div>
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <DialogButton
-              className="w-full"
-              onClick={handleCreateAndReplace}
-              disabled={!newBizName.trim() || creatingBiz}
-            >
-              {creatingBiz ? 'Creando...' : 'Crear negocio'}
-            </DialogButton>
-            <DialogButton variant="ghost" className="w-full" onClick={() => setNewPlanPopup(false)}>
-              Después
+
+          <DialogFooter>
+            <DialogButton className="w-full" onClick={handleClosePlanInfo}>
+              Entendido
             </DialogButton>
           </DialogFooter>
         </DialogContent>
