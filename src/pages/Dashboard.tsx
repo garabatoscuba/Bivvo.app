@@ -424,7 +424,7 @@ const Dashboard = () => {
             </div>
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted-foreground">Total mensual</span>
-              <span className="font-medium">{formatCurrency(totalMonthly)}</span>
+              <span className="font-medium">${totalMonthly} USD</span>
             </div>
           </div>
 
