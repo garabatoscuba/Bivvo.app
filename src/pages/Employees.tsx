@@ -582,12 +582,14 @@ const Employees = () => {
   };
 
   const handleDeleteEmployee = async (id: string) => {
+    const emp = hrEmployees.find(e => e.id === id);
     const { error } = await supabase.from('employees').delete().eq('id', id);
     if (error) {
       sonnerToast.error(error.message);
     } else {
       queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
       sonnerToast.success('Empleado eliminado');
+      auditLog('employee_deleted', `Empleado ${emp?.full_name || 'desconocido'} eliminado`, id, 'employee');
     }
   };
 
