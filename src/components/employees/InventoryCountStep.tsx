@@ -127,7 +127,7 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
 
   return (
     <div className="space-y-4">
-      <ScrollArea className="max-h-[50vh]">
+      <ScrollArea className="h-[46dvh] sm:h-[50vh]">
         <div className="space-y-2 pr-2">
           {results.map(r => (
             <div
