@@ -253,11 +253,11 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
 
         // Auto-create treasury movement for unexpected expenses
         if (type === "unexpected" && user) {
-          await supabase.from("treasury_movements").insert({
+          const { error: tmErr } = await supabase.from("treasury_movements" as any).insert({
             business_id: businessId,
             branch_id: branchId,
             amount: parseFloat(formAmount) || 0,
-            movement_type: "expense",
+            movement_type: "extraccion",
             label: formDescription || "Gasto imprevisto",
             category_id: formCategoryId || null,
             reason: formDescription || null,
@@ -266,6 +266,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
             cash_amount: parseFloat(formAmount) || 0,
             transfer_amount: 0,
           });
+          if (tmErr) console.error("Error creating treasury movement:", tmErr);
         }
       }
     },
@@ -286,15 +287,16 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
       const nextDue = expense.frequency ? getNextDueDate(expense.due_date, expense.frequency) : null;
 
       // Update current expense to paid
-      await supabase.from("accounting_expenses").update({ status: "paid", paid_at: now }).eq("id", expense.id);
+      const { error: updateErr } = await supabase.from("accounting_expenses").update({ status: "paid", paid_at: now }).eq("id", expense.id);
+      if (updateErr) throw updateErr;
 
       // Create treasury movement
       if (user) {
-        await supabase.from("treasury_movements").insert({
+        const { error: tmErr } = await supabase.from("treasury_movements" as any).insert({
           business_id: expense.business_id,
           branch_id: expense.branch_id,
           amount: expense.amount,
-          movement_type: "expense",
+          movement_type: "extraccion",
           label: expense.name,
           category_id: expense.category_id,
           reason: `Pago de gasto fijo: ${expense.name}`,
@@ -303,6 +305,10 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
           cash_amount: expense.amount,
           transfer_amount: 0,
         });
+        if (tmErr) {
+          console.error("Error creating treasury movement for expense:", tmErr);
+          throw tmErr;
+        }
       }
 
       // Generate next occurrence for fixed recurring
@@ -325,6 +331,8 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
       toast.success("Gasto marcado como pagado");
       qc.invalidateQueries({ queryKey: ["accounting-expenses"] });
       qc.invalidateQueries({ queryKey: ["treasury-movements"] });
+      qc.invalidateQueries({ queryKey: ["bh-treasury"] });
+      qc.invalidateQueries({ queryKey: ["bp-injections"] });
       auditLog(
         'expense_paid',
         `Gasto '${expense.name}' marcado como pagado por $${expense.amount.toLocaleString()}`,
