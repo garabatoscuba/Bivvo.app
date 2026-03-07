@@ -37,6 +37,7 @@ const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalP
   const [closing, setClosing] = useState(false);
   const queryClient = useQueryClient();
   const { profile } = useAuth();
+  const auditLog = useAuditLog();
 
   const duration = calcDuration(jornada.apertura_at);
   const entryTime = new Date(jornada.apertura_at).toLocaleTimeString('es', {
