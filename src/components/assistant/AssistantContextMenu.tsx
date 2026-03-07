@@ -24,7 +24,7 @@ export default function AssistantContextMenu({ open, onOpenChange, onAction, chi
   const [actions, setActions] = useState<ContextAction[]>([]);
   const menuRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { isOwner, isSuperAdmin } = useAuth();
+  
 
   useEffect(() => {
     supabase
