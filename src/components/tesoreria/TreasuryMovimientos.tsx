@@ -18,6 +18,7 @@ import TreasuryCategoryManager from "./TreasuryCategoryManager";
 import TreasuryMovementModal from "./TreasuryMovementModal";
 import BalancePersonalCards from "./BalancePersonalCards";
 import BalanceHistoryTable from "./BalanceHistoryTable";
+import BalanceIncomeExpenseChart from "./BalanceIncomeExpenseChart";
 
 type Period = "today" | "week" | "month" | "all";
 type TreasuryMode = "operativo" | "real";
@@ -223,6 +224,9 @@ export default function TreasuryMovimientos({ businessId, branchId, prefillType,
 
       {/* Balance Personal Cards */}
       <BalancePersonalCards businessId={businessId} branchId={branchId} period={period} mode={mode} />
+
+      {/* Income vs Expense Chart (item 3) */}
+      <BalanceIncomeExpenseChart businessId={businessId} branchId={branchId} period={period} />
 
       {/* Action buttons */}
       <div className="flex items-center justify-between pt-2 border-t">
