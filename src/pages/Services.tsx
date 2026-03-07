@@ -346,7 +346,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
             </div>
           </div>
 
-          <Button className="w-full" onClick={() => createEntryMutation.mutate()} disabled={!canSubmit}>
+          <Button className="w-full" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } createEntryMutation.mutate(); }} disabled={!canSubmit}>
             {createEntryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
             Registrar Cobro
           </Button>
