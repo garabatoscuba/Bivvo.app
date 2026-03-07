@@ -33,6 +33,7 @@ const ENTRY_REASONS = [
 export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: StockEntryDialogProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
 
   const [qtyForSale, setQtyForSale] = useState(0);
   const [qtyWarehouse, setQtyWarehouse] = useState(0);
