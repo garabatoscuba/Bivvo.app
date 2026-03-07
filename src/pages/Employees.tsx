@@ -449,6 +449,7 @@ const Employees = () => {
           .single();
         if (error) throw error;
         employeeId = data.id;
+        auditLog('employee_created', `Empleado ${form.full_name} creado con rol ${form.assigned_roles[0] || 'seller'}`, data.id, 'employee');
 
         if (form.use_bivoo_id) {
           // Create @bivoo.app account via edge function
