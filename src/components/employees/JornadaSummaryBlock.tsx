@@ -15,7 +15,11 @@ const JornadaSummaryBlock = ({ jornadaId, aperturaAt, userId }: JornadaSummaryBl
 
   const { data } = useQuery({
     queryKey: ['jornada-summary', jornadaId, businessId],
-    queryFn: async () => {
+    queryFn: async (): Promise<{
+      salesCount: number; salesTotal: number;
+      servicesCount: number; servicesTotal: number;
+      mermaCount: number; auditCode: string | null;
+    } | null> => {
       if (!businessId) return null;
 
       const startTime = aperturaAt;
