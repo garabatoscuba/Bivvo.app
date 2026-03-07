@@ -12,6 +12,7 @@ import CashCalculator from '@/components/cobro/CashCalculator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import JornadaSummaryBlock from '@/components/employees/JornadaSummaryBlock';
 import InventoryCountStep from '@/components/employees/InventoryCountStep';
+import CashDifferenceAlert from '@/components/employees/CashDifferenceAlert';
 
 interface DailySalaryBreakdown {
   total: number;
