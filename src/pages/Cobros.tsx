@@ -12,6 +12,7 @@ import ReportesPorEmpleadoTab from '@/components/cobro/ReportesPorEmpleadoTab';
 import ReportesVsTab from '@/components/cobro/ReportesVsTab';
 import ReportesComparativaTab from '@/components/cobro/ReportesComparativaTab';
 import AdminReportesTab from '@/components/cobro/AdminReportesTab';
+import BitacoraTab from '@/components/cobro/BitacoraTab';
 
 const Cobros = () => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
@@ -59,6 +60,7 @@ const Cobros = () => {
             <TabsTrigger value="vs" className="flex-1 text-xs sm:text-sm">Ventas vs Serv.</TabsTrigger>
             <TabsTrigger value="comparativa" className="flex-1 text-xs sm:text-sm">Comparativa</TabsTrigger>
             <TabsTrigger value="historial" className="flex-1 text-xs sm:text-sm">Historial</TabsTrigger>
+            {isOwner && <TabsTrigger value="bitacora" className="flex-1 text-xs sm:text-sm">Bitácora</TabsTrigger>}
           </TabsList>
 
           <TabsContent value="resumen">
@@ -95,6 +97,12 @@ const Cobros = () => {
           <TabsContent value="historial">
             <AdminReportesTab businessId={businessId} />
           </TabsContent>
+
+          {isOwner && (
+            <TabsContent value="bitacora">
+              <BitacoraTab businessId={businessId} />
+            </TabsContent>
+          )}
         </Tabs>
       )}
     </AppLayout>

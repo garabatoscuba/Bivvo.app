@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import JornadaSummaryBlock from '@/components/employees/JornadaSummaryBlock';
 
 interface CerrarJornadaModalProps {
   open: boolean;
@@ -109,6 +110,12 @@ const CerrarJornadaModal = ({ open, onOpenChange, jornada }: CerrarJornadaModalP
             Al cerrar tu jornada perderás el salario del día. Asegúrate de haber terminado de contar antes de cerrar.
           </p>
         </div>
+
+        <JornadaSummaryBlock
+          jornadaId={jornada.id}
+          aperturaAt={jornada.apertura_at}
+          userId={profile?.user_id || ''}
+        />
 
         <DialogFooter className="gap-2 sm:gap-0">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
