@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranches } from "@/hooks/useBranches";
 import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import {
   Select,
   SelectContent,
@@ -22,6 +22,7 @@ const Contabilidad = () => {
   const prefillType = searchParams.get("prefill") as "extraccion" | "inyeccion" | null;
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState("balance");
 
   const handlePrefillConsumed = () => {
     setSearchParams({}, { replace: true });
@@ -54,43 +55,48 @@ const Contabilidad = () => {
           )}
         </div>
 
-        <Tabs defaultValue="balance" className="space-y-4">
-          <TabsList className="w-full flex flex-nowrap overflow-x-auto scrollbar-hide h-9">
-            <TabsTrigger value="balance" className="shrink-0 text-xs">Balance</TabsTrigger>
-            <TabsTrigger value="gastos" className="shrink-0 text-xs">Gastos</TabsTrigger>
-            <TabsTrigger value="activos" className="shrink-0 text-xs">Activos</TabsTrigger>
-            <TabsTrigger value="analisis" className="shrink-0 text-xs">Análisis</TabsTrigger>
-          </TabsList>
+        <div className="flex">
+          <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full">
+            {(["balance", "gastos", "activos", "analisis"] as const).map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shrink-0 flex-1 ${
+                  activeTab === tab
+                    ? "bg-background text-foreground shadow"
+                    : "hover:bg-background/50 hover:text-foreground"
+                }`}
+              >
+                {{ balance: "Balance", gastos: "Gastos", activos: "Activos", analisis: "Análisis" }[tab]}
+              </button>
+            ))}
+          </div>
+        </div>
 
-          <TabsContent value="balance">
-            {profile?.business_id && (
-              <TreasuryMovimientos
-                businessId={profile.business_id}
-                branchId={filterBranchId}
-                prefillType={prefillType}
-                onPrefillConsumed={handlePrefillConsumed}
-              />
-            )}
-          </TabsContent>
+        {activeTab === "balance" && profile?.business_id && (
+          <TreasuryMovimientos
+            businessId={profile.business_id}
+            branchId={filterBranchId}
+            prefillType={prefillType}
+            onPrefillConsumed={handlePrefillConsumed}
+          />
+        )}
 
-          <TabsContent value="gastos">
-            {profile?.business_id && (
-              <ExpensesTab businessId={profile.business_id} branchId={filterBranchId} />
-            )}
-          </TabsContent>
+        {activeTab === "gastos" && profile?.business_id && (
+          <ExpensesTab businessId={profile.business_id} branchId={filterBranchId} />
+        )}
 
-          <TabsContent value="activos">
-            <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-              Próximamente
-            </div>
-          </TabsContent>
+        {activeTab === "activos" && (
+          <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
+            Próximamente
+          </div>
+        )}
 
-          <TabsContent value="analisis">
-            <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-              Próximamente
-            </div>
-          </TabsContent>
-        </Tabs>
+        {activeTab === "analisis" && (
+          <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
+            Próximamente
+          </div>
+        )}
       </div>
     </AppLayout>
   );

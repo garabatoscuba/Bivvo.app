@@ -90,6 +90,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const [unexpectedDialog, setUnexpectedDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -248,7 +249,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
         amount: parseFloat(formAmount) || 0,
         expense_type: type,
         frequency: type === "fixed" ? formFrequency : null,
-        category_id: formCategoryId || null,
+        category_id: formCategoryId && formCategoryId !== "none" ? formCategoryId : null,
         status: type === "unexpected" ? "paid" : "pending",
         due_date: type === "fixed" ? (formDueDate || getNextDueDate(null, formFrequency)) : (formDueDate || new Date().toISOString()),
         paid_at: type === "unexpected" ? new Date().toISOString() : null,
@@ -475,7 +476,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
                         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditFixed(e)} title="Editar">
                           <Pencil className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteMutation.mutate(e.id)} title="Eliminar">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(e.id)} title="Eliminar">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </div>
@@ -526,7 +527,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
                       ) : "—"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => deleteMutation.mutate(e.id)} title="Eliminar">
+                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(e.id)} title="Eliminar">
                         <Trash2 className="h-4 w-4 text-destructive" />
                       </Button>
                     </TableCell>
@@ -571,7 +572,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
               <Select value={formCategoryId} onValueChange={setFormCategoryId}>
                 <SelectTrigger><SelectValue placeholder="Sin categoría" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin categoría</SelectItem>
+                   <SelectItem value="none">Sin categoría</SelectItem>
                   {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -610,7 +611,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
               <Select value={formCategoryId} onValueChange={setFormCategoryId}>
                 <SelectTrigger><SelectValue placeholder="Sin categoría" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin categoría</SelectItem>
+                  <SelectItem value="none">Sin categoría</SelectItem>
                   {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
@@ -629,6 +630,26 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
             <Button variant="outline" onClick={() => { setUnexpectedDialog(false); resetForm(); }}>Cancelar</Button>
             <Button disabled={!formAmount || saveMutation.isPending || uploading} onClick={() => saveMutation.mutate("unexpected")}>
               {uploading ? "Subiendo..." : saveMutation.isPending ? "Guardando..." : "Registrar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Confirmation Dialog ── */}
+      <Dialog open={!!deleteConfirmId} onOpenChange={(o) => { if (!o) setDeleteConfirmId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>¿Eliminar este gasto?</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Esta acción no se puede deshacer.</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteConfirmId(null)}>Cancelar</Button>
+            <Button variant="destructive" disabled={deleteMutation.isPending} onClick={() => {
+              if (deleteConfirmId) {
+                deleteMutation.mutate(deleteConfirmId, { onSuccess: () => setDeleteConfirmId(null) });
+              }
+            }}>
+              {deleteMutation.isPending ? "Eliminando..." : "Eliminar"}
             </Button>
           </DialogFooter>
         </DialogContent>
