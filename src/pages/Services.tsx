@@ -841,6 +841,7 @@ const OwnerServicesView = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
     </div>
   );
 };
