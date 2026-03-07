@@ -572,7 +572,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
               <Select value={formCategoryId} onValueChange={setFormCategoryId}>
                 <SelectTrigger><SelectValue placeholder="Sin categoría" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin categoría</SelectItem>
+                   <SelectItem value="none">Sin categoría</SelectItem>
                   {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
