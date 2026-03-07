@@ -304,7 +304,7 @@ const Plans = () => {
                 </p>
                 {planType === 'free' ? (
                   <p className="mt-1 text-lg font-semibold">$0</p>
-                ) : approvedRequest && approvedRequest.partner_id && approvedRequest.months ? (
+                ) : approvedRequest && approvedRequest.months && Number(approvedRequest.total_amount) < totalMonthly * approvedRequest.months ? (
                   <>
                     <div className="mt-1 flex items-center gap-2">
                       <span className="text-sm line-through text-muted-foreground">${totalMonthly}</span>
@@ -313,7 +313,7 @@ const Plans = () => {
                       </span>
                     </div>
                     <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1 mt-0.5">
-                      <Tag className="h-3 w-3" /> Descuento de partner aplicado
+                      <Tag className="h-3 w-3" /> {approvedRequest.partner_id ? 'Descuento de partner aplicado' : 'Oferta aplicada'}
                     </p>
                   </>
                 ) : (
