@@ -75,6 +75,7 @@ const Inventory = () => {
   const { categories, isLoading: categoriesLoading, deleteCategory } = useCategories();
   const { data: branches } = useBranches();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
   
   const [search, setSearch] = useState('');
   const [selectedBranch, setSelectedBranch] = useState<string>(() => {
