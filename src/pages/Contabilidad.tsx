@@ -12,6 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import TreasuryMovimientos from "@/components/tesoreria/TreasuryMovimientos";
+import ExpensesTab from "@/components/contabilidad/ExpensesTab";
 
 const Contabilidad = () => {
   const { profile } = useAuth();
