@@ -23,6 +23,7 @@ export const useSales = (branchId?: string | null) => {
   const { user } = useAuth();
   const { isOnline } = useOffline();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
 
   // Query: list sales with seller and customer names
   const salesQuery = useQuery({
