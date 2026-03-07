@@ -55,6 +55,41 @@ export type Database = {
           },
         ]
       }
+      accounting_asset_maintenances: {
+        Row: {
+          asset_id: string
+          created_at: string | null
+          description: string
+          id: string
+          is_completed: boolean | null
+          scheduled_date: string
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string | null
+          description: string
+          id?: string
+          is_completed?: boolean | null
+          scheduled_date: string
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string | null
+          description?: string
+          id?: string
+          is_completed?: boolean | null
+          scheduled_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_asset_maintenances_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounting_assets: {
         Row: {
           acquisition_cost: number

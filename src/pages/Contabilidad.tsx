@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import TreasuryMovimientos from "@/components/tesoreria/TreasuryMovimientos";
 import ExpensesTab from "@/components/contabilidad/ExpensesTab";
+import AssetsTab from "@/components/contabilidad/AssetsTab";
 
 const Contabilidad = () => {
   const { profile } = useAuth();
@@ -86,10 +87,8 @@ const Contabilidad = () => {
           <ExpensesTab businessId={profile.business_id} branchId={filterBranchId} />
         )}
 
-        {activeTab === "activos" && (
-          <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-            Próximamente
-          </div>
+        {activeTab === "activos" && profile?.business_id && (
+          <AssetsTab businessId={profile.business_id} branchId={filterBranchId} />
         )}
 
         {activeTab === "analisis" && (
