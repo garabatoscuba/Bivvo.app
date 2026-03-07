@@ -53,6 +53,34 @@ function getPreviousDateRange(period: Period): { from: string; to: string } | nu
   return null;
 }
 
+const PERIOD_DAYS: Record<Period, number> = {
+  today: 1,
+  week: 7,
+  month: 30,
+  all: 365,
+};
+
+const FREQUENCY_DIVISOR: Record<string, number> = {
+  daily: 1,
+  weekly: 7,
+  biweekly: 15,
+  monthly: 30,
+  quarterly: 90,
+  annual: 365,
+};
+
+function calcAccruedFixedExpenses(
+  expenses: { amount: number; frequency: string | null }[],
+  period: Period
+): number {
+  const days = PERIOD_DAYS[period];
+  return expenses.reduce((sum, e) => {
+    const divisor = FREQUENCY_DIVISOR[e.frequency || "monthly"] || 30;
+    const dailyCost = e.amount / divisor;
+    return sum + dailyCost * days;
+  }, 0);
+}
+
 export default function BalancePersonalCards({ businessId, branchId, period, mode }: Props) {
   const { from, to } = useMemo(() => getDateRange(period), [period]);
   const prevRange = useMemo(() => getPreviousDateRange(period), [period]);
@@ -212,14 +240,50 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
     enabled: !!businessId,
   });
 
-  // Fixed expenses paid (item 1)
+  // Fixed expenses paid (Real mode value)
   const { data: fixedExpensesPaid = 0 } = useQuery({
     queryKey: ["bp-fixed-expenses", businessId, period],
     queryFn: () => fetchFixedExpensesSum(from, to),
     enabled: !!businessId,
   });
 
-  // Previous period totals for comparison (item 2)
+  // Fixed expenses for accrual calculation (Operativo mode)
+  const { data: fixedExpensesForAccrual = [] } = useQuery({
+    queryKey: ["bp-fixed-expenses-accrual", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("accounting_expenses")
+        .select("amount, frequency")
+        .eq("business_id", businessId)
+        .eq("expense_type", "fixed")
+        .in("status", ["paid", "pending", "overdue"]);
+      // Deduplicate by name+frequency (recurring generates next occurrence, we only want unique obligations)
+      // Since we query all statuses, group by amount+frequency to avoid double-counting recurring expenses
+      return (data || []).map((e) => ({
+        amount: Number(e.amount),
+        frequency: e.frequency,
+      }));
+    },
+    enabled: !!businessId && mode === "operativo",
+  });
+
+  // Deduplicate recurring fixed expenses: keep only the latest per unique amount+frequency combo
+  const uniqueFixedObligations = useMemo(() => {
+    if (mode !== "operativo") return [];
+    const seen = new Map<string, { amount: number; frequency: string | null }>();
+    for (const e of fixedExpensesForAccrual) {
+      const key = `${e.amount}-${e.frequency}`;
+      seen.set(key, e);
+    }
+    return Array.from(seen.values());
+  }, [fixedExpensesForAccrual, mode]);
+
+  const accruedFixedExpenses = useMemo(() => {
+    if (mode !== "operativo") return 0;
+    return calcAccruedFixedExpenses(uniqueFixedObligations, period);
+  }, [uniqueFixedObligations, period, mode]);
+
+  // Previous period totals for comparison
   const { data: prevTotals } = useQuery({
     queryKey: ["bp-prev-totals", businessId, branchId, period, saleBranchIds],
     queryFn: async () => {
@@ -243,18 +307,21 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   const extractions = extractionData || { retiro: 0, otros: 0, total: 0 };
   const totalIngresos = productSales + serviceSales + injections;
 
-  const compromisos = salariesPaid + extractions.total + fixedExpensesPaid;
+  // Use accrued value in Operativo, real paid in Real
+  const effectiveFixedExpenses = mode === "operativo" ? accruedFixedExpenses : fixedExpensesPaid;
+
+  const compromisos = salariesPaid + extractions.total + effectiveFixedExpenses;
   const disponible = mode === "real"
     ? totalIngresos - compromisos - inventoryPurchases
     : totalIngresos - compromisos;
 
   const totalGastosDisplay = mode === "real"
-    ? inventoryPurchases + salariesPaid + extractions.total + fixedExpensesPaid
-    : productCost + salariesPaid + extractions.total + fixedExpensesPaid;
+    ? inventoryPurchases + salariesPaid + extractions.total + effectiveFixedExpenses
+    : productCost + salariesPaid + extractions.total + effectiveFixedExpenses;
 
   const fmt = (n: number) => "$" + n.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-  // Comparison helpers (item 2)
+  // Comparison helpers
   const renderComparison = (current: number, previous: number | undefined) => {
     if (previous === undefined || previous === null || period === "all") return null;
     if (previous === 0) return null;
@@ -267,7 +334,7 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
     );
   };
 
-  // Margin (item 4)
+  // Margin
   const margenNeto = totalIngresos > 0
     ? Math.round(((totalIngresos - totalGastosDisplay) / totalIngresos) * 100)
     : null;
@@ -320,7 +387,12 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
             <MiniCard icon={<Users className="h-3.5 w-3.5" />} label="Salarios pagados" value={fmt(salariesPaid)} />
             <MiniCard icon={<ArrowUpFromLine className="h-3.5 w-3.5" />} label="Dinero que sacaste" value={fmt(extractions?.retiro || 0)} />
             <MiniCard icon={<ReceiptText className="h-3.5 w-3.5" />} label="Otros gastos" value={fmt(extractions?.otros || 0)} />
-            <MiniCard icon={<FileText className="h-3.5 w-3.5" />} label="Gastos fijos pagados" value={fmt(fixedExpensesPaid)} />
+            <MiniCard
+              icon={<FileText className="h-3.5 w-3.5" />}
+              label="Gastos fijos pagados"
+              value={fmt(effectiveFixedExpenses)}
+              subtitle={mode === "operativo" ? "Devengado" : undefined}
+            />
           </div>
           <div className="border-t pt-2">
             <div className="flex items-center justify-between">
@@ -347,7 +419,6 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
             <p className={`text-2xl md:text-3xl font-extrabold ${disponible >= 0 ? "text-green-600" : "text-red-600"}`}>
               {fmt(disponible)}
             </p>
-            {/* Item 4: Net margin */}
             {margenNeto !== null && (
               <p className={`text-xs font-semibold mt-1 ${margenNeto >= 0 ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
                 Margen neto del período: {margenNeto}%
@@ -370,13 +441,16 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   );
 }
 
-function MiniCard({ icon, label, value, muted }: { icon: React.ReactNode; label: string; value: string; muted?: boolean }) {
+function MiniCard({ icon, label, value, muted, subtitle }: { icon: React.ReactNode; label: string; value: string; muted?: boolean; subtitle?: string }) {
   return (
     <div className="rounded-lg border bg-muted/30 p-2.5 space-y-0.5">
       <div className="flex items-center gap-1.5 text-muted-foreground">
         {icon}
       </div>
       <p className={`text-sm font-bold ${muted ? "text-muted-foreground" : "text-foreground"}`}>{value}</p>
+      {subtitle && (
+        <p className="text-[9px] text-muted-foreground italic">{subtitle}</p>
+      )}
       <p className="text-[10px] leading-tight text-muted-foreground">{label}</p>
     </div>
   );
