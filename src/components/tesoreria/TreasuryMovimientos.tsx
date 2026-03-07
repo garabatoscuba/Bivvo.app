@@ -14,7 +14,7 @@ import {
   Info,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import TreasuryCategoryManager from "./TreasuryCategoryManager";
+
 import TreasuryMovementModal from "./TreasuryMovementModal";
 import BalancePersonalCards from "./BalancePersonalCards";
 import BalanceHistoryTable from "./BalanceHistoryTable";
