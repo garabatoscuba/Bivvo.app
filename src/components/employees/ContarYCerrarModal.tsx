@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import CashCalculator from '@/components/cobro/CashCalculator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import JornadaSummaryBlock from '@/components/employees/JornadaSummaryBlock';
 
 interface DailySalaryBreakdown {
   total: number;
