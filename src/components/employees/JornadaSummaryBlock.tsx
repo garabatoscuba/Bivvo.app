@@ -26,30 +26,29 @@ const JornadaSummaryBlock = ({ jornadaId, aperturaAt, userId }: JornadaSummaryBl
       const endTime = new Date().toISOString();
 
       // Sales during shift
-      const salesQuery = supabase
+      const { data: sales } = await (supabase
         .from('sales')
         .select('total')
-        .eq('business_id', businessId as string)
-        .eq('user_id', userId);
-      const { data: sales } = await (salesQuery as any)
+        .eq('business_id', businessId as string) as any)
+        .eq('user_id', userId)
         .gte('created_at', startTime)
         .lte('created_at', endTime)
         .neq('status', 'cancelled');
 
       // Services during shift
-      const { data: services } = await supabase
+      const { data: services } = await (supabase
         .from('service_entries')
         .select('amount')
-        .eq('business_id', businessId)
+        .eq('business_id', businessId as string) as any)
         .eq('user_id', userId)
         .gte('created_at', startTime)
         .lte('created_at', endTime);
 
       // Shrinkage count during shift
-      const { count: mermaCount } = await supabase
+      const { count: mermaCount } = await (supabase
         .from('inventory_movements')
         .select('*', { count: 'exact', head: true })
-        .eq('movement_type', 'loss')
+        .eq('movement_type', 'loss') as any)
         .eq('user_id', userId)
         .gte('created_at', startTime)
         .lte('created_at', endTime);
