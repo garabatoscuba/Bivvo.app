@@ -12,6 +12,7 @@ import ReportesPorEmpleadoTab from '@/components/cobro/ReportesPorEmpleadoTab';
 import ReportesVsTab from '@/components/cobro/ReportesVsTab';
 import ReportesComparativaTab from '@/components/cobro/ReportesComparativaTab';
 import AdminReportesTab from '@/components/cobro/AdminReportesTab';
+import BitacoraTab from '@/components/cobro/BitacoraTab';
 
 const Cobros = () => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
