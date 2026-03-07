@@ -8,12 +8,8 @@ import { useBranches } from '@/hooks/useBranches';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { PeriodFilter, type Period } from '@/components/ui/period-filter';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Button as DialogButton } from '@/components/ui/button';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import {
@@ -55,14 +51,12 @@ const ChangeIndicator = ({ value }: {value: number;}) => {
 };
 
 const Dashboard = () => {
-  const { profile, roles, isAffiliated, isCuba, isOwner, isManager, isSuperAdmin, isBivooAccount } = useAuth();
+  const { profile, roles, isAffiliated, isOwner, isManager, isSuperAdmin, isBivooAccount } = useAuth();
   const { products } = useProducts();
   const { data: branches } = useBranches();
   const currentBranch = profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
-  const { planType, status: subStatus } = useSubscription();
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  const { planType, status: subStatus, totalMonthly } = useSubscription();
 
   const navigate = useNavigate();
   const isEmployee = !isOwner && !isManager && !isSuperAdmin;
@@ -75,10 +69,7 @@ const Dashboard = () => {
   }, [isEmployee, isBivooAccount, navigate]);
 
   const [period, setPeriod] = useState<Period>('today');
-  const [newPlanPopup, setNewPlanPopup] = useState(false);
-  const [newBizName, setNewBizName] = useState('');
-  const [newBizType, setNewBizType] = useState('store');
-  const [creatingBiz, setCreatingBiz] = useState(false);
+  const [planInfoPopupOpen, setPlanInfoPopupOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(false);
   const { data: stats, isLoading } = useDashboardStats(currentBranch, period);
 
@@ -91,46 +82,36 @@ const Dashboard = () => {
     }
   }, [profile?.user_id, profile?.country, (profile as any)?.onboarding_completed, isEmployee, isBivooAccount]);
 
-  // Show popup reactively when plan changes from free to paid/trial
+  const planNoticeStorageKey = profile?.user_id ? `bivoo-plan-notice-${profile.user_id}` : null;
+  const planNoticeValue = `${planType}:${profile?.subscription_ends_at || profile?.trial_ends_at || 'active'}`;
+
+  // Show info-only popup when a paid plan becomes active (without asking business name/type again)
   useEffect(() => {
-    const checkBizName = async () => {
-      if (isEmployee || isBivooAccount) return; // Skip for employees
-      if (!profile?.business_id || planType === 'free') return;
-      if (subStatus === 'blocked') return;
-      const { data } = await supabase
-        .from('businesses')
-        .select('name')
-        .eq('id', profile.business_id)
-        .single();
-      if (data?.name === 'Negocio de prueba') {
-        setNewPlanPopup(true);
-      }
-    };
-    checkBizName();
-  }, [profile?.business_id, planType, subStatus]);
+    if (!planNoticeStorageKey) return;
+    if (isEmployee || isBivooAccount) return;
+    if (planType === 'free' || subStatus === 'blocked') return;
 
-  const handleCreateAndReplace = async () => {
-    if (!newBizName.trim() || !profile?.business_id) return;
-    setCreatingBiz(true);
-    try {
-      // Instead of creating a new business, rename the trial business
-      // This preserves all existing data (products, sales, categories, etc.)
-      const { error } = await supabase
-        .from('businesses')
-        .update({ name: newBizName.trim(), business_type: newBizType as any })
-        .eq('id', profile.business_id);
-      if (error) throw error;
-
-      toast({ title: '¡Negocio actualizado!', description: `${newBizName.trim()} está listo con toda tu información.` });
-      setNewPlanPopup(false);
-      queryClient.invalidateQueries({ queryKey: ['user-businesses-with-branches'] });
-      window.location.reload();
-    } catch (err: any) {
-      toast({ title: 'Error', description: err.message, variant: 'destructive' });
-    } finally {
-      setCreatingBiz(false);
+    const alreadySeen = localStorage.getItem(planNoticeStorageKey);
+    if (alreadySeen !== planNoticeValue) {
+      setPlanInfoPopupOpen(true);
     }
+  }, [
+    planNoticeStorageKey,
+    planNoticeValue,
+    planType,
+    subStatus,
+    isEmployee,
+    isBivooAccount,
+  ]);
+
+  const handleClosePlanInfo = () => {
+    if (planNoticeStorageKey) {
+      localStorage.setItem(planNoticeStorageKey, planNoticeValue);
+    }
+    setPlanInfoPopupOpen(false);
   };
+
+  const planLabel = planType === 'professional' ? 'Profesional' : planType === 'basic' ? 'Básico' : 'Gratuito';
 
   const lowStockProducts = branchStock?.filter((bs: any) => {
     const product = products.find((p) => p.id === bs.product_id);
@@ -413,50 +394,43 @@ const Dashboard = () => {
         />
       )}
 
-      {/* New Plan — Create Business Popup */}
-      <Dialog open={newPlanPopup} onOpenChange={setNewPlanPopup}>
+      {/* Plan activated info popup */}
+      <Dialog
+        open={planInfoPopupOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            setPlanInfoPopupOpen(true);
+          } else {
+            handleClosePlanInfo();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>🎉 ¡Tu plan está activo!</DialogTitle>
             <DialogDescription>
-              Configura tu negocio real. El negocio de prueba se eliminará automáticamente si está vacío.
+              Conservamos el nombre y el tipo de negocio que configuraste en tus primeros pasos.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
-            <div className="space-y-1.5">
-              <label htmlFor="biz-name" className="text-sm font-medium">Nombre del negocio</label>
-              <Input
-                id="biz-name"
-                placeholder="Ej: Mi Tienda, Ferretería López..."
-                value={newBizName}
-                onChange={(e) => setNewBizName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreateAndReplace()}
-              />
+
+          <div className="rounded-lg border bg-muted/50 p-4 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Plan</span>
+              <span className="font-medium">{planLabel}</span>
             </div>
-            <div className="space-y-1.5">
-              <label htmlFor="biz-type" className="text-sm font-medium">Tipo de negocio</label>
-              <select
-                id="biz-type"
-                value={newBizType}
-                onChange={(e) => setNewBizType(e.target.value)}
-                className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <option value="store">🏪 Tienda</option>
-                {isCuba && <option value="copy_shop">📄 Punto de Copias</option>}
-                <option value="gym" disabled>🏋️ Gym (próximamente)</option>
-              </select>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Estado</span>
+              <span className="font-medium">{subStatus === 'trial' ? 'Prueba activa' : 'Activo'}</span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Total mensual</span>
+              <span className="font-medium">${totalMonthly} USD</span>
             </div>
           </div>
-          <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <DialogButton
-              className="w-full"
-              onClick={handleCreateAndReplace}
-              disabled={!newBizName.trim() || creatingBiz}
-            >
-              {creatingBiz ? 'Creando...' : 'Crear negocio'}
-            </DialogButton>
-            <DialogButton variant="ghost" className="w-full" onClick={() => setNewPlanPopup(false)}>
-              Después
+
+          <DialogFooter>
+            <DialogButton className="w-full" onClick={handleClosePlanInfo}>
+              Entendido
             </DialogButton>
           </DialogFooter>
         </DialogContent>

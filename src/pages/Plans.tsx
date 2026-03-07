@@ -231,7 +231,7 @@ const Plans = () => {
     'Inventario limitado (5 productos, 2 categorías)',
     'Punto de Venta (POS) completo',
     'Gráficas de desempeño',
-    'Negocio de prueba incluido',
+    'Configuración inicial guiada del negocio',
     'Sin límite de tiempo',
   ];
 
