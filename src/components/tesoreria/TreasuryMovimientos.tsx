@@ -18,7 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import TreasuryMovementModal from "./TreasuryMovementModal";
 import BalancePersonalCards from "./BalancePersonalCards";
 import BalanceHistoryTable from "./BalanceHistoryTable";
-import BalanceIncomeExpenseChart from "./BalanceIncomeExpenseChart";
+
 
 type Period = "today" | "week" | "month" | "all";
 type TreasuryMode = "operativo" | "real";
