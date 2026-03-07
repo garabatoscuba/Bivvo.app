@@ -385,6 +385,7 @@ const OwnerServicesView = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isDowngraded } = useIsDowngraded();
+  const auditLog = useAuditLog();
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const canManage = isOwner || isManager;
   const businessId = profile?.business_id;
