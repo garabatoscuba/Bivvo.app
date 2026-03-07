@@ -309,6 +309,12 @@ const Inventory = () => {
 
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       toast({ title: `${transferQty} unidades pasadas a venta` });
+      auditLog(
+        'stock_transfer',
+        `Transferencia de ${transferQty} unidades de ${selectedProduct?.name} de almacén a venta`,
+        selectedProduct?.id,
+        'product'
+      );
       setTransferQty(0);
       setShowTransfer(false);
     } catch (err: any) {

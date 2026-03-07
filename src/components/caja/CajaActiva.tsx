@@ -298,6 +298,15 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
       setBillCounts({});
       setCloseNotes("");
       toast({ title: "Caja cerrada exitosamente" });
+      const totalCash = salesData?.cash || 0;
+      const totalTransfersVal = (salesData?.transfer || 0) + (servicesData?.transfer || 0);
+      const totalAll = totalCash + totalTransfersVal;
+      auditLog(
+        'cash_register_closed',
+        `Caja cerrada — Efectivo: $${totalCash.toFixed(2)}, Transferencias: $${totalTransfersVal.toFixed(2)}, Total: $${totalAll.toFixed(2)}`,
+        activeRegister?.id,
+        'cash_register'
+      );
     },
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });

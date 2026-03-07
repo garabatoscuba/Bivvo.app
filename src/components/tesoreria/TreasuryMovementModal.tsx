@@ -112,7 +112,14 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
       queryClient.invalidateQueries({ queryKey: ["bh-treasury"] });
       queryClient.invalidateQueries({ queryKey: ["bp-injections"] });
       queryClient.invalidateQueries({ queryKey: ["bp-extractions"] });
+      const label = type === "inyeccion" ? "Inyección" : "Extracción";
       toast({ title: type === "inyeccion" ? "Capital registrado" : "Gasto registrado" });
+      auditLog(
+        'balance_movement_created',
+        `${label} de $${Number(amount).toFixed(2)} — ${reason.trim() || 'Sin motivo'}`,
+        undefined,
+        'treasury_movement'
+      );
       onOpenChange(false);
     },
     onError: (e: any) =>
