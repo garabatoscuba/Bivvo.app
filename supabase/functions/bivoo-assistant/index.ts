@@ -196,12 +196,14 @@ Las preguntas deben ser cortas (máximo 8 palabras), contextuales a la conversac
       .join("\n");
 
     /* ── Build messages array for Groq (OpenAI-compatible) ── */
+    // Truncate conversation to last 10 messages to stay within Groq TPM limits
+    const recentMessages = messages.slice(-10).map((m: any) => ({
+      role: m.role === "model" ? "assistant" : m.role,
+      content: typeof m.content === "string" ? m.content.slice(0, 500) : String(m.content).slice(0, 500),
+    }));
     const groqMessages = [
       { role: "system", content: systemPrompt },
-      ...messages.map((m: any) => ({
-        role: m.role === "model" ? "assistant" : m.role,
-        content: m.content,
-      })),
+      ...recentMessages,
     ];
 
     /* ── Call Groq API ── */
