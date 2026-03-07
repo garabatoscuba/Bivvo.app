@@ -3,10 +3,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNotifications } from '@/hooks/useNotifications';
 import { useAssistantFeatures } from '@/hooks/useAssistantFeatures';
+import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useNavigate } from 'react-router-dom';
 import BivooFace, { type BivooState } from './BivooFace';
 import AssistantPanel from './AssistantPanel';
 import AssistantContextMenu from './AssistantContextMenu';
+import TreasuryMovementModal from '@/components/tesoreria/TreasuryMovementModal';
 
 type VisibleElement = 'none' | 'panel' | 'menu';
 
