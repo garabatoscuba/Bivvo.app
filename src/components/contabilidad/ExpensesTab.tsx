@@ -417,23 +417,6 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
         ))}
       </div>
 
-      {/* Chart */}
-      {chartData.length > 0 && (
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-sm font-medium mb-3">Desglose por categoría</p>
-            <ChartContainer config={chartConfig} className="h-[200px] w-full">
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <RTooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '8px' }} labelStyle={{ color: '#fff' }} itemStyle={{ color: '#fff' }} />
-                <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
-      )}
 
       {/* ── FIXED EXPENSES ── */}
       <div className="space-y-3">
