@@ -47,7 +47,7 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
   const [transferAmount, setTransferAmount] = useState("");
   const [reason, setReason] = useState("");
   const [origin, setOrigin] = useState("");
-  const [label, setLabel] = useState("negocio");
+  
   const [branchId, setBranchId] = useState<string>("all");
   const [moreOpen, setMoreOpen] = useState(false);
 
