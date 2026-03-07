@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useAuditLog } from '@/hooks/useAuditLog';
 import { useIsDowngraded } from '@/hooks/useIsDowngraded';
 import DowngradeModal from '@/components/DowngradeModal';
 import { useSearchParams } from 'react-router-dom';
