@@ -359,9 +359,15 @@ export const useSales = (branchId?: string | null) => {
         });
       }
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['sales'] });
       toast({ title: 'Venta cancelada' });
+      auditLog(
+        'sale_cancelled',
+        `Venta cancelada — motivo: ${variables.reason}`,
+        variables.saleId,
+        'sale'
+      );
     },
     onError: (error) => {
       toast({ title: 'Error al cancelar', description: error.message, variant: 'destructive' });
