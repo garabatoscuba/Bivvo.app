@@ -9,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import JornadaSummaryBlock from '@/components/employees/JornadaSummaryBlock';
 
 interface CerrarJornadaModalProps {
   open: boolean;
