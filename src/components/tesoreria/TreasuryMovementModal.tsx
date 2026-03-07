@@ -86,8 +86,8 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
         }
       }
 
-      const resolvedBranchId = label === "negocio" && branchId !== "all" ? branchId : 
-                                label === "negocio" && branches.length === 1 ? branches[0].id : null;
+      const resolvedBranchId = branchId !== "all" ? branchId : 
+                                branches.length === 1 ? branches[0].id : null;
 
       const { error } = await supabase.from("treasury_movements" as any).insert({
         business_id: businessId,
@@ -100,7 +100,7 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
         reason: reason.trim() || null,
         origin: origin.trim() || null,
         category_id: null,
-        label,
+        label: null,
         registered_by: profile!.user_id,
       });
       if (error) throw error;
