@@ -22,6 +22,7 @@ const Contabilidad = () => {
   const prefillType = searchParams.get("prefill") as "extraccion" | "inyeccion" | null;
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>("all");
+  const [activeTab, setActiveTab] = useState("balance");
 
   const handlePrefillConsumed = () => {
     setSearchParams({}, { replace: true });
