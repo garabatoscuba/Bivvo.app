@@ -259,7 +259,23 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* Charts Row */}
+        {/* Owner Financial Cards */}
+        {isOwner && profile?.business_id && (
+          <OwnerFinancialCards
+            businessId={profile.business_id}
+            branchId={currentBranch}
+            period={period}
+          />
+        )}
+
+        {/* Equipo activo ahora */}
+        {(isOwner || isManager) && profile?.business_id && (
+          <EquipoActivoSection
+            onlyActive
+            businessIdOverride={profile.business_id}
+          />
+        )}
+
         <div className="grid gap-3 md:gap-4 lg:grid-cols-3 border-transparent">
           {/* Sales over time */}
           <Card className="lg:col-span-2 max-w-full overflow-hidden">
