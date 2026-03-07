@@ -74,9 +74,9 @@ const Contabilidad = () => {
           </TabsContent>
 
           <TabsContent value="gastos">
-            <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
-              Próximamente
-            </div>
+            {profile?.business_id && (
+              <ExpensesTab businessId={profile.business_id} branchId={filterBranchId} />
+            )}
           </TabsContent>
 
           <TabsContent value="activos">
