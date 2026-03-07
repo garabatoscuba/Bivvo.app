@@ -232,9 +232,8 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
               </div>
               <div className="max-h-[130px] overflow-y-auto scrollbar-hide">
                 {unreadNotifs.slice(0, 5).map((n) => (
-                  <button
+                  <div
                     key={n.id}
-                    onClick={() => markAsRead(n.id)}
                     className="w-full text-left flex items-start gap-2 px-4 py-2.5 hover:bg-muted/40 transition-colors"
                   >
                     <div className={cn("w-[3px] self-stretch rounded-full shrink-0", NOTIFICATION_COLORS[n.type] || "bg-primary")} />
@@ -244,9 +243,19 @@ export default function AssistantPanel({ open, onClose, onStateChange, canNotifi
                       <p className="text-[10px] text-muted-foreground/60 mt-0.5">
                         {formatDistanceToNow(new Date(n.created_at), { addSuffix: true, locale: es })}
                       </p>
+                      {NOTIFICATION_ROUTES[n.type] && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); markAsRead(n.id); handleNotifNavigate(n.type); }}
+                          className="mt-1 inline-flex items-center gap-1 text-[11px] text-primary font-medium hover:underline"
+                        >
+                          Ir al detalle <ArrowRight className="h-3 w-3" />
+                        </button>
+                      )}
                     </div>
-                    <CheckCheck className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
-                  </button>
+                    <button onClick={() => markAsRead(n.id)} className="shrink-0 mt-0.5 hover:opacity-70" title="Marcar como leída">
+                      <CheckCheck className="h-3.5 w-3.5 text-primary" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
