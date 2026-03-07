@@ -24,6 +24,8 @@ import {
 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import PerformanceWidget from '@/components/dashboard/PerformanceWidget';
+import OwnerFinancialCards from '@/components/dashboard/OwnerFinancialCards';
+import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
 
 
