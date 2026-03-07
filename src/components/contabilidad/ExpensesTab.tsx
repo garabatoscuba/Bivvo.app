@@ -567,16 +567,6 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
               <Label>Próximo vencimiento</Label>
               <Input type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
             </div>
-            <div>
-              <Label>Categoría (opcional)</Label>
-              <Select value={formCategoryId} onValueChange={setFormCategoryId}>
-                <SelectTrigger><SelectValue placeholder="Sin categoría" /></SelectTrigger>
-                <SelectContent>
-                   <SelectItem value="none">Sin categoría</SelectItem>
-                  {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => { setFixedDialog(false); resetForm(); }}>Cancelar</Button>
