@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuditLog } from "@/hooks/useAuditLog";
 import { toast } from "sonner";
 import { format, addDays, addWeeks, addMonths, addYears, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isBefore, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
