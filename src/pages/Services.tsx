@@ -375,6 +375,8 @@ const OwnerServicesView = () => {
   const { profile, user, isOwner, isManager } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { isDowngraded } = useIsDowngraded();
+  const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const canManage = isOwner || isManager;
   const businessId = profile?.business_id;
   const branchId = profile?.branch_id;
