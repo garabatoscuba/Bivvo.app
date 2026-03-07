@@ -55,6 +55,8 @@ const AdminPartners = () => {
   const [payoutPartnerId, setPayoutPartnerId] = useState('');
   const [payoutAmount, setPayoutAmount] = useState('');
   const [payoutNote, setPayoutNote] = useState('');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deletingPartner, setDeletingPartner] = useState<PartnerRow | null>(null);
 
   // Form state
   const [searchEmail, setSearchEmail] = useState('');
