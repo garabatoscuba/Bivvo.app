@@ -64,6 +64,23 @@ const Plans = () => {
     }
   }, [searchParams, planType, setSearchParams]);
 
+  // Fetch the latest approved plan_request to show actual paid amount
+  const { data: approvedRequest } = useQuery({
+    queryKey: ['approved-plan-request', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('plan_requests')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('status', 'approved')
+        .order('approved_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user && planType !== 'free',
+  });
+
   // Fetch active offers applicable to this user
   const { data: activeOffers } = useQuery({
     queryKey: ['plan-offers-active', user?.id],
@@ -285,9 +302,23 @@ const Plans = () => {
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <DollarSign className="h-3 w-3" /> Total mensual
                 </p>
-                <p className="mt-1 text-lg font-semibold">
-                  {planType === 'free' ? '$0' : `$${totalMonthly}`}
-                </p>
+                {planType === 'free' ? (
+                  <p className="mt-1 text-lg font-semibold">$0</p>
+                ) : approvedRequest && approvedRequest.months && Number(approvedRequest.total_amount) < totalMonthly * approvedRequest.months ? (
+                  <>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-sm line-through text-muted-foreground">${totalMonthly}</span>
+                      <span className="text-lg font-semibold text-green-600 dark:text-green-400">
+                        ${(Number(approvedRequest.total_amount) / approvedRequest.months).toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1 mt-0.5">
+                      <Tag className="h-3 w-3" /> {approvedRequest.partner_id ? 'Descuento de partner aplicado' : 'Oferta aplicada'}
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-lg font-semibold">${totalMonthly}</p>
+                )}
                 {planType !== 'free' && totalBranches > 1 && (
                   <p className="text-xs text-muted-foreground">
                     ${PRICE_PER_BRANCH[planType]} × {totalBranches} sucursales
