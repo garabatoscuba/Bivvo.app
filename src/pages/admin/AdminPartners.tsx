@@ -352,6 +352,7 @@ const AdminPartners = () => {
                       <th className="p-3 font-medium">Descuento</th>
                       <th className="p-3 font-medium text-center">Referidos</th>
                       <th className="p-3 font-medium text-right">Ganancias</th>
+                      <th className="p-3 font-medium text-right">Pagado</th>
                       <th className="p-3 font-medium text-center">Estado</th>
                       <th className="p-3 font-medium text-right">Acciones</th>
                     </tr>
