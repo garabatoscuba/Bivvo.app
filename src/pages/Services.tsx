@@ -592,7 +592,7 @@ const OwnerServicesView = () => {
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base">Categorías de Servicio</CardTitle>
                 {canManage && (
-                  <Button variant="outline" size="sm" onClick={handleOpenNewCat}>
+                  <Button variant="outline" size="sm" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } handleOpenNewCat(); }}>
                     <Plus className="h-3.5 w-3.5 mr-1" /> Agregar
                   </Button>
                 )}
