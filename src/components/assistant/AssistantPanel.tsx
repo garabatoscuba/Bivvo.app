@@ -21,6 +21,17 @@ const NOTIFICATION_COLORS: Record<string, string> = {
   business_request_rejected: "bg-destructive",
 };
 
+const NOTIFICATION_ROUTES: Record<string, string> = {
+  low_stock: "/inventory",
+  sale_cancelled: "/sales",
+  sale: "/sales",
+  inventory_movement: "/inventory",
+  business_request_approved: "/",
+  business_request_rejected: "/plans",
+  storefront_order: "/orders",
+  treasury_pending: "/contabilidad",
+};
+
 type PanelView = "main" | "read-notifications";
 
 interface AssistantPanelProps {
