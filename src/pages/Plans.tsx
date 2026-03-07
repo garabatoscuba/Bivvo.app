@@ -302,9 +302,23 @@ const Plans = () => {
                 <p className="text-xs text-muted-foreground flex items-center gap-1">
                   <DollarSign className="h-3 w-3" /> Total mensual
                 </p>
-                <p className="mt-1 text-lg font-semibold">
-                  {planType === 'free' ? '$0' : `$${totalMonthly}`}
-                </p>
+                {planType === 'free' ? (
+                  <p className="mt-1 text-lg font-semibold">$0</p>
+                ) : approvedRequest && approvedRequest.partner_id && approvedRequest.months ? (
+                  <>
+                    <div className="mt-1 flex items-center gap-2">
+                      <span className="text-sm line-through text-muted-foreground">${totalMonthly}</span>
+                      <span className="text-lg font-semibold text-green-600 dark:text-green-400">
+                        ${(Number(approvedRequest.total_amount) / approvedRequest.months).toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1 mt-0.5">
+                      <Tag className="h-3 w-3" /> Descuento de partner aplicado
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-1 text-lg font-semibold">${totalMonthly}</p>
+                )}
                 {planType !== 'free' && totalBranches > 1 && (
                   <p className="text-xs text-muted-foreground">
                     ${PRICE_PER_BRANCH[planType]} × {totalBranches} sucursales
