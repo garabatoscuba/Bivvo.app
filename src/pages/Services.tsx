@@ -95,6 +95,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isDowngraded } = useIsDowngraded();
+  const auditLog = useAuditLog();
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const businessId = employeeBusinessId;
   const branchId = employeeBranchId;
