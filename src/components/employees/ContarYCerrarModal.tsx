@@ -10,6 +10,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import CashCalculator from '@/components/cobro/CashCalculator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import JornadaSummaryBlock from '@/components/employees/JornadaSummaryBlock';
 
 interface DailySalaryBreakdown {
   total: number;
@@ -305,6 +306,14 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
             </div>
           </div>
         )}
+
+        <div className="px-6">
+          <JornadaSummaryBlock
+            jornadaId={jornada.id}
+            aperturaAt={jornada.apertura_at}
+            userId={user?.id || ''}
+          />
+        </div>
 
         <DialogFooter className="gap-2 sm:gap-0 px-6 pb-6 pt-3 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
