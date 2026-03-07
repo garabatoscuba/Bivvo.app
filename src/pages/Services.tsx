@@ -180,6 +180,13 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       queryClient.invalidateQueries({ queryKey: ['service-entries'] });
       queryClient.invalidateQueries({ queryKey: ['service-entries-recent'] });
       toast({ title: '✓ Servicio registrado' });
+      const catName = isLiveService ? liveServiceName : categories.find((c: any) => c.id === selectedCatId)?.name || 'Servicio';
+      auditLog(
+        'service_charge_created',
+        `Cobro de servicio ${catName} por $${parseFloat(amount).toFixed(2)}`,
+        undefined,
+        'service_entry'
+      );
       setDescription('');
       setAmount('');
       setSelectedCatId(null);
