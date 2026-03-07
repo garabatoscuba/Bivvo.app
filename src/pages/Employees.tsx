@@ -428,6 +428,7 @@ const Employees = () => {
         if (error) throw error;
         employeeId = editingEmployee.id;
         sonnerToast.success('Empleado actualizado');
+        auditLog('employee_edited', `Empleado ${form.full_name} editado`, editingEmployee.id, 'employee');
       } else {
         const { data, error } = await supabase
           .from('employees')
