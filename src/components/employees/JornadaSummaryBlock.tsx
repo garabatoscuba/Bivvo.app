@@ -29,35 +29,35 @@ const JornadaSummaryBlock = ({ jornadaId, aperturaAt, userId }: JornadaSummaryBl
       const { data: sales }: any = await supabase
         .from('sales')
         .select('total')
-        .eq('business_id', businessId as string) as any)
+        .eq('business_id', businessId as string)
         .eq('user_id', userId)
         .gte('created_at', startTime)
         .lte('created_at', endTime)
         .neq('status', 'cancelled');
 
       // Services during shift
-      const { data: services } = await (supabase
+      const { data: services }: any = await supabase
         .from('service_entries')
         .select('amount')
-        .eq('business_id', businessId as string) as any)
+        .eq('business_id', businessId as string)
         .eq('user_id', userId)
         .gte('created_at', startTime)
         .lte('created_at', endTime);
 
       // Shrinkage count during shift
-      const { count: mermaCount } = await (supabase
+      const { count: mermaCount }: any = await supabase
         .from('inventory_movements')
         .select('*', { count: 'exact', head: true })
-        .eq('movement_type', 'loss') as any)
+        .eq('movement_type', 'loss')
         .eq('user_id', userId)
         .gte('created_at', startTime)
         .lte('created_at', endTime);
 
       // Audit code for shift_ended
-      const { data: auditLog } = await supabase
+      const { data: auditLog }: any = await supabase
         .from('audit_logs')
         .select('code')
-        .eq('business_id', businessId)
+        .eq('business_id', businessId as string)
         .eq('action_type', 'shift_ended')
         .eq('entity_id', jornadaId)
         .order('created_at', { ascending: false })
