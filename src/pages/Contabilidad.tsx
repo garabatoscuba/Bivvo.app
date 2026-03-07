@@ -14,6 +14,7 @@ import {
 import TreasuryMovimientos from "@/components/tesoreria/TreasuryMovimientos";
 import ExpensesTab from "@/components/contabilidad/ExpensesTab";
 import AssetsTab from "@/components/contabilidad/AssetsTab";
+import AnalysisTab from "@/components/contabilidad/AnalysisTab";
 
 const Contabilidad = () => {
   const { profile } = useAuth();
