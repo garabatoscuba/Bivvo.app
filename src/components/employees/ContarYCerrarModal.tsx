@@ -56,6 +56,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
   const [closing, setClosing] = useState(false);
   const [tipSurplus, setTipSurplus] = useState(0);
   const [calculatorBreakdown, setCalculatorBreakdown] = useState<any>(null);
+  const [cashBlocked, setCashBlocked] = useState(false);
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
 
