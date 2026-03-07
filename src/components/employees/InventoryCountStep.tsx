@@ -34,7 +34,7 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
     queryFn: async (): Promise<ProductStock[]> => {
       const { data } = await supabase
         .from('branch_stock')
-        .select('product_id, quantity, products!inner(name, unit)')
+        .select('product_id, quantity, products!inner(name, unit_of_measure)')
         .eq('branch_id', branchId)
         .gt('quantity', 0);
 
@@ -42,7 +42,7 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
       return data.map((row: any) => ({
         product_id: row.product_id,
         product_name: row.products?.name || 'Producto',
-        unit: row.products?.unit || 'Pieza',
+        unit: row.products?.unit_of_measure || 'Pieza',
         system_stock: Number(row.quantity) || 0,
       }));
     },
