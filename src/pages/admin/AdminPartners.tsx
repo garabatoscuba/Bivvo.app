@@ -89,9 +89,10 @@ const AdminPartners = () => {
       const userIds = partnerList.map(p => p.user_id);
       const partnerIds = partnerList.map(p => p.id);
 
-      const [profilesRes, referralsRes] = await Promise.all([
+      const [profilesRes, referralsRes, payoutsRes] = await Promise.all([
         supabase.from('profiles').select('user_id, full_name, email').in('user_id', userIds),
         supabase.from('partner_referrals').select('partner_id, commission_earned').in('partner_id', partnerIds),
+        supabase.from('partner_payouts').select('partner_id, amount').in('partner_id', partnerIds),
       ]);
 
       const profileMap = new Map((profilesRes.data || []).map(p => [p.user_id, p]));
@@ -102,6 +103,10 @@ const AdminPartners = () => {
         existing.total += Number(r.commission_earned);
         referralsByPartner.set(r.partner_id, existing);
       });
+      const paidByPartner = new Map<string, number>();
+      (payoutsRes.data || []).forEach(p => {
+        paidByPartner.set(p.partner_id, (paidByPartner.get(p.partner_id) || 0) + Number(p.amount));
+      });
 
       return partnerList.map(p => ({
         ...p,
@@ -109,6 +114,7 @@ const AdminPartners = () => {
         user_name: profileMap.get(p.user_id)?.full_name || '',
         referral_count: referralsByPartner.get(p.id)?.count || 0,
         total_earned: referralsByPartner.get(p.id)?.total || 0,
+        total_paid: paidByPartner.get(p.id) || 0,
       })) as PartnerRow[];
     },
   });
