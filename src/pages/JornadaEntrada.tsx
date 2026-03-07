@@ -16,6 +16,7 @@ const JornadaEntrada = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { profile, user } = useAuth();
+  const auditLog = useAuditLog();
 
   const sucursalId = searchParams.get('sucursal');
 
