@@ -67,19 +67,6 @@ export default function TreasuryMovementModal({ open, onOpenChange, businessId, 
     }
   }, [open, prefillType, defaultBranchId]);
 
-  const { data: categories = [] } = useQuery({
-    queryKey: ["treasury-categories", businessId],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("treasury_categories" as any)
-        .select("*")
-        .eq("business_id", businessId)
-        .order("sort_order");
-      return (data as any[]) || [];
-    },
-    enabled: !!businessId && open,
-  });
-
   const mutation = useMutation({
     mutationFn: async () => {
       const numAmount = Number(amount);
