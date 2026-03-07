@@ -257,8 +257,8 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   // Comparison helpers (item 2)
   const renderComparison = (current: number, previous: number | undefined) => {
     if (previous === undefined || previous === null || period === "all") return null;
-    if (previous === 0 && current === 0) return null;
-    const pct = previous === 0 ? 100 : Math.round(((current - previous) / previous) * 100);
+    if (previous === 0) return null;
+    const pct = Math.round(((current - previous) / previous) * 100);
     const isUp = pct >= 0;
     return (
       <p className={`text-xs mt-0.5 ${isUp ? "text-green-600 dark:text-green-400" : "text-red-500 dark:text-red-400"}`}>
