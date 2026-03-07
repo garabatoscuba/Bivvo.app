@@ -427,7 +427,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
                 <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
                 <XAxis dataKey="name" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <ChartTooltip content={<ChartTooltipContent />} />
+                <RTooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '8px' }} labelStyle={{ color: '#fff' }} itemStyle={{ color: '#fff' }} />
                 <Bar dataKey="total" fill="var(--color-total)" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartContainer>
