@@ -180,17 +180,13 @@ Deno.serve(async (req) => {
       : "";
 
     const systemPrompt = [
-      `Tu nombre es ${assistantName}. Eres un asistente inteligente de la plataforma Bivoo para gestión de negocios.`,
-      `Tono: ${tone}.`,
+      `Tu nombre es ${assistantName}. Asistente de Bivoo (gestión de negocios). Tono: ${tone}.`,
       buildRoleBlock(role || "employee"),
-      baseInstructions,
+      baseInstructions ? baseInstructions.slice(0, 300) : "",
       moduleContext,
       trainingBlock,
       dataBlock,
-      `Responde siempre en español, de forma concisa y útil. No inventes datos.`,
-      `IMPORTANTE: Al final de CADA respuesta, agrega exactamente 2-3 preguntas de seguimiento relevantes al tema que se está discutiendo. Usa este formato exacto en la última línea:
-[SUGERENCIAS]pregunta 1|pregunta 2|pregunta 3
-Las preguntas deben ser cortas (máximo 8 palabras), contextuales a la conversación actual, y útiles para que el usuario profundice en el tema. No repitas preguntas ya hechas.`,
+      `Responde en español, conciso. No inventes datos. Al final agrega: [SUGERENCIAS]pregunta1|pregunta2|pregunta3 (cortas, max 8 palabras).`,
     ]
       .filter(Boolean)
       .join("\n");
