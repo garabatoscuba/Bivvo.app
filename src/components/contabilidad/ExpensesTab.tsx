@@ -17,7 +17,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt } from "lucide-react";
-import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt } from "lucide-react";
 
 // ── Types ──
 type Expense = {
