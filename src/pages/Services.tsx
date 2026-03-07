@@ -364,6 +364,8 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       </>
       )}
     </div>
+      <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
+    </>
   );
 };
 
