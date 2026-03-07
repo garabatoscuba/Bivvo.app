@@ -64,6 +64,23 @@ const Plans = () => {
     }
   }, [searchParams, planType, setSearchParams]);
 
+  // Fetch the latest approved plan_request to show actual paid amount
+  const { data: approvedRequest } = useQuery({
+    queryKey: ['approved-plan-request', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('plan_requests')
+        .select('*')
+        .eq('user_id', user!.id)
+        .eq('status', 'approved')
+        .order('approved_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user && planType !== 'free',
+  });
+
   // Fetch active offers applicable to this user
   const { data: activeOffers } = useQuery({
     queryKey: ['plan-offers-active', user?.id],
