@@ -48,7 +48,7 @@ const JornadaSummaryBlock = ({ jornadaId, aperturaAt, userId }: JornadaSummaryBl
       const { count: mermaCount } = await supabase
         .from('inventory_movements')
         .select('*', { count: 'exact', head: true })
-        .eq('movement_type', 'shrinkage')
+        .eq('movement_type', 'loss')
         .eq('user_id', userId)
         .gte('created_at', startTime)
         .lte('created_at', endTime);

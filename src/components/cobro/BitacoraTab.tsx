@@ -127,7 +127,7 @@ const BitacoraTab = ({ businessId }: BitacoraTabProps) => {
 
   // Unique employee names from logs for filter
   const employeeNames = useMemo(() => {
-    const names = employees?.map(e => e.name).filter(Boolean) || [];
+    const names = employees?.map(e => e.full_name).filter(Boolean) as string[] || [];
     return [...new Set(names)].sort();
   }, [employees]);
 
