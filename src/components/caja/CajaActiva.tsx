@@ -246,6 +246,8 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
       queryClient.invalidateQueries({ queryKey: ["active-cash-register"] });
       queryClient.invalidateQueries({ queryKey: ["last-closed-fund"] });
       toast({ title: "Caja abierta" });
+      const openAmount = autoOpeningAmount || Number(openingAmount) || 0;
+      auditLog('cash_register_opened', `Caja abierta con fondo de $${openAmount.toFixed(2)}`);
       setOpeningAmount("");
       setBillCounts({});
     },
