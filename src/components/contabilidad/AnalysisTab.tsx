@@ -349,7 +349,7 @@ export default function AnalysisTab({ businessId, branchId }: Props) {
                   <CartesianGrid strokeDasharray="3 3" className="stroke-border/50" />
                   <XAxis dataKey="name" tick={{ fontSize: 11 }} className="fill-muted-foreground" />
                   <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" />
-                  <RTooltip formatter={(v: number) => ["$" + v.toLocaleString("es", { minimumFractionDigits: 2 })]} contentStyle={{ fontSize: 12 }} />
+                  <RTooltip formatter={(v: number) => ["$" + v.toLocaleString("es", { minimumFractionDigits: 2 })]} contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '8px', fontSize: 12 }} labelStyle={{ color: '#fff' }} itemStyle={{ color: '#fff' }} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Bar dataKey="Ingresos" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="Gastos" fill="hsl(0, 84%, 60%)" radius={[4, 4, 0, 0]} />

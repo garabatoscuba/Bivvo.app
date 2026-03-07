@@ -273,7 +273,7 @@ export default function AssetsTab({ businessId, branchId }: Props) {
                     <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '6px', padding: '8px' }} labelStyle={{ color: '#fff' }} itemStyle={{ color: '#fff' }} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
