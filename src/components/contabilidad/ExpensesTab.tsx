@@ -331,6 +331,8 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
       toast.success("Gasto marcado como pagado");
       qc.invalidateQueries({ queryKey: ["accounting-expenses"] });
       qc.invalidateQueries({ queryKey: ["treasury-movements"] });
+      qc.invalidateQueries({ queryKey: ["bh-treasury"] });
+      qc.invalidateQueries({ queryKey: ["bp-injections"] });
       auditLog(
         'expense_paid',
         `Gasto '${expense.name}' marcado como pagado por $${expense.amount.toLocaleString()}`,
