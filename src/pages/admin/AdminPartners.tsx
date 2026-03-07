@@ -253,9 +253,13 @@ const AdminPartners = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (partner: PartnerRow) => {
-      // Delete payouts, referrals, then partner, then remove role if no other partner entries
+      // 1. Nullify partner reference in plan_requests (don't delete them)
+      await supabase.from('plan_requests').update({ partner_id: null }).eq('partner_id', partner.id);
+      // 2. Delete payouts
       await supabase.from('partner_payouts').delete().eq('partner_id', partner.id);
+      // 3. Delete referrals
       await supabase.from('partner_referrals').delete().eq('partner_id', partner.id);
+      // 4. Delete partner
       const { error } = await supabase.from('partners').delete().eq('id', partner.id);
       if (error) throw error;
       // Check if user has other partner entries
