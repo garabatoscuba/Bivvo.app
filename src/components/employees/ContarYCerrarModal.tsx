@@ -293,6 +293,14 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
               />
             </ScrollArea>
 
+            <CashDifferenceAlert
+              businessId={employeeBusinessId}
+              branchId={jornada.sucursal_id}
+              totalCash={calculatorBreakdown?.totalCash || 0}
+              expectedCashFromSales={calculatorBreakdown?.totalExpectedCash || 0}
+              onDifferenceChange={setCashBlocked}
+            />
+
             {/* Salary + Tips summary */}
             {dailySalary && (
               <div className="px-6 py-3 border-t space-y-2">
