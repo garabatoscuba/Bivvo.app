@@ -110,6 +110,13 @@ export const MermaDialog = ({
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       toast({ title: 'Merma registrada', description: `${quantity} unidad(es) de ${selectedProduct?.name} descontadas del inventario` });
+      const reasonLabel = MERMA_REASONS.find(r => r.value === reason)?.label || reason;
+      auditLog(
+        'shrinkage_registered',
+        `Merma de ${quantity} unidades de ${selectedProduct?.name} — motivo: ${reasonLabel}`,
+        productId,
+        'product'
+      );
       resetForm();
       onOpenChange(false);
     },

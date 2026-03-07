@@ -506,6 +506,13 @@ const OwnerServicesView = () => {
       queryClient.invalidateQueries({ queryKey: ['service-entries'] });
       queryClient.invalidateQueries({ queryKey: ['service-entries-recent'] });
       toast({ title: 'Servicio registrado' });
+      const catName = entryIsLive ? entryLiveName : categories.find((c: any) => c.id === entryCategoryId)?.name || 'Servicio';
+      auditLog(
+        'service_charge_created',
+        `Cobro de servicio ${catName} por $${parseFloat(entryAmount).toFixed(2)}`,
+        undefined,
+        'service_entry'
+      );
       setEntryDialogOpen(false);
       setEntryDescription('');
       setEntryAmount('');

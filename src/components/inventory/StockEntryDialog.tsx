@@ -147,6 +147,12 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['bp-product-cost'] });
       toast({ title: `Entrada de ${totalQty} unidades registrada` });
+      auditLog(
+        'inventory_entry',
+        `Entrada de ${totalQty} unidades de ${product?.name} a $${parseFloat(unitCost || '0').toFixed(2)} c/u`,
+        product?.id,
+        'product'
+      );
       handleClose(false);
     } catch (err: any) {
       toast({ title: 'Error al dar entrada', description: err.message, variant: 'destructive' });
