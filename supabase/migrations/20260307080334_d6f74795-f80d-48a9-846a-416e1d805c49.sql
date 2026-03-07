@@ -1,0 +1,1 @@
+UPDATE assistant_context_actions SET action_type = 'navigate' WHERE id = '7a1e73d0-8570-49ca-a2ef-8130a77a020d';
