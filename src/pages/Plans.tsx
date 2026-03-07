@@ -181,6 +181,19 @@ const Plans = () => {
       }
       const { error } = await supabase.from('plan_requests').insert(insertData);
       if (error) throw error;
+
+      // Create partner_referrals entry so the partner sees the referred user
+      if (partnerApplies && partnerOffer && user) {
+        const commissionAmount = requestTotal * (Number(partnerOffer.commission_percent) / 100);
+        // Use upsert to avoid duplicates if user re-requests
+        await supabase.from('partner_referrals').upsert({
+          partner_id: partnerOffer.id,
+          referred_user_id: user.id,
+          plan_type: selectedPlan,
+          commission_earned: commissionAmount,
+          commission_status: 'pending',
+        }, { onConflict: 'partner_id,referred_user_id', ignoreDuplicates: false });
+      }
     },
     onSuccess: () => {
       toast({ title: 'Solicitud enviada', description: 'Un administrador revisará tu solicitud pronto.' });
