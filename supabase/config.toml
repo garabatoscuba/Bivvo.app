@@ -23,3 +23,6 @@ verify_jwt = false
 
 [functions.update-employee-password]
 verify_jwt = false
+
+[functions.reset-business-data]
+verify_jwt = false
