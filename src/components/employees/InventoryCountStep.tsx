@@ -63,37 +63,37 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
   const hasShortage = results.some(r => r.diff !== null && r.diff < 0);
 
   const handleConfirm = async () => {
-    if (!user?.id || !products) return;
     setSaving(true);
 
     try {
-      // Build rows to insert
-      const rows = results
-        .filter(r => r.counted !== null)
-        .map(r => ({
-          business_id: businessId,
-          branch_id: branchId,
-          user_id: user.id,
-          shift_id: shiftId,
-          product_id: r.product_id,
-          system_stock: r.system_stock,
-          counted_stock: r.counted!,
-          difference: r.diff!,
-        }));
+      if (user?.id && products && results.length > 0) {
+        const rows = results
+          .filter(r => r.counted !== null)
+          .map(r => ({
+            business_id: businessId,
+            branch_id: branchId,
+            user_id: user.id,
+            shift_id: shiftId,
+            product_id: r.product_id,
+            system_stock: r.system_stock,
+            counted_stock: r.counted!,
+            difference: r.diff!,
+          }));
 
-      if (rows.length > 0) {
-        await supabase.from('inventory_counts' as any).insert(rows);
-      }
+        if (rows.length > 0) {
+          await supabase.from('inventory_counts' as any).insert(rows);
+        }
 
-      // Audit log for each shortage
-      const shortages = results.filter(r => r.diff !== null && r.diff < 0);
-      for (const s of shortages) {
-        auditLog(
-          'shrinkage_registered',
-          `Diferencia en conteo de cierre: ${Math.abs(s.diff!)} unidades de ${s.product_name}`,
-          s.product_id,
-          'product'
-        );
+        // Audit log for each shortage
+        const shortages = results.filter(r => r.diff !== null && r.diff < 0);
+        for (const s of shortages) {
+          auditLog(
+            'shrinkage_registered',
+            `Diferencia en conteo de cierre: ${Math.abs(s.diff!)} unidades de ${s.product_name}`,
+            s.product_id,
+            'product'
+          );
+        }
       }
     } catch (e) {
       console.error('Error saving inventory count:', e);
