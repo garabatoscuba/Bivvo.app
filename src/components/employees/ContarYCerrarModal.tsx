@@ -3,7 +3,7 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, LogOut, Calculator, DollarSign, Gift, Briefcase, TrendingUp } from 'lucide-react';
+import { Loader2, LogOut, Calculator, DollarSign, Gift, Briefcase, TrendingUp, PackageCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import CashCalculator from '@/components/cobro/CashCalculator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import JornadaSummaryBlock from '@/components/employees/JornadaSummaryBlock';
+import InventoryCountStep from '@/components/employees/InventoryCountStep';
 
 interface DailySalaryBreakdown {
   total: number;
@@ -47,7 +48,10 @@ function calcDuration(apertura: string): { text: string; minutes: number } {
   };
 }
 
+type ClosureStep = 'inventory' | 'cash';
+
 const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, dailySalary }: ContarYCerrarModalProps) => {
+  const [step, setStep] = useState<ClosureStep>('inventory');
   const [closing, setClosing] = useState(false);
   const [tipSurplus, setTipSurplus] = useState(0);
   const [calculatorBreakdown, setCalculatorBreakdown] = useState<any>(null);
@@ -60,6 +64,12 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
     hour: '2-digit',
     minute: '2-digit',
   });
+
+  // Reset step when modal opens
+  const handleOpenChange = (open: boolean) => {
+    if (!open) setStep('inventory');
+    onOpenChange(open);
+  };
 
   // Fetch active workers count (all unique workers who worked today in this branch)
   const { data: activeWorkersCount = 1 } = useQuery({
@@ -232,98 +242,120 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
     queryClient.invalidateQueries({ queryKey: ['my-today-tips'] });
     queryClient.invalidateQueries({ queryKey: ['admin-daily-reports'] });
     toast.success('Jornada cerrada. ¡Hasta luego! 👋');
-    onOpenChange(false);
+    handleOpenChange(false);
   };
 
+  const stepTitle = step === 'inventory' ? 'Conteo de inventario' : 'Contar y Cerrar Jornada';
+  const stepDescription = step === 'inventory'
+    ? 'Cuenta los productos físicamente antes de continuar al conteo de efectivo.'
+    : 'Cuenta el efectivo y revisa el resumen antes de cerrar tu jornada.';
+  const StepIcon = step === 'inventory' ? PackageCheck : Calculator;
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] p-0">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="flex items-center gap-2">
-            <Calculator className="h-5 w-5" />
-            Contar y Cerrar Jornada
+            <StepIcon className="h-5 w-5" />
+            {stepTitle}
           </DialogTitle>
-          <DialogDescription>
-            Cuenta el efectivo y revisa el resumen antes de cerrar tu jornada.
-          </DialogDescription>
+          <DialogDescription>{stepDescription}</DialogDescription>
           <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
             <span>Entrada: <strong>{entryTime}</strong></span>
             <span>Duración: <strong>{duration.text}</strong></span>
+            <span className="ml-auto font-medium">
+              Paso {step === 'inventory' ? '1' : '2'} de 2
+            </span>
           </div>
         </DialogHeader>
 
-        <ScrollArea className="max-h-[60vh] px-6">
-          <CashCalculator
-            employeeBusinessId={employeeBusinessId}
-            employeeBranchId={jornada.sucursal_id}
-            onTipSurplusChange={handleTipSurplusChange}
-            onBreakdownChange={handleBreakdownChange}
-          />
-        </ScrollArea>
-
-        {/* Salary + Tips summary */}
-        {dailySalary && (
-          <div className="px-6 py-3 border-t space-y-2">
-            <h4 className="text-sm font-bold flex items-center gap-1.5">
-              <DollarSign className="h-4 w-4 text-primary" />
-              Resumen Salarial
-            </h4>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              {dailySalary.base > 0 && (
-                <div className="flex items-center gap-1">
-                  <Briefcase className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Base:</span>
-                  <span className="font-semibold">${dailySalary.base.toFixed(2)}</span>
-                </div>
-              )}
-              {dailySalary.serviceEarning > 0 && (
-                <div className="flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">% Ventas:</span>
-                  <span className="font-semibold">${dailySalary.serviceEarning.toFixed(2)}</span>
-                </div>
-              )}
-              {dailySalary.commissionEarning > 0 && (
-                <div className="flex items-center gap-1">
-                  <DollarSign className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Comisiones:</span>
-                  <span className="font-semibold">${dailySalary.commissionEarning.toFixed(2)}</span>
-                </div>
-              )}
-              {(dailySalary.tipShare > 0 || tipSurplus > 0) && (
-                <div className="flex items-center gap-1">
-                  <Gift className="h-3 w-3 text-muted-foreground" />
-                  <span className="text-muted-foreground">Propinas:</span>
-                  <span className="font-semibold">${(dailySalary.tipShare + (tipSurplus > 0 ? tipSurplus : 0)).toFixed(2)}</span>
-                </div>
-              )}
-            </div>
-            <div className="flex items-center justify-between pt-1 border-t">
-              <span className="text-sm font-bold">Total a ganar:</span>
-              <span className="text-lg font-bold text-primary">
-                ${((dailySalary.total || 0) + (tipSurplus > 0 ? tipSurplus : 0)).toFixed(2)}
-              </span>
-            </div>
+        {step === 'inventory' && (
+          <div className="px-6 pb-6">
+            <InventoryCountStep
+              businessId={employeeBusinessId}
+              branchId={jornada.sucursal_id}
+              shiftId={jornada.id}
+              onComplete={() => setStep('cash')}
+            />
           </div>
         )}
 
-        <div className="px-6">
-          <JornadaSummaryBlock
-            jornadaId={jornada.id}
-            aperturaAt={jornada.apertura_at}
-            userId={user?.id || ''}
-          />
-        </div>
+        {step === 'cash' && (
+          <>
+            <ScrollArea className="max-h-[60vh] px-6">
+              <CashCalculator
+                employeeBusinessId={employeeBusinessId}
+                employeeBranchId={jornada.sucursal_id}
+                onTipSurplusChange={handleTipSurplusChange}
+                onBreakdownChange={handleBreakdownChange}
+              />
+            </ScrollArea>
 
-        <DialogFooter className="gap-2 sm:gap-0 px-6 pb-6 pt-3 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button variant="destructive" onClick={handleClose} disabled={closing} className="gap-2">
-            {closing ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
-            Cerrar Jornada
-          </Button>
-        </DialogFooter>
+            {/* Salary + Tips summary */}
+            {dailySalary && (
+              <div className="px-6 py-3 border-t space-y-2">
+                <h4 className="text-sm font-bold flex items-center gap-1.5">
+                  <DollarSign className="h-4 w-4 text-primary" />
+                  Resumen Salarial
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {dailySalary.base > 0 && (
+                    <div className="flex items-center gap-1">
+                      <Briefcase className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Base:</span>
+                      <span className="font-semibold">${dailySalary.base.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySalary.serviceEarning > 0 && (
+                    <div className="flex items-center gap-1">
+                      <TrendingUp className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">% Ventas:</span>
+                      <span className="font-semibold">${dailySalary.serviceEarning.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySalary.commissionEarning > 0 && (
+                    <div className="flex items-center gap-1">
+                      <DollarSign className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Comisiones:</span>
+                      <span className="font-semibold">${dailySalary.commissionEarning.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {(dailySalary.tipShare > 0 || tipSurplus > 0) && (
+                    <div className="flex items-center gap-1">
+                      <Gift className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-muted-foreground">Propinas:</span>
+                      <span className="font-semibold">${(dailySalary.tipShare + (tipSurplus > 0 ? tipSurplus : 0)).toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center justify-between pt-1 border-t">
+                  <span className="text-sm font-bold">Total a ganar:</span>
+                  <span className="text-lg font-bold text-primary">
+                    ${((dailySalary.total || 0) + (tipSurplus > 0 ? tipSurplus : 0)).toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="px-6">
+              <JornadaSummaryBlock
+                jornadaId={jornada.id}
+                aperturaAt={jornada.apertura_at}
+                userId={user?.id || ''}
+              />
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 px-6 pb-6 pt-3 border-t">
+              <Button variant="outline" onClick={() => handleOpenChange(false)}>
+                Cancelar
+              </Button>
+              <Button variant="destructive" onClick={handleClose} disabled={closing} className="gap-2">
+                {closing ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
+                Cerrar Jornada
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
