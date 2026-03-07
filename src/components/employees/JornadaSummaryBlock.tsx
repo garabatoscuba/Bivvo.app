@@ -26,13 +26,13 @@ const JornadaSummaryBlock = ({ jornadaId, aperturaAt, userId }: JornadaSummaryBl
       const endTime = new Date().toISOString();
 
       // Sales during shift
-      const { data: sales } = await supabase
+      const { data: sales } = await (supabase
         .from('sales')
         .select('total')
         .eq('business_id', businessId)
         .eq('user_id', userId)
         .gte('created_at', startTime)
-        .lte('created_at', endTime)
+        .lte('created_at', endTime) as any)
         .neq('status', 'cancelled');
 
       // Services during shift
