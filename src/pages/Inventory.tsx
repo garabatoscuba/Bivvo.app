@@ -821,6 +821,7 @@ const Inventory = () => {
                           variant="outline" 
                           className="w-full justify-start"
                           onClick={() => {
+                            if (guardDowngrade()) return;
                             const dir = selectedWarehouseStock > 0 ? 'toSale' : 'toWarehouse';
                             setTransferDirection(dir);
                             setShowTransfer(true);
