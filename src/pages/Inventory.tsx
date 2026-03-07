@@ -807,6 +807,7 @@ const Inventory = () => {
                         variant="outline" 
                         className="w-full justify-start"
                          onClick={() => {
+                           if (guardDowngrade()) return;
                            const prod = selectedProduct;
                            setStockEntryProduct(prod);
                            setSelectedProduct(null);
