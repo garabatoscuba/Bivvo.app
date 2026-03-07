@@ -191,7 +191,7 @@ function ConfigGlobalTab() {
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="navigate">Navegar a ruta</SelectItem>
-                  <SelectItem value="treasury_action">Acción de Tesorería</SelectItem>
+                  <SelectItem value="treasury_action">Acción de Caja</SelectItem>
                   <SelectItem value="open_module">Abrir módulo</SelectItem>
                   <SelectItem value="quick_action">Acción rápida</SelectItem>
                 </SelectContent>
