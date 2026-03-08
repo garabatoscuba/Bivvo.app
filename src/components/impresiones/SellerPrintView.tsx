@@ -75,6 +75,9 @@ const SellerPrintView = () => {
   const [jobItems, setJobItems] = useState<JobItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
   const [amountReceived, setAmountReceived] = useState('');
+  const [isMixed, setIsMixed] = useState(false);
+  const [mixedCash, setMixedCash] = useState('0');
+  const [mixedTransfer, setMixedTransfer] = useState('0');
   const [jobDone, setJobDone] = useState<{ total: number; change: number } | null>(null);
 
   // ─── Shrinkage Modal ───────────────────────────────────────
