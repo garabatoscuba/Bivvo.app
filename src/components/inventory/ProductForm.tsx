@@ -85,7 +85,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '', description: '', category_id: undefined,
-      barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa',
+      barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa', sale_price: '',
     },
   });
 
