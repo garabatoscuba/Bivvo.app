@@ -50,7 +50,16 @@ const MyEmployment = lazy(() => import("./pages/MyEmployment"));
 const ReviewPage = lazy(() => import("./pages/ReviewPage"));
 const PartnerDashboard = lazy(() => import("./pages/PartnerDashboard"));
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    mutations: {
+      networkMode: 'always',
+    },
+    queries: {
+      networkMode: 'always',
+    },
+  },
+});
 
 const PageLoader = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
