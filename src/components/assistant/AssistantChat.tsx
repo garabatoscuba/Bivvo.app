@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useResolvedBusinessId } from "@/hooks/useResolvedBusinessId";
+import { useQuery } from "@tanstack/react-query";
 import bivooFaceSvg from "@/assets/bivoo-face.svg";
 import type { BivooState } from "./BivooFace";
 
@@ -67,54 +68,16 @@ function persistMessages(messages: ChatMessage[]) {
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
-/** Quick questions by current route/module */
-const MODULE_QUESTIONS: Record<string, string[]> = {
-  dashboard: [
-    "¿Qué significa cada tarjeta del dashboard?",
-    "¿Cómo interpreto las alertas de stock?",
-  ],
-  pos: [
-    "¿Cómo proceso un pago mixto?",
-    "¿Por qué no aparece un producto aquí?",
-  ],
-  inventory: [
-    "¿Cómo agrego stock a un producto?",
-    "¿Cuál es la diferencia entre almacén y venta?",
-  ],
-  services: [
-    "¿Cómo creo un servicio nuevo?",
-    "¿Qué es un servicio en vivo?",
-  ],
-  employees: [
-    "¿Cómo agrego un empleado nuevo?",
-    "¿Cómo inicio una jornada?",
-  ],
-  nomina: [
-    "¿Cómo funciona el Mixto Personalizado?",
-    "¿Cómo asigno una modalidad a un empleado?",
-  ],
-  tesoreria: [
-    "¿Qué diferencia hay entre modo Real y Operativo?",
-    "¿Cómo registro un gasto personal?",
-  ],
-  caja: [
-    "¿Cómo abro y cierro la caja?",
-    "¿Qué pasa con el dinero al cerrar la jornada?",
-  ],
-  sales: [
-    "¿Cómo anulo una venta?",
-    "¿Qué métodos de pago puedo usar?",
-  ],
-  settings: [
-    "¿Cómo configuro el stock mínimo?",
-    "¿Cómo agrego una sucursal?",
-  ],
+/** Route-to-module key mapping for quick questions lookup */
+const ROUTE_TO_MODULE: Record<string, string> = {
+  dashboard: "dashboard", pos: "pos", inventory: "inventory", inventario: "inventory",
+  services: "services", servicios: "services", sales: "sales", ventas: "sales",
+  employees: "employees", empleados: "employees", nomina: "nomina",
+  tesoreria: "tesoreria", caja: "caja", settings: "settings", configuracion: "settings",
+  contabilidad: "contabilidad", impresiones: "impresiones", orders: "orders", pedidos: "orders",
+  "store-settings": "portal", portal: "portal", "my-employment": "mi_empleo",
+  "mi-red": "mi_red", "partner-dashboard": "mi_red",
 };
-
-const DEFAULT_QUESTIONS = [
-  "¿Por dónde empiezo a configurar mi negocio?",
-  "¿Qué puedes ayudarme a hacer?",
-];
 
 export default function AssistantChat({ onStateChange, assistantName, announcements = [], onDismissAnnouncement }: AssistantChatProps) {
   const { profile, isOwner, isManager, isSeller, isSuperAdmin } = useAuth();
@@ -135,10 +98,28 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
         : "employee";
 
   const currentModule = pathname.replace("/", "").split("?")[0] || "dashboard";
+  const moduleKey = ROUTE_TO_MODULE[currentModule] || currentModule;
+
+  // Fetch quick questions from DB
+  const { data: dbQuestions } = useQuery({
+    queryKey: ['assistant-quick-questions', moduleKey],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('assistant_quick_questions')
+        .select('question, module_key, sort_order')
+        .eq('is_active', true)
+        .order('sort_order');
+      return (data || []) as { question: string; module_key: string | null; sort_order: number }[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const quickQuestions = useMemo(() => {
-    return MODULE_QUESTIONS[currentModule] || DEFAULT_QUESTIONS;
-  }, [currentModule]);
+    if (!dbQuestions) return [];
+    const moduleQs = dbQuestions.filter(q => q.module_key === moduleKey).map(q => q.question);
+    if (moduleQs.length > 0) return moduleQs;
+    return dbQuestions.filter(q => q.module_key === null).map(q => q.question);
+  }, [dbQuestions, moduleKey]);
 
   // Persist messages whenever they change (skip empty)
   useEffect(() => {

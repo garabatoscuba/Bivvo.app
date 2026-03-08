@@ -699,6 +699,36 @@ export type Database = {
         }
         Relationships: []
       }
+      assistant_quick_questions: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          module_key: string | null
+          question: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          module_key?: string | null
+          question: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          module_key?: string | null
+          question?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assistant_training_examples: {
         Row: {
           answer: string

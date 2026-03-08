@@ -492,7 +492,7 @@ function QuickActionsTab() {
   );
 }
 
-// ─── Module Instructions Tab ───
+// ─── Module Instructions Tab (with suggestions management) ───
 function ModuleInstructionsTab() {
   const { toast } = useToast();
   const qc = useQueryClient();
@@ -512,7 +512,14 @@ function ModuleInstructionsTab() {
     { key: 'portal', label: 'Portal' },
     { key: 'mi_empleo', label: 'Mi Empleo' },
     { key: 'mi_red', label: 'Mi Red' },
+    { key: 'impresiones', label: 'Impresiones' },
   ];
+
+  // Module key mapping for questions (DB uses different keys than instructions)
+  const MODULE_QUESTION_KEYS: Record<string, string> = {
+    inventario: 'inventory', servicios: 'services', ventas: 'sales',
+    empleados: 'employees', reportes: 'reportes',
+  };
 
   const { data: items = [], isLoading } = useQuery({
     queryKey: ['assistant-module-instructions'],
@@ -522,9 +529,25 @@ function ModuleInstructionsTab() {
     },
   });
 
+  const { data: allQuestions = [] } = useQuery({
+    queryKey: ['assistant-quick-questions-all'],
+    queryFn: async () => {
+      const { data } = await supabase.from('assistant_quick_questions').select('*').not('module_key', 'is', null).order('sort_order');
+      return (data || []) as any[];
+    },
+  });
+
   const [values, setValues] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  // Question editing
+  const [qDialog, setQDialog] = useState(false);
+  const [editingQ, setEditingQ] = useState<any>(null);
+  const [qText, setQText] = useState('');
+  const [qModule, setQModule] = useState('');
+  const [deleteQTarget, setDeleteQTarget] = useState<any>(null);
 
   if (!initialized && items.length > 0) {
     const v: Record<string, string> = {};
@@ -550,31 +573,218 @@ function ModuleInstructionsTab() {
     }
   };
 
+  const saveQMutation = useMutation({
+    mutationFn: async () => {
+      const payload = { module_key: qModule, question: qText, is_active: true, sort_order: allQuestions.filter(q => q.module_key === qModule).length } as any;
+      if (editingQ) {
+        const { error } = await supabase.from('assistant_quick_questions').update(payload).eq('id', editingQ.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('assistant_quick_questions').insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-quick-questions-all'] }); qc.invalidateQueries({ queryKey: ['assistant-quick-questions'] }); setQDialog(false); toast({ title: editingQ ? 'Sugerencia actualizada' : 'Sugerencia creada' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const deleteQMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('assistant_quick_questions').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-quick-questions-all'] }); qc.invalidateQueries({ queryKey: ['assistant-quick-questions'] }); setDeleteQTarget(null); toast({ title: 'Sugerencia eliminada' }); },
+  });
+
+  const openNewQ = (moduleKey: string) => {
+    const qKey = MODULE_QUESTION_KEYS[moduleKey] || moduleKey;
+    setEditingQ(null); setQText(''); setQModule(qKey); setQDialog(true);
+  };
+  const openEditQ = (q: any) => { setEditingQ(q); setQText(q.question); setQModule(q.module_key); setQDialog(true); };
+
   if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-muted-foreground">Instrucciones específicas que la IA recibe según el módulo donde esté el usuario. Se agregan al system prompt junto con las instrucciones base.</p>
-      {MODULES.map(mod => (
-        <Card key={mod.key}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">{mod.label}</CardTitle>
-            <CardDescription className="text-xs">Instrucciones inyectadas cuando el usuario está en este módulo</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Textarea
-              value={values[mod.key] || ''}
-              onChange={e => setValues(p => ({ ...p, [mod.key]: e.target.value }))}
-              rows={4}
-              placeholder={`Instrucciones para el módulo ${mod.label}...`}
-            />
-            <Button size="sm" onClick={() => handleSave(mod.key)} disabled={savingKey === mod.key}>
-              {savingKey === mod.key ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-              Guardar
+      <p className="text-sm text-muted-foreground">Instrucciones y sugerencias por módulo. Las sugerencias aparecen como preguntas rápidas en el chat del asistente.</p>
+      {MODULES.map(mod => {
+        const qKey = MODULE_QUESTION_KEYS[mod.key] || mod.key;
+        const moduleQuestions = allQuestions.filter(q => q.module_key === qKey);
+        const isExpanded = expanded === mod.key;
+        return (
+          <Card key={mod.key}>
+            <CardHeader className="pb-2 cursor-pointer" onClick={() => setExpanded(isExpanded ? null : mod.key)}>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  {mod.label}
+                </CardTitle>
+                <Badge variant="outline" className="text-[10px]">{moduleQuestions.length} sugerencias</Badge>
+              </div>
+            </CardHeader>
+            {isExpanded && (
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Instrucciones del módulo</Label>
+                  <Textarea
+                    value={values[mod.key] || ''}
+                    onChange={e => setValues(p => ({ ...p, [mod.key]: e.target.value }))}
+                    rows={4}
+                    className="mt-1"
+                    placeholder={`Instrucciones para el módulo ${mod.label}...`}
+                  />
+                  <Button size="sm" className="mt-2" onClick={() => handleSave(mod.key)} disabled={savingKey === mod.key}>
+                    {savingKey === mod.key ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Guardar instrucciones
+                  </Button>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Sugerencias rápidas</Label>
+                    <Button size="sm" variant="outline" onClick={() => openNewQ(mod.key)}><Plus className="h-3.5 w-3.5 mr-1" /> Agregar</Button>
+                  </div>
+                  {moduleQuestions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sin sugerencias para este módulo.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {moduleQuestions.map(q => (
+                        <div key={q.id} className="flex items-center gap-2 p-2 rounded-lg border text-sm">
+                          <MessageSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="flex-1 text-xs">{q.question}</span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditQ(q)}><Pencil className="h-3 w-3" /></Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteQTarget(q)}><Trash2 className="h-3 w-3" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        );
+      })}
+
+      {/* Question dialog */}
+      <Dialog open={qDialog} onOpenChange={setQDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editingQ ? 'Editar sugerencia' : 'Nueva sugerencia'}</DialogTitle><DialogDescription>Esta pregunta aparecerá como sugerencia rápida en el chat del asistente.</DialogDescription></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Pregunta sugerida</Label><Textarea value={qText} onChange={e => setQText(e.target.value)} rows={2} className="mt-1" placeholder="¿Cómo hago X en este módulo?" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQDialog(false)}>Cancelar</Button>
+            <Button onClick={() => saveQMutation.mutate()} disabled={!qText.trim() || saveQMutation.isPending}>
+              {saveQMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              {editingQ ? 'Guardar' : 'Crear'}
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteQTarget} onOpenChange={() => setDeleteQTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Eliminar sugerencia</AlertDialogTitle><AlertDialogDescription>¿Eliminar "{deleteQTarget?.question}"?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteQMutation.mutate(deleteQTarget?.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
+  );
+}
+
+// ─── General Quick Questions Tab ───
+function GeneralQuestionsTab() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const { data: questions = [], isLoading } = useQuery({
+    queryKey: ['assistant-general-questions'],
+    queryFn: async () => {
+      const { data } = await supabase.from('assistant_quick_questions').select('*').is('module_key', null).order('sort_order');
+      return (data || []) as any[];
+    },
+  });
+
+  const [dialog, setDialog] = useState(false);
+  const [editing, setEditing] = useState<any>(null);
+  const [qText, setQText] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const payload = { module_key: null, question: qText, is_active: true, sort_order: questions.length } as any;
+      if (editing) {
+        const { error } = await supabase.from('assistant_quick_questions').update(payload).eq('id', editing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('assistant_quick_questions').insert(payload);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-general-questions'] }); qc.invalidateQueries({ queryKey: ['assistant-quick-questions'] }); setDialog(false); toast({ title: editing ? 'Pregunta actualizada' : 'Pregunta creada' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('assistant_quick_questions').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-general-questions'] }); qc.invalidateQueries({ queryKey: ['assistant-quick-questions'] }); setDeleteTarget(null); toast({ title: 'Pregunta eliminada' }); },
+  });
+
+  const openNew = () => { setEditing(null); setQText(''); setDialog(true); };
+  const openEdit = (q: any) => { setEditing(q); setQText(q.question); setDialog(true); };
+
+  if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">Preguntas que aparecen cuando no hay preguntas específicas del módulo activo.</p>
+        <Button size="sm" onClick={openNew}><Plus className="h-4 w-4 mr-1" /> Agregar</Button>
+      </div>
+      {questions.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No hay preguntas generales.</CardContent></Card>
+      ) : questions.map(q => (
+        <Card key={q.id}>
+          <CardContent className="pt-4">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <MessageSquare className="h-4 w-4 text-muted-foreground shrink-0" />
+                <p className="text-sm">{q.question}</p>
+              </div>
+              <div className="flex gap-1 shrink-0">
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(q)}><Pencil className="h-3.5 w-3.5" /></Button>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeleteTarget(q)}><Trash2 className="h-3.5 w-3.5" /></Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
       ))}
+
+      <Dialog open={dialog} onOpenChange={setDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>{editing ? 'Editar pregunta' : 'Nueva pregunta general'}</DialogTitle><DialogDescription>Esta pregunta aparece como sugerencia cuando no hay preguntas del módulo activo.</DialogDescription></DialogHeader>
+          <div className="space-y-4">
+            <div><Label>Pregunta</Label><Textarea value={qText} onChange={e => setQText(e.target.value)} rows={2} className="mt-1" placeholder="¿Por dónde empiezo?" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDialog(false)}>Cancelar</Button>
+            <Button onClick={() => saveMutation.mutate()} disabled={!qText.trim() || saveMutation.isPending}>
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              {editing ? 'Guardar' : 'Crear'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader><AlertDialogTitle>Eliminar pregunta</AlertDialogTitle><AlertDialogDescription>¿Eliminar "{deleteTarget?.question}"?</AlertDialogDescription></AlertDialogHeader>
+          <AlertDialogFooter><AlertDialogCancel>Cancelar</AlertDialogCancel><AlertDialogAction onClick={() => deleteMutation.mutate(deleteTarget?.id)}>Eliminar</AlertDialogAction></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -593,6 +803,7 @@ export default function AdminAssistant() {
             <TabsTrigger value="config" className="gap-1.5 text-xs"><Settings className="h-3.5 w-3.5" /> Configuración</TabsTrigger>
             <TabsTrigger value="features" className="gap-1.5 text-xs"><Sparkles className="h-3.5 w-3.5" /> Funciones</TabsTrigger>
             <TabsTrigger value="announcements" className="gap-1.5 text-xs"><Megaphone className="h-3.5 w-3.5" /> Anuncios</TabsTrigger>
+            <TabsTrigger value="questions" className="gap-1.5 text-xs"><MessageSquare className="h-3.5 w-3.5" /> Preguntas</TabsTrigger>
             <TabsTrigger value="instructions" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por tipo</TabsTrigger>
             <TabsTrigger value="by-module" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por módulo</TabsTrigger>
             <TabsTrigger value="training" className="gap-1.5 text-xs"><GraduationCap className="h-3.5 w-3.5" /> Entrenamiento</TabsTrigger>
@@ -604,6 +815,7 @@ export default function AdminAssistant() {
         <TabsContent value="config"><ConfigGlobalTab /></TabsContent>
         <TabsContent value="features"><AssistantFeaturesTab /></TabsContent>
         <TabsContent value="announcements"><AnnouncementsTab /></TabsContent>
+        <TabsContent value="questions"><GeneralQuestionsTab /></TabsContent>
         <TabsContent value="instructions"><InstructionsTab /></TabsContent>
         <TabsContent value="by-module"><ModuleInstructionsTab /></TabsContent>
         <TabsContent value="training"><TrainingTab /></TabsContent>
