@@ -247,7 +247,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           </div>
 
           {/* Cost & Price */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className={isIngrediente ? '' : 'grid grid-cols-2 gap-4'}>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">
                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
@@ -263,21 +263,23 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
                 required
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5">
-                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                Precio de venta
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Nuevo precio de venta"
-                value={newSalePrice}
-                onChange={(e) => setNewSalePrice(e.target.value)}
-                required
-              />
-            </div>
+            {!isIngrediente && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                  Precio de venta
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="Nuevo precio de venta"
+                  value={newSalePrice}
+                  onChange={(e) => setNewSalePrice(e.target.value)}
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {/* Notes */}
