@@ -41,7 +41,7 @@ const MAX_HERO_SIZE = 500 * 1024; // 500 KB
 
 const StoreSettingsPage = () => {
   const { settings, isLoading, defaultSchedule, save, isSaving } = useStoreSettings();
-  const { profile } = useAuth();
+  const { profile, isSuperAdmin } = useAuth();
   const { data: branches = [] } = useBranches();
   const { toast: toastFn } = useToast();
   const queryClient = useQueryClient();
