@@ -592,6 +592,7 @@ const Sales = () => {
                 <SelectItem value="all">Tipo: Todos</SelectItem>
                 <SelectItem value="sale">Venta</SelectItem>
                 <SelectItem value="service">Servicio</SelectItem>
+                <SelectItem value="print">Impresión</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterPayment} onValueChange={setFilterPayment}>
