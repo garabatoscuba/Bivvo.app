@@ -24,6 +24,8 @@ import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowD
 import { MermaDialog } from '@/components/inventory/MermaDialog';
 import { MermasTab } from '@/components/inventory/MermasTab';
 import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
+import { ProductionDialog } from '@/components/inventory/ProductionDialog';
+import { RecipeManager } from '@/components/inventory/RecipeManager';
 import {
   Select,
   SelectContent,
