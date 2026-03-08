@@ -103,6 +103,7 @@ const PromoBlockEditor = ({
         text_primary: form.text_primary.trim() || null,
         text_secondary: form.text_secondary.trim() || null,
         link_target: form.link_target,
+        is_active: form.is_active,
       };
       if (existing) {
         const { error } = await supabase
