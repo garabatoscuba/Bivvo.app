@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, ShoppingCart, Wrench, ArrowDownToLine, Package, Users, ArrowUpFromLine, ReceiptText, FileText } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ShoppingCart, Wrench, ArrowDownToLine, Package, Users, ArrowUpFromLine, ReceiptText, FileText, Printer } from "lucide-react";
 
 type Period = "today" | "week" | "month" | "all";
 type TreasuryMode = "operativo" | "real";
@@ -85,6 +85,17 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   const { from, to } = useMemo(() => getDateRange(period), [period]);
   const prevRange = useMemo(() => getPreviousDateRange(period), [period]);
 
+  // Check if copy_shop
+  const { data: isCopyShop = false } = useQuery({
+    queryKey: ["bp-is-copy-shop", businessId],
+    queryFn: async () => {
+      const { data } = await supabase.from("businesses").select("business_type").eq("id", businessId).maybeSingle();
+      return data?.business_type === 'copy_shop';
+    },
+    enabled: !!businessId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: businessBranchIds = [] } = useQuery({
     queryKey: ["bp-branch-ids", businessId],
     queryFn: async () => {
@@ -99,6 +110,7 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   });
 
   const saleBranchIds = branchId ? [branchId] : businessBranchIds;
+
 
   // --- Helper to fetch a sum with date range ---
   const fetchSalesSum = async (branchIds: string[], dateFrom: string | null, dateTo: string) => {
@@ -168,6 +180,21 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
     queryKey: ["bp-service-sales", businessId, branchId, period],
     queryFn: () => fetchServiceSum(from, to),
     enabled: !!businessId,
+  });
+
+  // Print jobs (copy_shop only)
+  const { data: printJobSales = 0 } = useQuery({
+    queryKey: ["bp-print-jobs", businessId, branchId, period, saleBranchIds],
+    queryFn: async () => {
+      let q = supabase.from("print_jobs").select("total").eq("business_id", businessId);
+      if (branchId) q = q.eq("branch_id", branchId);
+      else if (saleBranchIds.length) q = q.in("branch_id", saleBranchIds);
+      if (from) q = q.gte("created_at", from);
+      q = q.lte("created_at", to);
+      const { data } = await q;
+      return data?.reduce((sum, r) => sum + Number(r.total || 0), 0) || 0;
+    },
+    enabled: !!businessId && isCopyShop,
   });
 
   // Injections
@@ -305,7 +332,7 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   });
 
   const extractions = extractionData || { retiro: 0, otros: 0, total: 0 };
-  const totalIngresos = productSales + serviceSales + injections;
+  const totalIngresos = productSales + serviceSales + injections + printJobSales;
 
   // Use accrued value in Operativo, real paid in Real
   const effectiveFixedExpenses = mode === "operativo" ? accruedFixedExpenses : fixedExpensesPaid;
@@ -352,9 +379,10 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
               Mis Ingresos
             </h3>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className={`grid grid-cols-2 ${isCopyShop ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-2`}>
             <MiniCard icon={<ShoppingCart className="h-3.5 w-3.5" />} label="Ventas de Productos" value={fmt(productSales)} />
             <MiniCard icon={<Wrench className="h-3.5 w-3.5" />} label="Ventas de Servicios" value={fmt(serviceSales)} />
+            {isCopyShop && <MiniCard icon={<Printer className="h-3.5 w-3.5" />} label="Ingresos Impresiones" value={fmt(printJobSales)} />}
             <MiniCard icon={<ArrowDownToLine className="h-3.5 w-3.5" />} label="Inyecciones" value={fmt(injections)} />
           </div>
           <div className="border-t pt-2">

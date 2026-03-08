@@ -191,9 +191,12 @@ const MyEmploymentDashboard = ({
   const todayTotal = dailySalary.todayBranchSalesTotal + dailySalary.todayBranchServiceTotal;
   const progressPct = weekAvg > 0 ? Math.min(100, Math.round((todayTotal / weekAvg) * 100)) : (todayTotal > 0 ? 100 : 0);
 
+  // Include print_jobs in pie data if available
+  const hasPrintIncome = (dailySalary as any).todayPrintTotal > 0;
   const pieData = [
     { name: 'Productos', value: dailySalary.todayBranchSalesTotal, fill: 'hsl(var(--primary))' },
     { name: 'Servicios', value: dailySalary.todayBranchServiceTotal, fill: 'hsl(var(--accent))' },
+    ...((dailySalary as any).todayPrintTotal > 0 ? [{ name: 'Impresiones', value: (dailySalary as any).todayPrintTotal, fill: 'hsl(var(--chart-3))' }] : []),
   ].filter(d => d.value > 0);
 
   if (!jornadaActiva) {

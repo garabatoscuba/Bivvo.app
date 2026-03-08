@@ -106,6 +106,17 @@ export const useDashboardStats = (branchId?: string, period: Period = 'today') =
     queryFn: async () => {
       if (!branchId) throw new Error('No branch');
 
+      // Check if business is copy_shop to include print_jobs
+      let isCopyShop = false;
+      if (profile?.business_id) {
+        const { data: biz } = await supabase
+          .from('businesses')
+          .select('business_type')
+          .eq('id', profile.business_id)
+          .maybeSingle();
+        isCopyShop = biz?.business_type === 'copy_shop';
+      }
+
       // Fetch current + previous sales, and pending credit in parallel
       const [currentRes, previousRes, pendingRes, saleItemsRes] = await Promise.all([
         supabase
@@ -141,16 +152,34 @@ export const useDashboardStats = (branchId?: string, period: Period = 'today') =
       const pendingSales = pendingRes.data || [];
       const saleItems = saleItemsRes.data || [];
 
+      // Fetch print_jobs for copy_shop businesses
+      let printJobsCurrent = 0;
+      let printJobsPrev = 0;
+      if (isCopyShop) {
+        const [pjCurrent, pjPrev] = await Promise.all([
+          supabase.from('print_jobs').select('total')
+            .eq('branch_id', branchId)
+            .gte('created_at', ranges.current.start.toISOString())
+            .lte('created_at', ranges.current.end.toISOString()),
+          supabase.from('print_jobs').select('total')
+            .eq('branch_id', branchId)
+            .gte('created_at', ranges.previous.start.toISOString())
+            .lte('created_at', ranges.previous.end.toISOString()),
+        ]);
+        printJobsCurrent = (pjCurrent.data || []).reduce((s, r) => s + Number(r.total), 0);
+        printJobsPrev = (pjPrev.data || []).reduce((s, r) => s + Number(r.total), 0);
+      }
+
       // KPIs
-      const totalSales = currentSales.reduce((s, v) => s + Number(v.total), 0);
-      const prevTotal = previousSales.reduce((s, v) => s + Number(v.total), 0);
+      const totalSales = currentSales.reduce((s, v) => s + Number(v.total), 0) + printJobsCurrent;
+      const prevTotal = previousSales.reduce((s, v) => s + Number(v.total), 0) + printJobsPrev;
       const salesCount = currentSales.length;
       const prevCount = previousSales.length;
       const avgTicket = salesCount > 0 ? totalSales / salesCount : 0;
       const prevAvg = prevCount > 0 ? prevTotal / prevCount : 0;
       const pendingCredit = pendingSales.reduce((s, v) => s + (Number(v.total) - Number(v.amount_paid)), 0);
 
-      // Sales over time
+      // Sales over time (include print_jobs)
       const labels = buildTimeLabels(period, ranges.current);
       const buckets: Record<string, number> = {};
       labels.forEach(l => (buckets[l] = 0));
@@ -158,6 +187,18 @@ export const useDashboardStats = (branchId?: string, period: Period = 'today') =
         const key = bucketKey(new Date(s.created_at), period);
         if (key in buckets) buckets[key] += Number(s.total);
       });
+
+      if (isCopyShop) {
+        const { data: pjTime } = await supabase.from('print_jobs').select('total, created_at')
+          .eq('branch_id', branchId)
+          .gte('created_at', ranges.current.start.toISOString())
+          .lte('created_at', ranges.current.end.toISOString());
+        (pjTime || []).forEach(pj => {
+          const key = bucketKey(new Date(pj.created_at), period);
+          if (key in buckets) buckets[key] += Number(pj.total);
+        });
+      }
+
       const salesOverTime = labels.map(label => ({ label, total: buckets[label] || 0 }));
 
       // Payment methods
