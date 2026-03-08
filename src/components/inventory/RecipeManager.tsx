@@ -141,7 +141,8 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
     const ing = ingredients.find(i => i.id === ingredientId);
     if (ing) {
       const baseUnit = ing.unit_of_measure || 'pieza';
-      setNewUnit(baseUnit);
+      const normalized = normalizeUnitKey(baseUnit);
+      setNewUnit(normalized);
       setCompatibleUnits(getCompatibleUnits(baseUnit));
     } else {
       setCompatibleUnits([]);

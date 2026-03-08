@@ -43,7 +43,7 @@ export function normalizeUnitKey(unit: string): string {
 }
 
 export function getUnitDef(unit: string): UnitDef | null {
-  return UNITS[normalizeKey(unit)] || null;
+  return UNITS[normalizeUnitKey(unit)] || null;
 }
 
 /** Get category of a unit */
