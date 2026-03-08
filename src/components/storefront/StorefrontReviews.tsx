@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Star, MessageSquare, Loader2, CheckCircle } from 'lucide-react';
+import { Star, MessageSquare, Loader2, CheckCircle, Phone } from 'lucide-react';
 
 interface Review {
   id: string;
-  rating: number;
+  rating: number | null;
   comment: string | null;
   created_at: string;
   author: string;
@@ -32,7 +32,7 @@ const Stars = ({ count, size = 14, color }: { count: number; size?: number; colo
 
 const StorefrontReviews = ({ reviews, branchId, accent, apiBase, apiKey }: Props) => {
   const [showForm, setShowForm] = useState(false);
-  const [affiliateId, setAffiliateId] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [rating, setRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [comment, setComment] = useState('');
@@ -40,25 +40,26 @@ const StorefrontReviews = ({ reviews, branchId, accent, apiBase, apiKey }: Props
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
 
-  const avgRating = reviews.length > 0
-    ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+  const ratedReviews = reviews.filter(r => r.rating && r.rating > 0);
+  const avgRating = ratedReviews.length > 0
+    ? ratedReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / ratedReviews.length
     : 0;
 
   const handleSubmit = async () => {
-    if (!affiliateId.trim() || rating === 0) return;
+    if (!phoneNumber.trim()) return;
     setLoading(true);
     setError('');
     try {
       const res = await fetch(`${apiBase}/functions/v1/public-storefront`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': apiKey },
-        body: JSON.stringify({ action: 'submit_review', branch_id: branchId, affiliate_id: affiliateId.trim(), rating, comment }),
+        body: JSON.stringify({ action: 'submit_review', branch_id: branchId, phone_number: phoneNumber.trim(), rating: rating || null, comment }),
       });
       const data = await res.json();
       if (data.success) {
         setSuccess(true);
       } else {
-        setError(data.error || 'Error al enviar reseña');
+        setError(data.error || 'Error al enviar');
       }
     } catch {
       setError('Error de conexión');
@@ -69,20 +70,16 @@ const StorefrontReviews = ({ reviews, branchId, accent, apiBase, apiKey }: Props
 
   return (
     <div className="space-y-8">
-      {/* Header */}
       <div className="flex items-end justify-between">
         <div>
-          <h2
-            className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground"
-            style={{ fontFamily: 'var(--font-serif)' }}
-          >
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground" style={{ fontFamily: 'var(--font-serif)' }}>
             Reseñas
           </h2>
-          {reviews.length > 0 && (
+          {ratedReviews.length > 0 && (
             <div className="flex items-center gap-2 mt-2">
               <Stars count={Math.round(avgRating)} color={accent} />
               <span className="text-sm font-medium text-foreground/80">{avgRating.toFixed(1)}</span>
-              <span className="text-xs text-muted-foreground">({reviews.length} reseñas)</span>
+              <span className="text-xs text-muted-foreground">({ratedReviews.length} reseñas)</span>
             </div>
           )}
         </div>
@@ -92,33 +89,40 @@ const StorefrontReviews = ({ reviews, branchId, accent, apiBase, apiKey }: Props
             className="flex items-center gap-1.5 text-xs font-medium px-4 py-2 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
           >
             <MessageSquare className="h-3.5 w-3.5" />
-            Dejar reseña
+            Enviar mensaje
           </button>
         )}
       </div>
 
-      {/* Review form */}
       {showForm && !success && (
         <div className="rounded-2xl border border-border p-6 space-y-5 bg-card">
-          <p className="text-xs text-muted-foreground">Solo clientes afiliados pueden dejar reseñas.</p>
+          <div className="rounded-xl bg-muted/50 p-4">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Tus mensajes son privados. Solo la administración del negocio los recibe — no son comentarios públicos. Úsalos para enviarnos quejas, sugerencias o consultas.
+            </p>
+          </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-1.5 block">ID de afiliado</label>
+            <label className="text-xs text-muted-foreground mb-1.5 block">
+              <Phone className="h-3 w-3 inline mr-1" />
+              Número de celular <span className="text-destructive">*</span>
+            </label>
             <input
-              value={affiliateId}
-              onChange={(e) => setAffiliateId(e.target.value)}
-              placeholder="Tu ID de afiliado"
+              value={phoneNumber}
+              onChange={(e) => setPhoneNumber(e.target.value)}
+              placeholder="+53 5XXXXXXX"
+              type="tel"
               className="w-full h-10 px-4 rounded-full border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30"
             />
           </div>
           <div>
-            <label className="text-xs text-muted-foreground mb-2 block">Puntuación</label>
+            <label className="text-xs text-muted-foreground mb-2 block">Puntuación (opcional)</label>
             <div className="flex gap-1">
               {[1, 2, 3, 4, 5].map(i => (
                 <button
                   key={i}
                   onMouseEnter={() => setHoverRating(i)}
                   onMouseLeave={() => setHoverRating(0)}
-                  onClick={() => setRating(i)}
+                  onClick={() => setRating(prev => prev === i ? 0 : i)}
                   className="transition-transform hover:scale-110"
                 >
                   <Star
@@ -135,19 +139,20 @@ const StorefrontReviews = ({ reviews, branchId, accent, apiBase, apiKey }: Props
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              placeholder="¿Qué te pareció?"
+              placeholder="Escríbenos tu queja, sugerencia o consulta"
               rows={3}
+              maxLength={500}
               className="w-full px-4 py-3 rounded-xl border border-border bg-background text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/30 resize-none"
             />
           </div>
           {error && <p className="text-xs text-destructive">{error}</p>}
           <button
             onClick={handleSubmit}
-            disabled={loading || !affiliateId.trim() || rating === 0}
+            disabled={loading || !phoneNumber.trim()}
             className="w-full flex items-center justify-center gap-2 rounded-full py-3 text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-40"
             style={{ backgroundColor: accent }}
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar reseña'}
+            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Enviar mensaje'}
           </button>
         </div>
       )}
@@ -155,12 +160,11 @@ const StorefrontReviews = ({ reviews, branchId, accent, apiBase, apiKey }: Props
       {success && (
         <div className="rounded-2xl border border-border p-8 text-center space-y-2 bg-card">
           <CheckCircle className="h-8 w-8 mx-auto" style={{ color: accent }} />
-          <p className="text-sm font-medium text-foreground">¡Reseña enviada!</p>
-          <p className="text-xs text-muted-foreground">Será visible una vez aprobada por el negocio.</p>
+          <p className="text-sm font-medium text-foreground">¡Mensaje enviado!</p>
+          <p className="text-xs text-muted-foreground">El negocio recibirá tu comentario.</p>
         </div>
       )}
 
-      {/* Review list */}
       {reviews.length === 0 && !showForm && (
         <p className="text-sm text-muted-foreground/40 text-center py-12">Aún no hay reseñas.</p>
       )}
@@ -170,7 +174,7 @@ const StorefrontReviews = ({ reviews, branchId, accent, apiBase, apiKey }: Props
           <div key={review.id} className="p-5 rounded-xl border border-border bg-card space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium text-foreground">{review.author}</span>
-              <Stars count={review.rating} size={12} color={accent} />
+              {review.rating && review.rating > 0 && <Stars count={review.rating} size={12} color={accent} />}
             </div>
             {review.comment && (
               <p className="text-xs text-muted-foreground leading-relaxed">{review.comment}</p>
