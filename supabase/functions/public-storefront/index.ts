@@ -278,7 +278,7 @@ serve(async (req) => {
         .gt("quantity", 0),
       supabase
         .from("reviews")
-        .select("id, rating, comment, created_at, is_visible, affiliate:affiliates(name)")
+        .select("id, rating, comment, created_at, is_visible, phone_number, product_name")
         .eq("branch_id", resolvedBranch.id).eq("is_visible", true)
         .order("created_at", { ascending: false }).limit(50),
       supabase
