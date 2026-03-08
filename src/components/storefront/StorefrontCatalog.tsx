@@ -340,6 +340,11 @@ const StorefrontCatalog = ({ products, accent, currencySymbol, branchId, reviews
           accent={accent}
           currencySymbol={currencySymbol}
           onClose={handleCloseDetail}
+          isFavorite={favorites.has(selectedProduct.id)}
+          onToggleFavorite={(id) => toggleFavorite({ stopPropagation: () => {} } as React.MouseEvent, id)}
+          onShare={(p) => doShare(p)}
+          reviews={reviews}
+          branchId={branchId}
         />
       )}
     </div>
