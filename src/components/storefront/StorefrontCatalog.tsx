@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ShoppingBag, Plus, LayoutGrid, List, Heart, Star, Share2 } from 'lucide-react';
 import type { StorefrontProduct } from '@/pages/PublicStorefront';
 import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
@@ -23,6 +23,23 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
+
+  // Deep-link: open product detail from ?producto= query param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const productId = params.get('producto');
+    if (productId && products.length > 0) {
+      const found = products.find(p => p.id === productId);
+      if (found) setSelectedProduct(found);
+    }
+  }, [products]);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedProduct(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('producto');
+    window.history.replaceState({}, '', url.pathname + (url.search || '') + (url.hash || ''));
+  }, []);
 
   const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -318,7 +335,7 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
           product={selectedProduct}
           accent={accent}
           currencySymbol={currencySymbol}
-          onClose={() => setSelectedProduct(null)}
+          onClose={handleCloseDetail}
         />
       )}
     </div>
