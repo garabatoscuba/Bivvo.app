@@ -29,7 +29,7 @@ const InsumosTab = () => {
 
   // New material dialog
   const [newOpen, setNewOpen] = useState(false);
-  const [matForm, setMatForm] = useState({ name: '', material_type_id: '', stock_minimo: 0, costo_unitario: 0, porcentaje_tinta: 0 });
+  const [matForm, setMatForm] = useState({ name: '', material_type_id: '', stock_minimo: 0, porcentaje_tinta: 0 });
 
   // Entry dialog
   const [entryOpen, setEntryOpen] = useState(false);
@@ -43,7 +43,7 @@ const InsumosTab = () => {
     saveMaterial.mutate(matForm, {
       onSuccess: () => {
         setNewOpen(false);
-        setMatForm({ name: '', material_type_id: '', stock_minimo: 0, costo_unitario: 0, porcentaje_tinta: 0 });
+        setMatForm({ name: '', material_type_id: '', stock_minimo: 0, porcentaje_tinta: 0 });
       },
     });
   };
@@ -89,7 +89,7 @@ const InsumosTab = () => {
               <TableHead className="text-right">Almacén</TableHead>
               <TableHead className="text-right">Vendedor</TableHead>
               <TableHead className="text-right">Mínimo</TableHead>
-              <TableHead className="text-right">Costo unit.</TableHead>
+              <TableHead className="text-right">Costo prom.</TableHead>
               <TableHead className="text-right">% Tinta</TableHead>
             </TableRow>
           </TableHeader>
@@ -143,14 +143,10 @@ const InsumosTab = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Stock mínimo</Label>
                 <Input type="number" min={0} value={matForm.stock_minimo} onChange={e => setMatForm(f => ({ ...f, stock_minimo: parseFloat(e.target.value) || 0 }))} />
-              </div>
-              <div>
-                <Label>Costo unit.</Label>
-                <Input type="number" min={0} step="0.01" value={matForm.costo_unitario} onChange={e => setMatForm(f => ({ ...f, costo_unitario: parseFloat(e.target.value) || 0 }))} />
               </div>
               <div>
                 <Label>% Tinta</Label>
