@@ -15,7 +15,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useIsDowngraded } from '@/hooks/useIsDowngraded';
 import DowngradeModal from '@/components/DowngradeModal';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft, Star } from 'lucide-react';
