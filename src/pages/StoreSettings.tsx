@@ -41,7 +41,7 @@ const MAX_HERO_SIZE = 500 * 1024; // 500 KB
 
 const StoreSettingsPage = () => {
   const { settings, isLoading, defaultSchedule, save, isSaving } = useStoreSettings();
-  const { profile } = useAuth();
+  const { profile, isSuperAdmin } = useAuth();
   const { data: branches = [] } = useBranches();
   const { toast: toastFn } = useToast();
   const queryClient = useQueryClient();
@@ -301,10 +301,10 @@ const StoreSettingsPage = () => {
             <TabsList className="mb-6 flex-wrap h-auto gap-1">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="appearance">Personalización</TabsTrigger>
-              <TabsTrigger value="loyalty">Fidelización</TabsTrigger>
-              <TabsTrigger value="announcements">Anuncios</TabsTrigger>
+              {isSuperAdmin && <TabsTrigger value="loyalty">Fidelización</TabsTrigger>}
+              {isSuperAdmin && <TabsTrigger value="announcements">Anuncios</TabsTrigger>}
               <TabsTrigger value="reviews">Reseñas</TabsTrigger>
-              <TabsTrigger value="affiliates">Clientes</TabsTrigger>
+              {isSuperAdmin && <TabsTrigger value="affiliates">Clientes</TabsTrigger>}
             </TabsList>
 
             {/* GENERAL TAB */}
@@ -588,7 +588,7 @@ const StoreSettingsPage = () => {
             </TabsContent>
 
             {/* ANNOUNCEMENTS TAB */}
-            <TabsContent value="announcements" className="space-y-6">
+            {isSuperAdmin && <TabsContent value="announcements" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2"><Megaphone className="h-4 w-4" /> Nuevo anuncio</CardTitle>
@@ -651,7 +651,7 @@ const StoreSettingsPage = () => {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent>}
 
             {/* REVIEWS TAB */}
             <TabsContent value="reviews" className="space-y-6">
@@ -700,7 +700,7 @@ const StoreSettingsPage = () => {
             </TabsContent>
 
             {/* AFFILIATES TAB */}
-            <TabsContent value="affiliates" className="space-y-6">
+            {isSuperAdmin && <TabsContent value="affiliates" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> Clientes afiliados</CardTitle>
@@ -741,12 +741,12 @@ const StoreSettingsPage = () => {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent>}
 
             {/* LOYALTY TAB */}
-            <TabsContent value="loyalty">
+            {isSuperAdmin && <TabsContent value="loyalty">
               <LoyaltyRewardsTab />
-            </TabsContent>
+            </TabsContent>}
           </Tabs>
         )}
       </div>
