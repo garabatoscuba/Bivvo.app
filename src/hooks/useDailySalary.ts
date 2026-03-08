@@ -310,7 +310,7 @@ export const useDailySalary = ({
           // Check if there's a sales-based ladder bonus
           const ladderTiers = config.tiers as any[] || [];
           for (const tier of ladderTiers) {
-            if (individualIncome >= Number(tier.min_sales || 0)) {
+            if (getApplicableIncome(appliesTo) >= Number(tier.min_sales || 0)) {
               earning = Math.max(earning, Number(tier.bonus || 0));
             }
           }
