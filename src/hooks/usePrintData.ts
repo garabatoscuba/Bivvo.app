@@ -117,6 +117,22 @@ export const useSaveServiceType = () => {
   });
 };
 
+export const useDeleteServiceType = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('print_service_types').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['print-service-types'] });
+      toast({ title: 'Servicio eliminado' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+};
+
 export const useSaveRawMaterial = () => {
   const qc = useQueryClient();
   const { businessId, branchId } = useResolvedBusinessId();

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { usePrintServiceTypes, useRawMaterials, useSaveServiceType } from '@/hooks/usePrintData';
+import { usePrintServiceTypes, useRawMaterials, useSaveServiceType, useDeleteServiceType } from '@/hooks/usePrintData';
 import { Button } from '@/components/ui/button';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -29,9 +30,11 @@ const ServiciosTab = () => {
   const { data: services = [], isLoading } = usePrintServiceTypes();
   const { data: materials = [] } = useRawMaterials();
   const saveMutation = useSaveServiceType();
+  const deleteMutation = useDeleteServiceType();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [rendimientoText, setRendimientoText] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
   const openNew = () => {
     setForm(emptyForm);
@@ -96,6 +99,7 @@ const ServiciosTab = () => {
                     {!s.is_active && <Badge variant="secondary" className="text-[10px]">Inactivo</Badge>}
                     {s.admite_doble_cara && <Badge variant="outline" className="text-[10px]">2 caras</Badge>}
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(s)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
                 </CardContent>
               </Card>
@@ -165,6 +169,18 @@ const ServiciosTab = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <AlertDialog open={!!deleteTarget} onOpenChange={v => !v && setDeleteTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar servicio?</AlertDialogTitle>
+            <AlertDialogDescription>Se eliminará "{deleteTarget?.name}" permanentemente.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction className="bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={() => { deleteMutation.mutate(deleteTarget.id); setDeleteTarget(null); }}>Eliminar</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
