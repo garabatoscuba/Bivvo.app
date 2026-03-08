@@ -374,14 +374,15 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   // Use accrued value in Operativo, real paid in Real
   const effectiveFixedExpenses = mode === "operativo" ? accruedFixedExpenses : fixedExpensesPaid;
 
+  const materialCost = mode === "operativo" ? materialCostOperativo : materialPurchasesReal;
   const compromisos = salariesPaid + extractions.total + effectiveFixedExpenses;
   const disponible = mode === "real"
-    ? totalIngresos - compromisos - inventoryPurchases
-    : totalIngresos - compromisos;
+    ? totalIngresos - compromisos - inventoryPurchases - materialPurchasesReal
+    : totalIngresos - compromisos - (isCopyShop ? materialCostOperativo : 0);
 
   const totalGastosDisplay = mode === "real"
-    ? inventoryPurchases + salariesPaid + extractions.total + effectiveFixedExpenses
-    : productCost + salariesPaid + extractions.total + effectiveFixedExpenses;
+    ? inventoryPurchases + materialPurchasesReal + salariesPaid + extractions.total + effectiveFixedExpenses
+    : productCost + materialCostOperativo + salariesPaid + extractions.total + effectiveFixedExpenses;
 
   const fmt = (n: number) => "$" + n.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
