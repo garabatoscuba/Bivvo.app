@@ -229,7 +229,7 @@ const SellerPrintView = () => {
 
   const isPaymentActive = (v: PaymentMethod) => isMixed ? (v === 'cash' || v === 'transfer') : paymentMethod === v;
 
-  const canSubmit = jobItems.length > 0 && jobTotal > 0;
+  const canSubmit = jobItems.length > 0 && jobTotal > 0 && tramoIssues.length === 0;
 
   // ─── Submit Job ─────────────────────────────────────────────
   const jobMutation = useMutation({
