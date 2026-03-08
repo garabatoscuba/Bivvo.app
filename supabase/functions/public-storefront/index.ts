@@ -345,7 +345,7 @@ serve(async (req) => {
         products,
         reviews: (reviewsResult.data || []).map((r: any) => ({
           id: r.id, rating: r.rating, comment: r.comment, created_at: r.created_at,
-          author: 'Cliente',
+          author: 'Cliente', product_name: r.product_name || null,
         })),
         announcements: announcementsResult.data || [],
         loyalty: loyaltyResult.data || { points_welcome: 10, points_name: 10, points_phone: 10, points_email: 10 },

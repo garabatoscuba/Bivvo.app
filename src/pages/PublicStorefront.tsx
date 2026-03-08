@@ -203,7 +203,7 @@ const PublicStorefront = () => {
             />
           )}
           {activeTab === 'catalog' && (
-            <StorefrontCatalogView products={data.products} accent={accent} branchId={data.branch.id} currencySymbol={currencySymbol} />
+            <StorefrontCatalogView products={data.products} accent={accent} branchId={data.branch.id} currencySymbol={currencySymbol} reviews={data.reviews} />
           )}
           {activeTab === 'contact' && (
             <StorefrontContact data={data} accent={accent} />

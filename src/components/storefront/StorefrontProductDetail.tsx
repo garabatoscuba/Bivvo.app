@@ -1,33 +1,72 @@
-import { X, ShoppingBag, Plus, Minus } from 'lucide-react';
-import { useState } from 'react';
-import type { StorefrontProduct } from '@/pages/PublicStorefront';
+import { X, ShoppingBag, Plus, Minus, Heart, Share2, Star, MessageSquare } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import type { StorefrontProduct, StorefrontReview } from '@/pages/PublicStorefront';
 import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
+import StorefrontReviewForm from '@/components/storefront/StorefrontReviewForm';
 
 interface Props {
   product: StorefrontProduct;
   accent: string;
   currencySymbol: string;
   onClose: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: (productId: string) => void;
+  onShare?: (product: StorefrontProduct) => void;
+  reviews?: StorefrontReview[];
+  branchId?: string;
 }
 
-const StorefrontProductDetail = ({ product, accent, currencySymbol, onClose }: Props) => {
+const StorefrontProductDetail = ({
+  product, accent, currencySymbol, onClose,
+  isFavorite = false, onToggleFavorite, onShare,
+  reviews = [], branchId,
+}: Props) => {
   const { items, addItem } = useStorefrontCart();
   const [qty, setQty] = useState(1);
+  const [showReviewForm, setShowReviewForm] = useState(false);
 
   const inCart = items.find(i => i.product.id === product.id);
   const availableStock = product.stock - (inCart?.quantity || 0);
+
+  // Calculate product-specific ratings
+  const productReviews = reviews.filter(
+    r => r.product_name && r.product_name.toLowerCase() === product.name.toLowerCase() && r.rating && r.rating > 0
+  );
+  const avgRating = productReviews.length > 0
+    ? productReviews.reduce((sum, r) => sum + (r.rating || 0), 0) / productReviews.length
+    : 0;
 
   return (
     <div className="fixed inset-0 z-[90]">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
       <div className="absolute inset-4 sm:inset-auto sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:w-full sm:max-w-lg bg-background rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Close */}
-        <button
-          onClick={onClose}
-          className="absolute top-3 right-3 z-10 h-8 w-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-muted transition-colors"
-        >
-          <X className="h-4 w-4" />
-        </button>
+        {/* Top-right action buttons */}
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+          {onToggleFavorite && (
+            <button
+              onClick={() => onToggleFavorite(product.id)}
+              className="h-8 w-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-muted transition-colors"
+              aria-label="Favorito"
+            >
+              <Heart className={`h-4 w-4 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
+            </button>
+          )}
+          {onShare && (
+            <button
+              onClick={() => onShare(product)}
+              className="h-8 w-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-muted transition-colors"
+              aria-label="Compartir"
+            >
+              <Share2 className="h-4 w-4 text-muted-foreground" />
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="h-8 w-8 rounded-full bg-background/80 backdrop-blur flex items-center justify-center hover:bg-muted transition-colors"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
         {/* Image */}
         {product.image_url ? (
@@ -50,6 +89,26 @@ const StorefrontProductDetail = ({ product, accent, currencySymbol, onClose }: P
           <h2 className="text-xl font-bold text-foreground" style={{ fontFamily: 'var(--font-heading)' }}>
             {product.name}
           </h2>
+
+          {/* Star rating */}
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5">
+              {[1, 2, 3, 4, 5].map(i => (
+                <Star
+                  key={i}
+                  size={16}
+                  className={i <= Math.round(avgRating) ? 'fill-current' : 'text-muted-foreground/20'}
+                  style={i <= Math.round(avgRating) ? { color: accent } : undefined}
+                />
+              ))}
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {productReviews.length > 0
+                ? `${avgRating.toFixed(1)} (${productReviews.length})`
+                : 'Sin valoraciones aún'}
+            </span>
+          </div>
+
           {product.description && (
             <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
           )}
@@ -93,6 +152,22 @@ const StorefrontProductDetail = ({ product, accent, currencySymbol, onClose }: P
             <div className="pt-2">
               <span className="text-sm text-muted-foreground">Ya tienes el máximo disponible en tu carrito</span>
             </div>
+          )}
+
+          {/* Comment button */}
+          {branchId && !showReviewForm && (
+            <button
+              onClick={() => setShowReviewForm(true)}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-medium border border-border text-muted-foreground hover:text-foreground hover:border-foreground/30 transition-colors"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Dejar comentario sobre este producto
+            </button>
+          )}
+
+          {/* Review form inline */}
+          {showReviewForm && branchId && (
+            <StorefrontReviewForm branchId={branchId} accent={accent} productName={product.name} />
           )}
         </div>
       </div>
