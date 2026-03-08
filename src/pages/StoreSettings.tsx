@@ -142,6 +142,7 @@ const StoreSettingsPage = () => {
       setSocialTiktok(settings.social_tiktok || '');
       setSocialTwitter(settings.social_twitter || '');
       setContactEmail(settings.contact_email || '');
+      setWhatsappNumber((settings as any).whatsapp_number || '');
     }
   }, [settings]);
 
