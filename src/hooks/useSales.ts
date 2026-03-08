@@ -237,15 +237,22 @@ export const useSales = (branchId?: string | null) => {
         return sale;
       };
 
+      alert('Paso 1: online=' + navigator.onLine);
+
       // If clearly offline, skip Supabase entirely
       if (!navigator.onLine) {
-        return saveOffline();
+        alert('Paso 4: guardando offline (sin conexión detectada)');
+        const offlineResult = await saveOffline();
+        alert('Paso 5: offline guardado OK');
+        return offlineResult;
       }
 
       // Online: try Supabase with 5s timeout, fallback to offline on failure
       const timeoutPromise = new Promise<never>((_, reject) =>
         setTimeout(() => reject(new Error('timeout')), 5000)
       );
+
+      alert('Paso 2: intentando Supabase');
 
       try {
         const onlineResult = await Promise.race([
@@ -325,9 +332,12 @@ export const useSales = (branchId?: string | null) => {
         ]);
 
         return onlineResult;
-      } catch (err) {
-        console.warn('[POS] Supabase failed or timed out, saving offline:', err);
-        return saveOffline();
+      } catch (err: any) {
+        alert('Paso 3: error=' + (err?.message || String(err)));
+        alert('Paso 4: guardando offline (fallback)');
+        const offlineResult = await saveOffline();
+        alert('Paso 5: offline guardado OK');
+        return offlineResult;
       }
     },
     onSuccess: (sale) => {
