@@ -1,16 +1,18 @@
 import { Truck } from 'lucide-react';
-import type { StorefrontData } from '@/pages/PublicStorefront';
+import type { StorefrontData, StorefrontTab } from '@/pages/PublicStorefront';
 import StorefrontReviewForm from '@/components/storefront/StorefrontReviewForm';
+import StorefrontPromoBlocks from '@/components/storefront/StorefrontPromoBlocks';
 
 interface Props {
   data: StorefrontData;
   accent: string;
   portalPath: string;
   onGoToCatalog: () => void;
+  onNavigate: (tab: StorefrontTab) => void;
   currencySymbol: string;
 }
 
-const StorefrontHome = ({ data, accent, portalPath, currencySymbol }: Props) => {
+const StorefrontHome = ({ data, accent, portalPath, onNavigate, currencySymbol }: Props) => {
   const heroTitle = data.settings.hero_title || data.business.name;
   const heroSubtitle = data.settings.hero_subtitle || data.branch.name;
   const heroImage = data.settings.hero_image_url;
@@ -91,6 +93,11 @@ const StorefrontHome = ({ data, accent, portalPath, currencySymbol }: Props) => 
             </p>
           </div>
         </section>
+      )}
+
+      {/* Promo blocks */}
+      {data.promo_blocks && data.promo_blocks.length > 0 && (
+        <StorefrontPromoBlocks blocks={data.promo_blocks} accent={accent} onNavigate={onNavigate} />
       )}
 
       {/* Leave a review */}

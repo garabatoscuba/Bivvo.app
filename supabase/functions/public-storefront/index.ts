@@ -275,7 +275,7 @@ serve(async (req) => {
       resolvedBranch = anyBranch;
     }
 
-    const [settingsResult, stockResult, reviewsResult, announcementsResult, loyaltyResult, rewardsResult] = await Promise.all([
+    const [settingsResult, stockResult, reviewsResult, announcementsResult, loyaltyResult, rewardsResult, promoBlocksResult] = await Promise.all([
       supabase
         .from("store_settings")
         .select("is_active, has_delivery, schedule, accent_color, about_text, hero_image_url, hero_title, hero_subtitle, font_heading, font_body, social_instagram, social_facebook, social_tiktok, social_twitter, contact_email")
@@ -307,6 +307,11 @@ serve(async (req) => {
         .eq("business_id", business.id)
         .eq("is_active", true)
         .order("sort_order"),
+      supabase
+        .from("portal_promo_blocks")
+        .select("block_number, image_url, text_primary, text_secondary, link_target")
+        .eq("branch_id", resolvedBranch.id)
+        .order("block_number"),
     ]);
 
     const settings = settingsResult.data;
@@ -353,6 +358,7 @@ serve(async (req) => {
         announcements: announcementsResult.data || [],
         loyalty: loyaltyResult.data || { points_welcome: 10, points_name: 10, points_phone: 10, points_email: 10 },
         rewards: rewardsResult.data || [],
+        promo_blocks: (promoBlocksResult.data || []).filter((b: any) => b.image_url || b.text_primary),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
