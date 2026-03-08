@@ -697,7 +697,7 @@ const StoreSettingsPage = () => {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>}
+            </TabsContent>
 
             {/* AFFILIATES TAB */}
             {isSuperAdmin && <TabsContent value="affiliates" className="space-y-6">
