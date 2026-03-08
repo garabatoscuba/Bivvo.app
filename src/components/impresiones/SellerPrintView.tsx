@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useRawMaterials, usePrintServiceTypes, usePrintRecipes, useEmployeesForTransfer, usePrintMaterialTypes, useActiveSheets } from '@/hooks/usePrintData';
+import { useRawMaterials, usePrintServiceTypes, usePrintRecipes, useEmployeesForTransfer, usePrintMaterialTypes, useActiveSheets, useOpenSheet, useCloseSheet } from '@/hooks/usePrintData';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Printer, Package, AlertTriangle, Plus, Trash2, Loader2,
   Banknote, ArrowLeftRight, ClipboardMinus, ChefHat, CheckCircle2,
-  Smartphone, RotateCcw, AlertCircle, CreditCard, DollarSign, Send,
+  Smartphone, RotateCcw, AlertCircle, CreditCard, DollarSign, Send, FileText,
 } from 'lucide-react';
 import { getIconComponent } from '@/components/services/IconSelector';
 import { cn } from '@/lib/utils';
@@ -56,6 +56,12 @@ const SellerPrintView = () => {
 
   const activeServices = useMemo(() => services.filter((s: any) => s.is_active), [services]);
   const { data: activeSheets = [] } = useActiveSheets();
+  const openSheetMut = useOpenSheet();
+  const closeSheetMut = useCloseSheet();
+
+  // Open sheet modal state
+  const [openSheetDialog, setOpenSheetDialog] = useState(false);
+  const [openSheetForm, setOpenSheetForm] = useState({ material_id: '', tramos_total: 4 });
 
   // Active cash register for this user
   const { data: activeCaja, isLoading: loadingCaja } = useQuery({
@@ -530,12 +536,26 @@ const SellerPrintView = () => {
                   )}
 
                   {/* Tramo warnings - no active sheet */}
-                  {tramoIssues.length > 0 && (
-                    <div className="rounded-md border border-warning/50 bg-warning/10 p-2 space-y-1">
+                   {tramoIssues.length > 0 && (
+                    <div className="rounded-md border border-warning/50 bg-warning/10 p-3 space-y-2">
                       {tramoIssues.map(issue => (
-                        <div key={issue.materialId} className="flex items-center gap-1.5 text-xs text-warning">
-                          <AlertTriangle className="h-3 w-3 shrink-0" />
-                          <span>No hay hoja activa de <strong>{issue.materialName}</strong>. El administrador debe abrir una desde Insumos.</span>
+                        <div key={issue.materialId} className="space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-xs text-warning">
+                            <AlertTriangle className="h-3 w-3 shrink-0" />
+                            <span>No hay hoja activa de <strong>{issue.materialName}</strong></span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-xs"
+                            onClick={() => {
+                              setOpenSheetForm({ material_id: issue.materialId, tramos_total: 4 });
+                              setOpenSheetDialog(true);
+                            }}
+                          >
+                            <FileText className="h-3.5 w-3.5 mr-1" />
+                            Abrir hoja de {issue.materialName}
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -787,6 +807,56 @@ const SellerPrintView = () => {
             <Button variant="outline" onClick={() => setProdOpen(false)}>Cancelar</Button>
             <Button onClick={() => prodMutation.mutate()} disabled={!prodForm.recipe_id || prodMutation.isPending}>
               {prodMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Confirmar producción
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Open Sheet Dialog */}
+      <Dialog open={openSheetDialog} onOpenChange={setOpenSheetDialog}>
+        <DialogContent className="max-w-sm max-h-[90vh] flex flex-col">
+          <DialogHeader><DialogTitle>Abrir hoja nueva</DialogTitle></DialogHeader>
+          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+            <div>
+              <Label>Insumo</Label>
+              <Input value={getMaterial(openSheetForm.material_id)?.name || ''} disabled className="bg-muted" />
+            </div>
+            <div>
+              <Label>¿Cuántos tramos tiene esta hoja?</Label>
+              <Input
+                type="number"
+                min={1}
+                value={openSheetForm.tramos_total}
+                onChange={e => setOpenSheetForm(f => ({ ...f, tramos_total: parseInt(e.target.value) || 1 }))}
+              />
+              <p className="text-xs text-muted-foreground mt-1">Se descontará 1 unidad de tu stock de vendedor.</p>
+              {openSheetForm.material_id && (
+                <p className="text-xs text-muted-foreground">
+                  Stock disponible: {getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0}
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOpenSheetDialog(false)}>Cancelar</Button>
+            <Button
+              onClick={() => {
+                if (!profile?.user_id) return;
+                openSheetMut.mutate(
+                  { material_id: openSheetForm.material_id, tramos_total: openSheetForm.tramos_total, user_id: profile.user_id },
+                  {
+                    onSuccess: () => {
+                      setOpenSheetDialog(false);
+                      setOpenSheetForm({ material_id: '', tramos_total: 4 });
+                      queryClient.invalidateQueries({ queryKey: ['print-active-sheets'] });
+                    },
+                  }
+                );
+              }}
+              disabled={!openSheetForm.material_id || openSheetForm.tramos_total < 1 || openSheetMut.isPending || (getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0) < 1}
+            >
+              {openSheetMut.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Abrir hoja
             </Button>
           </DialogFooter>
         </DialogContent>
