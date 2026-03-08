@@ -1,0 +1,1 @@
+ALTER TABLE public.print_service_types ADD COLUMN icon text NOT NULL DEFAULT 'Printer';

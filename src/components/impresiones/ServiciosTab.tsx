@@ -9,11 +9,13 @@ import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Plus, Pencil, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2 } from 'lucide-react';
+import IconSelector, { getIconComponent } from '@/components/services/IconSelector';
 
 const emptyForm = {
   id: '',
   name: '',
+  icon: 'Printer',
   unit_label: 'hoja',
   precio_base: 0,
   admite_doble_cara: false,
@@ -41,6 +43,7 @@ const ServiciosTab = () => {
     setForm({
       id: s.id,
       name: s.name,
+      icon: s.icon || 'Printer',
       unit_label: s.unit_label,
       precio_base: s.precio_base,
       admite_doble_cara: s.admite_doble_cara,
@@ -75,26 +78,29 @@ const ServiciosTab = () => {
         <p className="text-muted-foreground text-center py-8">No hay servicios configurados</p>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {services.map((s: any) => (
-            <Card key={s.id} className={!s.is_active ? 'opacity-60' : ''}>
-              <CardContent className="p-4 space-y-2">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <p className="font-medium">{s.name}</p>
-                    <p className="text-sm text-muted-foreground">{s.unit_label} — ${s.precio_base}</p>
+          {services.map((s: any) => {
+            const Icon = getIconComponent(s.icon);
+            return (
+              <Card key={s.id} className={!s.is_active ? 'opacity-60' : ''}>
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <Icon className="h-5 w-5 shrink-0 text-primary" />
+                    <div className="min-w-0">
+                      <p className="font-medium truncate">{s.name}</p>
+                      {s.precio_base > 0 && (
+                        <span className="text-xs text-muted-foreground">${Number(s.precio_base).toFixed(2)}</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1">
-                    {!s.is_active && <Badge variant="secondary">Inactivo</Badge>}
-                    {s.admite_doble_cara && <Badge variant="outline">2 caras</Badge>}
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(s)}><Pencil className="h-4 w-4" /></Button>
+                  <div className="flex items-center gap-1 shrink-0">
+                    {!s.is_active && <Badge variant="secondary" className="text-[10px]">Inactivo</Badge>}
+                    {s.admite_doble_cara && <Badge variant="outline" className="text-[10px]">2 caras</Badge>}
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
                   </div>
-                </div>
-                {s.raw_materials?.name && (
-                  <p className="text-xs text-muted-foreground">Insumo: {s.raw_materials.name} ({s.consumo_por_unidad}/ud)</p>
-                )}
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
@@ -107,6 +113,10 @@ const ServiciosTab = () => {
             <div>
               <Label>Nombre</Label>
               <Input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="Hoja B/N" />
+            </div>
+            <div>
+              <Label>Icono</Label>
+              <IconSelector value={form.icon} onChange={v => setForm(f => ({ ...f, icon: v }))} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>

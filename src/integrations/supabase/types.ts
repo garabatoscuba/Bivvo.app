@@ -3134,6 +3134,7 @@ export type Database = {
           business_id: string
           consumo_por_unidad: number
           created_at: string
+          icon: string
           id: string
           is_active: boolean
           material_id: string | null
@@ -3147,6 +3148,7 @@ export type Database = {
           business_id: string
           consumo_por_unidad?: number
           created_at?: string
+          icon?: string
           id?: string
           is_active?: boolean
           material_id?: string | null
@@ -3160,6 +3162,7 @@ export type Database = {
           business_id?: string
           consumo_por_unidad?: number
           created_at?: string
+          icon?: string
           id?: string
           is_active?: boolean
           material_id?: string | null
