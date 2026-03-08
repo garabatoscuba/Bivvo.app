@@ -183,7 +183,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           {/* Quantities */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Cantidad a venta</Label>
+              <Label>{isIngrediente ? 'Cantidad a cocina' : 'Cantidad a venta'}</Label>
               <Input
                 type="number"
                 min={0}
