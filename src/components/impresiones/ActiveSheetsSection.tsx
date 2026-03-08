@@ -21,9 +21,6 @@ const ActiveSheetsSection = () => {
   const { data: sheetHistory = [] } = useSheetHistory();
   const closeSheet = useCloseSheet();
 
-  const [openDialog, setOpenDialog] = useState(false);
-  const [form, setForm] = useState({ material_id: '', tramos_total: 4 });
-
   // Materials whose type has permite_tramos = true
   const tramoMaterials = materials.filter((m: any) => {
     const mt = materialTypes.find((t: any) => t.id === m.material_type_id);
