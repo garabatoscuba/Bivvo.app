@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Upload, Trash2, Save, ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+const MAX_SIZE = 300 * 1024; // 300 KB
 
 interface BlockData {
   image_url: string;
@@ -73,7 +73,7 @@ const PromoBlockEditor = ({
       return;
     }
     if (file.size > MAX_SIZE) {
-      toast({ title: 'Imagen muy pesada', description: 'Máximo 2 MB', variant: 'destructive' });
+      toast({ title: 'Imagen muy pesada', description: 'Máximo 300 KB', variant: 'destructive' });
       return;
     }
     setUploading(true);
@@ -164,7 +164,7 @@ const PromoBlockEditor = ({
             {uploading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
             Subir imagen
           </Button>
-          <p className="text-[10px] text-muted-foreground mt-1">Máx. 2 MB. Formatos: JPG, PNG, WebP.</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Máx. 300 KB. Formatos: JPG, PNG, WebP.</p>
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Texto principal</Label>
