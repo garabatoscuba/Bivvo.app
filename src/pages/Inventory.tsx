@@ -344,7 +344,7 @@ const Inventory = () => {
           user_id: profile.user_id,
           movement_type: 'transfer_out' as const,
           quantity: transferQty,
-          notes: 'Transferencia: almacén → venta',
+          notes: (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: almacén → cocina' : 'Transferencia: almacén → venta',
         },
         {
           branch_id: branchId,
@@ -352,12 +352,12 @@ const Inventory = () => {
           user_id: profile.user_id,
           movement_type: 'transfer_in' as const,
           quantity: transferQty,
-          notes: 'Transferencia: almacén → venta',
+          notes: (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: almacén → cocina' : 'Transferencia: almacén → venta',
         },
       ]);
 
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
-      toast({ title: `${transferQty} unidades pasadas a venta` });
+      toast({ title: (selectedProduct as any).tipo === 'ingrediente' ? `${transferQty} unidades pasadas a cocina` : `${transferQty} unidades pasadas a venta` });
       auditLog(
         'stock_transfer',
         `Transferencia de ${transferQty} unidades de ${selectedProduct?.name} de almacén a venta`,
@@ -407,7 +407,7 @@ const Inventory = () => {
           user_id: profile.user_id,
           movement_type: 'transfer_out' as const,
           quantity: transferQty,
-          notes: 'Transferencia: venta → almacén',
+          notes: (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: cocina → almacén' : 'Transferencia: venta → almacén',
         },
         {
           branch_id: branchId,
@@ -415,7 +415,7 @@ const Inventory = () => {
           user_id: profile.user_id,
           movement_type: 'transfer_in' as const,
           quantity: transferQty,
-          notes: 'Transferencia: venta → almacén',
+          notes: (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: cocina → almacén' : 'Transferencia: venta → almacén',
         },
       ]);
 
@@ -843,7 +843,7 @@ const Inventory = () => {
               {/* Key metrics */}
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard
-                  label="En venta"
+                  label={(selectedProduct as any).tipo === 'ingrediente' ? 'En cocina' : 'En venta'}
                   value={selectedStock.toString()}
                   sublabel={(selectedProduct as any).tipo === 'ingrediente' ? 'Materia prima' : 'Disponible en POS'}
                   alert={selectedStock <= selectedProduct.min_stock}
@@ -951,7 +951,7 @@ const Inventory = () => {
                           </Button>
                         </>
                       )}
-                      {(selectedProduct as any).tipo !== 'ingrediente' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
+                      {(selectedProduct as any).tipo !== 'elaborado' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
@@ -964,7 +964,9 @@ const Inventory = () => {
                           }}
                         >
                           <ArrowRightLeft className="mr-2 h-4 w-4" />
-                          {selectedWarehouseStock > 0 ? 'Almacén → Venta' : 'Venta → Almacén'}
+                          {(selectedProduct as any).tipo === 'ingrediente'
+                            ? (selectedWarehouseStock > 0 ? 'Almacén → Cocina' : 'Cocina → Almacén')
+                            : (selectedWarehouseStock > 0 ? 'Almacén → Venta' : 'Venta → Almacén')}
                         </Button>
                       )}
                       {selectedWarehouseStock > 0 && (
@@ -990,10 +992,12 @@ const Inventory = () => {
                        return (
                          <div className="rounded-lg border p-3 space-y-3">
                            <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-2">
-                               <p className="text-sm font-medium">
-                                 {isToSale ? 'Almacén → Venta' : 'Venta → Almacén'}
-                               </p>
+                           <div className="flex items-center gap-2">
+                             <p className="text-sm font-medium">
+                                  {(selectedProduct as any)?.tipo === 'ingrediente'
+                                    ? (isToSale ? 'Almacén → Cocina' : 'Cocina → Almacén')
+                                    : (isToSale ? 'Almacén → Venta' : 'Venta → Almacén')}
+                                </p>
                                {canFlip && (
                                  <Button
                                    variant="ghost"

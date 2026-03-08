@@ -40,6 +40,7 @@ const productSchema = z.object({
   unit_of_measure: z.string().min(1),
   brand: z.string().max(100).optional(),
   tipo: z.enum(['reventa', 'ingrediente', 'elaborado']).default('reventa'),
+  sale_price: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -84,7 +85,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '', description: '', category_id: undefined,
-      barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa',
+      barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa', sale_price: '',
     },
   });
 
@@ -98,11 +99,12 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
         unit_of_measure: product.unit_of_measure || 'Pieza',
         brand: product.brand || '',
         tipo: (product as any).tipo || 'reventa',
+        sale_price: product.sale_price ? String(product.sale_price) : '',
       });
     } else {
       form.reset({
         name: '', description: '', category_id: undefined,
-        barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa',
+        barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa', sale_price: '',
       });
     }
   }, [product, form]);
@@ -165,12 +167,16 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     }
     const businessId = profile.business_id;
 
+    const salePrice = data.tipo === 'elaborado' && data.sale_price
+      ? parseFloat(data.sale_price)
+      : (product?.sale_price ?? 0);
+
     const payload = {
       name: data.name,
       description: data.description || null,
       category_id: data.category_id || null,
       cost_price: product?.cost_price ?? 0,
-      sale_price: product?.sale_price ?? 0,
+      sale_price: salePrice,
       min_stock: product?.min_stock ?? 0,
       status: 'for_sale' as Product['status'],
       barcode: data.barcode || null,
@@ -412,7 +418,36 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
               </div>
             </div>
 
-            {/* ─── Sección 4: Receta (solo elaborado) ─── */}
+            {/* ─── Sección 4: Precio de venta (solo elaborado) ─── */}
+            {form.watch('tipo') === 'elaborado' && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Precio</p>
+                  <FormField
+                    control={form.control}
+                    name="sale_price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Precio de venta</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            placeholder="Precio al público"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* ─── Sección 5: Receta (solo elaborado, al editar) ─── */}
             {product && form.watch('tipo') === 'elaborado' && (
               <>
                 <Separator />

@@ -145,7 +145,9 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           .update({ cost_price: parseFloat(unitCost) })
           .eq('id', product.id);
         queryClient.invalidateQueries({ queryKey: ['products'] });
+        // Invalidate ALL recipe-ingredients queries so costs refresh in RecipeManager
         queryClient.invalidateQueries({ queryKey: ['recipe-ingredients'] });
+        queryClient.invalidateQueries({ queryKey: ['recipe'] });
       } else if (!isIngrediente && newSalePrice && parseFloat(newSalePrice) > 0) {
         await supabase
           .from('products')
