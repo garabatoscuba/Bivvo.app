@@ -19,8 +19,8 @@ const SocialIcon = ({ href, label, children }: { href: string; label: string; ch
   </a>
 );
 
-const StorefrontAbout = ({ aboutText, socialInstagram, socialFacebook, socialTiktok, socialTwitter }: Props) => {
-  const hasSocials = socialInstagram || socialFacebook || socialTiktok || socialTwitter;
+const StorefrontAbout = ({ aboutText, socialInstagram, socialFacebook, socialTiktok, socialTwitter, whatsappNumber }: Props) => {
+  const hasSocials = socialInstagram || socialFacebook || socialTiktok || socialTwitter || whatsappNumber;
   if (!aboutText && !hasSocials) return null;
 
   return (
