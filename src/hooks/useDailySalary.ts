@@ -405,7 +405,7 @@ export const useDailySalary = ({
           const pct = Number(config.service_percent || config.percent || 0);
           if (pct > 0) {
             displayPercent = pct;
-            earning += sharedIncome * (pct / 100);
+            earning += getSharedApplicableIncome(appliesTo) * (pct / 100);
           }
         }
       }
