@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, ShoppingCart, Wrench, ArrowDownToLine, Package, Users, ArrowUpFromLine, ReceiptText, FileText, Printer } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ShoppingCart, Wrench, ArrowDownToLine, Package, Users, ArrowUpFromLine, ReceiptText, FileText, Printer, Droplets, ScrollText } from "lucide-react";
 
 type Period = "today" | "week" | "month" | "all";
 type TreasuryMode = "operativo" | "real";
@@ -240,6 +240,43 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
     enabled: !!businessId && mode === "real",
   });
 
+  // Raw material COGS (Operativo, copy_shop only) — sum costo_insumo from print_job_items
+  const { data: materialCostOperativo = 0 } = useQuery({
+    queryKey: ["bp-material-cogs", businessId, branchId, period, saleBranchIds],
+    queryFn: async () => {
+      let jq = supabase.from("print_jobs").select("id").eq("business_id", businessId);
+      if (branchId) jq = jq.eq("branch_id", branchId);
+      else if (saleBranchIds.length) jq = jq.in("branch_id", saleBranchIds);
+      if (from) jq = jq.gte("created_at", from);
+      jq = jq.lte("created_at", to);
+      const { data: jobs } = await jq;
+      if (!jobs?.length) return 0;
+      const jobIds = jobs.map((j: any) => j.id);
+      let total = 0;
+      for (let i = 0; i < jobIds.length; i += 50) {
+        const chunk = jobIds.slice(i, i + 50);
+        const { data: items } = await supabase.from("print_job_items").select("costo_insumo").in("job_id", chunk);
+        total += (items || []).reduce((s: number, it: any) => s + Number(it.costo_insumo || 0), 0);
+      }
+      return total;
+    },
+    enabled: !!businessId && isCopyShop && mode === "operativo",
+  });
+
+  // Raw material purchases (Real, copy_shop only)
+  const { data: materialPurchasesReal = 0 } = useQuery({
+    queryKey: ["bp-material-purchases", businessId, branchId, period],
+    queryFn: async () => {
+      let q = supabase.from("raw_material_entries").select("cantidad, costo_unitario").eq("business_id", businessId);
+      if (branchId) q = q.eq("branch_id", branchId);
+      if (from) q = q.gte("created_at", from);
+      q = q.lte("created_at", to);
+      const { data } = await q;
+      return (data || []).reduce((sum: number, e: any) => sum + Number(e.cantidad || 0) * Number(e.costo_unitario || 0), 0);
+    },
+    enabled: !!businessId && isCopyShop && mode === "real",
+  });
+
   // Salaries paid
   const { data: salariesPaid = 0 } = useQuery({
     queryKey: ["bp-salaries", businessId, branchId, period],
@@ -337,14 +374,15 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   // Use accrued value in Operativo, real paid in Real
   const effectiveFixedExpenses = mode === "operativo" ? accruedFixedExpenses : fixedExpensesPaid;
 
+  const materialCost = mode === "operativo" ? materialCostOperativo : materialPurchasesReal;
   const compromisos = salariesPaid + extractions.total + effectiveFixedExpenses;
   const disponible = mode === "real"
-    ? totalIngresos - compromisos - inventoryPurchases
-    : totalIngresos - compromisos;
+    ? totalIngresos - compromisos - inventoryPurchases - materialPurchasesReal
+    : totalIngresos - compromisos - (isCopyShop ? materialCostOperativo : 0);
 
   const totalGastosDisplay = mode === "real"
-    ? inventoryPurchases + salariesPaid + extractions.total + effectiveFixedExpenses
-    : productCost + salariesPaid + extractions.total + effectiveFixedExpenses;
+    ? inventoryPurchases + materialPurchasesReal + salariesPaid + extractions.total + effectiveFixedExpenses
+    : productCost + materialCostOperativo + salariesPaid + extractions.total + effectiveFixedExpenses;
 
   const fmt = (n: number) => "$" + n.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -411,6 +449,13 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
               <MiniCard icon={<Package className="h-3.5 w-3.5" />} label="Costo productos vendidos" value={fmt(productCost)} muted />
             ) : (
               <MiniCard icon={<Package className="h-3.5 w-3.5" />} label="Compras de inventario" value={fmt(inventoryPurchases)} />
+            )}
+            {isCopyShop && (
+              mode === "operativo" ? (
+                <MiniCard icon={<ScrollText className="h-3.5 w-3.5" />} label="Costo materias primas" value={fmt(materialCostOperativo)} muted />
+              ) : (
+                <MiniCard icon={<ScrollText className="h-3.5 w-3.5" />} label="Compras materias primas" value={fmt(materialPurchasesReal)} />
+              )
             )}
             <MiniCard icon={<Users className="h-3.5 w-3.5" />} label="Salarios pagados" value={fmt(salariesPaid)} />
             <MiniCard icon={<ArrowUpFromLine className="h-3.5 w-3.5" />} label="Dinero que sacaste" value={fmt(extractions?.retiro || 0)} />
