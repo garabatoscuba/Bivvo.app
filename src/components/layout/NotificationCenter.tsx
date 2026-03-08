@@ -120,7 +120,7 @@ export default function NotificationCenter() {
           ) : (
             <div className="divide-y">
               {notifications.map(n => (
-                <NotificationItem key={n.id} notif={n} onRead={markAsRead} onNavigate={handleNavigate} />
+                <NotificationItem key={n.id} notif={n} onRead={markAsRead} onNavigate={handleNavigate} onRefetch={refetch} />
               ))}
             </div>
           )}
