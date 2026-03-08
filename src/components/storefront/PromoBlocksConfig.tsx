@@ -18,9 +18,10 @@ interface BlockData {
   text_primary: string;
   text_secondary: string;
   link_target: string;
+  is_active: boolean;
 }
 
-const emptyBlock: BlockData = { image_url: '', text_primary: '', text_secondary: '', link_target: 'products' };
+const emptyBlock: BlockData = { image_url: '', text_primary: '', text_secondary: '', link_target: 'products', is_active: true };
 
 const PromoBlockEditor = ({
   blockNumber,
