@@ -256,7 +256,7 @@ const StoreSettingsPage = () => {
     queryKey: ['reviews-admin', branchId],
     queryFn: async () => {
       const { data } = await supabase.from('reviews')
-        .select('id, rating, comment, is_visible, created_at, affiliate:affiliates(name, email, phone)')
+        .select('id, rating, comment, is_visible, created_at, phone_number, product_name')
         .eq('branch_id', branchId!).order('created_at', { ascending: false });
       return data || [];
     },
