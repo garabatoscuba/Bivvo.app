@@ -59,6 +59,7 @@ const SellerPrintView = () => {
   const { data: activeSheets = [] } = useActiveSheets();
   const openSheetMut = useOpenSheet();
   const closeSheetMut = useCloseSheet();
+  const registerShrinkage = useRegisterPrintShrinkage();
 
   // Open sheet modal state
   const [openSheetDialog, setOpenSheetDialog] = useState(false);
