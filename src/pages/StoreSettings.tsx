@@ -725,13 +725,23 @@ const StoreSettingsPage = () => {
                                 {new Date(r.created_at).toLocaleDateString('es', { day: 'numeric', month: 'short', year: 'numeric' })}
                               </p>
                             </div>
-                            <Button
-                              variant="ghost" size="icon" className="h-8 w-8 shrink-0"
-                              onClick={() => toggleReviewMutation.mutate({ id: r.id, is_visible: !r.is_visible })}
-                              title={r.is_visible ? 'Ocultar' : 'Mostrar'}
-                            >
-                              {r.is_visible ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
-                            </Button>
+                            <div className="flex items-center gap-1 shrink-0">
+                              <Button
+                                variant="ghost" size="icon" className="h-8 w-8"
+                                onClick={() => toggleReviewMutation.mutate({ id: r.id, is_visible: !r.is_visible })}
+                                title={r.is_visible ? 'Ocultar' : 'Mostrar'}
+                              >
+                                {r.is_visible ? <Eye className="h-4 w-4 text-primary" /> : <EyeOff className="h-4 w-4 text-muted-foreground" />}
+                              </Button>
+                              <Button
+                                variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive"
+                                onClick={() => deleteReviewMutation.mutate(r.id)}
+                                disabled={deleteReviewMutation.isPending}
+                                title="Eliminar reseña"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         );
                       })}
