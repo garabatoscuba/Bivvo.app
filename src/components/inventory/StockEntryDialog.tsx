@@ -137,8 +137,8 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
         });
       }
 
-      // Update product sale_price if user provided a new one
-      if (newSalePrice && parseFloat(newSalePrice) > 0) {
+      // Update product sale_price if user provided a new one (not for ingredientes)
+      if (!isIngrediente && newSalePrice && parseFloat(newSalePrice) > 0) {
         await supabase
           .from('products')
           .update({ sale_price: parseFloat(newSalePrice) })
