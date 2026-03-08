@@ -99,6 +99,7 @@ const ServiciosTab = () => {
                     {!s.is_active && <Badge variant="secondary" className="text-[10px]">Inactivo</Badge>}
                     {s.admite_doble_cara && <Badge variant="outline" className="text-[10px]">2 caras</Badge>}
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(s)}><Trash2 className="h-3.5 w-3.5" /></Button>
                   </div>
                 </CardContent>
               </Card>
