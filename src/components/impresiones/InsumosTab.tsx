@@ -133,9 +133,9 @@ const InsumosTab = () => {
       </div>
 
       {/* New Material Dialog */}
-      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+      <Dialog open={newOpen} onOpenChange={(open) => { setNewOpen(open); if (!open) setMatForm({ name: '', material_type_id: '', stock_minimo: 0, porcentaje_tinta: 0 }); }}>
         <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
-          <DialogHeader><DialogTitle>Nuevo insumo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{(matForm as any).id ? 'Editar insumo' : 'Nuevo insumo'}</DialogTitle></DialogHeader>
           <div className="space-y-3 overflow-y-auto flex-1 pr-1">
             <div>
               <Label>Nombre</Label>
