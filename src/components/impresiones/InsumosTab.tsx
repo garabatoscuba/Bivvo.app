@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, PackagePlus, Send, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, PackagePlus, Send, Loader2, AlertTriangle, Pencil } from 'lucide-react';
 
 const InsumosTab = () => {
   const { data: materials = [], isLoading } = useRawMaterials();
