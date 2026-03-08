@@ -324,6 +324,29 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
             {/* ─── Sección 2: Clasificación ─── */}
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Clasificación</p>
+              
+              <FormField
+                control={form.control}
+                name="tipo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de producto</FormLabel>
+                    <FormControl>
+                      <select
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="reventa">Reventa (comprado para vender)</option>
+                        <option value="ingrediente">Ingrediente (materia prima)</option>
+                        <option value="elaborado">Elaborado (producción propia)</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
