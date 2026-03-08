@@ -238,7 +238,7 @@ const InsumosTab = () => {
                 <SelectTrigger><SelectValue placeholder="Seleccionar empleado" /></SelectTrigger>
                 <SelectContent>
                   {employees.map((e: any) => (
-241:                     <SelectItem key={e.id} value={e.auth_user_id || e.id}>{e.full_name}</SelectItem>
+                    <SelectItem key={e.id} value={e.auth_user_id || e.id}>{e.full_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
