@@ -126,15 +126,21 @@ const PromoBlockEditor = ({
   });
 
   return (
-    <Card>
+    <Card className={!form.is_active ? 'opacity-60' : ''}>
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <ImageIcon className="h-4 w-4" /> Bloque {blockNumber}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ImageIcon className="h-4 w-4" /> Bloque {blockNumber}
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Activo</Label>
+            <Switch checked={form.is_active} onCheckedChange={v => setForm(prev => ({ ...prev, is_active: v }))} />
+          </div>
+        </div>
         <CardDescription>
           {blockNumber === 1
-            ? 'Imagen a la izquierda, texto a la derecha (fondo oscuro).'
-            : 'Texto a la izquierda, imagen a la derecha (fondo claro).'}
+            ? 'Imagen a la izquierda, texto a la derecha.'
+            : 'Texto a la izquierda, imagen a la derecha.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
