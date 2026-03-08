@@ -21,6 +21,7 @@ import {
   Banknote, ArrowLeftRight, ClipboardMinus, ChefHat, CheckCircle2,
   Smartphone, RotateCcw, AlertCircle,
 } from 'lucide-react';
+import { getIconComponent } from '@/components/services/IconSelector';
 
 // ─── Types ────────────────────────────────────────────────────
 interface JobItem {
