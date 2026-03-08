@@ -936,15 +936,18 @@ const OwnerServicesView = () => {
             </div>
             <div>
               <Label>Método de pago</Label>
-              <Select value={entryPaymentType} onValueChange={setEntryPaymentType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Efectivo</SelectItem>
-                  <SelectItem value="transfer">Transferencia</SelectItem>
-                  <SelectItem value="card">Tarjeta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <ServicePaymentSection
+              paymentType={entryPaymentType}
+              setPaymentType={setEntryPaymentType}
+              amount={entryAmount}
+              total={parseFloat(entryAmount) || 0}
+              isMixed={entryIsMixed}
+              setIsMixed={setEntryIsMixed}
+              mixedCash={entryMixedCash}
+              setMixedCash={setEntryMixedCash}
+              mixedTransfer={entryMixedTransfer}
+              setMixedTransfer={setEntryMixedTransfer}
+            />
           </div>
           <DialogFooter>
             <Button onClick={() => createEntryMutation.mutate()} disabled={!entryCanSubmit}>
