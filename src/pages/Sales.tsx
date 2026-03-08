@@ -424,6 +424,8 @@ const Sales = () => {
                     <div className="flex items-center gap-1.5">
                       {sale._type === 'service' ? (
                         <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5"><Wrench className="h-2.5 w-2.5" />Servicio</Badge>
+                      ) : sale._type === 'print' ? (
+                        <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5"><Printer className="h-2.5 w-2.5" />Impresión</Badge>
                       ) : (
                         <span className="font-mono text-xs text-muted-foreground">{sale.sale_number}</span>
                       )}
