@@ -99,6 +99,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
         unit_of_measure: product.unit_of_measure || 'Pieza',
         brand: product.brand || '',
         tipo: (product as any).tipo || 'reventa',
+        sale_price: product.sale_price ? String(product.sale_price) : '',
       });
     } else {
       form.reset({
