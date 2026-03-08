@@ -122,6 +122,7 @@ const StoreSettingsPage = () => {
   const [socialTiktok, setSocialTiktok] = useState('');
   const [socialTwitter, setSocialTwitter] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [uploadingHero, setUploadingHero] = useState(false);
 
   useEffect(() => {
