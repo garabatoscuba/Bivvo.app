@@ -219,10 +219,22 @@ const Sales = () => {
       ...s,
       seller_name: sellerNameMap.get(s.user_id) || '',
     }));
-    const merged = [...salesWithType, ...servicesWithSeller];
+    // Print jobs
+    let filteredPrintJobs = isSellOnly && profile?.user_id
+      ? printJobs.filter((s: any) => s.user_id === profile.user_id)
+      : printJobs;
+    if (isSellOnly) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      filteredPrintJobs = filteredPrintJobs.filter((s: any) => s.created_at?.slice(0, 10) === todayStr);
+    }
+    const printsWithSeller = filteredPrintJobs.map((s: any) => ({
+      ...s,
+      seller_name: sellerNameMap.get(s.user_id) || '',
+    }));
+    const merged = [...salesWithType, ...servicesWithSeller, ...printsWithSeller];
     merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return merged;
-  }, [sales, serviceEntries, isSellOnly, profile?.user_id, sellerNameMap]);
+  }, [sales, serviceEntries, printJobs, isSellOnly, profile?.user_id, sellerNameMap]);
 
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
