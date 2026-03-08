@@ -332,7 +332,7 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   });
 
   const extractions = extractionData || { retiro: 0, otros: 0, total: 0 };
-  const totalIngresos = productSales + serviceSales + injections;
+  const totalIngresos = productSales + serviceSales + injections + printJobSales;
 
   // Use accrued value in Operativo, real paid in Real
   const effectiveFixedExpenses = mode === "operativo" ? accruedFixedExpenses : fixedExpensesPaid;
