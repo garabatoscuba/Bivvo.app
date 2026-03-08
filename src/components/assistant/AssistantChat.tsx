@@ -98,10 +98,28 @@ export default function AssistantChat({ onStateChange, assistantName, announceme
         : "employee";
 
   const currentModule = pathname.replace("/", "").split("?")[0] || "dashboard";
+  const moduleKey = ROUTE_TO_MODULE[currentModule] || currentModule;
+
+  // Fetch quick questions from DB
+  const { data: dbQuestions } = useQuery({
+    queryKey: ['assistant-quick-questions', moduleKey],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('assistant_quick_questions')
+        .select('question, module_key, sort_order')
+        .eq('is_active', true)
+        .order('sort_order');
+      return (data || []) as { question: string; module_key: string | null; sort_order: number }[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   const quickQuestions = useMemo(() => {
-    return MODULE_QUESTIONS[currentModule] || DEFAULT_QUESTIONS;
-  }, [currentModule]);
+    if (!dbQuestions) return [];
+    const moduleQs = dbQuestions.filter(q => q.module_key === moduleKey).map(q => q.question);
+    if (moduleQs.length > 0) return moduleQs;
+    return dbQuestions.filter(q => q.module_key === null).map(q => q.question);
+  }, [dbQuestions, moduleKey]);
 
   // Persist messages whenever they change (skip empty)
   useEffect(() => {
