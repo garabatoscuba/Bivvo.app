@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { ShoppingBag, Plus, LayoutGrid, List, Heart, Star, Share2 } from 'lucide-react';
 import type { StorefrontProduct } from '@/pages/PublicStorefront';
 import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
