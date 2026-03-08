@@ -9,8 +9,22 @@ interface AppliesToSelectorProps {
 const OPTIONS = [
   { value: 'services', label: 'Solo Servicios' },
   { value: 'products', label: 'Solo Productos' },
+  { value: 'prints', label: 'Solo Impresiones' },
   { value: 'both', label: 'Servicios y Productos' },
+  { value: 'services_prints', label: 'Servicios e Impresiones' },
+  { value: 'products_prints', label: 'Productos e Impresiones' },
+  { value: 'all', label: 'Todo (Servicios, Productos e Impresiones)' },
 ];
+
+export const APPLIES_TO_LABELS: Record<string, string> = {
+  services: 'Servicios',
+  products: 'Productos',
+  prints: 'Impresiones',
+  both: 'Servicios y Productos',
+  services_prints: 'Servicios e Impresiones',
+  products_prints: 'Productos e Impresiones',
+  all: 'Todo',
+};
 
 const AppliesToSelector = ({ value, onChange }: AppliesToSelectorProps) => (
   <div>
@@ -26,7 +40,7 @@ const AppliesToSelector = ({ value, onChange }: AppliesToSelectorProps) => (
       </SelectContent>
     </Select>
     <p className="text-xs text-muted-foreground mt-1">
-      Define si esta modalidad se calcula sobre servicios, productos vendidos, o ambos.
+      Define si esta modalidad se calcula sobre servicios, productos, impresiones o combinaciones.
     </p>
   </div>
 );
