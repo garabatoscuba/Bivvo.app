@@ -391,7 +391,7 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        Aplica a: {saved.applies_to === 'both' ? 'Ambos' : saved.applies_to === 'services' ? 'Servicios' : 'Productos'}
+                        Aplica a: {saved.applies_to === 'both' ? 'Servicios y Productos' : saved.applies_to === 'services' ? 'Servicios' : saved.applies_to === 'products' ? 'Productos' : saved.applies_to === 'prints' ? 'Impresiones' : saved.applies_to === 'services_prints' ? 'Servicios e Impresiones' : saved.applies_to === 'products_prints' ? 'Productos e Impresiones' : saved.applies_to === 'all' ? 'Todo' : saved.applies_to}
                         {saved.custom_mixed && ` · ${saved.custom_mixed.total_positions} puestos`}
                       </p>
                     </div>

@@ -92,6 +92,23 @@ export const useDailySalary = ({
     refetchInterval: 30000,
   });
 
+  // Employee's own print jobs
+  const { data: todayPrintTotal = 0 } = useQuery({
+    queryKey: ['salary-my-prints', branchId, user?.id, todayStr],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('print_jobs')
+        .select('total')
+        .eq('branch_id', branchId!)
+        .eq('user_id', user!.id)
+        .gte('created_at', todayStr + 'T00:00:00')
+        .lte('created_at', todayStr + 'T23:59:59');
+      return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
+    },
+    enabled: !!branchId && !!user?.id && jornadaActiva,
+    refetchInterval: 30000,
+  });
+
   // Branch-wide sales
   const { data: todayBranchSalesTotal = 0 } = useQuery({
     queryKey: ['salary-branch-sales', branchId, todayStr],
@@ -243,13 +260,36 @@ export const useDailySalary = ({
     let displayPercent = 0;
     let modalityName = '';
 
+    // Helper: compute the applicable income based on applies_to
+    const getApplicableIncome = (appliesTo: string) => {
+      const includesServices = ['services', 'both', 'services_prints', 'all'].includes(appliesTo);
+      const includesProducts = ['products', 'both', 'products_prints', 'all'].includes(appliesTo);
+      const includesPrints = ['prints', 'services_prints', 'products_prints', 'all'].includes(appliesTo);
+      let income = 0;
+      if (includesServices) income += todayServiceTotal;
+      if (includesProducts) income += todaySalesTotal;
+      if (includesPrints) income += todayPrintTotal;
+      return income;
+    };
+
+    const getSharedApplicableIncome = (appliesTo: string) => {
+      const includesServices = ['services', 'both', 'services_prints', 'all'].includes(appliesTo);
+      const includesProducts = ['products', 'both', 'products_prints', 'all'].includes(appliesTo);
+      const includesPrints = ['prints', 'services_prints', 'products_prints', 'all'].includes(appliesTo);
+      let income = 0;
+      if (includesServices) income += todayBranchServiceTotal;
+      if (includesProducts) income += todayBranchSalesTotal;
+      if (includesPrints) income += todayPrintTotal;
+      return income;
+    };
+
     for (const assignment of mySalaryAssignments) {
       const modType = assignment?.salary_modalities?.modality_type;
       const modalityConfig = (assignment?.salary_modalities?.config || {}) as Record<string, any>;
       const configOverride = (assignment.config_override as Record<string, any>) || {};
-      // Merge: per-employee override takes priority over global modality config
       const config = { ...modalityConfig, ...configOverride } as Record<string, any>;
       const baseSalary = Number(assignment.base_salary || 0);
+      const appliesTo = (assignment?.salary_modalities as any)?.applies_to || 'both';
 
       if (!modalityName && assignment?.salary_modalities?.name) {
         modalityName = assignment.salary_modalities.name;
@@ -270,7 +310,7 @@ export const useDailySalary = ({
           // Check if there's a sales-based ladder bonus
           const ladderTiers = config.tiers as any[] || [];
           for (const tier of ladderTiers) {
-            if (individualIncome >= Number(tier.min_sales || 0)) {
+            if (getApplicableIncome(appliesTo) >= Number(tier.min_sales || 0)) {
               earning = Math.max(earning, Number(tier.bonus || 0));
             }
           }
@@ -294,7 +334,7 @@ export const useDailySalary = ({
           }
 
           displayPercent = servicePercent;
-          earning += sharedIncome * (servicePercent / 100);
+          earning += getSharedApplicableIncome(appliesTo) * (servicePercent / 100);
           break;
         }
         case 'fixed_plus_sales_percent': {
@@ -304,7 +344,7 @@ export const useDailySalary = ({
           earning += baseSalary / days;
           const salesPct = Number(config.sales_percent || 0);
           displayPercent = salesPct;
-          if (salesPct > 0) earning += individualIncome * (salesPct / 100);
+          if (salesPct > 0) earning += getApplicableIncome(appliesTo) * (salesPct / 100);
           break;
         }
         case 'fixed_plus_profit_percent': {
@@ -326,7 +366,7 @@ export const useDailySalary = ({
         case 'sales_percent_only': {
           const pct = Number(config.sales_percent || config.percent || 0);
           displayPercent = pct;
-          if (pct > 0) earning += individualIncome * (pct / 100);
+          if (pct > 0) earning += getApplicableIncome(appliesTo) * (pct / 100);
           break;
         }
         case 'profit_percent': {
@@ -347,7 +387,7 @@ export const useDailySalary = ({
           base += baseSalary / days;
           const goalAmount = Number(config.goal_amount || 0);
           const goalBonus = Number(config.goal_bonus || 0);
-          if (goalAmount > 0 && individualIncome >= goalAmount) {
+          if (goalAmount > 0 && getApplicableIncome(appliesTo) >= goalAmount) {
             earning += goalBonus;
           }
           break;
@@ -365,7 +405,7 @@ export const useDailySalary = ({
           const pct = Number(config.service_percent || config.percent || 0);
           if (pct > 0) {
             displayPercent = pct;
-            earning += sharedIncome * (pct / 100);
+            earning += getSharedApplicableIncome(appliesTo) * (pct / 100);
           }
         }
       }
@@ -419,7 +459,7 @@ export const useDailySalary = ({
     };
   }, [
     mySalaryAssignments, salaryConfig, todayBranchServiceTotal, todayBranchSalesTotal,
-    todaySalesTotal, todayServiceTotal, activeWorkersCount, todaySaleItems, productCommissions,
+    todaySalesTotal, todayServiceTotal, todayPrintTotal, activeWorkersCount, todaySaleItems, productCommissions,
     tipConfig, todayTipEntries, jornadaAperturaAt,
   ]);
 };
