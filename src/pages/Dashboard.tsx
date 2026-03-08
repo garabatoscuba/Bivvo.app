@@ -203,7 +203,7 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {lowStockProducts.length > 0 ?
+            {hasAlerts ?
             <div className="space-y-2">
                 {lowStockProducts.slice(0, 5).map((bs: any) => {
                 const product = products.find((p) => p.id === bs.product_id);
@@ -216,6 +216,17 @@ const Dashboard = () => {
                     </div> :
                 null;
               })}
+                {lowStockMaterials.slice(0, 5).map((m: any) => {
+                  const totalStock = (m.stock_almacen || 0) + (m.stock_vendedor || 0);
+                  return (
+                    <div key={m.id} className="flex items-center justify-between rounded-lg bg-warning/10 p-3">
+                      <span className="font-medium">🖨️ {m.name}</span>
+                      <span className="text-sm text-warning">
+                        Stock: {totalStock} (mín: {m.stock_minimo})
+                      </span>
+                    </div>
+                  );
+                })}
               </div> :
             <p className="text-sm text-muted-foreground">
                 No hay alertas en este momento. ¡Todo está funcionando correctamente!

@@ -9,6 +9,7 @@ import { useNavigate } from 'react-router-dom';
 
 const typeConfig: Record<string, { icon: typeof Bell; className: string; route?: string }> = {
   low_stock: { icon: PackageX, className: 'text-destructive bg-destructive/10', route: '/inventory' },
+  low_stock_material: { icon: Printer, className: 'text-destructive bg-destructive/10', route: '/impresiones' },
   sale_cancelled: { icon: ShoppingCart, className: 'text-destructive bg-destructive/10', route: '/sales' },
   sale: { icon: ShoppingCart, className: 'text-primary bg-primary/10', route: '/sales' },
   inventory_movement: { icon: ArrowRightLeft, className: 'text-primary bg-primary/10', route: '/inventory' },
