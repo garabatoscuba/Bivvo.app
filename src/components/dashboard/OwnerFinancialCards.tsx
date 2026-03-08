@@ -49,6 +49,10 @@ export default function OwnerFinancialCards({ businessId, branchId, period }: Pr
 
       if (!branchIds.length) return null;
 
+      // Check if copy_shop
+      const { data: bizInfo } = await supabase.from("businesses").select("business_type").eq("id", businessId).maybeSingle();
+      const isCopyShop = bizInfo?.business_type === 'copy_shop';
+
       // Parallel fetches
       const [salesRes, serviceRes, injRes, extRes, salaryRes, fixedExpRes] = await Promise.all([
         // Sales
@@ -95,6 +99,17 @@ export default function OwnerFinancialCards({ businessId, branchId, period }: Pr
       const totalSalaries = ((salaryRes.data as any[]) || []).reduce((s: number, v: any) => s + Number(v.amount), 0);
       const totalFixedPaid = (fixedExpRes.data || []).reduce((s, v) => s + Number(v.amount), 0);
 
+      // Print jobs for copy_shop
+      let totalPrintJobs = 0;
+      if (isCopyShop) {
+        let pjQ = supabase.from("print_jobs").select("total").eq("business_id", businessId)
+          .gte("created_at", from).lte("created_at", to);
+        if (branchId) pjQ = pjQ.eq("branch_id", branchId);
+        else pjQ = pjQ.in("branch_id", branchIds);
+        const { data: pjData } = await pjQ;
+        totalPrintJobs = (pjData || []).reduce((s, r) => s + Number(r.total), 0);
+      }
+
       // COGS
       const saleIds = sales.map(s => s.id);
       let cogs = 0;
@@ -104,7 +119,7 @@ export default function OwnerFinancialCards({ businessId, branchId, period }: Pr
         cogs += (items || []).reduce((s: number, it: any) => s + Number(it.quantity) * Number(it.cost_price || 0), 0);
       }
 
-      const ingresos = totalSales + totalServices + totalInjections;
+      const ingresos = totalSales + totalServices + totalInjections + totalPrintJobs;
       const compromisos = totalSalaries + totalExtractions + totalFixedPaid;
       const disponible = ingresos - compromisos; // Operativo mode
 
