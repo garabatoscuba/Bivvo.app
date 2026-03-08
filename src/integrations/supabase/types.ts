@@ -3983,24 +3983,30 @@ export type Database = {
       recipe_ingredients: {
         Row: {
           created_at: string
+          gramaje: number
           id: string
           ingredient_id: string
+          ingredient_type: string
           quantity: number
           recipe_id: string
           unit: string
         }
         Insert: {
           created_at?: string
+          gramaje?: number
           id?: string
           ingredient_id: string
+          ingredient_type?: string
           quantity?: number
           recipe_id: string
           unit?: string
         }
         Update: {
           created_at?: string
+          gramaje?: number
           id?: string
           ingredient_id?: string
+          ingredient_type?: string
           quantity?: number
           recipe_id?: string
           unit?: string
@@ -4218,6 +4224,7 @@ export type Database = {
           created_at: string
           discount: number
           id: string
+          notes: string | null
           product_id: string
           quantity: number
           sale_id: string
@@ -4229,6 +4236,7 @@ export type Database = {
           created_at?: string
           discount?: number
           id?: string
+          notes?: string | null
           product_id: string
           quantity: number
           sale_id: string
@@ -4240,6 +4248,7 @@ export type Database = {
           created_at?: string
           discount?: number
           id?: string
+          notes?: string | null
           product_id?: string
           quantity?: number
           sale_id?: string

@@ -19,6 +19,7 @@ import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, ShoppingCart, Loader2, Package, PackageX, AlertTriangle } from 'lucide-react';
 import { MermaDialog } from '@/components/inventory/MermaDialog';
+import { AgregoModal } from '@/components/pos/AgregoModal';
 import {
   Sheet,
   SheetContent,
@@ -68,6 +69,8 @@ const POS = () => {
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [mermaOpen, setMermaOpen] = useState(false);
   const [tabletCartOpen, setTabletCartOpen] = useState(false);
+  const [agregoModalOpen, setAgregoModalOpen] = useState(false);
+  const [pendingAgregoProduct, setPendingAgregoProduct] = useState<(Product & { category: Category | null }) | null>(null);
 
   const stockMap = new Map<string, number>();
   branchStock?.forEach((bs: any) => {
@@ -102,7 +105,7 @@ const POS = () => {
     return realStock - inCart;
   }, [stockMap, getCartQuantity]);
 
-  const addToCart = useCallback((product: Product & { category: Category | null }) => {
+  const addToCart = useCallback((product: Product & { category: Category | null }, selectedAgregos?: string[]) => {
     const realStock = stockMap.get(product.id) || 0;
 
     setCart((prev) => {
@@ -118,6 +121,7 @@ const POS = () => {
                 ...item,
                 quantity: item.quantity + 1,
                 total: (item.quantity + 1) * item.unitPrice - item.discount,
+                selectedAgregos: selectedAgregos || item.selectedAgregos,
               }
             : item
         );
@@ -130,10 +134,28 @@ const POS = () => {
           unitPrice: Number(product.sale_price),
           discount: 0,
           total: Number(product.sale_price),
+          selectedAgregos,
         },
       ];
     });
   }, [stockMap]);
+
+  // Handle adding elaborado products - check for agregos first
+  const handleAddProduct = useCallback((product: Product & { category: Category | null }) => {
+    if ((product as any).tipo === 'elaborado') {
+      setPendingAgregoProduct(product);
+      setAgregoModalOpen(true);
+    } else {
+      addToCart(product);
+    }
+  }, [addToCart]);
+
+  const handleAgregoConfirm = useCallback((selectedAgregos: string[]) => {
+    if (pendingAgregoProduct) {
+      addToCart(pendingAgregoProduct, selectedAgregos.length > 0 ? selectedAgregos : undefined);
+      setPendingAgregoProduct(null);
+    }
+  }, [pendingAgregoProduct, addToCart]);
 
   const updateQuantity = useCallback((productId: string, quantity: number) => {
     if (quantity <= 0) {
@@ -317,7 +339,7 @@ const POS = () => {
                       key={product.id}
                       product={product}
                       stock={availableStock}
-                      onClick={() => addToCart(product)}
+                      onClick={() => handleAddProduct(product)}
                       compact
                       disabled={availableStock <= 0}
                     />
@@ -455,6 +477,16 @@ const POS = () => {
         branchId={currentBranch || ''}
         products={products.map(p => ({ id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price) }))}
         stockMap={stockMap}
+      />
+
+      <AgregoModal
+        open={agregoModalOpen}
+        onOpenChange={(open) => {
+          setAgregoModalOpen(open);
+          if (!open) setPendingAgregoProduct(null);
+        }}
+        product={pendingAgregoProduct}
+        onConfirm={handleAgregoConfirm}
       />
     </AppLayout>
   );

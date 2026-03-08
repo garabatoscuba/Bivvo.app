@@ -15,7 +15,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Trash2, Loader2, ChefHat, DollarSign } from 'lucide-react';
+import { Plus, Trash2, Loader2, ChefHat } from 'lucide-react';
 import type { Product } from '@/types/database';
 
 interface RecipeManagerProps {
@@ -29,6 +29,8 @@ interface RecipeIngredient {
   ingredient_id: string;
   quantity: number;
   unit: string;
+  ingredient_type: 'base' | 'agrego';
+  gramaje: number;
   ingredient?: { id: string; name: string; cost_price: number; unit_of_measure: string };
 }
 
@@ -101,11 +103,11 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
   });
 
   const addIngredient = useMutation({
-    mutationFn: async ({ ingredientId, quantity, unit }: { ingredientId: string; quantity: number; unit: string }) => {
+    mutationFn: async ({ ingredientId, quantity, unit, ingredientType, gramaje }: { ingredientId: string; quantity: number; unit: string; ingredientType: 'base' | 'agrego'; gramaje: number }) => {
       if (!recipe?.id) throw new Error('No recipe');
       const { error } = await supabase
         .from('recipe_ingredients')
-        .insert({ recipe_id: recipe.id, ingredient_id: ingredientId, quantity, unit });
+        .insert({ recipe_id: recipe.id, ingredient_id: ingredientId, quantity, unit, ingredient_type: ingredientType, gramaje });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -128,6 +130,8 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
   const [newIngredientId, setNewIngredientId] = useState('');
   const [newQuantity, setNewQuantity] = useState('');
   const [newUnit, setNewUnit] = useState('');
+  const [newType, setNewType] = useState<'base' | 'agrego'>('base');
+  const [newGramaje, setNewGramaje] = useState('');
 
   const handleAddIngredient = () => {
     if (!newIngredientId || !newQuantity) return;
@@ -136,22 +140,31 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
       ingredientId: newIngredientId,
       quantity: Number(newQuantity),
       unit: newUnit || ing?.unit_of_measure || 'Pieza',
+      ingredientType: newType,
+      gramaje: newType === 'agrego' ? Number(newGramaje) || 0 : 0,
     });
     setNewIngredientId('');
     setNewQuantity('');
     setNewUnit('');
+    setNewType('base');
+    setNewGramaje('');
   };
 
-  // Calculate recipe cost
-  const recipeCost = (recipeIngredients || []).reduce((sum, ri) => {
-    const ing = ri.ingredient;
-    if (!ing) return sum;
-    return sum + Number(ing.cost_price) * ri.quantity;
-  }, 0);
+  // Calculate recipe cost (only base ingredients)
+  const recipeCost = (recipeIngredients || [])
+    .filter(ri => ri.ingredient_type === 'base')
+    .reduce((sum, ri) => {
+      const ing = ri.ingredient;
+      if (!ing) return sum;
+      return sum + Number(ing.cost_price) * ri.quantity;
+    }, 0);
   const yieldQty = recipe?.yield_quantity || 1;
   const costPerUnit = recipeCost / yieldQty;
   const salePrice = Number(product.sale_price);
   const margin = salePrice > 0 ? ((salePrice - costPerUnit) / salePrice * 100) : 0;
+
+  const baseIngredients = (recipeIngredients || []).filter(ri => ri.ingredient_type === 'base');
+  const agregoIngredients = (recipeIngredients || []).filter(ri => ri.ingredient_type === 'agrego');
 
   const isLoading = recipeLoading || ingredientsLoading;
 
@@ -219,14 +232,14 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
 
               <Separator />
 
-              {/* Ingredients list */}
+              {/* Base ingredients */}
               <div className="space-y-2">
-                <p className="text-sm font-semibold">Ingredientes</p>
-                {(recipeIngredients || []).length === 0 ? (
-                  <p className="text-sm text-muted-foreground">Sin ingredientes aún.</p>
+                <p className="text-sm font-semibold">Ingredientes base <Badge variant="secondary" className="text-[10px] ml-1">Siempre se consumen</Badge></p>
+                {baseIngredients.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sin ingredientes base.</p>
                 ) : (
                   <div className="space-y-1.5">
-                    {(recipeIngredients || []).map((ri) => (
+                    {baseIngredients.map((ri) => (
                       <div key={ri.id} className="flex items-center justify-between rounded-md border p-2">
                         <div className="min-w-0">
                           <p className="text-sm font-medium truncate">{ri.ingredient?.name || 'Desconocido'}</p>
@@ -234,12 +247,31 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                             {ri.quantity} {ri.unit} · ${(Number(ri.ingredient?.cost_price || 0) * ri.quantity).toFixed(2)}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-destructive flex-shrink-0"
-                          onClick={() => removeIngredient.mutate(ri.id)}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => removeIngredient.mutate(ri.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Agrego ingredients */}
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Agregos <Badge variant="outline" className="text-[10px] ml-1">Opcionales al vender</Badge></p>
+                {agregoIngredients.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sin agregos configurados.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {agregoIngredients.map((ri) => (
+                      <div key={ri.id} className="flex items-center justify-between rounded-md border border-dashed p-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{ri.ingredient?.name || 'Desconocido'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Gramaje: {ri.gramaje} por unidad vendida
+                          </p>
+                        </div>
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => removeIngredient.mutate(ri.id)}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </div>
@@ -258,8 +290,8 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                     No hay productos tipo "ingrediente". Crea uno primero en Inventario.
                   </p>
                 ) : (
-                  <div className="flex gap-2 items-end">
-                    <div className="flex-1">
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
                       <select
                         value={newIngredientId}
                         onChange={(e) => {
@@ -267,37 +299,58 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                           const ing = ingredients.find(i => i.id === e.target.value);
                           if (ing) setNewUnit(ing.unit_of_measure);
                         }}
-                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                        className="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
                       >
                         <option value="">Seleccionar...</option>
                         {ingredients.map(i => (
                           <option key={i.id} value={i.id}>{i.name}</option>
                         ))}
                       </select>
+                      <select
+                        value={newType}
+                        onChange={(e) => setNewType(e.target.value as 'base' | 'agrego')}
+                        className="flex h-10 w-28 rounded-md border border-input bg-background px-2 py-2 text-sm"
+                      >
+                        <option value="base">Base</option>
+                        <option value="agrego">Agrego</option>
+                      </select>
                     </div>
-                    <Input
-                      type="number"
-                      min={0.01}
-                      step={0.01}
-                      placeholder="Cant."
-                      className="w-20"
-                      value={newQuantity}
-                      onChange={(e) => setNewQuantity(e.target.value)}
-                    />
-                    <Input
-                      placeholder="Unidad"
-                      className="w-24"
-                      value={newUnit}
-                      onChange={(e) => setNewUnit(e.target.value)}
-                    />
-                    <Button
-                      size="icon"
-                      className="flex-shrink-0"
-                      onClick={handleAddIngredient}
-                      disabled={!newIngredientId || !newQuantity || addIngredient.isPending}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                    <div className="flex gap-2 items-end">
+                      <Input
+                        type="number"
+                        min={0.01}
+                        step={0.01}
+                        placeholder="Cant."
+                        className="w-20"
+                        value={newQuantity}
+                        onChange={(e) => setNewQuantity(e.target.value)}
+                      />
+                      <Input
+                        placeholder="Unidad"
+                        className="w-24"
+                        value={newUnit}
+                        onChange={(e) => setNewUnit(e.target.value)}
+                      />
+                      {newType === 'agrego' && (
+                        <Input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          placeholder="Gramaje"
+                          className="w-24"
+                          value={newGramaje}
+                          onChange={(e) => setNewGramaje(e.target.value)}
+                        />
+                      )}
+                      <Button
+                        size="icon"
+                        className="flex-shrink-0"
+                        onClick={handleAddIngredient}
+                        disabled={!newIngredientId || !newQuantity || addIngredient.isPending}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>

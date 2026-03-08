@@ -18,12 +18,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft, Star } from 'lucide-react';
+import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft, Star, ChefHat } from 'lucide-react';
 import { MovementsLog } from '@/components/inventory/MovementsLog';
 import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowDialog';
 import { MermaDialog } from '@/components/inventory/MermaDialog';
 import { MermasTab } from '@/components/inventory/MermasTab';
 import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
+import { ProductionDialog } from '@/components/inventory/ProductionDialog';
+import { RecipeManager } from '@/components/inventory/RecipeManager';
 import {
   Select,
   SelectContent,
@@ -123,6 +125,8 @@ const Inventory = () => {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [mermaOpen, setMermaOpen] = useState(false);
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
+  const [productionProduct, setProductionProduct] = useState<Product | null>(null);
+  const [recipeProduct, setRecipeProduct] = useState<Product | null>(null);
   const { isDowngraded } = useIsDowngraded();
 
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
@@ -841,7 +845,7 @@ const Inventory = () => {
                 <MetricCard
                   label="En venta"
                   value={selectedStock.toString()}
-                  sublabel="Disponible en POS"
+                  sublabel={(selectedProduct as any).tipo === 'ingrediente' ? 'Materia prima' : 'Disponible en POS'}
                   alert={selectedStock <= selectedProduct.min_stock}
                 />
                 <MetricCard
@@ -903,19 +907,50 @@ const Inventory = () => {
                 <div className="space-y-2">
                   {!showTransfer ? (
                     <div className="flex flex-col gap-2">
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start"
-                         onClick={() => {
-                           if (guardDowngrade()) return;
-                           const prod = selectedProduct;
-                           setStockEntryProduct(prod);
-                           setSelectedProduct(null);
-                         }}
-                      >
-                        <PackagePlus className="mr-2 h-4 w-4" />
-                        Nueva Compra
-                      </Button>
+                      {/* Nueva Compra - only for reventa and ingrediente */}
+                      {(selectedProduct as any).tipo !== 'elaborado' && (
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-start"
+                          onClick={() => {
+                            if (guardDowngrade()) return;
+                            const prod = selectedProduct;
+                            setStockEntryProduct(prod);
+                            setSelectedProduct(null);
+                          }}
+                        >
+                          <PackagePlus className="mr-2 h-4 w-4" />
+                          Nueva Compra
+                        </Button>
+                      )}
+                      {/* Gestionar receta + Registrar producción - only for elaborado */}
+                      {(selectedProduct as any).tipo === 'elaborado' && (
+                        <>
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setRecipeProduct(selectedProduct);
+                              setSelectedProduct(null);
+                            }}
+                          >
+                            <ChefHat className="mr-2 h-4 w-4" />
+                            Gestionar receta
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start"
+                            onClick={() => {
+                              if (guardDowngrade()) return;
+                              setProductionProduct(selectedProduct);
+                              setSelectedProduct(null);
+                            }}
+                          >
+                            <PackagePlus className="mr-2 h-4 w-4" />
+                            Registrar producción
+                          </Button>
+                        </>
+                      )}
                       {(selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
                           variant="outline" 
@@ -1095,6 +1130,21 @@ const Inventory = () => {
         products={products.map(p => ({ id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price) }))}
         stockMap={stockMap}
       />
+      {/* Production Dialog */}
+      <ProductionDialog
+        open={!!productionProduct}
+        onOpenChange={(open) => { if (!open) setProductionProduct(null); }}
+        product={productionProduct}
+        branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
+      />
+      {/* Recipe Manager */}
+      {recipeProduct && (
+        <RecipeManager
+          open={!!recipeProduct}
+          onOpenChange={(open) => { if (!open) setRecipeProduct(null); }}
+          product={recipeProduct}
+        />
+      )}
       <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
     </AppLayout>
   );
