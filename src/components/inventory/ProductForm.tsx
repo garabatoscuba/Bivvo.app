@@ -104,7 +104,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     } else {
       form.reset({
         name: '', description: '', category_id: undefined,
-        barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa',
+        barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa', sale_price: '',
       });
     }
   }, [product, form]);
