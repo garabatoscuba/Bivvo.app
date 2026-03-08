@@ -128,6 +128,37 @@ const Inventory = () => {
 
   const canManage = isOwner || isManager;
 
+  // Product review stats from portal
+  const businessId = profile?.business_id;
+  const { data: productReviewStats } = useQuery({
+    queryKey: ['product-review-stats', businessId],
+    queryFn: async () => {
+      if (!businessId) return {};
+      const { data: branchIds } = await supabase
+        .from('branches').select('id').eq('business_id', businessId);
+      if (!branchIds?.length) return {};
+      const ids = branchIds.map(b => b.id);
+      const { data: reviews } = await supabase
+        .from('reviews')
+        .select('product_name, rating')
+        .in('branch_id', ids)
+        .not('product_name', 'is', null);
+      if (!reviews?.length) return {};
+      const stats: Record<string, { total: number; sum: number; count: number }> = {};
+      reviews.forEach((r: any) => {
+        const key = (r.product_name as string).toLowerCase();
+        if (!stats[key]) stats[key] = { total: 0, sum: 0, count: 0 };
+        stats[key].total++;
+        if (r.rating && r.rating > 0) {
+          stats[key].sum += r.rating;
+          stats[key].count++;
+        }
+      });
+      return stats;
+    },
+    enabled: !!businessId && (isOwner || isSuperAdmin),
+  });
+
   // Plan limits
   const FREE_PRODUCT_LIMIT = 5;
   const FREE_CATEGORY_LIMIT = 2;
