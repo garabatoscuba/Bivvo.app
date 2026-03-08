@@ -344,7 +344,7 @@ export const useDailySalary = ({
           earning += baseSalary / days;
           const salesPct = Number(config.sales_percent || 0);
           displayPercent = salesPct;
-          if (salesPct > 0) earning += individualIncome * (salesPct / 100);
+          if (salesPct > 0) earning += getApplicableIncome(appliesTo) * (salesPct / 100);
           break;
         }
         case 'fixed_plus_profit_percent': {
