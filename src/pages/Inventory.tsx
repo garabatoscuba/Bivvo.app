@@ -125,6 +125,8 @@ const Inventory = () => {
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [mermaOpen, setMermaOpen] = useState(false);
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
+  const [productionProduct, setProductionProduct] = useState<Product | null>(null);
+  const [recipeProduct, setRecipeProduct] = useState<Product | null>(null);
   const { isDowngraded } = useIsDowngraded();
 
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
