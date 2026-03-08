@@ -444,7 +444,7 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
           </DialogHeader>
 
           <div className="space-y-5">
-            <AppliesToSelector value={appliesTo} onChange={setAppliesTo} />
+            <AppliesToSelector value={appliesTo} onChange={setAppliesTo} isCopyShop={isCopyShop} />
             {renderModalityConfig()}
 
             {/* Save as preset inline */}
