@@ -260,6 +260,7 @@ const InsumosTab = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 };
