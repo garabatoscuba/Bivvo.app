@@ -309,8 +309,9 @@ serve(async (req) => {
         .order("sort_order"),
       supabase
         .from("portal_promo_blocks")
-        .select("block_number, image_url, text_primary, text_secondary, link_target")
+        .select("block_number, image_url, text_primary, text_secondary, link_target, is_active")
         .eq("branch_id", resolvedBranch.id)
+        .eq("is_active", true)
         .order("block_number"),
     ]);
 

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Loader2, Upload, Trash2, Save, ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -17,9 +18,10 @@ interface BlockData {
   text_primary: string;
   text_secondary: string;
   link_target: string;
+  is_active: boolean;
 }
 
-const emptyBlock: BlockData = { image_url: '', text_primary: '', text_secondary: '', link_target: 'products' };
+const emptyBlock: BlockData = { image_url: '', text_primary: '', text_secondary: '', link_target: 'products', is_active: true };
 
 const PromoBlockEditor = ({
   blockNumber,
@@ -57,6 +59,7 @@ const PromoBlockEditor = ({
         text_primary: existing.text_primary || '',
         text_secondary: existing.text_secondary || '',
         link_target: existing.link_target || 'products',
+        is_active: existing.is_active ?? true,
       });
     }
   }, [existing]);
@@ -100,6 +103,7 @@ const PromoBlockEditor = ({
         text_primary: form.text_primary.trim() || null,
         text_secondary: form.text_secondary.trim() || null,
         link_target: form.link_target,
+        is_active: form.is_active,
       };
       if (existing) {
         const { error } = await supabase
@@ -122,15 +126,21 @@ const PromoBlockEditor = ({
   });
 
   return (
-    <Card>
+    <Card className={!form.is_active ? 'opacity-60' : ''}>
       <CardHeader>
-        <CardTitle className="text-base flex items-center gap-2">
-          <ImageIcon className="h-4 w-4" /> Bloque {blockNumber}
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base flex items-center gap-2">
+            <ImageIcon className="h-4 w-4" /> Bloque {blockNumber}
+          </CardTitle>
+          <div className="flex items-center gap-2">
+            <Label className="text-xs text-muted-foreground">Activo</Label>
+            <Switch checked={form.is_active} onCheckedChange={v => setForm(prev => ({ ...prev, is_active: v }))} />
+          </div>
+        </div>
         <CardDescription>
           {blockNumber === 1
-            ? 'Imagen a la izquierda, texto a la derecha (fondo oscuro).'
-            : 'Texto a la izquierda, imagen a la derecha (fondo claro).'}
+            ? 'Imagen a la izquierda, texto a la derecha.'
+            : 'Texto a la izquierda, imagen a la derecha.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
