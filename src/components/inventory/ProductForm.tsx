@@ -66,6 +66,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [recipeOpen, setRecipeOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Stock info for editing
