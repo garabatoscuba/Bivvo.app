@@ -2870,6 +2870,109 @@ export type Database = {
           },
         ]
       }
+      print_ink_inventory: {
+        Row: {
+          business_id: string
+          cantidad: number
+          color: string
+          costo_total: number
+          created_at: string
+          fecha_compra: string
+          id: string
+          nota: string | null
+          tipo: string
+          ubicacion: string
+          unidad: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          cantidad?: number
+          color?: string
+          costo_total?: number
+          created_at?: string
+          fecha_compra?: string
+          id?: string
+          nota?: string | null
+          tipo?: string
+          ubicacion?: string
+          unidad?: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          cantidad?: number
+          color?: string
+          costo_total?: number
+          created_at?: string
+          fecha_compra?: string
+          id?: string
+          nota?: string | null
+          tipo?: string
+          ubicacion?: string
+          unidad?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_ink_inventory_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      print_ink_usage: {
+        Row: {
+          business_id: string
+          cantidad_consumida: number
+          color: string
+          costo_por_hoja: number
+          created_at: string
+          hojas_impresas: number
+          id: string
+          nota: string | null
+          periodo_fin: string
+          periodo_inicio: string
+          user_id: string
+        }
+        Insert: {
+          business_id: string
+          cantidad_consumida?: number
+          color: string
+          costo_por_hoja?: number
+          created_at?: string
+          hojas_impresas?: number
+          id?: string
+          nota?: string | null
+          periodo_fin: string
+          periodo_inicio: string
+          user_id: string
+        }
+        Update: {
+          business_id?: string
+          cantidad_consumida?: number
+          color?: string
+          costo_por_hoja?: number
+          created_at?: string
+          hojas_impresas?: number
+          id?: string
+          nota?: string | null
+          periodo_fin?: string
+          periodo_inicio?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_ink_usage_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       print_job_items: {
         Row: {
           cantidad: number
