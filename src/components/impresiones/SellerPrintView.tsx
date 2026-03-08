@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useRawMaterials, usePrintServiceTypes, usePrintRecipes, useEmployeesForTransfer, usePrintMaterialTypes } from '@/hooks/usePrintData';
+import { useRawMaterials, usePrintServiceTypes, usePrintRecipes, useEmployeesForTransfer, usePrintMaterialTypes, useActiveSheets } from '@/hooks/usePrintData';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -55,6 +55,7 @@ const SellerPrintView = () => {
   const { data: materialTypes = [] } = usePrintMaterialTypes();
 
   const activeServices = useMemo(() => services.filter((s: any) => s.is_active), [services]);
+  const { data: activeSheets = [] } = useActiveSheets();
 
   // Active cash register for this user
   const { data: activeCaja, isLoading: loadingCaja } = useQuery({
@@ -154,19 +155,49 @@ const SellerPrintView = () => {
   const jobTotal = useMemo(() => jobItems.reduce((s, it) => s + it.precio_cobrado * it.cantidad, 0), [jobItems]);
 
   const materialConsumption = useMemo(() => {
-    const map = new Map<string, { name: string; needed: number; available: number }>();
+    const map = new Map<string, { name: string; needed: number; available: number; isTramo: boolean }>();
     jobItems.forEach(it => {
       if (!it.material_id) return;
       const mat = getMaterial(it.material_id);
       if (!mat) return;
-      const existing = map.get(it.material_id) || { name: mat.name, needed: 0, available: mat.stock_vendedor };
+      const matType = materialTypes.find((t: any) => t.id === mat.material_type_id);
+      const isTramo = !!matType?.permite_tramos;
+      const existing = map.get(it.material_id) || { name: mat.name, needed: 0, available: mat.stock_vendedor, isTramo };
       existing.needed += it.material_consumed;
       map.set(it.material_id, existing);
     });
     return Array.from(map.entries());
-  }, [jobItems, materials]);
+  }, [jobItems, materials, materialTypes]);
 
-  const hasStockIssue = materialConsumption.some(([, v]) => v.needed > v.available);
+  const hasStockIssue = materialConsumption.some(([, v]) => v.needed > v.available && !v.isTramo);
+
+  // Check tramo materials: verify active sheet exists
+  const tramoIssues = useMemo(() => {
+    const issues: { materialId: string; materialName: string }[] = [];
+    materialConsumption.forEach(([matId, info]) => {
+      if (!info.isTramo) return;
+      const mat = getMaterial(matId);
+      if (!mat) return;
+      const sheet = activeSheets.find((s: any) => s.material_id === matId && s.status === 'activa');
+      if (!sheet) {
+        issues.push({ materialId: matId, materialName: info.name });
+      }
+    });
+    return issues;
+  }, [materialConsumption, activeSheets, materials]);
+
+  // Tramo info chips
+  const tramoInfo = useMemo(() => {
+    const info: { name: string; remaining: number }[] = [];
+    materialConsumption.forEach(([matId, mc]) => {
+      if (!mc.isTramo) return;
+      const sheet = activeSheets.find((s: any) => s.material_id === matId && s.status === 'activa');
+      if (sheet) {
+        info.push({ name: mc.name, remaining: Math.max(0, (sheet as any).tramos_total - (sheet as any).tramos_usados) });
+      }
+    });
+    return info;
+  }, [materialConsumption, activeSheets]);
 
   // Payment helpers
   const paymentOptions: { value: PaymentMethod; label: string; Icon: React.ElementType }[] = [
@@ -198,7 +229,7 @@ const SellerPrintView = () => {
 
   const isPaymentActive = (v: PaymentMethod) => isMixed ? (v === 'cash' || v === 'transfer') : paymentMethod === v;
 
-  const canSubmit = jobItems.length > 0 && jobTotal > 0;
+  const canSubmit = jobItems.length > 0 && jobTotal > 0 && tramoIssues.length === 0;
 
   // ─── Submit Job ─────────────────────────────────────────────
   const jobMutation = useMutation({
@@ -486,6 +517,29 @@ const SellerPrintView = () => {
                       </div>
                     );
                   })}
+
+                  {/* Tramo info chips */}
+                  {tramoInfo.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {tramoInfo.map(t => (
+                        <Badge key={t.name} variant="outline" className="text-xs">
+                          {t.name}: {t.remaining} tramos disponibles
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Tramo warnings - no active sheet */}
+                  {tramoIssues.length > 0 && (
+                    <div className="rounded-md border border-warning/50 bg-warning/10 p-2 space-y-1">
+                      {tramoIssues.map(issue => (
+                        <div key={issue.materialId} className="flex items-center gap-1.5 text-xs text-warning">
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          <span>No hay hoja activa de <strong>{issue.materialName}</strong>. El administrador debe abrir una desde Insumos.</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
                   {/* Material warnings */}
                   {materialConsumption.length > 0 && hasStockIssue && (

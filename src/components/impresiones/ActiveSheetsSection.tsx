@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useActiveSheets, useSheetHistory, useOpenSheet, useRawMaterials, usePrintMaterialTypes } from '@/hooks/usePrintData';
+import { useActiveSheets, useSheetHistory, useOpenSheet, useCloseSheet, useRawMaterials, usePrintMaterialTypes } from '@/hooks/usePrintData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ const ActiveSheetsSection = () => {
   const { data: activeSheets = [], isLoading } = useActiveSheets();
   const { data: sheetHistory = [] } = useSheetHistory();
   const openSheet = useOpenSheet();
+  const closeSheet = useCloseSheet();
 
   const [openDialog, setOpenDialog] = useState(false);
   const [form, setForm] = useState({ material_id: '', tramos_total: 4 });
@@ -107,6 +108,15 @@ const ActiveSheetsSection = () => {
                         ¡Abre una nueva hoja para seguir vendiendo!
                       </p>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full mt-1 text-xs"
+                      onClick={() => closeSheet.mutate(sheet.id)}
+                      disabled={closeSheet.isPending}
+                    >
+                      Cerrar hoja
+                    </Button>
                   </CardContent>
                 </Card>
               );
