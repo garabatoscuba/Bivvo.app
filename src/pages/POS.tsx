@@ -478,6 +478,16 @@ const POS = () => {
         products={products.map(p => ({ id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price) }))}
         stockMap={stockMap}
       />
+
+      <AgregoModal
+        open={agregoModalOpen}
+        onOpenChange={(open) => {
+          setAgregoModalOpen(open);
+          if (!open) setPendingAgregoProduct(null);
+        }}
+        product={pendingAgregoProduct}
+        onConfirm={handleAgregoConfirm}
+      />
     </AppLayout>
   );
 };
