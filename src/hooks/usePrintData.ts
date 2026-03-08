@@ -79,10 +79,9 @@ export const useEmployeesForTransfer = () => {
       if (!businessId) return [];
       const { data, error } = await supabase
         .from('employees')
-        .select('id, name, auth_user_id')
+        .select('id, full_name, auth_user_id')
         .eq('business_id', businessId)
-        .eq('is_active', true)
-        .order('name');
+        .order('full_name');
       if (error) throw error;
       return data || [];
     },
