@@ -56,6 +56,12 @@ const SellerPrintView = () => {
 
   const activeServices = useMemo(() => services.filter((s: any) => s.is_active), [services]);
   const { data: activeSheets = [] } = useActiveSheets();
+  const openSheetMut = useOpenSheet();
+  const closeSheetMut = useCloseSheet();
+
+  // Open sheet modal state
+  const [openSheetDialog, setOpenSheetDialog] = useState(false);
+  const [openSheetForm, setOpenSheetForm] = useState({ material_id: '', tramos_total: 4 });
 
   // Active cash register for this user
   const { data: activeCaja, isLoading: loadingCaja } = useQuery({
