@@ -105,7 +105,7 @@ const POS = () => {
     return realStock - inCart;
   }, [stockMap, getCartQuantity]);
 
-  const addToCart = useCallback((product: Product & { category: Category | null }) => {
+  const addToCart = useCallback((product: Product & { category: Category | null }, selectedAgregos?: string[]) => {
     const realStock = stockMap.get(product.id) || 0;
 
     setCart((prev) => {
@@ -121,6 +121,7 @@ const POS = () => {
                 ...item,
                 quantity: item.quantity + 1,
                 total: (item.quantity + 1) * item.unitPrice - item.discount,
+                selectedAgregos: selectedAgregos || item.selectedAgregos,
               }
             : item
         );
@@ -133,10 +134,28 @@ const POS = () => {
           unitPrice: Number(product.sale_price),
           discount: 0,
           total: Number(product.sale_price),
+          selectedAgregos,
         },
       ];
     });
   }, [stockMap]);
+
+  // Handle adding elaborado products - check for agregos first
+  const handleAddProduct = useCallback((product: Product & { category: Category | null }) => {
+    if ((product as any).tipo === 'elaborado') {
+      setPendingAgregoProduct(product);
+      setAgregoModalOpen(true);
+    } else {
+      addToCart(product);
+    }
+  }, [addToCart]);
+
+  const handleAgregoConfirm = useCallback((selectedAgregos: string[]) => {
+    if (pendingAgregoProduct) {
+      addToCart(pendingAgregoProduct, selectedAgregos.length > 0 ? selectedAgregos : undefined);
+      setPendingAgregoProduct(null);
+    }
+  }, [pendingAgregoProduct, addToCart]);
 
   const updateQuantity = useCallback((productId: string, quantity: number) => {
     if (quantity <= 0) {
