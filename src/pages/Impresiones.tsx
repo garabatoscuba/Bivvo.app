@@ -33,6 +33,7 @@ const Impresiones = () => {
             <TabsTrigger value="insumos">Insumos</TabsTrigger>
             <TabsTrigger value="recetas">Recetas</TabsTrigger>
             {canSeeTinta && <TabsTrigger value="tinta">Tinta</TabsTrigger>}
+            <TabsTrigger value="mermas">Config. Mermas</TabsTrigger>
             <TabsTrigger value="reportes">Reportes</TabsTrigger>
           </TabsList>
 
