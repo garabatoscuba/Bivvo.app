@@ -19,7 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Printer, Package, AlertTriangle, Plus, Trash2, Loader2,
   Banknote, ArrowLeftRight, ClipboardMinus, ChefHat, CheckCircle2,
-  Smartphone, RotateCcw, AlertCircle, CreditCard, DollarSign, Send,
+  Smartphone, RotateCcw, AlertCircle, CreditCard, DollarSign, Send, FileText,
 } from 'lucide-react';
 import { getIconComponent } from '@/components/services/IconSelector';
 import { cn } from '@/lib/utils';
