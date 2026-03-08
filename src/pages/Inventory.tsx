@@ -112,6 +112,7 @@ const Inventory = () => {
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<(Product & { category: Category | null }) | null>(null);
   const [mainTab, setMainTab] = useState<string>('products');
+  const [productTypeTab, setProductTypeTab] = useState<'reventa' | 'cocina'>('reventa');
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [stockEntryProduct, setStockEntryProduct] = useState<Product | null>(null);
   const [transferQty, setTransferQty] = useState(0);
@@ -174,12 +175,25 @@ const Inventory = () => {
     warehouseStockMap.set(bs.product_id, bs.warehouse_quantity || 0);
   });
 
+  // Check if business has kitchen products
+  const hasKitchenProducts = useMemo(() => 
+    products.some((p: any) => p.tipo === 'ingrediente' || p.tipo === 'elaborado'),
+    [products]
+  );
+
   // Filter products (all statuses except discontinued)
   const filteredProducts = useMemo(() => products.filter((product) => {
     const matchesSearch = !search || 
       product.name.toLowerCase().includes(search.toLowerCase()) ||
       product.code.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch || product.status === 'discontinued') return false;
+
+    // Type filter: only apply if business has kitchen products
+    if (hasKitchenProducts) {
+      const tipo = (product as any).tipo || 'reventa';
+      if (productTypeTab === 'reventa' && tipo !== 'reventa') return false;
+      if (productTypeTab === 'cocina' && tipo === 'reventa') return false;
+    }
     
     if (!activeFilter) return true;
     
@@ -193,7 +207,7 @@ const Inventory = () => {
       case 'outOfStock': return stock <= 0 && product.status === 'for_sale';
       default: return true;
     }
-  }), [products, search, activeFilter, stockMap, warehouseStockMap]);
+  }), [products, search, activeFilter, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab]);
 
   // Group products by category
   const groupedProducts = useMemo(() => {
@@ -546,6 +560,35 @@ const Inventory = () => {
 
           {/* ─── Products Tab ─── */}
           <TabsContent value="products" className="mt-4 space-y-4">
+            {/* Sub-tabs: Reventa / Cocina (only if business has kitchen products) */}
+            {hasKitchenProducts && (
+              <div className="flex gap-1 rounded-lg bg-muted p-1">
+                <button
+                  type="button"
+                  onClick={() => setProductTypeTab('reventa')}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    productTypeTab === 'reventa'
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Reventa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProductTypeTab('cocina')}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    productTypeTab === 'cocina'
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  🍳 Cocina
+                </button>
+              </div>
+            )}
             {/* Quick stats bar */}
             <div className="grid grid-cols-4 gap-1.5">
               <StatPill 
