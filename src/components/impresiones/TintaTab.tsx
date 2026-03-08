@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useResolvedBusinessId } from "@/hooks/useResolvedBusinessId";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -30,18 +31,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, ArrowRight, Droplets, TrendingDown } from "lucide-react";
-import { format } from "date-fns";
+import { Plus, ArrowRight, Droplets, TrendingDown, Calendar, BarChart3 } from "lucide-react";
+import { format, differenceInDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip as RechartsTooltip,
-  ResponsiveContainer,
-} from "recharts";
 
 const COLORS = ["negro", "cian", "magenta", "amarillo"] as const;
 type InkColor = (typeof COLORS)[number];
@@ -65,13 +57,12 @@ const fmt = (n: number) =>
 
 export default function TintaTab() {
   const { profile } = useAuth();
-  const businessId = profile?.business_id;
+  const { businessId, branchId } = useResolvedBusinessId();
   const userId = profile?.user_id;
   const qc = useQueryClient();
 
   const [buyOpen, setBuyOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
-  const [usageOpen, setUsageOpen] = useState(false);
 
   // Buy form
   const [buyColor, setBuyColor] = useState<InkColor>("negro");
@@ -84,13 +75,6 @@ export default function TintaTab() {
   // Move form
   const [moveColor, setMoveColor] = useState<InkColor>("negro");
   const [moveCantidad, setMoveCantidad] = useState("");
-
-  // Usage form
-  const [usageColor, setUsageColor] = useState<InkColor>("negro");
-  const [usageCantidad, setUsageCantidad] = useState("");
-  const [usageInicio, setUsageInicio] = useState("");
-  const [usageFin, setUsageFin] = useState("");
-  const [usageNota, setUsageNota] = useState("");
 
   // ——— Queries ———
 
@@ -125,21 +109,99 @@ export default function TintaTab() {
   // ——— Stock aggregation ———
 
   const stockByColor = useMemo(() => {
-    const map: Record<InkColor, { almacen: number; taller: number; totalCost: number }> = {
-      negro: { almacen: 0, taller: 0, totalCost: 0 },
-      cian: { almacen: 0, taller: 0, totalCost: 0 },
-      magenta: { almacen: 0, taller: 0, totalCost: 0 },
-      amarillo: { almacen: 0, taller: 0, totalCost: 0 },
+    const map: Record<InkColor, { almacen: number; taller: number; totalCost: number; tallerCost: number }> = {
+      negro: { almacen: 0, taller: 0, totalCost: 0, tallerCost: 0 },
+      cian: { almacen: 0, taller: 0, totalCost: 0, tallerCost: 0 },
+      magenta: { almacen: 0, taller: 0, totalCost: 0, tallerCost: 0 },
+      amarillo: { almacen: 0, taller: 0, totalCost: 0, tallerCost: 0 },
     };
     inventory.forEach((r: any) => {
       const c = r.color as InkColor;
       if (!map[c]) return;
-      if (r.ubicacion === "almacen") map[c].almacen += Number(r.cantidad);
-      else map[c].taller += Number(r.cantidad);
+      if (r.ubicacion === "almacen") {
+        map[c].almacen += Number(r.cantidad);
+      } else {
+        map[c].taller += Number(r.cantidad);
+        map[c].tallerCost += Number(r.costo_total);
+      }
       map[c].totalCost += Number(r.costo_total);
     });
     return map;
   }, [inventory]);
+
+  // ——— Consumption aggregation ———
+
+  const consumptionByColor = useMemo(() => {
+    const map: Record<InkColor, { total: number; last30Days: number; entries: number }> = {
+      negro: { total: 0, last30Days: 0, entries: 0 },
+      cian: { total: 0, last30Days: 0, entries: 0 },
+      magenta: { total: 0, last30Days: 0, entries: 0 },
+      amarillo: { total: 0, last30Days: 0, entries: 0 },
+    };
+    const thirtyDaysAgo = subDays(new Date(), 30);
+    usageRecords.forEach((r: any) => {
+      const c = r.color as InkColor;
+      if (!map[c]) return;
+      const amount = Number(r.cantidad_consumida);
+      map[c].total += amount;
+      map[c].entries += 1;
+      if (new Date(r.created_at) >= thirtyDaysAgo) {
+        map[c].last30Days += amount;
+      }
+    });
+    return map;
+  }, [usageRecords]);
+
+  // ——— Analysis metrics ———
+
+  const analysisMetrics = useMemo(() => {
+    const now = new Date();
+    const thirtyDaysAgo = subDays(now, 30);
+
+    // Get first usage date to calculate total active days
+    const autoUsages = usageRecords.filter((r: any) => r.is_automatic);
+    if (autoUsages.length === 0) return null;
+
+    const firstUsageDate = new Date(autoUsages[autoUsages.length - 1]?.created_at || now);
+    const totalDays = Math.max(1, differenceInDays(now, firstUsageDate));
+
+    const colorMetrics = COLORS.map((color) => {
+      const cons = consumptionByColor[color];
+      const stock = stockByColor[color];
+
+      // Daily average (last 30 days, or total if less data)
+      const daysForAvg = Math.min(totalDays, 30);
+      const dailyAvg = daysForAvg > 0 ? cons.last30Days / daysForAvg : cons.total / totalDays;
+
+      // Remaining estimated value in taller (taller cost - consumed)
+      const tallerValue = Math.max(0, stock.tallerCost - cons.total);
+
+      // Projected days remaining
+      const daysRemaining = dailyAvg > 0 ? Math.floor(tallerValue / dailyAvg) : null;
+
+      // % the business separates for ink (totalCost as % of total inventory value)
+      const totalInvValue = inventory
+        .filter((r: any) => Number(r.costo_total) > 0)
+        .reduce((s: number, r: any) => s + Number(r.costo_total), 0);
+      const pctSeparated = totalInvValue > 0 ? (stock.totalCost / totalInvValue) * 100 : 0;
+
+      // % real consumption
+      const totalConsumption = Object.values(consumptionByColor).reduce((s, c) => s + c.total, 0);
+      const pctRealConsumption = totalConsumption > 0 ? (cons.total / totalConsumption) * 100 : 0;
+
+      return {
+        color,
+        dailyAvg,
+        tallerValue,
+        daysRemaining,
+        pctSeparated,
+        pctRealConsumption,
+        totalConsumed: cons.total,
+      };
+    });
+
+    return colorMetrics;
+  }, [consumptionByColor, stockByColor, usageRecords, inventory]);
 
   // ——— Mutations ———
 
@@ -150,7 +212,6 @@ export default function TintaTab() {
       if (!cant || cant <= 0) throw new Error("Cantidad inválida");
       if (!costo || costo <= 0) throw new Error("Costo inválido");
 
-      // Insert ink inventory
       const { error } = await supabase.from("print_ink_inventory").insert({
         business_id: businessId!,
         color: buyColor,
@@ -164,7 +225,6 @@ export default function TintaTab() {
       });
       if (error) throw error;
 
-      // Auto-create accounting expense
       await supabase.from("accounting_expenses").insert({
         business_id: businessId!,
         name: `Tinta ${COLOR_LABELS[buyColor]} (${buyTipo})`,
@@ -195,7 +255,6 @@ export default function TintaTab() {
       const available = stockByColor[moveColor].almacen;
       if (cant > available) throw new Error(`Solo hay ${available} en almacén`);
 
-      // Remove from almacen
       const { error: e1 } = await supabase.from("print_ink_inventory").insert({
         business_id: businessId!,
         color: moveColor,
@@ -209,7 +268,12 @@ export default function TintaTab() {
       });
       if (e1) throw e1;
 
-      // Add to taller
+      // Calculate proportional cost for the transfer
+      const colorInv = inventory.filter((r: any) => r.color === moveColor && Number(r.costo_total) > 0);
+      const totalCostColor = colorInv.reduce((s: number, r: any) => s + Number(r.costo_total), 0);
+      const totalQtyColor = colorInv.reduce((s: number, r: any) => s + Math.abs(Number(r.cantidad)), 0);
+      const costPerUnit = totalQtyColor > 0 ? totalCostColor / totalQtyColor : 0;
+
       const { error: e2 } = await supabase.from("print_ink_inventory").insert({
         business_id: businessId!,
         color: moveColor,
@@ -217,7 +281,7 @@ export default function TintaTab() {
         cantidad: cant,
         unidad: "unidad",
         ubicacion: "taller",
-        costo_total: 0,
+        costo_total: costPerUnit * cant,
         nota: "Transferencia desde almacén",
         user_id: userId!,
       });
@@ -232,109 +296,12 @@ export default function TintaTab() {
     onError: (e: any) => toast.error(e.message || "Error al mover tinta"),
   });
 
-  const usageMutation = useMutation({
-    mutationFn: async () => {
-      const cant = Number(usageCantidad);
-      if (!cant || cant <= 0) throw new Error("Cantidad inválida");
-      if (!usageInicio || !usageFin) throw new Error("Selecciona período");
-
-      // Count sheets printed in period from print_job_items
-      const { data: jobs } = await supabase
-        .from("print_jobs")
-        .select("id")
-        .eq("business_id", businessId!)
-        .gte("created_at", usageInicio)
-        .lte("created_at", usageFin + "T23:59:59");
-
-      let hojas = 0;
-      if (jobs?.length) {
-        const jobIds = jobs.map((j: any) => j.id);
-        for (let i = 0; i < jobIds.length; i += 50) {
-          const chunk = jobIds.slice(i, i + 50);
-          const { data: items } = await supabase
-            .from("print_job_items")
-            .select("cantidad")
-            .in("job_id", chunk);
-          hojas += (items || []).reduce((s: number, it: any) => s + Number(it.cantidad || 0), 0);
-        }
-      }
-
-      // Get average cost for this color
-      const colorInv = inventory.filter((r: any) => r.color === usageColor && Number(r.costo_total) > 0);
-      const totalCostColor = colorInv.reduce((s: number, r: any) => s + Number(r.costo_total), 0);
-      const totalQtyColor = colorInv.reduce((s: number, r: any) => s + Number(r.cantidad), 0);
-      const costPerUnit = totalQtyColor > 0 ? totalCostColor / totalQtyColor : 0;
-      const costThisUsage = costPerUnit * cant;
-      const costPerSheet = hojas > 0 ? costThisUsage / hojas : 0;
-
-      // Register usage
-      const { error } = await supabase.from("print_ink_usage").insert({
-        business_id: businessId!,
-        color: usageColor,
-        cantidad_consumida: cant,
-        periodo_inicio: usageInicio,
-        periodo_fin: usageFin,
-        hojas_impresas: hojas,
-        costo_por_hoja: Math.round(costPerSheet * 10000) / 10000,
-        nota: usageNota || null,
-        user_id: userId!,
-      });
-      if (error) throw error;
-
-      // Reduce taller stock
-      await supabase.from("print_ink_inventory").insert({
-        business_id: businessId!,
-        color: usageColor,
-        tipo: "cartucho",
-        cantidad: -cant,
-        unidad: "unidad",
-        ubicacion: "taller",
-        costo_total: 0,
-        nota: `Bajada: ${cant} unidades, ${hojas} hojas`,
-        user_id: userId!,
-      });
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["ink-inventory"] });
-      qc.invalidateQueries({ queryKey: ["ink-usage"] });
-      toast.success("Consumo de tinta registrado");
-      setUsageOpen(false);
-      setUsageCantidad("");
-      setUsageInicio("");
-      setUsageFin("");
-      setUsageNota("");
-    },
-    onError: (e: any) => toast.error(e.message || "Error al registrar consumo"),
-  });
-
-  // ——— Analysis data ———
-
-  const analysisData = useMemo(() => {
-    return usageRecords.map((r: any) => ({
-      periodo: `${format(new Date(r.periodo_inicio), "dd/MM", { locale: es })} - ${format(new Date(r.periodo_fin), "dd/MM", { locale: es })}`,
-      color: r.color,
-      consumida: Number(r.cantidad_consumida),
-      hojas: r.hojas_impresas,
-      costoPorHoja: Number(r.costo_por_hoja),
-      fecha: new Date(r.periodo_fin).getTime(),
-    }));
+  // Recent automatic usage entries
+  const recentUsage = useMemo(() => {
+    return usageRecords
+      .filter((r: any) => r.is_automatic)
+      .slice(0, 30);
   }, [usageRecords]);
-
-  const chartData = useMemo(() => {
-    return [...analysisData]
-      .sort((a, b) => a.fecha - b.fecha)
-      .map((d) => ({
-        name: d.periodo,
-        costo: d.costoPorHoja,
-      }));
-  }, [analysisData]);
-
-  // Historical average cost per sheet
-  const avgCostPerSheet = useMemo(() => {
-    const valid = analysisData.filter((d) => d.costoPorHoja > 0);
-    if (!valid.length) return 0;
-    return valid.reduce((s, d) => s + d.costoPorHoja, 0) / valid.length;
-  }, [analysisData]);
 
   return (
     <div className="space-y-6">
@@ -355,6 +322,8 @@ export default function TintaTab() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {COLORS.map((color) => {
             const s = stockByColor[color];
+            const consumed = consumptionByColor[color].total;
+            const remaining = Math.max(0, s.tallerCost - consumed);
             return (
               <Card key={color}>
                 <CardContent className="p-3 space-y-2">
@@ -371,6 +340,16 @@ export default function TintaTab() {
                       <p className="font-bold text-base">{s.taller}</p>
                       <p className="text-muted-foreground">Taller</p>
                     </div>
+                    <div className="rounded bg-muted/50 p-1.5 text-center">
+                      <p className="font-bold text-sm text-destructive">{fmt(consumed)}</p>
+                      <p className="text-muted-foreground">Consumido</p>
+                    </div>
+                    <div className="rounded bg-muted/50 p-1.5 text-center">
+                      <p className={`font-bold text-sm ${remaining <= 0 ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
+                        {fmt(remaining)}
+                      </p>
+                      <p className="text-muted-foreground">Restante</p>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -379,20 +358,128 @@ export default function TintaTab() {
         </div>
       </div>
 
-      {/* ——— SECTION 2: Registrar bajada ——— */}
+      {/* ——— SECTION 2: Análisis de rendimiento ——— */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">Registrar bajada de tinta</h2>
-          <Button size="sm" variant="outline" onClick={() => setUsageOpen(true)}>
-            <TrendingDown className="h-3.5 w-3.5 mr-1" /> Registrar consumo
-          </Button>
-        </div>
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <BarChart3 className="h-5 w-5" /> Análisis de rendimiento
+        </h2>
 
-        {usageRecords.length === 0 ? (
+        {!analysisMetrics ? (
           <Card>
             <CardContent className="p-6 text-center text-muted-foreground">
               <Droplets className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No hay registros de consumo de tinta aún.</p>
+              <p>Registra cobros en Impresiones para ver el análisis automático de consumo de tinta.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-3">
+            {/* Metrics table */}
+            <Card>
+              <CardContent className="p-0">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Color</TableHead>
+                        <TableHead className="text-right">Consumo diario</TableHead>
+                        <TableHead className="text-right">Días restantes</TableHead>
+                        <TableHead className="text-right">% Invertido</TableHead>
+                        <TableHead className="text-right">% Consumo real</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {analysisMetrics.map((m) => (
+                        <TableRow key={m.color}>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              <div className={`h-3 w-3 rounded-full ${COLOR_STYLES[m.color as InkColor]}`} />
+                              <span className="text-sm font-medium">{COLOR_LABELS[m.color as InkColor]}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-right text-sm">
+                            {fmt(m.dailyAvg)}<span className="text-muted-foreground">/día</span>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            {m.daysRemaining !== null ? (
+                              <span className={`text-sm font-medium ${m.daysRemaining <= 7 ? 'text-destructive' : m.daysRemaining <= 15 ? 'text-yellow-600 dark:text-yellow-400' : 'text-green-600 dark:text-green-400'}`}>
+                                {m.daysRemaining} días
+                              </span>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">—</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right text-sm">
+                            {m.pctSeparated.toFixed(1)}%
+                          </TableCell>
+                          <TableCell className="text-right text-sm font-medium">
+                            {m.pctRealConsumption.toFixed(1)}%
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* % Comparison cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {analysisMetrics.filter(m => m.pctSeparated > 0 || m.pctRealConsumption > 0).map((m) => {
+                const diff = m.pctRealConsumption - m.pctSeparated;
+                const isOver = diff > 2;
+                const isUnder = diff < -2;
+                return (
+                  <Card key={m.color}>
+                    <CardContent className="p-3">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className={`h-3 w-3 rounded-full ${COLOR_STYLES[m.color as InkColor]}`} />
+                        <span className="text-sm font-semibold">{COLOR_LABELS[m.color as InkColor]}</span>
+                      </div>
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Inversión</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
+                              <div className="h-full rounded-full bg-primary/60" style={{ width: `${Math.min(100, m.pctSeparated)}%` }} />
+                            </div>
+                            <span>{m.pctSeparated.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                        <div className="flex justify-between text-xs">
+                          <span className="text-muted-foreground">Consumo real</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-20 h-2 rounded-full bg-muted overflow-hidden">
+                              <div className={`h-full rounded-full ${isOver ? 'bg-destructive' : 'bg-green-500'}`} style={{ width: `${Math.min(100, m.pctRealConsumption)}%` }} />
+                            </div>
+                            <span>{m.pctRealConsumption.toFixed(1)}%</span>
+                          </div>
+                        </div>
+                        {(isOver || isUnder) && (
+                          <p className={`text-xs mt-1 ${isOver ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
+                            {isOver ? `⚠ Consumo ${diff.toFixed(1)}% mayor a la inversión` : `✓ Consumo ${Math.abs(diff).toFixed(1)}% menor a la inversión`}
+                          </p>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ——— SECTION 3: Historial de consumo automático ——— */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <TrendingDown className="h-5 w-5" /> Consumo automático reciente
+        </h2>
+
+        {recentUsage.length === 0 ? (
+          <Card>
+            <CardContent className="p-6 text-center text-muted-foreground text-sm">
+              <Droplets className="h-8 w-8 mx-auto mb-2 opacity-50" />
+              <p>El consumo de tinta se registra automáticamente con cada cobro de impresión.</p>
             </CardContent>
           </Card>
         ) : (
@@ -402,80 +489,39 @@ export default function TintaTab() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>Fecha</TableHead>
                       <TableHead>Color</TableHead>
-                      <TableHead>Consumida</TableHead>
-                      <TableHead>Período</TableHead>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead className="text-right">Consumo ($)</TableHead>
                       <TableHead className="text-right">Hojas</TableHead>
-                      <TableHead className="text-right">$/hoja</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {usageRecords.slice(0, 20).map((r: any) => (
+                    {recentUsage.map((r: any) => (
                       <TableRow key={r.id}>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(new Date(r.created_at), "dd/MM/yy HH:mm", { locale: es })}
+                        </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5">
                             <div className={`h-3 w-3 rounded-full ${COLOR_STYLES[r.color as InkColor] || "bg-gray-400"}`} />
                             <span className="text-sm">{COLOR_LABELS[r.color as InkColor] || r.color}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm">{r.cantidad_consumida}</TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {format(new Date(r.periodo_inicio), "dd/MM/yy")} – {format(new Date(r.periodo_fin), "dd/MM/yy")}
+                        <TableCell className="text-xs text-muted-foreground">
+                          {r.nota || "—"}
                         </TableCell>
-                        <TableCell className="text-right text-sm font-medium">{r.hojas_impresas.toLocaleString()}</TableCell>
-                        <TableCell className="text-right text-sm font-medium">{fmt(Number(r.costo_por_hoja))}</TableCell>
+                        <TableCell className="text-right text-sm font-medium">
+                          {fmt(Number(r.cantidad_consumida))}
+                        </TableCell>
+                        <TableCell className="text-right text-sm">
+                          {r.hojas_impresas}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
-            </CardContent>
-          </Card>
-        )}
-      </div>
-
-      {/* ——— SECTION 3: Análisis de rendimiento ——— */}
-      <div>
-        <h2 className="text-lg font-semibold mb-3">Análisis de rendimiento</h2>
-
-        {avgCostPerSheet > 0 && (
-          <Card className="mb-3">
-            <CardContent className="p-3 flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Costo promedio histórico por hoja</span>
-              <span className="text-lg font-bold">{fmt(avgCostPerSheet)}</span>
-            </CardContent>
-          </Card>
-        )}
-
-        {chartData.length > 1 ? (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm">Tendencia costo por hoja</CardTitle>
-            </CardHeader>
-            <CardContent className="p-2">
-              <ResponsiveContainer width="100%" height={200}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
-                  <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                  <YAxis tick={{ fontSize: 10 }} />
-                  <RechartsTooltip
-                    formatter={(value: number) => [fmt(value), "$/hoja"]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="costo"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    dot={{ r: 3 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card>
-            <CardContent className="p-6 text-center text-muted-foreground text-sm">
-              Registra al menos 2 bajadas de tinta para ver la tendencia.
             </CardContent>
           </Card>
         )}
@@ -570,54 +616,6 @@ export default function TintaTab() {
             <Button variant="outline" onClick={() => setMoveOpen(false)}>Cancelar</Button>
             <Button onClick={() => moveMutation.mutate()} disabled={moveMutation.isPending}>
               {moveMutation.isPending ? "Moviendo..." : "Mover"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ——— MODAL: Registrar consumo ——— */}
-      <Dialog open={usageOpen} onOpenChange={setUsageOpen}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Registrar consumo de tinta</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <div>
-              <Label>Color</Label>
-              <Select value={usageColor} onValueChange={(v) => setUsageColor(v as InkColor)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {COLORS.map((c) => (
-                    <SelectItem key={c} value={c}>
-                      {COLOR_LABELS[c]} (taller: {stockByColor[c].taller})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>Cantidad consumida</Label>
-              <Input type="number" min="1" value={usageCantidad} onChange={(e) => setUsageCantidad(e.target.value)} />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label>Fecha inicio</Label>
-                <Input type="date" value={usageInicio} onChange={(e) => setUsageInicio(e.target.value)} />
-              </div>
-              <div>
-                <Label>Fecha fin</Label>
-                <Input type="date" value={usageFin} onChange={(e) => setUsageFin(e.target.value)} />
-              </div>
-            </div>
-            <div>
-              <Label>Nota (opcional)</Label>
-              <Textarea value={usageNota} onChange={(e) => setUsageNota(e.target.value)} rows={2} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setUsageOpen(false)}>Cancelar</Button>
-            <Button onClick={() => usageMutation.mutate()} disabled={usageMutation.isPending}>
-              {usageMutation.isPending ? "Registrando..." : "Registrar consumo"}
             </Button>
           </DialogFooter>
         </DialogContent>
