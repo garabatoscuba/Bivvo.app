@@ -662,7 +662,7 @@ const Sales = () => {
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-muted-foreground">Fecha</div>
                 <div>{format(new Date(selectedEntry.created_at), "dd/MM/yyyy HH:mm", { locale: es })}</div>
-                <div className="text-muted-foreground">Categoría</div>
+                <div className="text-muted-foreground">{isPrintDetail ? 'Servicios' : 'Categoría'}</div>
                 <div>{selectedEntry.product_names}</div>
                 <div className="text-muted-foreground">Vendedor</div>
                 <div>{selectedEntry.seller_name || '—'}</div>
