@@ -2962,9 +2962,11 @@ export type Database = {
           created_at: string
           hojas_impresas: number
           id: string
+          is_automatic: boolean
+          job_item_id: string | null
           nota: string | null
-          periodo_fin: string
-          periodo_inicio: string
+          periodo_fin: string | null
+          periodo_inicio: string | null
           user_id: string
         }
         Insert: {
@@ -2975,9 +2977,11 @@ export type Database = {
           created_at?: string
           hojas_impresas?: number
           id?: string
+          is_automatic?: boolean
+          job_item_id?: string | null
           nota?: string | null
-          periodo_fin: string
-          periodo_inicio: string
+          periodo_fin?: string | null
+          periodo_inicio?: string | null
           user_id: string
         }
         Update: {
@@ -2988,9 +2992,11 @@ export type Database = {
           created_at?: string
           hojas_impresas?: number
           id?: string
+          is_automatic?: boolean
+          job_item_id?: string | null
           nota?: string | null
-          periodo_fin?: string
-          periodo_inicio?: string
+          periodo_fin?: string | null
+          periodo_inicio?: string | null
           user_id?: string
         }
         Relationships: [
@@ -2999,6 +3005,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_ink_usage_job_item_id_fkey"
+            columns: ["job_item_id"]
+            isOneToOne: false
+            referencedRelation: "print_job_items"
             referencedColumns: ["id"]
           },
         ]
