@@ -134,11 +134,15 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
   const [newGramaje, setNewGramaje] = useState('');
 
   const handleAddIngredient = () => {
-    if (!newIngredientId || !newQuantity) return;
+    if (newType === 'agrego') {
+      if (!newIngredientId || !newGramaje) return;
+    } else {
+      if (!newIngredientId || !newQuantity) return;
+    }
     const ing = ingredients.find(i => i.id === newIngredientId);
     addIngredient.mutate({
       ingredientId: newIngredientId,
-      quantity: Number(newQuantity),
+      quantity: newType === 'agrego' ? Number(newGramaje) : Number(newQuantity),
       unit: newUnit || ing?.unit_of_measure || 'Pieza',
       ingredientType: newType,
       gramaje: newType === 'agrego' ? Number(newGramaje) || 0 : 0,
@@ -316,22 +320,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                       </select>
                     </div>
                     <div className="flex gap-2 items-end">
-                      <Input
-                        type="number"
-                        min={0.01}
-                        step={0.01}
-                        placeholder="Cant."
-                        className="w-20"
-                        value={newQuantity}
-                        onChange={(e) => setNewQuantity(e.target.value)}
-                      />
-                      <Input
-                        placeholder="Unidad"
-                        className="w-24"
-                        value={newUnit}
-                        onChange={(e) => setNewUnit(e.target.value)}
-                      />
-                      {newType === 'agrego' && (
+                      {newType === 'agrego' ? (
                         <Input
                           type="number"
                           min={0.01}
@@ -341,12 +330,28 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                           value={newGramaje}
                           onChange={(e) => setNewGramaje(e.target.value)}
                         />
+                      ) : (
+                        <Input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          placeholder="Cant."
+                          className="w-20"
+                          value={newQuantity}
+                          onChange={(e) => setNewQuantity(e.target.value)}
+                        />
                       )}
+                      <Input
+                        placeholder="Unidad"
+                        className="w-24"
+                        value={newUnit}
+                        onChange={(e) => setNewUnit(e.target.value)}
+                      />
                       <Button
                         size="icon"
                         className="flex-shrink-0"
                         onClick={handleAddIngredient}
-                        disabled={!newIngredientId || !newQuantity || addIngredient.isPending}
+                        disabled={!newIngredientId || (newType === 'agrego' ? !newGramaje : !newQuantity) || addIngredient.isPending}
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
