@@ -423,12 +423,24 @@ const SellerPrintView = () => {
                 <div>
                   <Label className="text-sm text-muted-foreground">Selecciona servicios</Label>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
-                    {activeServices.map((svc: any) => (
-                      <Button key={svc.id} variant="outline" size="sm" className="h-auto py-2 px-3 text-left justify-start" onClick={() => addJobItem(svc)}>
-                        <Plus className="h-3 w-3 mr-1 shrink-0" />
-                        <span className="truncate">{svc.name}</span>
-                      </Button>
-                    ))}
+                    {activeServices.map((svc: any) => {
+                      const SvcIcon = getIconComponent(svc.icon);
+                      return (
+                        <button
+                          key={svc.id}
+                          onClick={() => addJobItem(svc)}
+                          className="flex items-center gap-2 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 hover:border-primary"
+                        >
+                          <SvcIcon className="h-4 w-4 shrink-0 text-primary" />
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium truncate block">{svc.name}</span>
+                            {svc.precio_base > 0 && (
+                              <span className="text-[10px] text-muted-foreground">${Number(svc.precio_base).toFixed(2)}</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
