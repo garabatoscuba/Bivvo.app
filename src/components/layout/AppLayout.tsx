@@ -6,6 +6,7 @@ import SubscriptionBanner from './SubscriptionBanner';
 import InstallBanner from './InstallBanner';
 import AlertaInactividad from '@/components/employees/AlertaInactividad';
 import BivooAssistant from '@/components/assistant/BivooAssistant';
+import { OfflineBanner } from './OfflineBanner';
 import { useFeatureUsage } from '@/hooks/useFeatureUsage';
 import { useOfflineCache } from '@/hooks/useOfflineCache';
 
@@ -23,6 +24,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
       <div className="flex min-h-screen w-full overflow-hidden">
         <AppSidebar />
         <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+          <OfflineBanner />
           <InstallBanner />
           <SubscriptionBanner />
           <AppHeader title={title} />

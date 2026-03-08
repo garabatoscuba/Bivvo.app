@@ -1,28 +1,44 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { syncPendingRecords } from '@/lib/offlineSync';
+
+export type SyncStatus = 'online' | 'offline' | 'syncing' | 'synced';
 
 export function useOnlineStatus() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>(navigator.onLine ? 'online' : 'offline');
+  const syncingRef = useRef(false);
+  const syncedTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
   const handleSync = useCallback(async () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
+    if (syncingRef.current) return;
+    syncingRef.current = true;
+    setSyncStatus('syncing');
+
     try {
-      await syncPendingRecords();
+      const result = await syncPendingRecords();
+      if (result.total > 0) {
+        setSyncStatus('synced');
+        syncedTimerRef.current = setTimeout(() => setSyncStatus('online'), 3000);
+      } else {
+        setSyncStatus('online');
+      }
     } catch (err) {
       console.warn('[useOnlineStatus] Sync error:', err);
+      setSyncStatus('online');
     } finally {
-      setIsSyncing(false);
+      syncingRef.current = false;
     }
-  }, [isSyncing]);
+  }, []);
 
   useEffect(() => {
     const onOnline = () => {
       setIsOnline(true);
       handleSync();
     };
-    const onOffline = () => setIsOnline(false);
+    const onOffline = () => {
+      setIsOnline(false);
+      setSyncStatus('offline');
+    };
 
     window.addEventListener('online', onOnline);
     window.addEventListener('offline', onOffline);
@@ -30,8 +46,9 @@ export function useOnlineStatus() {
     return () => {
       window.removeEventListener('online', onOnline);
       window.removeEventListener('offline', onOffline);
+      if (syncedTimerRef.current) clearTimeout(syncedTimerRef.current);
     };
   }, [handleSync]);
 
-  return { isOnline, isSyncing, triggerSync: handleSync };
+  return { isOnline, syncStatus, triggerSync: handleSync };
 }
