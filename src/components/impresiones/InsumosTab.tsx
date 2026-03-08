@@ -91,6 +91,7 @@ const InsumosTab = () => {
               <TableHead className="text-right">Mínimo</TableHead>
               <TableHead className="text-right">Costo prom.</TableHead>
               <TableHead className="text-right">% Tinta</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
