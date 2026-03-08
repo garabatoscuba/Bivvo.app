@@ -339,7 +339,7 @@ const POS = () => {
                       key={product.id}
                       product={product}
                       stock={availableStock}
-                      onClick={() => addToCart(product)}
+                      onClick={() => handleAddProduct(product)}
                       compact
                       disabled={availableStock <= 0}
                     />
