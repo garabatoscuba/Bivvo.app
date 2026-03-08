@@ -260,13 +260,36 @@ export const useDailySalary = ({
     let displayPercent = 0;
     let modalityName = '';
 
+    // Helper: compute the applicable income based on applies_to
+    const getApplicableIncome = (appliesTo: string) => {
+      const includesServices = ['services', 'both', 'services_prints', 'all'].includes(appliesTo);
+      const includesProducts = ['products', 'both', 'products_prints', 'all'].includes(appliesTo);
+      const includesPrints = ['prints', 'services_prints', 'products_prints', 'all'].includes(appliesTo);
+      let income = 0;
+      if (includesServices) income += todayServiceTotal;
+      if (includesProducts) income += todaySalesTotal;
+      if (includesPrints) income += todayPrintTotal;
+      return income;
+    };
+
+    const getSharedApplicableIncome = (appliesTo: string) => {
+      const includesServices = ['services', 'both', 'services_prints', 'all'].includes(appliesTo);
+      const includesProducts = ['products', 'both', 'products_prints', 'all'].includes(appliesTo);
+      const includesPrints = ['prints', 'services_prints', 'products_prints', 'all'].includes(appliesTo);
+      let income = 0;
+      if (includesServices) income += todayBranchServiceTotal;
+      if (includesProducts) income += todayBranchSalesTotal;
+      if (includesPrints) income += todayPrintTotal;
+      return income;
+    };
+
     for (const assignment of mySalaryAssignments) {
       const modType = assignment?.salary_modalities?.modality_type;
       const modalityConfig = (assignment?.salary_modalities?.config || {}) as Record<string, any>;
       const configOverride = (assignment.config_override as Record<string, any>) || {};
-      // Merge: per-employee override takes priority over global modality config
       const config = { ...modalityConfig, ...configOverride } as Record<string, any>;
       const baseSalary = Number(assignment.base_salary || 0);
+      const appliesTo = (assignment?.salary_modalities as any)?.applies_to || 'both';
 
       if (!modalityName && assignment?.salary_modalities?.name) {
         modalityName = assignment.salary_modalities.name;
