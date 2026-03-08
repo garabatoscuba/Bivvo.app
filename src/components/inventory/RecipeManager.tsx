@@ -316,22 +316,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                       </select>
                     </div>
                     <div className="flex gap-2 items-end">
-                      <Input
-                        type="number"
-                        min={0.01}
-                        step={0.01}
-                        placeholder="Cant."
-                        className="w-20"
-                        value={newQuantity}
-                        onChange={(e) => setNewQuantity(e.target.value)}
-                      />
-                      <Input
-                        placeholder="Unidad"
-                        className="w-24"
-                        value={newUnit}
-                        onChange={(e) => setNewUnit(e.target.value)}
-                      />
-                      {newType === 'agrego' && (
+                      {newType === 'agrego' ? (
                         <Input
                           type="number"
                           min={0.01}
@@ -341,7 +326,23 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                           value={newGramaje}
                           onChange={(e) => setNewGramaje(e.target.value)}
                         />
+                      ) : (
+                        <Input
+                          type="number"
+                          min={0.01}
+                          step={0.01}
+                          placeholder="Cant."
+                          className="w-20"
+                          value={newQuantity}
+                          onChange={(e) => setNewQuantity(e.target.value)}
+                        />
                       )}
+                      <Input
+                        placeholder="Unidad"
+                        className="w-24"
+                        value={newUnit}
+                        onChange={(e) => setNewUnit(e.target.value)}
+                      />
                       <Button
                         size="icon"
                         className="flex-shrink-0"
