@@ -121,6 +121,15 @@ const Dashboard = () => {
     return product && bs.quantity <= product.min_stock && bs.quantity > 0;
   }) || [];
 
+  // Low stock for raw materials (Impresiones)
+  const { data: rawMaterials = [] } = useRawMaterials();
+  const lowStockMaterials = rawMaterials.filter((m: any) => {
+    const totalStock = (m.stock_almacen || 0) + (m.stock_vendedor || 0);
+    return m.stock_minimo > 0 && totalStock <= m.stock_minimo && totalStock >= 0;
+  });
+
+  const hasAlerts = lowStockProducts.length > 0 || lowStockMaterials.length > 0;
+
   const areaChartConfig = {
     total: { label: 'Ventas', color: 'hsl(var(--chart-1))' }
   };
