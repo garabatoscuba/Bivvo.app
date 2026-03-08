@@ -560,6 +560,35 @@ const Inventory = () => {
 
           {/* ─── Products Tab ─── */}
           <TabsContent value="products" className="mt-4 space-y-4">
+            {/* Sub-tabs: Reventa / Cocina (only if business has kitchen products) */}
+            {hasKitchenProducts && (
+              <div className="flex gap-1 rounded-lg bg-muted p-1">
+                <button
+                  type="button"
+                  onClick={() => setProductTypeTab('reventa')}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    productTypeTab === 'reventa'
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Reventa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProductTypeTab('cocina')}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    productTypeTab === 'cocina'
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  🍳 Cocina
+                </button>
+              </div>
+            )}
             {/* Quick stats bar */}
             <div className="grid grid-cols-4 gap-1.5">
               <StatPill 
