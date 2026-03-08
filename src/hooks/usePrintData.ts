@@ -338,3 +338,24 @@ export const useOpenSheet = () => {
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 };
+
+export const useCloseSheet = () => {
+  const qc = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (sheetId: string) => {
+      const { error } = await supabase
+        .from('print_active_sheets' as any)
+        .update({ status: 'agotada', closed_at: new Date().toISOString() })
+        .eq('id', sheetId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['print-active-sheets'] });
+      qc.invalidateQueries({ queryKey: ['print-sheet-history'] });
+      toast({ title: 'Hoja cerrada' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+};
