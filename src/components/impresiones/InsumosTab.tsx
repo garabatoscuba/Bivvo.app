@@ -96,7 +96,7 @@ const InsumosTab = () => {
           </TableHeader>
           <TableBody>
             {materials.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin insumos registrados</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin insumos registrados</TableCell></TableRow>
             ) : materials.map((m: any) => {
               const lowStock = m.stock_almacen < m.stock_minimo;
               return (
