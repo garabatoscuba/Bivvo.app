@@ -335,7 +335,7 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
           product={selectedProduct}
           accent={accent}
           currencySymbol={currencySymbol}
-          onClose={() => setSelectedProduct(null)}
+          onClose={handleCloseDetail}
         />
       )}
     </div>
