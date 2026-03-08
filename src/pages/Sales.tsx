@@ -274,7 +274,9 @@ const Sales = () => {
   const selectedEntry = useMemo(() => unifiedEntries.find((s: any) => s.id === selectedSaleId), [unifiedEntries, selectedSaleId]);
   const selectedSale = useMemo(() => sales.find((s: any) => s.id === selectedSaleId), [sales, selectedSaleId]);
   const isServiceDetail = selectedEntry?._type === 'service';
-  const { data: saleItems = [], isLoading: isLoadingItems } = useSaleItems(isServiceDetail ? null : selectedSaleId);
+  const isPrintDetail = selectedEntry?._type === 'print';
+  const isNonSaleDetail = isServiceDetail || isPrintDetail;
+  const { data: saleItems = [], isLoading: isLoadingItems } = useSaleItems(isNonSaleDetail ? null : selectedSaleId);
 
   // Metrics — respond to period filter
   const entriesInPeriod = useMemo(() => unifiedEntries.filter((s: any) => s.status !== 'cancelled' && isInPeriod(s.created_at, metricsPeriod)), [unifiedEntries, metricsPeriod]);
