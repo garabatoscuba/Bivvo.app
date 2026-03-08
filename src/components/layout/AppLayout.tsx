@@ -7,6 +7,7 @@ import InstallBanner from './InstallBanner';
 import AlertaInactividad from '@/components/employees/AlertaInactividad';
 import BivooAssistant from '@/components/assistant/BivooAssistant';
 import { useFeatureUsage } from '@/hooks/useFeatureUsage';
+import { useOfflineCache } from '@/hooks/useOfflineCache';
 
 interface AppLayoutProps {
   children: ReactNode;
@@ -15,6 +16,7 @@ interface AppLayoutProps {
 
 const AppLayout = ({ children, title }: AppLayoutProps) => {
   useFeatureUsage();
+  useOfflineCache();
 
   return (
     <SidebarProvider>
