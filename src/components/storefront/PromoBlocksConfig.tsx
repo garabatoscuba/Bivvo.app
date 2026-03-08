@@ -73,7 +73,7 @@ const PromoBlockEditor = ({
       return;
     }
     if (file.size > MAX_SIZE) {
-      toast({ title: 'Imagen muy pesada', description: 'Máximo 2 MB', variant: 'destructive' });
+      toast({ title: 'Imagen muy pesada', description: 'Máximo 300 KB', variant: 'destructive' });
       return;
     }
     setUploading(true);
