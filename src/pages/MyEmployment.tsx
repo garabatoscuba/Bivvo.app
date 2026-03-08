@@ -379,24 +379,24 @@ const MyEmployment = () => {
   return (
     <AppLayout title="Mi Empleo">
       <Tabs defaultValue="dashboard" className="space-y-4">
-        <TabsList className="w-full grid grid-cols-5 text-xs sm:text-sm overflow-x-auto">
-          <TabsTrigger value="dashboard" className="gap-1">
+        <TabsList className="w-full flex overflow-x-auto scrollbar-hide gap-1 justify-start bg-muted/50 p-1 rounded-lg">
+          <TabsTrigger value="dashboard" className="gap-1 shrink-0 text-xs sm:text-sm">
             <LayoutDashboard className="h-3.5 w-3.5 hidden sm:block" />
             Dashboard
           </TabsTrigger>
-          <TabsTrigger value="cobros" className="gap-1">
+          <TabsTrigger value="cobros" className="gap-1 shrink-0 text-xs sm:text-sm">
             <DollarSign className="h-3.5 w-3.5 hidden sm:block" />
             Cobros
           </TabsTrigger>
-          <TabsTrigger value="evaluaciones" className="gap-1">
+          <TabsTrigger value="evaluaciones" className="gap-1 shrink-0 text-xs sm:text-sm">
             <Activity className="h-3.5 w-3.5 hidden sm:block" />
             Evaluaciones
           </TabsTrigger>
-          <TabsTrigger value="actividad" className="gap-1">
+          <TabsTrigger value="actividad" className="gap-1 shrink-0 text-xs sm:text-sm">
             <CalendarDays className="h-3.5 w-3.5 hidden sm:block" />
             Actividad
           </TabsTrigger>
-          <TabsTrigger value="info" className="gap-1">
+          <TabsTrigger value="info" className="gap-1 shrink-0 text-xs sm:text-sm">
             <Info className="h-3.5 w-3.5 hidden sm:block" />
             Info
           </TabsTrigger>
