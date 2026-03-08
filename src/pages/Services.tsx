@@ -600,7 +600,7 @@ const OwnerServicesView = () => {
         user_id: user!.id,
         description: entryDescription.trim() || null,
         amount: parseFloat(entryAmount),
-        payment_type: entryPaymentType,
+        payment_type: entryIsMixed ? 'mixed' : entryPaymentType,
         is_catalog: !entryIsLive,
       };
       if (entryIsLive) {
