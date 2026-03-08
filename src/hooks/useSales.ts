@@ -309,6 +309,10 @@ export const useSales = (branchId?: string | null) => {
             const saleItems = items.map(item => {
               const baseCost = Number(item.product.cost_price || 0);
               const fallbackCost = fallbackCostMap.get(item.product.id) || 0;
+              // Pass selected agregos as JSON in notes for the trigger
+              const agregoNotes = item.selectedAgregos?.length
+                ? JSON.stringify(item.selectedAgregos)
+                : null;
 
               return {
                 sale_id: sale.id,
@@ -318,6 +322,7 @@ export const useSales = (branchId?: string | null) => {
                 cost_price: baseCost > 0 ? baseCost : fallbackCost,
                 discount: item.discount,
                 total: item.total,
+                notes: agregoNotes,
               };
             });
 
