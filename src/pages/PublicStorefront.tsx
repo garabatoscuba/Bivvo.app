@@ -22,10 +22,11 @@ export interface StorefrontProduct {
 
 export interface StorefrontReview {
   id: string;
-  rating: number;
+  rating: number | null;
   comment: string | null;
   created_at: string;
   author: string;
+  product_name: string | null;
 }
 
 export interface StorefrontAnnouncement {
