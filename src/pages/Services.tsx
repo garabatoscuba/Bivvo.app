@@ -511,6 +511,9 @@ const OwnerServicesView = () => {
   const [entryDescription, setEntryDescription] = useState('');
   const [entryAmount, setEntryAmount] = useState('');
   const [entryPaymentType, setEntryPaymentType] = useState('cash');
+  const [entryIsMixed, setEntryIsMixed] = useState(false);
+  const [entryMixedCash, setEntryMixedCash] = useState('0');
+  const [entryMixedTransfer, setEntryMixedTransfer] = useState('0');
   const [entryIsLive, setEntryIsLive] = useState(false);
   const [entryLiveName, setEntryLiveName] = useState('');
 
