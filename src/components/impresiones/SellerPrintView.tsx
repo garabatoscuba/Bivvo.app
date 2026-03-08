@@ -358,7 +358,7 @@ const SellerPrintView = () => {
 
           {jobDone ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
-              <CheckCircle2 className="h-16 w-16 text-green-500" />
+              <CheckCircle2 className="h-16 w-16 text-primary" />
               <p className="text-2xl font-bold">${jobDone.total.toFixed(2)}</p>
               {jobDone.change > 0 && (
                 <p className="text-lg text-muted-foreground">Cambio: <span className="font-semibold text-foreground">${jobDone.change.toFixed(2)}</span></p>
