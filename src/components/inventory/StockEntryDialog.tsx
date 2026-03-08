@@ -130,7 +130,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           user_id: profile.user_id,
           quantity: totalQty,
           unit_cost: unitCost ? parseFloat(unitCost) : null,
-          sale_price: newSalePrice ? parseFloat(newSalePrice) : null,
+          sale_price: !isIngrediente && newSalePrice ? parseFloat(newSalePrice) : null,
           supplier: supplier.trim() || null,
           notes: notes.trim() || null,
           reason: reason || null,
