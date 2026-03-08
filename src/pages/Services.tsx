@@ -628,6 +628,9 @@ const OwnerServicesView = () => {
       setEntryAmount('');
       setEntryCategoryId('');
       setEntryPaymentType('cash');
+      setEntryIsMixed(false);
+      setEntryMixedCash('0');
+      setEntryMixedTransfer('0');
       setEntryIsLive(false);
       setEntryLiveName('');
     },
