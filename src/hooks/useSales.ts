@@ -139,22 +139,70 @@ export const useSales = (branchId?: string | null) => {
     mutationFn: async ({ branchId, items, paymentType, discount, amountPaid, customerId, notes, cashAmount, transferAmount }: CreateSaleParams) => {
       if (!user?.id) throw new Error('No hay usuario autenticado');
 
-      if (navigator.onLine) {
-        // Online: use Supabase directly
-        const { data: saleNumber } = await supabase.rpc('generate_sale_number', {
-          _branch_id: branchId,
-        });
-
+      // Helper: save sale offline
+      const saveOffline = async () => {
+        const saleId = crypto.randomUUID();
+        const saleNumber = `VTA-OFF-${Date.now()}`;
         const subtotal = items.reduce((sum, item) => sum + item.total, 0);
         const total = subtotal - discount;
 
-        const { data: sale, error: saleError } = await supabase
-          .from('sales')
-          .insert({
+        const sale = {
+          id: saleId,
+          branch_id: branchId,
+          user_id: user.id,
+          customer_id: customerId || null,
+          sale_number: saleNumber,
+          subtotal,
+          discount,
+          total,
+          payment_type: paymentType,
+          status: paymentType === 'credit' ? 'pending' : 'completed',
+          amount_paid: amountPaid,
+          notes: notes || null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          seller_name: 'Tú',
+          customer_name: 'Público general',
+          cash_amount: cashAmount || 0,
+          transfer_amount: transferAmount || 0,
+          _offline: true,
+        };
+
+        const saleItems = items.map(item => ({
+          id: crypto.randomUUID(),
+          sale_id: saleId,
+          product_id: item.product.id,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          cost_price: item.product.cost_price,
+          discount: item.discount,
+          total: item.total,
+          created_at: new Date().toISOString(),
+          product_name: item.product.name,
+          product_code: item.product.code,
+        }));
+
+        await putInStore('sales', sale);
+        await putManyInStore('sale_items', saleItems);
+
+        for (const item of items) {
+          const stocks = await getAllFromStore<any>('branch_stock', 'by-branch', branchId);
+          const bs = stocks.find(s => s.product_id === item.product.id);
+          if (bs) {
+            bs.quantity = Math.max(0, bs.quantity - item.quantity);
+            await putInStore('branch_stock', bs);
+          }
+        }
+
+        await addPendingOperation({
+          table: 'sales',
+          operation: 'insert',
+          data: {
+            id: saleId,
             branch_id: branchId,
             user_id: user.id,
             customer_id: customerId || null,
-            sale_number: saleNumber || `VTA-${Date.now()}`,
+            sale_number: saleNumber,
             subtotal,
             discount,
             total,
@@ -164,54 +212,123 @@ export const useSales = (branchId?: string | null) => {
             notes: notes || null,
             cash_amount: cashAmount || 0,
             transfer_amount: transferAmount || 0,
-          })
-          .select()
-          .single();
+          },
+          branchId,
+        });
 
-        if (saleError) throw saleError;
-
-        const itemsNeedingFallback = items.filter((item) => Number(item.product.cost_price || 0) <= 0);
-        const fallbackCostMap = new Map<string, number>();
-
-        if (itemsNeedingFallback.length > 0) {
-          const productIds = [...new Set(itemsNeedingFallback.map((item) => item.product.id))];
-          const { data: stockEntries } = await supabase
-            .from('product_stock_entries')
-            .select('product_id, unit_cost, created_at')
-            .eq('branch_id', branchId)
-            .in('product_id', productIds)
-            .gt('unit_cost', 0)
-            .order('created_at', { ascending: false });
-
-          (stockEntries || []).forEach((entry: any) => {
-            if (!fallbackCostMap.has(entry.product_id)) {
-              fallbackCostMap.set(entry.product_id, Number(entry.unit_cost));
-            }
+        for (const si of saleItems) {
+          await addPendingOperation({
+            table: 'sale_items',
+            operation: 'insert',
+            data: {
+              id: si.id,
+              sale_id: saleId,
+              product_id: si.product_id,
+              quantity: si.quantity,
+              unit_price: si.unit_price,
+              cost_price: si.cost_price,
+              discount: si.discount,
+              total: si.total,
+            },
+            branchId,
           });
         }
 
-        const saleItems = items.map(item => {
-          const baseCost = Number(item.product.cost_price || 0);
-          const fallbackCost = fallbackCostMap.get(item.product.id) || 0;
-
-          return {
-            sale_id: sale.id,
-            product_id: item.product.id,
-            quantity: item.quantity,
-            unit_price: item.unitPrice,
-            cost_price: baseCost > 0 ? baseCost : fallbackCost,
-            discount: item.discount,
-            total: item.total,
-          };
-        });
-
-        const { error: itemsError } = await supabase
-          .from('sale_items')
-          .insert(saleItems);
-
-        if (itemsError) throw itemsError;
         return sale;
-      } else {
+      };
+
+      // If clearly offline, skip Supabase entirely
+      if (!navigator.onLine) {
+        return saveOffline();
+      }
+
+      // Online: try Supabase with 5s timeout, fallback to offline on failure
+      const timeoutPromise = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), 5000)
+      );
+
+      try {
+        const onlineResult = await Promise.race([
+          (async () => {
+            const { data: saleNumber } = await supabase.rpc('generate_sale_number', {
+              _branch_id: branchId,
+            });
+
+            const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+            const total = subtotal - discount;
+
+            const { data: sale, error: saleError } = await supabase
+              .from('sales')
+              .insert({
+                branch_id: branchId,
+                user_id: user.id,
+                customer_id: customerId || null,
+                sale_number: saleNumber || `VTA-${Date.now()}`,
+                subtotal,
+                discount,
+                total,
+                payment_type: paymentType,
+                status: paymentType === 'credit' ? 'pending' : 'completed',
+                amount_paid: amountPaid,
+                notes: notes || null,
+                cash_amount: cashAmount || 0,
+                transfer_amount: transferAmount || 0,
+              })
+              .select()
+              .single();
+
+            if (saleError) throw saleError;
+
+            const itemsNeedingFallback = items.filter((item) => Number(item.product.cost_price || 0) <= 0);
+            const fallbackCostMap = new Map<string, number>();
+
+            if (itemsNeedingFallback.length > 0) {
+              const productIds = [...new Set(itemsNeedingFallback.map((item) => item.product.id))];
+              const { data: stockEntries } = await supabase
+                .from('product_stock_entries')
+                .select('product_id, unit_cost, created_at')
+                .eq('branch_id', branchId)
+                .in('product_id', productIds)
+                .gt('unit_cost', 0)
+                .order('created_at', { ascending: false });
+
+              (stockEntries || []).forEach((entry: any) => {
+                if (!fallbackCostMap.has(entry.product_id)) {
+                  fallbackCostMap.set(entry.product_id, Number(entry.unit_cost));
+                }
+              });
+            }
+
+            const saleItems = items.map(item => {
+              const baseCost = Number(item.product.cost_price || 0);
+              const fallbackCost = fallbackCostMap.get(item.product.id) || 0;
+
+              return {
+                sale_id: sale.id,
+                product_id: item.product.id,
+                quantity: item.quantity,
+                unit_price: item.unitPrice,
+                cost_price: baseCost > 0 ? baseCost : fallbackCost,
+                discount: item.discount,
+                total: item.total,
+              };
+            });
+
+            const { error: itemsError } = await supabase
+              .from('sale_items')
+              .insert(saleItems);
+
+            if (itemsError) throw itemsError;
+            return sale;
+          })(),
+          timeoutPromise,
+        ]);
+
+        return onlineResult;
+      } catch (err) {
+        console.warn('[POS] Supabase failed or timed out, saving offline:', err);
+        return saveOffline();
+      }
         // Offline: save to IndexedDB and queue for sync
         const saleId = crypto.randomUUID();
         const saleNumber = `VTA-OFF-${Date.now()}`;
