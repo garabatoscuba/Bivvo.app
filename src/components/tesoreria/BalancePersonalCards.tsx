@@ -182,6 +182,21 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
     enabled: !!businessId,
   });
 
+  // Print jobs (copy_shop only)
+  const { data: printJobSales = 0 } = useQuery({
+    queryKey: ["bp-print-jobs", businessId, branchId, period, saleBranchIds],
+    queryFn: async () => {
+      let q = supabase.from("print_jobs").select("total").eq("business_id", businessId);
+      if (branchId) q = q.eq("branch_id", branchId);
+      else if (saleBranchIds.length) q = q.in("branch_id", saleBranchIds);
+      if (from) q = q.gte("created_at", from);
+      q = q.lte("created_at", to);
+      const { data } = await q;
+      return data?.reduce((sum, r) => sum + Number(r.total || 0), 0) || 0;
+    },
+    enabled: !!businessId && isCopyShop,
+  });
+
   // Injections
   const { data: injections = 0 } = useQuery({
     queryKey: ["bp-injections", businessId, branchId, period],
