@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, PackagePlus, Send, Loader2, AlertTriangle } from 'lucide-react';
+import { Plus, PackagePlus, Send, Loader2, AlertTriangle, Pencil } from 'lucide-react';
 
 const InsumosTab = () => {
   const { data: materials = [], isLoading } = useRawMaterials();
@@ -91,11 +91,12 @@ const InsumosTab = () => {
               <TableHead className="text-right">Mínimo</TableHead>
               <TableHead className="text-right">Costo prom.</TableHead>
               <TableHead className="text-right">% Tinta</TableHead>
+              <TableHead className="w-10"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {materials.length === 0 ? (
-              <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin insumos registrados</TableCell></TableRow>
+              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin insumos registrados</TableCell></TableRow>
             ) : materials.map((m: any) => {
               const lowStock = m.stock_almacen < m.stock_minimo;
               return (
@@ -116,6 +117,14 @@ const InsumosTab = () => {
                   <TableCell className="text-right">{m.stock_minimo}</TableCell>
                   <TableCell className="text-right">${m.costo_unitario}</TableCell>
                   <TableCell className="text-right">{m.porcentaje_tinta}%</TableCell>
+                  <TableCell className="text-right">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
+                      setMatForm({ name: m.name, material_type_id: m.material_type_id || '', stock_minimo: m.stock_minimo, porcentaje_tinta: m.porcentaje_tinta, id: m.id } as any);
+                      setNewOpen(true);
+                    }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
@@ -124,9 +133,9 @@ const InsumosTab = () => {
       </div>
 
       {/* New Material Dialog */}
-      <Dialog open={newOpen} onOpenChange={setNewOpen}>
+      <Dialog open={newOpen} onOpenChange={(open) => { setNewOpen(open); if (!open) setMatForm({ name: '', material_type_id: '', stock_minimo: 0, porcentaje_tinta: 0 }); }}>
         <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
-          <DialogHeader><DialogTitle>Nuevo insumo</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{(matForm as any).id ? 'Editar insumo' : 'Nuevo insumo'}</DialogTitle></DialogHeader>
           <div className="space-y-3 overflow-y-auto flex-1 pr-1">
             <div>
               <Label>Nombre</Label>
