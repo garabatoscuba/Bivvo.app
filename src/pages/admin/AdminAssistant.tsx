@@ -492,6 +492,93 @@ function QuickActionsTab() {
   );
 }
 
+// ─── Module Instructions Tab ───
+function ModuleInstructionsTab() {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+
+  const MODULES = [
+    { key: 'dashboard', label: 'Dashboard' },
+    { key: 'pos', label: 'POS' },
+    { key: 'inventario', label: 'Inventario' },
+    { key: 'servicios', label: 'Servicios' },
+    { key: 'ventas', label: 'Ventas' },
+    { key: 'reportes', label: 'Reportes' },
+    { key: 'empleados', label: 'Empleados' },
+    { key: 'nomina', label: 'Nómina' },
+    { key: 'caja', label: 'Caja' },
+    { key: 'contabilidad', label: 'Contabilidad' },
+    { key: 'pedidos', label: 'Pedidos' },
+    { key: 'portal', label: 'Portal' },
+    { key: 'mi_empleo', label: 'Mi Empleo' },
+    { key: 'mi_red', label: 'Mi Red' },
+  ];
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ['assistant-module-instructions'],
+    queryFn: async () => {
+      const { data } = await supabase.from('assistant_module_instructions').select('*');
+      return (data || []) as any[];
+    },
+  });
+
+  const [values, setValues] = useState<Record<string, string>>({});
+  const [initialized, setInitialized] = useState(false);
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+
+  if (!initialized && items.length > 0) {
+    const v: Record<string, string> = {};
+    items.forEach((i: any) => { v[i.module_key] = i.instructions || ''; });
+    setValues(v);
+    setInitialized(true);
+  }
+
+  const handleSave = async (moduleKey: string) => {
+    setSavingKey(moduleKey);
+    try {
+      const { error } = await supabase
+        .from('assistant_module_instructions')
+        .update({ instructions: values[moduleKey] || '', updated_at: new Date().toISOString() } as any)
+        .eq('module_key', moduleKey);
+      if (error) throw error;
+      qc.invalidateQueries({ queryKey: ['assistant-module-instructions'] });
+      toast({ title: 'Instrucciones guardadas' });
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message, variant: 'destructive' });
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">Instrucciones específicas que la IA recibe según el módulo donde esté el usuario. Se agregan al system prompt junto con las instrucciones base.</p>
+      {MODULES.map(mod => (
+        <Card key={mod.key}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-base">{mod.label}</CardTitle>
+            <CardDescription className="text-xs">Instrucciones inyectadas cuando el usuario está en este módulo</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Textarea
+              value={values[mod.key] || ''}
+              onChange={e => setValues(p => ({ ...p, [mod.key]: e.target.value }))}
+              rows={4}
+              placeholder={`Instrucciones para el módulo ${mod.label}...`}
+            />
+            <Button size="sm" onClick={() => handleSave(mod.key)} disabled={savingKey === mod.key}>
+              {savingKey === mod.key ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Guardar
+            </Button>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
+
 // ─── Lazy-loaded new tabs ───
 import AssistantFeaturesTab from '@/components/admin/AssistantFeaturesTab';
 import AnnouncementsTab from '@/components/admin/AnnouncementsTab';
@@ -507,6 +594,7 @@ export default function AdminAssistant() {
             <TabsTrigger value="features" className="gap-1.5 text-xs"><Sparkles className="h-3.5 w-3.5" /> Funciones</TabsTrigger>
             <TabsTrigger value="announcements" className="gap-1.5 text-xs"><Megaphone className="h-3.5 w-3.5" /> Anuncios</TabsTrigger>
             <TabsTrigger value="instructions" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por tipo</TabsTrigger>
+            <TabsTrigger value="by-module" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por módulo</TabsTrigger>
             <TabsTrigger value="training" className="gap-1.5 text-xs"><GraduationCap className="h-3.5 w-3.5" /> Entrenamiento</TabsTrigger>
             <TabsTrigger value="history" className="gap-1.5 text-xs"><History className="h-3.5 w-3.5" /> Historial</TabsTrigger>
             <TabsTrigger value="actions" className="gap-1.5 text-xs"><Zap className="h-3.5 w-3.5" /> Acciones</TabsTrigger>
@@ -517,6 +605,7 @@ export default function AdminAssistant() {
         <TabsContent value="features"><AssistantFeaturesTab /></TabsContent>
         <TabsContent value="announcements"><AnnouncementsTab /></TabsContent>
         <TabsContent value="instructions"><InstructionsTab /></TabsContent>
+        <TabsContent value="by-module"><ModuleInstructionsTab /></TabsContent>
         <TabsContent value="training"><TrainingTab /></TabsContent>
         <TabsContent value="history"><HistoryTab /></TabsContent>
         <TabsContent value="actions"><QuickActionsTab /></TabsContent>

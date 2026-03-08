@@ -678,6 +678,27 @@ export type Database = {
         }
         Relationships: []
       }
+      assistant_module_instructions: {
+        Row: {
+          id: string
+          instructions: string
+          module_key: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          instructions?: string
+          module_key: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          instructions?: string
+          module_key?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       assistant_training_examples: {
         Row: {
           answer: string
