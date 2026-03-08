@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useActiveSheets, useSheetHistory, useOpenSheet, useCloseSheet, useRawMaterials, usePrintMaterialTypes } from '@/hooks/usePrintData';
+import { useActiveSheets, useSheetHistory, useCloseSheet, useRawMaterials, usePrintMaterialTypes } from '@/hooks/usePrintData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
