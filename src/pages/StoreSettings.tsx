@@ -274,6 +274,17 @@ const StoreSettingsPage = () => {
     },
   });
 
+  const deleteReviewMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('reviews').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reviews-admin', branchId] });
+      toastFn({ title: 'Reseña eliminada' });
+    },
+  });
+
   // Affiliates
   const { data: affiliates = [], isLoading: affiliatesLoading } = useQuery({
     queryKey: ['affiliates-admin', branchId],
