@@ -21,6 +21,7 @@ const ActiveSheetsSection = () => {
   const { data: activeSheets = [], isLoading } = useActiveSheets();
   const { data: sheetHistory = [] } = useSheetHistory();
   const openSheet = useOpenSheet();
+  const closeSheet = useCloseSheet();
 
   const [openDialog, setOpenDialog] = useState(false);
   const [form, setForm] = useState({ material_id: '', tramos_total: 4 });
