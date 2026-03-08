@@ -133,6 +133,7 @@ const paymentLabels: Record<string, string> = {
   cash: 'Efectivo',
   transfer: 'Transferencia',
   card: 'Tarjeta',
+  mixed: 'Mixto',
 };
 
 // ─── Shared: Recent entries list ───
