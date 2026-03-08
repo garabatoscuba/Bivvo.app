@@ -432,30 +432,51 @@ const SellerPrintView = () => {
                   {jobItems.map((item, idx) => {
                     const svc = activeServices.find((s: any) => s.id === item.service_type_id);
                     return (
-                      <div key={idx} className="flex items-center gap-2 rounded-lg border p-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{item.service_name}</p>
+                      <div key={idx} className="rounded-lg border p-2 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{item.service_name}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Input
+                              type="number"
+                              min={1}
+                              className="h-7 w-14 text-xs text-center"
+                              value={item.cantidad}
+                              onChange={e => updateJobItem(idx, 'cantidad', parseInt(e.target.value) || 1)}
+                            />
+                            <span className="text-xs text-muted-foreground">×</span>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              className="h-7 w-20 text-xs text-right"
+                              value={item.precio_cobrado}
+                              onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)}
+                            />
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeJobItem(idx)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Input
-                            type="number"
-                            min={1}
-                            className="h-7 w-14 text-xs text-center"
-                            value={item.cantidad}
-                            onChange={e => updateJobItem(idx, 'cantidad', parseInt(e.target.value) || 1)}
-                          />
-                          <span className="text-xs text-muted-foreground">×</span>
-                          <Input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            className="h-7 w-20 text-xs text-right"
-                            value={item.precio_cobrado}
-                            onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)}
-                          />
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeJobItem(idx)}>
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
+                        {/* Switches: doble cara & color */}
+                        <div className="flex items-center gap-4 pl-1">
+                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                            <Switch
+                              className="scale-75"
+                              checked={item.es_doble_cara}
+                              onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)}
+                            />
+                            Doble cara
+                          </label>
+                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                            <Switch
+                              className="scale-75"
+                              checked={item.es_color}
+                              onCheckedChange={v => updateJobItem(idx, 'es_color', v)}
+                            />
+                            Color
+                          </label>
                         </div>
                       </div>
                     );
