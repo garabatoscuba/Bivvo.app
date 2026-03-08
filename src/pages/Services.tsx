@@ -268,7 +268,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
         user_id: user!.id,
         description: description.trim() || null,
         amount: parseFloat(amount),
-        payment_type: paymentType,
+        payment_type: isMixed ? 'mixed' : paymentType,
         is_catalog: !isLiveService,
       };
       if (isLiveService) {
