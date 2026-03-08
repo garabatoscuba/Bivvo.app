@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { ShoppingBag, Plus, LayoutGrid, List, Heart, Star } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { ShoppingBag, Plus, LayoutGrid, List, Heart, Star, Share2 } from 'lucide-react';
 import type { StorefrontProduct } from '@/pages/PublicStorefront';
 import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
 import StorefrontProductDetail from '@/components/storefront/StorefrontProductDetail';
+import { useToast } from '@/hooks/use-toast';
 
 type ViewMode = 'grid' | 'list';
 type SortMode = 'default' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
