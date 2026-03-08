@@ -27,6 +27,7 @@ interface JobItem {
   service_name: string;
   cantidad: number;
   es_doble_cara: boolean;
+  es_color: boolean;
   precio_cobrado: number;
   costo_insumo: number;
   material_consumed: number;
