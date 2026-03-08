@@ -112,6 +112,7 @@ const Inventory = () => {
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<(Product & { category: Category | null }) | null>(null);
   const [mainTab, setMainTab] = useState<string>('products');
+  const [productTypeTab, setProductTypeTab] = useState<'reventa' | 'cocina'>('reventa');
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [stockEntryProduct, setStockEntryProduct] = useState<Product | null>(null);
   const [transferQty, setTransferQty] = useState(0);
