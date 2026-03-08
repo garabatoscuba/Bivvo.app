@@ -134,11 +134,15 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
   const [newGramaje, setNewGramaje] = useState('');
 
   const handleAddIngredient = () => {
-    if (!newIngredientId || !newQuantity) return;
+    if (newType === 'agrego') {
+      if (!newIngredientId || !newGramaje) return;
+    } else {
+      if (!newIngredientId || !newQuantity) return;
+    }
     const ing = ingredients.find(i => i.id === newIngredientId);
     addIngredient.mutate({
       ingredientId: newIngredientId,
-      quantity: Number(newQuantity),
+      quantity: newType === 'agrego' ? Number(newGramaje) : Number(newQuantity),
       unit: newUnit || ing?.unit_of_measure || 'Pieza',
       ingredientType: newType,
       gramaje: newType === 'agrego' ? Number(newGramaje) || 0 : 0,
