@@ -240,6 +240,43 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
     enabled: !!businessId && mode === "real",
   });
 
+  // Raw material COGS (Operativo, copy_shop only) — sum costo_insumo from print_job_items
+  const { data: materialCostOperativo = 0 } = useQuery({
+    queryKey: ["bp-material-cogs", businessId, branchId, period, saleBranchIds],
+    queryFn: async () => {
+      let jq = supabase.from("print_jobs").select("id").eq("business_id", businessId);
+      if (branchId) jq = jq.eq("branch_id", branchId);
+      else if (saleBranchIds.length) jq = jq.in("branch_id", saleBranchIds);
+      if (from) jq = jq.gte("created_at", from);
+      jq = jq.lte("created_at", to);
+      const { data: jobs } = await jq;
+      if (!jobs?.length) return 0;
+      const jobIds = jobs.map((j: any) => j.id);
+      let total = 0;
+      for (let i = 0; i < jobIds.length; i += 50) {
+        const chunk = jobIds.slice(i, i + 50);
+        const { data: items } = await supabase.from("print_job_items").select("costo_insumo").in("job_id", chunk);
+        total += (items || []).reduce((s: number, it: any) => s + Number(it.costo_insumo || 0), 0);
+      }
+      return total;
+    },
+    enabled: !!businessId && isCopyShop && mode === "operativo",
+  });
+
+  // Raw material purchases (Real, copy_shop only)
+  const { data: materialPurchasesReal = 0 } = useQuery({
+    queryKey: ["bp-material-purchases", businessId, branchId, period],
+    queryFn: async () => {
+      let q = supabase.from("raw_material_entries").select("cantidad, costo_unitario").eq("business_id", businessId);
+      if (branchId) q = q.eq("branch_id", branchId);
+      if (from) q = q.gte("created_at", from);
+      q = q.lte("created_at", to);
+      const { data } = await q;
+      return (data || []).reduce((sum: number, e: any) => sum + Number(e.cantidad || 0) * Number(e.costo_unitario || 0), 0);
+    },
+    enabled: !!businessId && isCopyShop && mode === "real",
+  });
+
   // Salaries paid
   const { data: salariesPaid = 0 } = useQuery({
     queryKey: ["bp-salaries", businessId, branchId, period],
