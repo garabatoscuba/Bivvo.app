@@ -63,6 +63,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     onOpenChange(value);
   };
 
+  const isIngrediente = product?.tipo === 'ingrediente';
   const totalQty = qtyForSale + qtyWarehouse;
   const reasonLabel = ENTRY_REASONS.find(r => r.value === reason)?.label || reason;
 
@@ -100,9 +101,11 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
 
       const detailParts = [
         `Entrada: ${reasonLabel}`,
-        `${qtyForSale} venta, ${qtyWarehouse} almacén`,
+        isIngrediente
+          ? `${qtyForSale} cocina, ${qtyWarehouse} almacén`
+          : `${qtyForSale} venta, ${qtyWarehouse} almacén`,
         `Costo: $${parseFloat(unitCost).toFixed(2)}`,
-        `Venta: $${parseFloat(newSalePrice).toFixed(2)}`,
+        ...(!isIngrediente ? [`Venta: $${parseFloat(newSalePrice).toFixed(2)}`] : []),
         `Origen: ${origin.trim()}`,
         `Autoriza: ${authorizedBy.trim()}`,
         notes.trim() ? `Obs: ${notes.trim()}` : null,
@@ -127,15 +130,15 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           user_id: profile.user_id,
           quantity: totalQty,
           unit_cost: unitCost ? parseFloat(unitCost) : null,
-          sale_price: newSalePrice ? parseFloat(newSalePrice) : null,
+          sale_price: !isIngrediente && newSalePrice ? parseFloat(newSalePrice) : null,
           supplier: supplier.trim() || null,
           notes: notes.trim() || null,
           reason: reason || null,
         });
       }
 
-      // Update product sale_price if user provided a new one
-      if (newSalePrice && parseFloat(newSalePrice) > 0) {
+      // Update product sale_price if user provided a new one (not for ingredientes)
+      if (!isIngrediente && newSalePrice && parseFloat(newSalePrice) > 0) {
         await supabase
           .from('products')
           .update({ sale_price: parseFloat(newSalePrice) })
@@ -180,7 +183,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           {/* Quantities */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>Cantidad a venta</Label>
+              <Label>{isIngrediente ? 'Cantidad a cocina' : 'Cantidad a venta'}</Label>
               <Input
                 type="number"
                 min={0}
@@ -244,7 +247,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           </div>
 
           {/* Cost & Price */}
-          <div className="grid grid-cols-2 gap-4">
+          <div className={isIngrediente ? '' : 'grid grid-cols-2 gap-4'}>
             <div className="space-y-1.5">
               <Label className="flex items-center gap-1.5">
                 <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
@@ -260,21 +263,23 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
                 required
               />
             </div>
-            <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5">
-                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
-                Precio de venta
-              </Label>
-              <Input
-                type="number"
-                min={0}
-                step="0.01"
-                placeholder="Nuevo precio de venta"
-                value={newSalePrice}
-                onChange={(e) => setNewSalePrice(e.target.value)}
-                required
-              />
-            </div>
+            {!isIngrediente && (
+              <div className="space-y-1.5">
+                <Label className="flex items-center gap-1.5">
+                  <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                  Precio de venta
+                </Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="Nuevo precio de venta"
+                  value={newSalePrice}
+                  onChange={(e) => setNewSalePrice(e.target.value)}
+                  required
+                />
+              </div>
+            )}
           </div>
 
           {/* Notes */}
