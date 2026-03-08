@@ -59,6 +59,7 @@ const PromoBlockEditor = ({
         text_primary: existing.text_primary || '',
         text_secondary: existing.text_secondary || '',
         link_target: existing.link_target || 'products',
+        is_active: existing.is_active ?? true,
       });
     }
   }, [existing]);
