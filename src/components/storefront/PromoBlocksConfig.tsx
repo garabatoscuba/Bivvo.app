@@ -11,7 +11,7 @@ import { Switch } from '@/components/ui/switch';
 import { Loader2, Upload, Trash2, Save, ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
-const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
+const MAX_SIZE = 300 * 1024; // 300 KB
 
 interface BlockData {
   image_url: string;
