@@ -803,6 +803,7 @@ export default function AdminAssistant() {
             <TabsTrigger value="config" className="gap-1.5 text-xs"><Settings className="h-3.5 w-3.5" /> Configuración</TabsTrigger>
             <TabsTrigger value="features" className="gap-1.5 text-xs"><Sparkles className="h-3.5 w-3.5" /> Funciones</TabsTrigger>
             <TabsTrigger value="announcements" className="gap-1.5 text-xs"><Megaphone className="h-3.5 w-3.5" /> Anuncios</TabsTrigger>
+            <TabsTrigger value="questions" className="gap-1.5 text-xs"><MessageSquare className="h-3.5 w-3.5" /> Preguntas</TabsTrigger>
             <TabsTrigger value="instructions" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por tipo</TabsTrigger>
             <TabsTrigger value="by-module" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por módulo</TabsTrigger>
             <TabsTrigger value="training" className="gap-1.5 text-xs"><GraduationCap className="h-3.5 w-3.5" /> Entrenamiento</TabsTrigger>
@@ -814,6 +815,7 @@ export default function AdminAssistant() {
         <TabsContent value="config"><ConfigGlobalTab /></TabsContent>
         <TabsContent value="features"><AssistantFeaturesTab /></TabsContent>
         <TabsContent value="announcements"><AnnouncementsTab /></TabsContent>
+        <TabsContent value="questions"><GeneralQuestionsTab /></TabsContent>
         <TabsContent value="instructions"><InstructionsTab /></TabsContent>
         <TabsContent value="by-module"><ModuleInstructionsTab /></TabsContent>
         <TabsContent value="training"><TrainingTab /></TabsContent>

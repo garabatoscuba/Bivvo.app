@@ -219,7 +219,7 @@ NO inventes funcionalidades, flujos ni opciones que no estén descritas en tus i
       moduleContext,
       trainingBlock,
       dataBlock,
-      `Responde en español, conciso. No inventes datos. Si no sabes algo sobre Bivoo, admítelo. Al final agrega: [SUGERENCIAS]pregunta1|pregunta2|pregunta3 (cortas, max 8 palabras, solo sobre Bivoo).`,
+      `SUGERENCIAS: Al final de CADA respuesta agrega exactamente: [SUGERENCIAS]pregunta1|pregunta2|pregunta3 — las sugerencias DEBEN ser relevantes al tema de la conversación actual o al módulo activo (${active_module || 'general'}). NO uses preguntas genéricas si se está hablando de un tema específico. Máximo 8 palabras por sugerencia, solo sobre Bivoo y el módulo actual. Responde en español, conciso. No inventes datos. Si no sabes algo sobre Bivoo, admítelo.`,
     ]
       .filter(Boolean)
       .join("\n");
