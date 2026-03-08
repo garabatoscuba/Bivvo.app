@@ -139,7 +139,7 @@ export const useSales = (branchId?: string | null) => {
     mutationFn: async ({ branchId, items, paymentType, discount, amountPaid, customerId, notes, cashAmount, transferAmount }: CreateSaleParams) => {
       if (!user?.id) throw new Error('No hay usuario autenticado');
 
-      if (isOnline) {
+      if (navigator.onLine) {
         // Online: use Supabase directly
         const { data: saleNumber } = await supabase.rpc('generate_sale_number', {
           _branch_id: branchId,
