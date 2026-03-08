@@ -175,12 +175,25 @@ const Inventory = () => {
     warehouseStockMap.set(bs.product_id, bs.warehouse_quantity || 0);
   });
 
+  // Check if business has kitchen products
+  const hasKitchenProducts = useMemo(() => 
+    products.some((p: any) => p.tipo === 'ingrediente' || p.tipo === 'elaborado'),
+    [products]
+  );
+
   // Filter products (all statuses except discontinued)
   const filteredProducts = useMemo(() => products.filter((product) => {
     const matchesSearch = !search || 
       product.name.toLowerCase().includes(search.toLowerCase()) ||
       product.code.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch || product.status === 'discontinued') return false;
+
+    // Type filter: only apply if business has kitchen products
+    if (hasKitchenProducts) {
+      const tipo = (product as any).tipo || 'reventa';
+      if (productTypeTab === 'reventa' && tipo !== 'reventa') return false;
+      if (productTypeTab === 'cocina' && tipo === 'reventa') return false;
+    }
     
     if (!activeFilter) return true;
     
@@ -194,7 +207,7 @@ const Inventory = () => {
       case 'outOfStock': return stock <= 0 && product.status === 'for_sale';
       default: return true;
     }
-  }), [products, search, activeFilter, stockMap, warehouseStockMap]);
+  }), [products, search, activeFilter, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab]);
 
   // Group products by category
   const groupedProducts = useMemo(() => {
