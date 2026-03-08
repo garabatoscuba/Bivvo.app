@@ -423,7 +423,7 @@ const AppSidebar = () => {
     Caja: "/caja",
     Tesorería: "/tesoreria",
     Contabilidad: "/contabilidad",
-    Impresiones2: "/impresiones",
+    Impresiones: "/impresiones",
   };
 
   // Owner sees both Tesorería and Caja as separate sidebar items
@@ -442,7 +442,7 @@ const AppSidebar = () => {
   // Manager-allowed module names
   const MANAGER_ALLOWED_MODULES = new Set([
     "Punto de Venta", "Servicios", "Caja", "Inventario",
-    "Pedidos", "Reportes", "Recursos Humanos", "Ventas",
+    "Pedidos", "Reportes", "Recursos Humanos", "Ventas", "Impresiones",
   ]);
   // Modules the manager can see WITHOUT an active jornada (only Empleados)
   const MANAGER_NO_JORNADA_MODULES = new Set(["Recursos Humanos"]);
@@ -462,7 +462,7 @@ const AppSidebar = () => {
 
   // Seller-allowed module names
   const SELLER_ALLOWED_MODULES = new Set([
-    "Punto de Venta", "Servicios", "Caja", "Ventas",
+    "Punto de Venta", "Servicios", "Caja", "Ventas", "Impresiones",
   ]);
 
   // Helper to resolve icon from sidebarModules by module name, with fallback
