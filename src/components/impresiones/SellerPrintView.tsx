@@ -462,7 +462,7 @@ const SellerPrintView = () => {
                           <Label className="text-xs">Monto recibido</Label>
                           <Input type="number" min={0} step="0.01" value={amountReceived} onChange={e => setAmountReceived(e.target.value)} placeholder={jobTotal.toFixed(2)} />
                           {parseFloat(amountReceived) > jobTotal && (
-                            <p className="text-sm text-green-600 font-medium mt-1">Cambio: ${(parseFloat(amountReceived) - jobTotal).toFixed(2)}</p>
+                            <p className="text-sm text-primary font-medium mt-1">Cambio: ${(parseFloat(amountReceived) - jobTotal).toFixed(2)}</p>
                           )}
                         </div>
                       )}
