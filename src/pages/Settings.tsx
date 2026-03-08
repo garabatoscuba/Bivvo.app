@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Shield, Loader2, Save, Eye, EyeOff, Database } from 'lucide-react';
+import { User, Shield, Loader2, Save, Eye, EyeOff } from 'lucide-react';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,61 +9,56 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import JornadaQR from '@/components/employees/JornadaQR';
 import DataManagement from '@/components/settings/DataManagement';
 
 const Settings = () => {
-  const { profile, user, isOwner, isManager } = useAuth();
-  const showDataTab = isOwner;
-  const cols = showDataTab ? 3 : 2;
+  const { profile, user, isOwner } = useAuth();
 
   return (
     <AppLayout title="Configuración">
       <div className="mx-auto max-w-3xl space-y-6">
         <Tabs defaultValue="profile" className="w-full">
-          <TabsList className={`grid w-full`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="profile" className="gap-1.5 text-xs sm:text-sm">
               <User className="h-4 w-4" /> Perfil
             </TabsTrigger>
             <TabsTrigger value="security" className="gap-1.5 text-xs sm:text-sm">
               <Shield className="h-4 w-4" /> Seguridad
             </TabsTrigger>
-            {showDataTab && (
-              <TabsTrigger value="data" className="gap-1.5 text-xs sm:text-sm">
-                <Database className="h-4 w-4" /> Datos
-              </TabsTrigger>
-            )}
           </TabsList>
 
           <TabsContent value="profile">
-            <ProfileSection profile={profile} userId={user?.id} />
+            <div className="space-y-6">
+              <ProfileSection profile={profile} userId={user?.id} />
+              {isOwner && <DataManagement />}
+            </div>
           </TabsContent>
           <TabsContent value="security">
             <SecuritySection />
           </TabsContent>
-          {showDataTab && (
-            <TabsContent value="data">
-              <DataManagement />
-            </TabsContent>
-          )}
         </Tabs>
-
-        {/* QR de Jornada - solo owner/manager */}
-        {(isOwner || isManager) && <JornadaQR />}
       </div>
     </AppLayout>
   );
 };
 
 // ── Profile Section ──
+function looksEncrypted(name: string | null | undefined): boolean {
+  if (!name) return true;
+  // Apple-style encrypted names or random strings
+  return /^[a-f0-9]{8,}$/i.test(name) || /^[A-Za-z0-9+/=]{20,}$/.test(name) || name.includes('privaterelay');
+}
+
 function ProfileSection({ profile, userId }: { profile: any; userId?: string }) {
   const [fullName, setFullName] = useState('');
+  const [displayName, setDisplayName] = useState('');
   const [phone, setPhone] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (profile) {
       setFullName(profile.full_name || '');
+      setDisplayName(looksEncrypted(profile.full_name) ? '' : (profile.full_name || ''));
       setPhone(profile.phone || '');
     }
   }, [profile]);
@@ -71,9 +66,10 @@ function ProfileSection({ profile, userId }: { profile: any; userId?: string }) 
   const handleSave = async () => {
     if (!userId) return;
     setSaving(true);
+    const finalName = displayName.trim() || fullName;
     const { error } = await supabase
       .from('profiles')
-      .update({ full_name: fullName, phone: phone || null })
+      .update({ full_name: finalName, phone: phone || null })
       .eq('user_id', userId);
     setSaving(false);
     if (error) {
@@ -99,8 +95,20 @@ function ProfileSection({ profile, userId }: { profile: any; userId?: string }) 
           <Input id="email" value={profile?.email || ''} disabled className="opacity-60" />
         </div>
         <div className="space-y-2">
+          <Label htmlFor="displayName">Confirmar nombre para mostrar</Label>
+          <Input
+            id="displayName"
+            value={displayName}
+            onChange={e => setDisplayName(e.target.value)}
+            placeholder="¿Cómo quieres que te llamen?"
+          />
+          <p className="text-xs text-muted-foreground">
+            Algunos métodos de inicio de sesión como Apple generan nombres encriptados. Confirma aquí tu nombre real.
+          </p>
+        </div>
+        <div className="space-y-2">
           <Label htmlFor="phone">Teléfono</Label>
-          <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+591 ..." />
+          <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+53" />
         </div>
         <Button onClick={handleSave} disabled={saving} className="gap-2">
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
