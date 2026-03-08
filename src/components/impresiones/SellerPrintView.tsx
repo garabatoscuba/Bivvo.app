@@ -6,7 +6,7 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { useToast } from '@/hooks/use-toast';
 import { useQueryClient, useQuery, useMutation } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,9 +19,10 @@ import { Separator } from '@/components/ui/separator';
 import {
   Printer, Package, AlertTriangle, Plus, Trash2, Loader2,
   Banknote, ArrowLeftRight, ClipboardMinus, ChefHat, CheckCircle2,
-  Smartphone, RotateCcw, AlertCircle,
+  Smartphone, RotateCcw, AlertCircle, CreditCard, DollarSign, Send,
 } from 'lucide-react';
 import { getIconComponent } from '@/components/services/IconSelector';
+import { cn } from '@/lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────
 interface JobItem {
@@ -37,7 +38,7 @@ interface JobItem {
   nota: string;
 }
 
-type PaymentMethod = 'cash' | 'transfer' | 'mixed';
+type PaymentMethod = 'cash' | 'transfer' | 'card' | 'mixed';
 const QUICK_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000];
 
 // ─── Component ────────────────────────────────────────────────
@@ -55,7 +56,7 @@ const SellerPrintView = () => {
   const activeServices = useMemo(() => services.filter((s: any) => s.is_active), [services]);
 
   // Active cash register for this user
-  const { data: activeCaja } = useQuery({
+  const { data: activeCaja, isLoading: loadingCaja } = useQuery({
     queryKey: ['active-cash-register', branchId, user?.id],
     queryFn: async () => {
       if (!branchId || !user?.id) return null;
@@ -71,15 +72,36 @@ const SellerPrintView = () => {
     enabled: !!branchId && !!user?.id,
   });
 
-  // ─── Job Modal ──────────────────────────────────────────────
-  const [jobOpen, setJobOpen] = useState(false);
+  // Recent jobs for today
+  const { data: recentJobs = [], isLoading: loadingJobs } = useQuery({
+    queryKey: ['print-jobs-recent', businessId, branchId, user?.id],
+    queryFn: async () => {
+      if (!businessId || !branchId) return [];
+      const today = new Date().toISOString().split('T')[0];
+      const { data, error } = await supabase
+        .from('print_jobs')
+        .select('*, print_job_items(service_type_id, cantidad, precio_cobrado)')
+        .eq('business_id', businessId)
+        .eq('branch_id', branchId)
+        .eq('user_id', user!.id)
+        .gte('created_at', today + 'T00:00:00')
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!businessId && !!branchId && !!user?.id,
+  });
+
+  const todayTotal = useMemo(() => recentJobs.reduce((s: number, j: any) => s + Number(j.total), 0), [recentJobs]);
+
+  // ─── Inline Job State ──────────────────────────────────────
   const [jobItems, setJobItems] = useState<JobItem[]>([]);
+  const [description, setDescription] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('cash');
-  const [amountReceived, setAmountReceived] = useState('');
   const [isMixed, setIsMixed] = useState(false);
   const [mixedCash, setMixedCash] = useState('0');
   const [mixedTransfer, setMixedTransfer] = useState('0');
-  const [jobDone, setJobDone] = useState<{ total: number; change: number } | null>(null);
 
   // ─── Shrinkage Modal ───────────────────────────────────────
   const [shrinkOpen, setShrinkOpen] = useState(false);
@@ -114,7 +136,6 @@ const SellerPrintView = () => {
     setJobItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
       const updated = { ...item, [field]: value };
-      // Recalc cost when quantity changes
       if (field === 'cantidad') {
         const svc = activeServices.find((s: any) => s.id === item.service_type_id);
         if (svc && svc.material_id) {
@@ -146,12 +167,45 @@ const SellerPrintView = () => {
 
   const hasStockIssue = materialConsumption.some(([, v]) => v.needed > v.available);
 
+  // Payment helpers
+  const paymentOptions: { value: PaymentMethod; label: string; Icon: React.ElementType }[] = [
+    { value: 'cash', label: 'Efectivo', Icon: Banknote },
+    { value: 'card', label: 'Tarjeta', Icon: CreditCard },
+    { value: 'transfer', label: 'Transferencia', Icon: Smartphone },
+  ];
+
+  const handlePaymentSelect = (value: PaymentMethod) => {
+    if (isMixed) {
+      if (value === 'cash' || value === 'transfer') {
+        setIsMixed(false);
+        setPaymentMethod(value);
+        return;
+      }
+    }
+    if (
+      (paymentMethod === 'cash' && value === 'transfer') ||
+      (paymentMethod === 'transfer' && value === 'cash')
+    ) {
+      setIsMixed(true);
+      setMixedCash('0');
+      setMixedTransfer(jobTotal > 0 ? jobTotal.toFixed(2) : '0');
+      return;
+    }
+    setIsMixed(false);
+    setPaymentMethod(value);
+  };
+
+  const isPaymentActive = (v: PaymentMethod) => isMixed ? (v === 'cash' || v === 'transfer') : paymentMethod === v;
+
+  const canSubmit = jobItems.length > 0 && jobTotal > 0;
+
   // ─── Submit Job ─────────────────────────────────────────────
   const jobMutation = useMutation({
     mutationFn: async () => {
       if (!businessId || !branchId || !user?.id) throw new Error('Sin contexto');
 
-      // 1. Insert print_job
+      const finalPayment = isMixed ? 'mixed' : paymentMethod;
+
       const { data: job, error: jobErr } = await supabase
         .from('print_jobs')
         .insert({
@@ -159,14 +213,13 @@ const SellerPrintView = () => {
           branch_id: branchId,
           user_id: user.id,
           total: jobTotal,
-          payment_method: paymentMethod,
-          nota: null,
+          payment_method: finalPayment,
+          nota: description.trim() || null,
         })
         .select('id')
         .single();
       if (jobErr) throw jobErr;
 
-      // 2. Insert print_job_items
       const items = jobItems.map(it => ({
         job_id: job.id,
         service_type_id: it.service_type_id,
@@ -181,7 +234,6 @@ const SellerPrintView = () => {
       const { error: itemsErr } = await supabase.from('print_job_items').insert(items);
       if (itemsErr) throw itemsErr;
 
-      // 3. Deduct stock_vendedor
       for (const [matId, info] of materialConsumption) {
         const mat = getMaterial(matId);
         if (!mat) continue;
@@ -190,8 +242,7 @@ const SellerPrintView = () => {
         }).eq('id', matId);
       }
 
-      // 4. Create cash register movement if caja is open
-      if (activeCaja?.id && (paymentMethod === 'cash' || paymentMethod === 'mixed')) {
+      if (activeCaja?.id && (finalPayment === 'cash' || finalPayment === 'mixed')) {
         await supabase.from('cash_register_movements' as any).insert({
           cash_register_id: activeCaja.id,
           branch_id: branchId,
@@ -203,63 +254,23 @@ const SellerPrintView = () => {
         });
       }
 
-      // 5. Audit
       auditLog('print_job_created', `Trabajo de impresión por $${jobTotal.toFixed(2)} (${jobItems.length} items)`, job.id, 'print_job');
-
       return job.id;
     },
     onSuccess: () => {
-      const received = parseFloat(amountReceived) || jobTotal;
-      const change = Math.max(0, received - jobTotal);
-      setJobDone({ total: jobTotal, change });
+      toast({ title: '✓ Trabajo registrado' });
       queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
       queryClient.invalidateQueries({ queryKey: ['caja-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['print-jobs-recent'] });
+      setJobItems([]);
+      setDescription('');
+      setPaymentMethod('cash');
+      setIsMixed(false);
+      setMixedCash('0');
+      setMixedTransfer('0');
     },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
-
-  const resetJob = () => {
-    setJobItems([]);
-    setPaymentMethod('cash');
-    setAmountReceived('');
-    setIsMixed(false);
-    setMixedCash('0');
-    setMixedTransfer('0');
-    setJobDone(null);
-    setJobOpen(false);
-  };
-
-  const handlePaymentSelect = (value: PaymentMethod) => {
-    if (isMixed) {
-      if (value === 'cash' || value === 'transfer') {
-        setIsMixed(false);
-        setPaymentMethod(value);
-        setAmountReceived(value !== 'cash' ? jobTotal.toFixed(2) : '');
-        return;
-      }
-    }
-    if (
-      (paymentMethod === 'cash' && value === 'transfer') ||
-      (paymentMethod === 'transfer' && value === 'cash')
-    ) {
-      setIsMixed(true);
-      setMixedCash('0');
-      setMixedTransfer(jobTotal.toFixed(2));
-      return;
-    }
-    setIsMixed(false);
-    setPaymentMethod(value);
-    if (value === 'transfer') {
-      setAmountReceived(jobTotal.toFixed(2));
-    } else {
-      setAmountReceived('');
-    }
-  };
-
-  const change = !isMixed ? Math.max(0, Number(amountReceived) - jobTotal) : 0;
-  const canConfirmPayment = isMixed
-    ? (Number(mixedCash) + Number(mixedTransfer)) >= jobTotal
-    : amountReceived !== '' && Number(amountReceived) > 0 && Number(amountReceived) >= jobTotal;
 
   // ─── Submit Shrinkage ──────────────────────────────────────
   const shrinkMutation = useMutation({
@@ -275,7 +286,6 @@ const SellerPrintView = () => {
         nota: shrinkForm.nota || null,
       });
       if (error) throw error;
-      // Deduct
       const mat = getMaterial(shrinkForm.material_id);
       if (mat) {
         await supabase.from('raw_materials').update({
@@ -293,6 +303,7 @@ const SellerPrintView = () => {
   });
 
   // ─── Submit Production ─────────────────────────────────────
+  const activeRecipes = recipes.filter((r: any) => r.is_active);
   const selectedRecipe = useMemo(() => recipes.find((r: any) => r.id === prodForm.recipe_id), [recipes, prodForm.recipe_id]);
 
   const prodConsumption = useMemo(() => {
@@ -316,7 +327,6 @@ const SellerPrintView = () => {
         nota: prodForm.nota || null,
       });
       if (error) throw error;
-      // Deduct materials
       for (const pc of prodConsumption) {
         const mat = getMaterial(pc.material_id);
         if (mat) {
@@ -339,276 +349,280 @@ const SellerPrintView = () => {
     return <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
-  const activeRecipes = recipes.filter((r: any) => r.is_active);
+  const paymentLabels: Record<string, string> = {
+    cash: 'Efectivo', transfer: 'Transferencia', card: 'Tarjeta', mixed: 'Mixto',
+  };
 
   // ─── Render ─────────────────────────────────────────────────
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      {/* Stock Cards */}
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       <div>
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">Mi stock de insumos</h2>
-        {materials.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No tienes insumos asignados</p>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-            {materials.map((m: any) => {
-              const isLow = m.stock_vendedor <= 0;
-              return (
-                <Card key={m.id} className={isLow ? 'border-destructive bg-destructive/5' : ''}>
-                  <CardContent className="p-3 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{m.name}</p>
-                      <p className="text-xs text-muted-foreground">{m.print_material_types?.name || ''}</p>
-                    </div>
-                    <Badge variant={isLow ? 'destructive' : 'secondary'} className="shrink-0">
-                      {m.stock_vendedor}
-                    </Badge>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+        <h1 className="text-xl md:text-2xl font-bold">Impresiones</h1>
+        <p className="text-sm text-muted-foreground">Registra trabajos de impresión</p>
       </div>
 
-      <Separator />
+      {loadingCaja ? (
+        <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+      ) : !activeCaja ? (
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
+            <DollarSign className="h-10 w-10 opacity-40 mb-3" />
+            <p className="text-sm font-medium">Debes abrir tu caja primero</p>
+            <p className="text-xs mt-1">Ve al módulo Caja para abrir tu caja antes de registrar trabajos.</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          {/* Total del día */}
+          <Card>
+            <CardContent className="p-4 flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total del día</p>
+                <p className="text-2xl font-bold">${todayTotal.toFixed(2)}</p>
+              </div>
+              <DollarSign className="h-8 w-8 text-primary opacity-50" />
+            </CardContent>
+          </Card>
 
-      {/* Action buttons */}
-      <div className="space-y-3">
-        {!activeCaja ? (
-          <div className="flex flex-col items-center gap-2 p-4 rounded-lg border border-destructive/50 bg-destructive/5">
-            <AlertCircle className="h-6 w-6 text-destructive" />
-            <p className="text-sm text-destructive font-medium text-center">Debes abrir la caja para registrar trabajos</p>
-          </div>
-        ) : (
-          <Button size="lg" className="w-full h-14 text-lg gap-2" onClick={() => { setJobDone(null); setJobItems([]); setJobOpen(true); }}>
-            <Printer className="h-5 w-5" />
-            Registrar Trabajo
-          </Button>
-        )}
-        <div className="grid grid-cols-2 gap-3">
-          <Button variant="outline" className="gap-2" onClick={() => setShrinkOpen(true)}>
-            <ClipboardMinus className="h-4 w-4" />
-            Registrar Merma
-          </Button>
-          {activeRecipes.length > 0 && (
-            <Button variant="outline" className="gap-2" onClick={() => setProdOpen(true)}>
-              <ChefHat className="h-4 w-4" />
-              Registrar Producción
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {/* ─── JOB MODAL ──────────────────────────────────── */}
-      <Dialog open={jobOpen} onOpenChange={v => { if (!v) resetJob(); else setJobOpen(true); }}>
-        <DialogContent className="max-w-lg max-h-[92vh] flex flex-col p-0">
-          <DialogHeader className="p-4 pb-2">
-            <DialogTitle>{jobDone ? 'Trabajo registrado' : 'Registrar Trabajo'}</DialogTitle>
-          </DialogHeader>
-
-          {jobDone ? (
-            <div className="flex-1 flex flex-col items-center justify-center gap-4 p-6">
-              <CheckCircle2 className="h-16 w-16 text-primary" />
-              <p className="text-2xl font-bold">${jobDone.total.toFixed(2)}</p>
-              {jobDone.change > 0 && (
-                <p className="text-lg text-muted-foreground">Cambio: <span className="font-semibold text-foreground">${jobDone.change.toFixed(2)}</span></p>
-              )}
-              <Button className="mt-4" onClick={resetJob}>Cerrar</Button>
-            </div>
-          ) : (
-            <>
-              <div className="flex-1 overflow-y-auto px-4 space-y-4">
-                {/* Service selector */}
-                <div>
-                  <Label className="text-sm text-muted-foreground">Selecciona servicios</Label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
+          {/* Registrar Trabajo - inline */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Registrar Trabajo</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {/* Service selector */}
+              <div>
+                <Label className="text-xs text-muted-foreground mb-2 block">Selecciona un servicio</Label>
+                {activeServices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-3">No hay servicios configurados</p>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                     {activeServices.map((svc: any) => {
                       const SvcIcon = getIconComponent(svc.icon);
+                      const count = jobItems.filter(it => it.service_type_id === svc.id).length;
                       return (
                         <button
                           key={svc.id}
                           onClick={() => addJobItem(svc)}
-                          className="flex items-center gap-2 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50 hover:border-primary"
+                          className={cn(
+                            'flex items-center gap-2 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50',
+                            count > 0 && 'border-primary bg-primary/10 ring-1 ring-primary'
+                          )}
                         >
-                          <SvcIcon className="h-4 w-4 shrink-0 text-primary" />
-                          <div className="min-w-0">
+                          <SvcIcon className={cn('h-4 w-4 shrink-0', count > 0 ? 'text-primary' : 'text-muted-foreground')} />
+                          <div className="min-w-0 flex-1">
                             <span className="text-sm font-medium truncate block">{svc.name}</span>
                             {svc.precio_base > 0 && (
                               <span className="text-[10px] text-muted-foreground">${Number(svc.precio_base).toFixed(2)}</span>
                             )}
                           </div>
+                          {count > 0 && (
+                            <Badge variant="default" className="shrink-0 text-[10px] h-5 min-w-5 flex items-center justify-center">{count}</Badge>
+                          )}
                         </button>
                       );
                     })}
                   </div>
-                </div>
+                )}
+              </div>
 
-                {/* Items list */}
-                {jobItems.length > 0 && (
-                  <div className="space-y-3">
-                    {jobItems.map((item, idx) => {
-                      const svc = activeServices.find((s: any) => s.id === item.service_type_id);
-                      return (
-                        <Card key={idx}>
-                          <CardContent className="p-3 space-y-2">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-medium text-sm">{item.service_name}</p>
-                                {/b\/?n|blanco/i.test(item.service_name) && (
-                                  <span className="text-[10px] text-muted-foreground">Blanco y Negro</span>
-                                )}
-                                {/color/i.test(item.service_name) && !/b\/?n|blanco/i.test(item.service_name) && (
-                                  <span className="text-[10px] text-muted-foreground">Color</span>
-                                )}
-                              </div>
-                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeJobItem(idx)}>
-                                <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                              </Button>
-                            </div>
-                            <div className="grid grid-cols-2 gap-2">
-                              <div>
-                                <Label className="text-xs">Cantidad</Label>
-                                <Input type="number" min={1} className="h-8" value={item.cantidad} onChange={e => updateJobItem(idx, 'cantidad', parseInt(e.target.value) || 1)} />
-                              </div>
-                              <div>
-                                <Label className="text-xs">Precio cobrado</Label>
-                                <Input type="number" min={0} step="0.01" className="h-8" value={item.precio_cobrado} onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)} />
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-3 flex-wrap">
-                              {svc?.admite_doble_cara && (
-                                <div className="flex items-center gap-2">
-                                  <Switch checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
-                                  <Label className="text-xs">Doble cara</Label>
-                                </div>
-                              )}
-                              <div className="flex items-center gap-2">
-                                <Switch checked={item.es_color} onCheckedChange={v => updateJobItem(idx, 'es_color', v)} />
-                                <Label className="text-xs">{item.es_color ? 'Color' : 'B/N'}</Label>
-                              </div>
-                            </div>
-                            <Input placeholder="Nota (opcional)" className="h-8 text-xs" value={item.nota} onChange={e => updateJobItem(idx, 'nota', e.target.value)} />
-                          </CardContent>
-                        </Card>
-                      );
-                    })}
+              {/* Items detail */}
+              {jobItems.length > 0 && (
+                <div className="space-y-2">
+                  {jobItems.map((item, idx) => {
+                    const svc = activeServices.find((s: any) => s.id === item.service_type_id);
+                    return (
+                      <div key={idx} className="flex items-center gap-2 rounded-lg border p-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{item.service_name}</p>
+                        </div>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Input
+                            type="number"
+                            min={1}
+                            className="h-7 w-14 text-xs text-center"
+                            value={item.cantidad}
+                            onChange={e => updateJobItem(idx, 'cantidad', parseInt(e.target.value) || 1)}
+                          />
+                          <span className="text-xs text-muted-foreground">×</span>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            className="h-7 w-20 text-xs text-right"
+                            value={item.precio_cobrado}
+                            onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)}
+                          />
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeJobItem(idx)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Material warnings */}
+                  {materialConsumption.length > 0 && hasStockIssue && (
+                    <div className="flex items-center gap-1 text-destructive text-xs">
+                      <AlertTriangle className="h-3 w-3" />
+                      <span>Stock insuficiente para algunos insumos</span>
+                    </div>
+                  )}
+
+                  {/* Total inline */}
+                  <div className="flex justify-between items-center px-1 pt-1">
+                    <span className="text-sm font-medium text-muted-foreground">Total</span>
+                    <span className="text-lg font-bold">${jobTotal.toFixed(2)}</span>
                   </div>
+                </div>
+              )}
+
+              {/* Description */}
+              <div>
+                <Label className="text-xs text-muted-foreground">Descripción (opcional)</Label>
+                <Textarea
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  placeholder="Detalle del trabajo..."
+                  rows={2}
+                  className="mt-1"
+                />
+              </div>
+
+              {/* Payment method */}
+              <div className="space-y-3">
+                <Label className="text-xs text-muted-foreground">Método de Pago</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {paymentOptions.map(({ value, label, Icon }) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      variant={isPaymentActive(value) ? 'default' : 'outline'}
+                      className={cn('flex-col h-auto py-2.5', isPaymentActive(value) && 'ring-2 ring-primary')}
+                      onClick={() => handlePaymentSelect(value)}
+                    >
+                      <Icon className="h-4 w-4 mb-0.5" />
+                      <span className="text-xs">{label}</span>
+                    </Button>
+                  ))}
+                </div>
+                {isMixed && (
+                  <p className="text-xs text-muted-foreground text-center">Pago mixto: Efectivo + Transferencia</p>
                 )}
 
-                {/* Summary */}
-                {jobItems.length > 0 && (
-                  <div className="space-y-2 bg-muted/50 rounded-lg p-3">
-                    <div className="flex justify-between font-semibold text-lg">
-                      <span>Total</span>
-                      <span>${jobTotal.toFixed(2)}</span>
+                {isMixed && (
+                  <div className="space-y-3">
+                    <div className="space-y-1.5">
+                      <Label className="text-xs flex items-center gap-1"><Banknote className="h-3 w-3" /> Efectivo</Label>
+                      <Input type="number" step="0.01" min="0" value={mixedCash} onChange={e => setMixedCash(e.target.value)} className="text-right font-medium" />
+                      <div className="flex flex-wrap gap-1.5">
+                        {QUICK_AMOUNTS.map(a => (
+                          <Button key={a} type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash(p => (Number(p) + a).toString())}>${a}</Button>
+                        ))}
+                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash(jobTotal > 0 ? jobTotal.toFixed(2) : '0')}>Exacto</Button>
+                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash('0')}><RotateCcw className="h-3 w-3" /></Button>
+                      </div>
                     </div>
-
-                    {materialConsumption.length > 0 && (
-                      <div className="text-xs space-y-1">
-                        <p className="text-muted-foreground font-medium">Insumos a consumir:</p>
-                        {materialConsumption.map(([id, info]) => (
-                          <div key={id} className={`flex justify-between ${info.needed > info.available ? 'text-destructive font-medium' : ''}`}>
-                            <span>{info.name}</span>
-                            <span>{info.needed} / {info.available} disp.</span>
-                          </div>
-                        ))}
-                        {hasStockIssue && (
-                          <div className="flex items-center gap-1 text-destructive mt-1">
-                            <AlertTriangle className="h-3 w-3" />
-                            <span>Stock insuficiente</span>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <Separator />
-
-                    {/* Payment */}
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium">Método de Pago</Label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {([{ v: 'cash' as const, label: 'Efectivo', Icon: Banknote }, { v: 'transfer' as const, label: 'Transferencia', Icon: Smartphone }]).map(({ v, label, Icon }) => (
-                          <Button
-                            key={v}
-                            variant={(isMixed ? (v === 'cash' || v === 'transfer') : paymentMethod === v) ? 'default' : 'outline'}
-                            className="flex-col h-auto py-2.5"
-                            onClick={() => handlePaymentSelect(v)}
-                          >
-                            <Icon className="h-4 w-4 mb-0.5" />
-                            <span className="text-xs">{label}</span>
-                          </Button>
-                        ))}
-                      </div>
-                      {isMixed && (
-                        <p className="text-xs text-muted-foreground text-center">Pago mixto: Efectivo + Transferencia</p>
-                      )}
-
-                      {/* Mixed payment */}
-                      {isMixed && (
-                        <div className="space-y-3">
-                          <div className="space-y-1.5">
-                            <Label className="text-xs flex items-center gap-1"><Banknote className="h-3 w-3" /> Efectivo</Label>
-                            <Input type="number" step="0.01" min="0" value={mixedCash} onChange={e => setMixedCash(e.target.value)} className="text-right font-medium" />
-                            <div className="flex flex-wrap gap-1.5">
-                              {QUICK_AMOUNTS.map(a => (
-                                <Button key={a} type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash(p => (Number(p) + a).toString())}>${a}</Button>
-                              ))}
-                              <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash(jobTotal.toFixed(2))}>Exacto</Button>
-                              <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash('0')}><RotateCcw className="h-3 w-3" /></Button>
-                            </div>
-                          </div>
-                          <div className="space-y-1.5">
-                            <Label className="text-xs flex items-center gap-1"><Smartphone className="h-3 w-3" /> Transferencia</Label>
-                            <Input type="number" step="0.01" min="0" value={mixedTransfer} onChange={e => setMixedTransfer(e.target.value)} className="text-right font-medium" />
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Single payment amount */}
-                      {!isMixed && (
-                        <div className="space-y-1.5">
-                          <Label className="text-xs">Monto Recibido</Label>
-                          <Input type="number" step="0.01" min="0" value={amountReceived} onChange={e => setAmountReceived(e.target.value)} placeholder="0.00" className="text-right font-medium" />
-                          {paymentMethod === 'cash' && (
-                            <div className="flex flex-wrap gap-1.5">
-                              {QUICK_AMOUNTS.map(a => (
-                                <Button key={a} type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setAmountReceived(p => (Number(p) + a).toString())}>${a}</Button>
-                              ))}
-                              <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setAmountReceived(jobTotal.toFixed(2))}>Exacto</Button>
-                              <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setAmountReceived('')}><RotateCcw className="h-3 w-3" /></Button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Change */}
-                      {!isMixed && change > 0 && (
-                        <div className="rounded-lg bg-primary/10 p-3 text-center">
-                          <p className="text-xs text-muted-foreground">Cambio</p>
-                          <p className="text-xl font-bold text-primary">${change.toFixed(2)}</p>
-                        </div>
-                      )}
+                    <div className="space-y-1.5">
+                      <Label className="text-xs flex items-center gap-1"><Smartphone className="h-3 w-3" /> Transferencia</Label>
+                      <Input type="number" step="0.01" min="0" value={mixedTransfer} onChange={e => setMixedTransfer(e.target.value)} className="text-right font-medium" />
                     </div>
                   </div>
                 )}
               </div>
 
-              <DialogFooter className="p-4 pt-2 border-t">
-                <Button variant="outline" onClick={resetJob}>Cancelar</Button>
-                <Button
-                  onClick={() => jobMutation.mutate()}
-                  disabled={jobItems.length === 0 || !canConfirmPayment || jobMutation.isPending}
-                >
-                  {jobMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                  <CheckCircle2 className="h-4 w-4 mr-1" />
-                  Confirmar
-                </Button>
-              </DialogFooter>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+              {/* Submit */}
+              <Button
+                className="w-full"
+                onClick={() => jobMutation.mutate()}
+                disabled={!canSubmit || jobMutation.isPending}
+              >
+                {jobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
+                Registrar Cobro
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Stock de insumos colapsado */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Mi stock de insumos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {materials.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No tienes insumos asignados</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {materials.map((m: any) => {
+                    const isLow = m.stock_vendedor <= 0;
+                    return (
+                      <div key={m.id} className={cn('flex items-center justify-between gap-2 rounded-lg border p-2', isLow && 'border-destructive bg-destructive/5')}>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium truncate">{m.name}</p>
+                        </div>
+                        <Badge variant={isLow ? 'destructive' : 'secondary'} className="shrink-0 text-xs">
+                          {m.stock_vendedor}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Action buttons */}
+          <div className="grid grid-cols-2 gap-3">
+            <Button variant="outline" className="gap-2" onClick={() => setShrinkOpen(true)}>
+              <ClipboardMinus className="h-4 w-4" />
+              Registrar Merma
+            </Button>
+            {activeRecipes.length > 0 && (
+              <Button variant="outline" className="gap-2" onClick={() => setProdOpen(true)}>
+                <ChefHat className="h-4 w-4" />
+                Registrar Producción
+              </Button>
+            )}
+          </div>
+
+          {/* Cobros Recientes */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Cobros Recientes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingJobs ? (
+                <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>
+              ) : recentJobs.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No hay trabajos registrados hoy</p>
+              ) : (
+                <div className="space-y-2">
+                  {recentJobs.map((job: any) => {
+                    const itemCount = (job.print_job_items || []).reduce((s: number, it: any) => s + it.cantidad, 0);
+                    return (
+                      <div key={job.id} className="flex items-center justify-between rounded-lg border p-3">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Printer className="h-4 w-4 shrink-0 text-primary" />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <Badge variant="secondary" className="text-[10px]">{itemCount} item{itemCount !== 1 ? 's' : ''}</Badge>
+                              <Badge variant="outline" className="text-[10px]">{paymentLabels[job.payment_method] || job.payment_method}</Badge>
+                            </div>
+                            <p className="text-[11px] text-muted-foreground/60 mt-0.5">
+                              {new Date(job.created_at).toLocaleString('es', { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                        <span className="text-sm font-bold shrink-0 ml-2">${Number(job.total).toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </>
+      )}
 
       {/* ─── SHRINKAGE MODAL ───────────────────────────── */}
       <Dialog open={shrinkOpen} onOpenChange={setShrinkOpen}>
@@ -672,7 +686,6 @@ const SellerPrintView = () => {
               <Label>Nota (opcional)</Label>
               <Textarea value={prodForm.nota} onChange={e => setProdForm(f => ({ ...f, nota: e.target.value }))} rows={2} />
             </div>
-
             {prodConsumption.length > 0 && (
               <div className="bg-muted/50 rounded-lg p-3 text-sm space-y-1">
                 <p className="font-medium text-muted-foreground">Insumos a consumir:</p>
