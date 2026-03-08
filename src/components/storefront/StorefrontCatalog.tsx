@@ -275,6 +275,9 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
                   <button onClick={(e) => { e.stopPropagation(); toggleFavorite(e, product.id); }} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
                     <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground/40'}`} />
                   </button>
+                  <button onClick={(e) => handleShare(e, product)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors" aria-label="Compartir">
+                    <Share2 className="h-4 w-4 text-muted-foreground/40" />
+                  </button>
                   {cartQty > 0 && (
                     <span
                       className="text-[10px] font-bold px-2 py-0.5 rounded-full text-white"
