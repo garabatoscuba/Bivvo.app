@@ -92,6 +92,23 @@ export const useDailySalary = ({
     refetchInterval: 30000,
   });
 
+  // Employee's own print jobs
+  const { data: todayPrintTotal = 0 } = useQuery({
+    queryKey: ['salary-my-prints', branchId, user?.id, todayStr],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('print_jobs')
+        .select('total')
+        .eq('branch_id', branchId!)
+        .eq('user_id', user!.id)
+        .gte('created_at', todayStr + 'T00:00:00')
+        .lte('created_at', todayStr + 'T23:59:59');
+      return data?.reduce((sum, s) => sum + Number(s.total), 0) || 0;
+    },
+    enabled: !!branchId && !!user?.id && jornadaActiva,
+    refetchInterval: 30000,
+  });
+
   // Branch-wide sales
   const { data: todayBranchSalesTotal = 0 } = useQuery({
     queryKey: ['salary-branch-sales', branchId, todayStr],
