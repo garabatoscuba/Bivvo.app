@@ -657,7 +657,7 @@ const Sales = () => {
             <SheetDescription>{isNonSaleDetail ? (selectedEntry?.product_names || (isPrintDetail ? 'Impresión' : 'Servicio')) : selectedSale?.sale_number}</SheetDescription>
           </SheetHeader>
 
-          {isServiceDetail && selectedEntry && (
+          {isNonSaleDetail && selectedEntry && (
             <div className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-muted-foreground">Fecha</div>
