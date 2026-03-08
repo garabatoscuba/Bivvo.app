@@ -301,10 +301,10 @@ const StoreSettingsPage = () => {
             <TabsList className="mb-6 flex-wrap h-auto gap-1">
               <TabsTrigger value="general">General</TabsTrigger>
               <TabsTrigger value="appearance">Personalización</TabsTrigger>
-              <TabsTrigger value="loyalty">Fidelización</TabsTrigger>
-              <TabsTrigger value="announcements">Anuncios</TabsTrigger>
+              {isSuperAdmin && <TabsTrigger value="loyalty">Fidelización</TabsTrigger>}
+              {isSuperAdmin && <TabsTrigger value="announcements">Anuncios</TabsTrigger>}
               <TabsTrigger value="reviews">Reseñas</TabsTrigger>
-              <TabsTrigger value="affiliates">Clientes</TabsTrigger>
+              {isSuperAdmin && <TabsTrigger value="affiliates">Clientes</TabsTrigger>}
             </TabsList>
 
             {/* GENERAL TAB */}
