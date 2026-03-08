@@ -18,7 +18,8 @@ type AuditActionType =
   | 'balance_movement_created'
   | 'employee_created'
   | 'employee_edited'
-  | 'employee_deleted';
+  | 'employee_deleted'
+  | 'print_job_created';
 
 /**
  * Hook that provides a simple `log(action_type, description, entity_id?, entity_type?)` function
