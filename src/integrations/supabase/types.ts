@@ -3588,6 +3588,7 @@ export type Database = {
           sale_price: number
           status: Database["public"]["Enums"]["product_status"]
           supplier: string | null
+          tipo: string
           unit_of_measure: string
           updated_at: string
         }
@@ -3607,6 +3608,7 @@ export type Database = {
           sale_price?: number
           status?: Database["public"]["Enums"]["product_status"]
           supplier?: string | null
+          tipo?: string
           unit_of_measure?: string
           updated_at?: string
         }
@@ -3626,6 +3628,7 @@ export type Database = {
           sale_price?: number
           status?: Database["public"]["Enums"]["product_status"]
           supplier?: string | null
+          tipo?: string
           unit_of_measure?: string
           updated_at?: string
         }
@@ -3909,6 +3912,99 @@ export type Database = {
             columns: ["material_type_id"]
             isOneToOne: false
             referencedRelation: "print_material_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipe_ingredients: {
+        Row: {
+          created_at: string
+          id: string
+          ingredient_id: string
+          quantity: number
+          recipe_id: string
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          quantity?: number
+          recipe_id: string
+          unit?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          quantity?: number
+          recipe_id?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipe_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipe_ingredients_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recipes: {
+        Row: {
+          business_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          product_id: string
+          updated_at: string
+          yield_quantity: number
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          product_id: string
+          updated_at?: string
+          yield_quantity?: number
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          product_id?: string
+          updated_at?: string
+          yield_quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recipes_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recipes_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
