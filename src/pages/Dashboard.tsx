@@ -8,6 +8,7 @@ import { useBranches } from '@/hooks/useBranches';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { PeriodFilter, type Period } from '@/components/ui/period-filter';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useRawMaterials } from '@/hooks/usePrintData';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button as DialogButton } from '@/components/ui/button';
@@ -120,6 +121,15 @@ const Dashboard = () => {
     return product && bs.quantity <= product.min_stock && bs.quantity > 0;
   }) || [];
 
+  // Low stock for raw materials (Impresiones)
+  const { data: rawMaterials = [] } = useRawMaterials();
+  const lowStockMaterials = rawMaterials.filter((m: any) => {
+    const totalStock = (m.stock_almacen || 0) + (m.stock_vendedor || 0);
+    return m.stock_minimo > 0 && totalStock <= m.stock_minimo && totalStock >= 0;
+  });
+
+  const hasAlerts = lowStockProducts.length > 0 || lowStockMaterials.length > 0;
+
   const areaChartConfig = {
     total: { label: 'Ventas', color: 'hsl(var(--chart-1))' }
   };
@@ -193,7 +203,7 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {lowStockProducts.length > 0 ?
+            {hasAlerts ?
             <div className="space-y-2">
                 {lowStockProducts.slice(0, 5).map((bs: any) => {
                 const product = products.find((p) => p.id === bs.product_id);
@@ -206,6 +216,17 @@ const Dashboard = () => {
                     </div> :
                 null;
               })}
+                {lowStockMaterials.slice(0, 5).map((m: any) => {
+                  const totalStock = (m.stock_almacen || 0) + (m.stock_vendedor || 0);
+                  return (
+                    <div key={m.id} className="flex items-center justify-between rounded-lg bg-warning/10 p-3">
+                      <span className="font-medium">🖨️ {m.name}</span>
+                      <span className="text-sm text-warning">
+                        Stock: {totalStock} (mín: {m.stock_minimo})
+                      </span>
+                    </div>
+                  );
+                })}
               </div> :
             <p className="text-sm text-muted-foreground">
                 No hay alertas en este momento. ¡Todo está funcionando correctamente!
