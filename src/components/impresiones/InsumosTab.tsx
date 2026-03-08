@@ -72,8 +72,11 @@ const InsumosTab = () => {
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <div className="space-y-6">
+      {/* Active Sheets Section */}
+      <ActiveSheetsSection />
+
+      <div className="space-y-4">
         <h2 className="text-lg font-semibold">Insumos</h2>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => setEntryOpen(true)}><PackagePlus className="h-4 w-4 mr-1" />Dar entrada</Button>
