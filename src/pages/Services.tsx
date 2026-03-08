@@ -223,6 +223,9 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [paymentType, setPaymentType] = useState('cash');
+  const [isMixed, setIsMixed] = useState(false);
+  const [mixedCash, setMixedCash] = useState('0');
+  const [mixedTransfer, setMixedTransfer] = useState('0');
   const [isLiveService, setIsLiveService] = useState(false);
   const [liveServiceName, setLiveServiceName] = useState('');
 
