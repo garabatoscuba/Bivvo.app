@@ -24,6 +24,23 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
   const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
 
+  // Deep-link: open product detail from ?producto= query param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const productId = params.get('producto');
+    if (productId && products.length > 0) {
+      const found = products.find(p => p.id === productId);
+      if (found) setSelectedProduct(found);
+    }
+  }, [products]);
+
+  const handleCloseDetail = useCallback(() => {
+    setSelectedProduct(null);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('producto');
+    window.history.replaceState({}, '', url.pathname + (url.search || '') + (url.hash || ''));
+  }, []);
+
   const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
   const handleShare = useCallback(async (e: React.MouseEvent, product: StorefrontProduct) => {
