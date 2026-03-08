@@ -52,6 +52,7 @@ const SellerPrintView = () => {
   const { data: materials = [], isLoading: matLoading } = useRawMaterials();
   const { data: services = [] } = usePrintServiceTypes();
   const { data: recipes = [] } = usePrintRecipes();
+  const { data: materialTypes = [] } = usePrintMaterialTypes();
 
   const activeServices = useMemo(() => services.filter((s: any) => s.is_active), [services]);
 
