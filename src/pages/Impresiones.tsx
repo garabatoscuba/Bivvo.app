@@ -6,10 +6,12 @@ import ServiciosTab from "@/components/impresiones/ServiciosTab";
 import InsumosTab from "@/components/impresiones/InsumosTab";
 import RecetasTab from "@/components/impresiones/RecetasTab";
 import SellerPrintView from "@/components/impresiones/SellerPrintView";
+import TintaTab from "@/components/impresiones/TintaTab";
 
 const Impresiones = () => {
   const { isOwner, isSuperAdmin, isManager } = useAuth();
   const isOwnerView = isOwner || isSuperAdmin || isManager;
+  const canSeeTinta = isOwner || isSuperAdmin;
 
   if (!isOwnerView) {
     return (
@@ -29,6 +31,7 @@ const Impresiones = () => {
             <TabsTrigger value="servicios">Servicios</TabsTrigger>
             <TabsTrigger value="insumos">Insumos</TabsTrigger>
             <TabsTrigger value="recetas">Recetas</TabsTrigger>
+            {canSeeTinta && <TabsTrigger value="tinta">Tinta</TabsTrigger>}
             <TabsTrigger value="reportes">Reportes</TabsTrigger>
           </TabsList>
 
@@ -43,6 +46,12 @@ const Impresiones = () => {
           <TabsContent value="recetas" className="mt-4">
             <RecetasTab />
           </TabsContent>
+
+          {canSeeTinta && (
+            <TabsContent value="tinta" className="mt-4">
+              <TintaTab />
+            </TabsContent>
+          )}
 
           <TabsContent value="reportes" className="mt-4">
             <div className="flex flex-col items-center justify-center py-16 gap-4 text-muted-foreground">
