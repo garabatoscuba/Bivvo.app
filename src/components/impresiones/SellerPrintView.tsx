@@ -335,10 +335,17 @@ const SellerPrintView = () => {
 
       {/* Action buttons */}
       <div className="space-y-3">
-        <Button size="lg" className="w-full h-14 text-lg gap-2" onClick={() => { setJobDone(null); setJobItems([]); setJobOpen(true); }}>
-          <Printer className="h-5 w-5" />
-          Registrar Trabajo
-        </Button>
+        {!activeCaja ? (
+          <div className="flex flex-col items-center gap-2 p-4 rounded-lg border border-destructive/50 bg-destructive/5">
+            <AlertCircle className="h-6 w-6 text-destructive" />
+            <p className="text-sm text-destructive font-medium text-center">Debes abrir la caja para registrar trabajos</p>
+          </div>
+        ) : (
+          <Button size="lg" className="w-full h-14 text-lg gap-2" onClick={() => { setJobDone(null); setJobItems([]); setJobOpen(true); }}>
+            <Printer className="h-5 w-5" />
+            Registrar Trabajo
+          </Button>
+        )}
         <div className="grid grid-cols-2 gap-3">
           <Button variant="outline" className="gap-2" onClick={() => setShrinkOpen(true)}>
             <ClipboardMinus className="h-4 w-4" />
