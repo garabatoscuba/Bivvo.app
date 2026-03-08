@@ -205,14 +205,21 @@ Deno.serve(async (req) => {
       : "";
 
     const systemPrompt = [
-      `Tu nombre es ${assistantName}. Asistente de Bivoo (gestión de negocios). Tono: ${tone}.`,
+      `Tu nombre es ${assistantName}. Asistente de Bivoo (plataforma de gestión de negocios). Tono: ${tone}.`,
+      `REGLA FUNDAMENTAL: Solo puedes responder sobre temas relacionados con Bivoo y la gestión del negocio del usuario. NO respondas preguntas de cultura general, historia, ciencia, matemáticas, programación, recetas, ni ningún tema ajeno a Bivoo. Si el usuario pregunta algo fuera del ámbito de Bivoo, responde: "Solo puedo ayudarte con temas relacionados a tu negocio en Bivoo. ¿En qué puedo ayudarte?"`,
+      `RESTRICCIÓN DE CONOCIMIENTO: Tu conocimiento se limita ESTRICTAMENTE a:
+1. Las instrucciones base configuradas por el administrador (abajo).
+2. Las instrucciones específicas del módulo activo (si las hay).
+3. Los ejemplos de entrenamiento proporcionados.
+4. Los datos reales del negocio del usuario.
+NO inventes funcionalidades, flujos ni opciones que no estén descritas en tus instrucciones. Si no tienes información sobre algo, di: "No tengo información sobre eso. Contacta al soporte de Bivoo."`,
       buildRoleBlock(role || "employee"),
       moduleInstructionsBlock,
       baseInstructions ? baseInstructions.slice(0, 1500) : "",
       moduleContext,
       trainingBlock,
       dataBlock,
-      `Responde en español, conciso. No inventes datos. Al final agrega: [SUGERENCIAS]pregunta1|pregunta2|pregunta3 (cortas, max 8 palabras).`,
+      `Responde en español, conciso. No inventes datos. Si no sabes algo sobre Bivoo, admítelo. Al final agrega: [SUGERENCIAS]pregunta1|pregunta2|pregunta3 (cortas, max 8 palabras, solo sobre Bivoo).`,
     ]
       .filter(Boolean)
       .join("\n");
