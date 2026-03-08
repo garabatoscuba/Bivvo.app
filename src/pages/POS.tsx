@@ -19,6 +19,7 @@ import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, ShoppingCart, Loader2, Package, PackageX, AlertTriangle } from 'lucide-react';
 import { MermaDialog } from '@/components/inventory/MermaDialog';
+import { AgregoModal } from '@/components/pos/AgregoModal';
 import {
   Sheet,
   SheetContent,
