@@ -24,6 +24,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
       <div className="flex min-h-screen w-full overflow-hidden">
         <AppSidebar />
         <SidebarInset className="flex flex-1 flex-col overflow-hidden">
+          <OfflineBanner />
           <InstallBanner />
           <SubscriptionBanner />
           <AppHeader title={title} />
