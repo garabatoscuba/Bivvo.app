@@ -79,6 +79,7 @@ const StorefrontContact = ({ data, accent }: Props) => {
           socialFacebook={data.settings.social_facebook}
           socialTiktok={data.settings.social_tiktok}
           socialTwitter={data.settings.social_twitter}
+          whatsappNumber={data.settings.whatsapp_number}
         />
       </div>
 

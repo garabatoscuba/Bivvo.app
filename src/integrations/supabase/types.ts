@@ -3599,6 +3599,7 @@ export type Database = {
           social_tiktok: string | null
           social_twitter: string | null
           updated_at: string
+          whatsapp_number: string | null
         }
         Insert: {
           about_text?: string | null
@@ -3620,6 +3621,7 @@ export type Database = {
           social_tiktok?: string | null
           social_twitter?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Update: {
           about_text?: string | null
@@ -3641,6 +3643,7 @@ export type Database = {
           social_tiktok?: string | null
           social_twitter?: string | null
           updated_at?: string
+          whatsapp_number?: string | null
         }
         Relationships: [
           {

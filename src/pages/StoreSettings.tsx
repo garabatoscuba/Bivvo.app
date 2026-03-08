@@ -197,7 +197,8 @@ const StoreSettingsPage = () => {
       social_facebook: socialFacebook || null, social_tiktok: socialTiktok || null,
       social_twitter: socialTwitter || null,
       contact_email: contactEmail || null,
-    });
+      whatsapp_number: whatsappNumber.trim() || null,
+    } as any);
   };
 
   // Announcements
