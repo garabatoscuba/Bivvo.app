@@ -1,24 +1,20 @@
 import AppLayout from "@/components/layout/AppLayout";
 import { useAuth } from "@/contexts/AuthContext";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Printer, BarChart3 } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 import ServiciosTab from "@/components/impresiones/ServiciosTab";
 import InsumosTab from "@/components/impresiones/InsumosTab";
 import RecetasTab from "@/components/impresiones/RecetasTab";
+import SellerPrintView from "@/components/impresiones/SellerPrintView";
 
 const Impresiones = () => {
-  const { isOwner, isSuperAdmin } = useAuth();
-  const isOwnerView = isOwner || isSuperAdmin;
+  const { isOwner, isSuperAdmin, isManager } = useAuth();
+  const isOwnerView = isOwner || isSuperAdmin || isManager;
 
   if (!isOwnerView) {
-    // Seller view - placeholder for next prompt
     return (
       <AppLayout>
-        <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4 text-muted-foreground">
-          <Printer className="h-16 w-16" />
-          <h1 className="text-2xl font-semibold text-foreground">Impresiones</h1>
-          <p className="text-lg">Vista de cobro en construcción</p>
-        </div>
+        <SellerPrintView />
       </AppLayout>
     );
   }

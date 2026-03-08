@@ -15,7 +15,8 @@ type AuditActionType =
   | 'balance_movement_created'
   | 'employee_created'
   | 'employee_edited'
-  | 'employee_deleted';
+  | 'employee_deleted'
+  | 'print_job_created';
 
 interface AuditContext {
   userId: string;

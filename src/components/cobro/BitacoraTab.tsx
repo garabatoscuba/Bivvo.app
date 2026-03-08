@@ -29,6 +29,7 @@ const ACTION_LABELS: Record<string, string> = {
   employee_created: 'Empleado creado',
   employee_edited: 'Empleado editado',
   employee_deleted: 'Empleado eliminado',
+  print_job_created: 'Trabajo de impresión',
 };
 
 const PAGE_SIZE = 50;
