@@ -167,12 +167,16 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     }
     const businessId = profile.business_id;
 
+    const salePrice = data.tipo === 'elaborado' && data.sale_price
+      ? parseFloat(data.sale_price)
+      : (product?.sale_price ?? 0);
+
     const payload = {
       name: data.name,
       description: data.description || null,
       category_id: data.category_id || null,
       cost_price: product?.cost_price ?? 0,
-      sale_price: product?.sale_price ?? 0,
+      sale_price: salePrice,
       min_stock: product?.min_stock ?? 0,
       status: 'for_sale' as Product['status'],
       barcode: data.barcode || null,
