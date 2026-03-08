@@ -418,7 +418,36 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
               </div>
             </div>
 
-            {/* ─── Sección 4: Receta (solo elaborado) ─── */}
+            {/* ─── Sección 4: Precio de venta (solo elaborado) ─── */}
+            {form.watch('tipo') === 'elaborado' && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Precio</p>
+                  <FormField
+                    control={form.control}
+                    name="sale_price"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Precio de venta</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            placeholder="Precio al público"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </>
+            )}
+
+            {/* ─── Sección 5: Receta (solo elaborado, al editar) ─── */}
             {product && form.watch('tipo') === 'elaborado' && (
               <>
                 <Separator />

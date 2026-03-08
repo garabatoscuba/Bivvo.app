@@ -992,10 +992,12 @@ const Inventory = () => {
                        return (
                          <div className="rounded-lg border p-3 space-y-3">
                            <div className="flex items-center justify-between">
-                             <div className="flex items-center gap-2">
-                               <p className="text-sm font-medium">
-                                 {isToSale ? 'Almacén → Venta' : 'Venta → Almacén'}
-                               </p>
+                           <div className="flex items-center gap-2">
+                             <p className="text-sm font-medium">
+                                  {(selectedProduct as any)?.tipo === 'ingrediente'
+                                    ? (isToSale ? 'Almacén → Cocina' : 'Cocina → Almacén')
+                                    : (isToSale ? 'Almacén → Venta' : 'Venta → Almacén')}
+                                </p>
                                {canFlip && (
                                  <Button
                                    variant="ghost"
