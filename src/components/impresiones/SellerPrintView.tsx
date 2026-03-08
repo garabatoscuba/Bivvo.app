@@ -518,6 +518,29 @@ const SellerPrintView = () => {
                     );
                   })}
 
+                  {/* Tramo info chips */}
+                  {tramoInfo.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {tramoInfo.map(t => (
+                        <Badge key={t.name} variant="outline" className="text-xs">
+                          {t.name}: {t.remaining} tramos disponibles
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Tramo warnings - no active sheet */}
+                  {tramoIssues.length > 0 && (
+                    <div className="rounded-md border border-warning/50 bg-warning/10 p-2 space-y-1">
+                      {tramoIssues.map(issue => (
+                        <div key={issue.materialId} className="flex items-center gap-1.5 text-xs text-warning">
+                          <AlertTriangle className="h-3 w-3 shrink-0" />
+                          <span>No hay hoja activa de <strong>{issue.materialName}</strong>. El administrador debe abrir una desde Insumos.</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {/* Material warnings */}
                   {materialConsumption.length > 0 && hasStockIssue && (
                     <div className="flex items-center gap-1 text-destructive text-xs">
