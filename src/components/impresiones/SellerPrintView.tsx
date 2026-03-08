@@ -512,22 +512,68 @@ const SellerPrintView = () => {
                     <Separator />
 
                     {/* Payment */}
-                    <div className="space-y-2">
-                      <Label className="text-xs">Método de pago</Label>
+                    <div className="space-y-3">
+                      <Label className="text-sm font-medium">Método de Pago</Label>
                       <div className="grid grid-cols-3 gap-2">
-                        {(['cash', 'transfer', 'mixed'] as const).map(m => (
-                          <Button key={m} variant={paymentMethod === m ? 'default' : 'outline'} size="sm" onClick={() => setPaymentMethod(m)}>
-                            {m === 'cash' ? 'Efectivo' : m === 'transfer' ? 'Transferencia' : 'Mixto'}
+                        {([{ v: 'cash' as const, label: 'Efectivo', Icon: Banknote }, { v: 'transfer' as const, label: 'Transferencia', Icon: Smartphone }]).map(({ v, label, Icon }) => (
+                          <Button
+                            key={v}
+                            variant={(isMixed ? (v === 'cash' || v === 'transfer') : paymentMethod === v) ? 'default' : 'outline'}
+                            className="flex-col h-auto py-2.5"
+                            onClick={() => handlePaymentSelect(v)}
+                          >
+                            <Icon className="h-4 w-4 mb-0.5" />
+                            <span className="text-xs">{label}</span>
                           </Button>
                         ))}
                       </div>
-                      {paymentMethod === 'cash' && (
-                        <div>
-                          <Label className="text-xs">Monto recibido</Label>
-                          <Input type="number" min={0} step="0.01" value={amountReceived} onChange={e => setAmountReceived(e.target.value)} placeholder={jobTotal.toFixed(2)} />
-                          {parseFloat(amountReceived) > jobTotal && (
-                            <p className="text-sm text-primary font-medium mt-1">Cambio: ${(parseFloat(amountReceived) - jobTotal).toFixed(2)}</p>
+                      {isMixed && (
+                        <p className="text-xs text-muted-foreground text-center">Pago mixto: Efectivo + Transferencia</p>
+                      )}
+
+                      {/* Mixed payment */}
+                      {isMixed && (
+                        <div className="space-y-3">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs flex items-center gap-1"><Banknote className="h-3 w-3" /> Efectivo</Label>
+                            <Input type="number" step="0.01" min="0" value={mixedCash} onChange={e => setMixedCash(e.target.value)} className="text-right font-medium" />
+                            <div className="flex flex-wrap gap-1.5">
+                              {QUICK_AMOUNTS.map(a => (
+                                <Button key={a} type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash(p => (Number(p) + a).toString())}>${a}</Button>
+                              ))}
+                              <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash(jobTotal.toFixed(2))}>Exacto</Button>
+                              <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash('0')}><RotateCcw className="h-3 w-3" /></Button>
+                            </div>
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs flex items-center gap-1"><Smartphone className="h-3 w-3" /> Transferencia</Label>
+                            <Input type="number" step="0.01" min="0" value={mixedTransfer} onChange={e => setMixedTransfer(e.target.value)} className="text-right font-medium" />
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Single payment amount */}
+                      {!isMixed && (
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Monto Recibido</Label>
+                          <Input type="number" step="0.01" min="0" value={amountReceived} onChange={e => setAmountReceived(e.target.value)} placeholder="0.00" className="text-right font-medium" />
+                          {paymentMethod === 'cash' && (
+                            <div className="flex flex-wrap gap-1.5">
+                              {QUICK_AMOUNTS.map(a => (
+                                <Button key={a} type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setAmountReceived(p => (Number(p) + a).toString())}>${a}</Button>
+                              ))}
+                              <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setAmountReceived(jobTotal.toFixed(2))}>Exacto</Button>
+                              <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setAmountReceived('')}><RotateCcw className="h-3 w-3" /></Button>
+                            </div>
                           )}
+                        </div>
+                      )}
+
+                      {/* Change */}
+                      {!isMixed && change > 0 && (
+                        <div className="rounded-lg bg-primary/10 p-3 text-center">
+                          <p className="text-xs text-muted-foreground">Cambio</p>
+                          <p className="text-xl font-bold text-primary">${change.toFixed(2)}</p>
                         </div>
                       )}
                     </div>
@@ -537,9 +583,13 @@ const SellerPrintView = () => {
 
               <DialogFooter className="p-4 pt-2 border-t">
                 <Button variant="outline" onClick={resetJob}>Cancelar</Button>
-                <Button onClick={() => jobMutation.mutate()} disabled={jobItems.length === 0 || jobMutation.isPending}>
+                <Button
+                  onClick={() => jobMutation.mutate()}
+                  disabled={jobItems.length === 0 || !canConfirmPayment || jobMutation.isPending}
+                >
                   {jobMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                  Confirmar (${jobTotal.toFixed(2)})
+                  <CheckCircle2 className="h-4 w-4 mr-1" />
+                  Confirmar
                 </Button>
               </DialogFooter>
             </>
