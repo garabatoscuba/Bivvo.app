@@ -235,9 +235,13 @@ const SellerPrintView = () => {
       const { error: itemsErr } = await supabase.from('print_job_items').insert(items);
       if (itemsErr) throw itemsErr;
 
+      // Deduct stock only for non-tramo materials (tramo materials are handled via active sheets)
       for (const [matId, info] of materialConsumption) {
         const mat = getMaterial(matId);
         if (!mat) continue;
+        // Check if this material's type has permite_tramos
+        const matType = materialTypes.find((t: any) => t.id === mat.material_type_id);
+        if (matType?.permite_tramos) continue; // Skip: tramos are managed via print_active_sheets trigger
         await supabase.from('raw_materials').update({
           stock_vendedor: Math.max(0, mat.stock_vendedor - info.needed),
         }).eq('id', matId);
