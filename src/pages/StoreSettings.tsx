@@ -651,7 +651,7 @@ const StoreSettingsPage = () => {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent>}
 
             {/* REVIEWS TAB */}
             <TabsContent value="reviews" className="space-y-6">
