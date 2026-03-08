@@ -317,8 +317,6 @@ const SellerPrintView = () => {
   });
 
   // ─── Submit Shrinkage ──────────────────────────────────────
-  const registerShrinkage = useRegisterPrintShrinkage();
-
   const handleSubmitShrinkage = () => {
     if (!shrinkForm.material_id || shrinkForm.cantidad <= 0) {
       toast({ title: 'Error', description: 'Material y cantidad son obligatorios', variant: 'destructive' });
