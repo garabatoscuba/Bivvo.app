@@ -184,12 +184,19 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
                       <ShoppingBag className="h-8 w-8 text-muted-foreground/15" />
                     </div>
                   )}
-                  {/* Favorite button */}
+                  {/* Favorite + Share buttons */}
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleFavorite(e, product.id); }}
                     className="absolute top-2.5 right-2.5 h-8 w-8 rounded-full bg-background/70 backdrop-blur flex items-center justify-center transition-colors hover:bg-background"
                   >
                     <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
+                  </button>
+                  <button
+                    onClick={(e) => handleShare(e, product)}
+                    className="absolute top-2.5 right-12 h-8 w-8 rounded-full bg-background/70 backdrop-blur flex items-center justify-center transition-colors hover:bg-background"
+                    aria-label="Compartir"
+                  >
+                    <Share2 className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </div>
                 <div className="p-3 space-y-2">
