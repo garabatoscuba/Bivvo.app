@@ -117,6 +117,45 @@ const Sales = () => {
     enabled: !!branchId && !!bizId,
   });
 
+  // Fetch print jobs for copy_shop businesses
+  const { data: printJobs = [], isLoading: isLoadingPrintJobs } = useQuery({
+    queryKey: ['branch-print-jobs', branchId, bizId],
+    queryFn: async () => {
+      if (!bizId || !branchId) return [];
+      let query = supabase
+        .from('print_jobs')
+        .select('*, print_job_items(service_type_id, cantidad, precio_cobrado, es_color, print_service_types(name))')
+        .eq('business_id', bizId)
+        .eq('branch_id', branchId);
+      if (isSellOnly && profile?.user_id) {
+        query = query.eq('user_id', profile.user_id);
+      }
+      const { data } = await query.order('created_at', { ascending: false });
+      return (data || []).map((j: any) => {
+        const itemNames = (j.print_job_items || []).map((it: any) => it.print_service_types?.name || 'Impresión').join(', ');
+        const itemCount = (j.print_job_items || []).reduce((s: number, it: any) => s + Number(it.cantidad || 1), 0);
+        return {
+          id: j.id,
+          created_at: j.created_at,
+          total: Number(j.total),
+          payment_type: j.payment_method as PaymentType,
+          status: 'completed' as SaleStatus,
+          sale_number: '',
+          seller_name: '',
+          customer_name: '',
+          product_names: itemNames || 'Impresión',
+          _type: 'print' as const,
+          description: j.nota,
+          user_id: j.user_id,
+          item_count: itemCount,
+          cash_amount: 0,
+          transfer_amount: 0,
+        };
+      });
+    },
+    enabled: !!branchId && !!bizId,
+  });
+
   // Build seller name map from employees table
   const { data: sellerNameMap = new Map<string, string>() } = useQuery({
     queryKey: ['seller-name-map', bizId],
