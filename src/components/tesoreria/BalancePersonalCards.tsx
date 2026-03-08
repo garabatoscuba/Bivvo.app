@@ -85,6 +85,17 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   const { from, to } = useMemo(() => getDateRange(period), [period]);
   const prevRange = useMemo(() => getPreviousDateRange(period), [period]);
 
+  // Check if copy_shop
+  const { data: isCopyShop = false } = useQuery({
+    queryKey: ["bp-is-copy-shop", businessId],
+    queryFn: async () => {
+      const { data } = await supabase.from("businesses").select("business_type").eq("id", businessId).maybeSingle();
+      return data?.business_type === 'copy_shop';
+    },
+    enabled: !!businessId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   const { data: businessBranchIds = [] } = useQuery({
     queryKey: ["bp-branch-ids", businessId],
     queryFn: async () => {
@@ -99,6 +110,7 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
   });
 
   const saleBranchIds = branchId ? [branchId] : businessBranchIds;
+
 
   // --- Helper to fetch a sum with date range ---
   const fetchSalesSum = async (branchIds: string[], dateFrom: string | null, dateTo: string) => {
