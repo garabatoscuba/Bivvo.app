@@ -28,10 +28,21 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
 
   const handleShare = useCallback(async (e: React.MouseEvent, product: StorefrontProduct) => {
     e.stopPropagation();
-    const url = new URL(window.location.href);
-    url.searchParams.set('producto', product.id);
-    const productUrl = url.toString();
-    const text = `Mira este producto: ${product.name} - ${currencySymbol}${Number(product.price).toFixed(2)} ${productUrl}`;
+    // Build the visible URL (what the user sees after redirect)
+    const visibleUrl = new URL(window.location.href);
+    visibleUrl.searchParams.set('producto', product.id);
+
+    // Build the OG-preview URL so bots get proper meta tags
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    const bizSlug = pathParts[1] || '';
+    const branchSlug = pathParts.length >= 3 ? pathParts[2] : '';
+    const ogParams = new URLSearchParams({ biz: bizSlug, producto: product.id, url: visibleUrl.toString() });
+    if (branchSlug) ogParams.set('branch', branchSlug);
+    const shareUrl = `${supabaseUrl}/functions/v1/og-preview?${ogParams}`;
+
+    const priceStr = Number.isInteger(Number(product.price)) ? String(Number(product.price)) : Number(product.price).toFixed(2);
+    const text = `Mira este producto: ${product.name} - ${currencySymbol}${priceStr} ${shareUrl}`;
 
     if (isMobile) {
       window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
@@ -40,10 +51,10 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
 
     if (navigator.share) {
       try {
-        await navigator.share({ title: product.name, text: `${product.name} - ${currencySymbol}${Number(product.price).toFixed(2)}`, url: productUrl });
+        await navigator.share({ title: product.name, text: `${product.name} - ${currencySymbol}${priceStr}`, url: shareUrl });
       } catch { /* user cancelled */ }
     } else {
-      await navigator.clipboard.writeText(productUrl);
+      await navigator.clipboard.writeText(shareUrl);
       toast({ title: 'Link copiado' });
     }
   }, [currencySymbol, isMobile, toast]);
