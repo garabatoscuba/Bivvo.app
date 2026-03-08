@@ -843,7 +843,7 @@ const Inventory = () => {
               {/* Key metrics */}
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard
-                  label="En venta"
+                  label={(selectedProduct as any).tipo === 'ingrediente' ? 'En cocina' : 'En venta'}
                   value={selectedStock.toString()}
                   sublabel={(selectedProduct as any).tipo === 'ingrediente' ? 'Materia prima' : 'Disponible en POS'}
                   alert={selectedStock <= selectedProduct.min_stock}
