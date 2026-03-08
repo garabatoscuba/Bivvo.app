@@ -55,6 +55,10 @@ const Impresiones = () => {
             </TabsContent>
           )}
 
+          <TabsContent value="mermas" className="mt-4">
+            <MermaConfigTab />
+          </TabsContent>
+
           <TabsContent value="reportes" className="mt-4">
             <div className="flex flex-col items-center justify-center py-16 gap-4 text-muted-foreground">
               <BarChart3 className="h-12 w-12" />
