@@ -192,10 +192,10 @@ Deno.serve(async (req) => {
       .join("\n");
 
     /* ── Build messages array for Groq (OpenAI-compatible) ── */
-    // Truncate conversation to last 6 messages, each max 400 chars
-    const recentMessages = messages.slice(-6).map((m: any) => ({
+    // Truncate conversation to last 4 messages, each max 300 chars
+    const recentMessages = messages.slice(-4).map((m: any) => ({
       role: m.role === "model" ? "assistant" : m.role,
-      content: typeof m.content === "string" ? m.content.slice(0, 400) : String(m.content).slice(0, 400),
+      content: typeof m.content === "string" ? m.content.slice(0, 300) : String(m.content).slice(0, 300),
     }));
     const groqMessages = [
       { role: "system", content: systemPrompt },
