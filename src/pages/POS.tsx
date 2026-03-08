@@ -69,6 +69,8 @@ const POS = () => {
   const [mobileCartOpen, setMobileCartOpen] = useState(false);
   const [mermaOpen, setMermaOpen] = useState(false);
   const [tabletCartOpen, setTabletCartOpen] = useState(false);
+  const [agregoModalOpen, setAgregoModalOpen] = useState(false);
+  const [pendingAgregoProduct, setPendingAgregoProduct] = useState<(Product & { category: Category | null }) | null>(null);
 
   const stockMap = new Map<string, number>();
   branchStock?.forEach((bs: any) => {
