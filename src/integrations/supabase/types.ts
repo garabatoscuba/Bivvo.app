@@ -2870,6 +2870,376 @@ export type Database = {
           },
         ]
       }
+      print_job_items: {
+        Row: {
+          cantidad: number
+          costo_insumo: number
+          created_at: string
+          es_doble_cara: boolean
+          id: string
+          job_id: string
+          material_consumido: number
+          nota: string | null
+          precio_cobrado: number
+          service_type_id: string | null
+        }
+        Insert: {
+          cantidad?: number
+          costo_insumo?: number
+          created_at?: string
+          es_doble_cara?: boolean
+          id?: string
+          job_id: string
+          material_consumido?: number
+          nota?: string | null
+          precio_cobrado?: number
+          service_type_id?: string | null
+        }
+        Update: {
+          cantidad?: number
+          costo_insumo?: number
+          created_at?: string
+          es_doble_cara?: boolean
+          id?: string
+          job_id?: string
+          material_consumido?: number
+          nota?: string | null
+          precio_cobrado?: number
+          service_type_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_job_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "print_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_job_items_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "print_service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      print_jobs: {
+        Row: {
+          branch_id: string | null
+          business_id: string
+          created_at: string
+          id: string
+          nota: string | null
+          payment_method: string
+          total: number
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          business_id: string
+          created_at?: string
+          id?: string
+          nota?: string | null
+          payment_method?: string
+          total?: number
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          business_id?: string
+          created_at?: string
+          id?: string
+          nota?: string | null
+          payment_method?: string
+          total?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_jobs_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_jobs_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      print_material_types: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          unit?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          unit?: string
+        }
+        Relationships: []
+      }
+      print_productions: {
+        Row: {
+          branch_id: string | null
+          business_id: string
+          cantidad_producida: number
+          created_at: string
+          id: string
+          nota: string | null
+          recipe_id: string
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          business_id: string
+          cantidad_producida?: number
+          created_at?: string
+          id?: string
+          nota?: string | null
+          recipe_id: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          business_id?: string
+          cantidad_producida?: number
+          created_at?: string
+          id?: string
+          nota?: string | null
+          recipe_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_productions_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_productions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_productions_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "print_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      print_recipe_materials: {
+        Row: {
+          cantidad_por_produccion: number
+          created_at: string
+          id: string
+          material_id: string
+          recipe_id: string
+        }
+        Insert: {
+          cantidad_por_produccion?: number
+          created_at?: string
+          id?: string
+          material_id: string
+          recipe_id: string
+        }
+        Update: {
+          cantidad_por_produccion?: number
+          created_at?: string
+          id?: string
+          material_id?: string
+          recipe_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_recipe_materials_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_recipe_materials_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "print_recipes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      print_recipes: {
+        Row: {
+          business_id: string
+          created_at: string
+          descripcion: string | null
+          id: string
+          is_active: boolean
+          name: string
+          unidades_produce: number
+        }
+        Insert: {
+          business_id: string
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          unidades_produce?: number
+        }
+        Update: {
+          business_id?: string
+          created_at?: string
+          descripcion?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          unidades_produce?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_recipes_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      print_service_types: {
+        Row: {
+          admite_doble_cara: boolean
+          business_id: string
+          consumo_por_unidad: number
+          created_at: string
+          id: string
+          is_active: boolean
+          material_id: string | null
+          name: string
+          precio_base: number
+          rendimiento_especial: Json | null
+          unit_label: string
+        }
+        Insert: {
+          admite_doble_cara?: boolean
+          business_id: string
+          consumo_por_unidad?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          material_id?: string | null
+          name: string
+          precio_base?: number
+          rendimiento_especial?: Json | null
+          unit_label?: string
+        }
+        Update: {
+          admite_doble_cara?: boolean
+          business_id?: string
+          consumo_por_unidad?: number
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          material_id?: string | null
+          name?: string
+          precio_base?: number
+          rendimiento_especial?: Json | null
+          unit_label?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_service_types_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_service_types_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      print_shrinkage: {
+        Row: {
+          branch_id: string | null
+          business_id: string
+          cantidad: number
+          created_at: string
+          id: string
+          material_id: string
+          motivo: string | null
+          nota: string | null
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          business_id: string
+          cantidad?: number
+          created_at?: string
+          id?: string
+          material_id: string
+          motivo?: string | null
+          nota?: string | null
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          business_id?: string
+          cantidad?: number
+          created_at?: string
+          id?: string
+          material_id?: string
+          motivo?: string | null
+          nota?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_shrinkage_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_shrinkage_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_shrinkage_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_commissions: {
         Row: {
           business_id: string
@@ -3207,6 +3577,186 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_material_entries: {
+        Row: {
+          branch_id: string | null
+          business_id: string
+          cantidad: number
+          costo_unitario: number
+          created_at: string
+          id: string
+          material_id: string
+          nota: string | null
+          user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          business_id: string
+          cantidad?: number
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          material_id: string
+          nota?: string | null
+          user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          business_id?: string
+          cantidad?: number
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          material_id?: string
+          nota?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_material_entries_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_material_entries_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_material_entries_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_material_transfers: {
+        Row: {
+          branch_id: string | null
+          business_id: string
+          cantidad: number
+          created_at: string
+          from_user_id: string
+          id: string
+          material_id: string
+          nota: string | null
+          to_user_id: string
+        }
+        Insert: {
+          branch_id?: string | null
+          business_id: string
+          cantidad?: number
+          created_at?: string
+          from_user_id: string
+          id?: string
+          material_id: string
+          nota?: string | null
+          to_user_id: string
+        }
+        Update: {
+          branch_id?: string | null
+          business_id?: string
+          cantidad?: number
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          material_id?: string
+          nota?: string | null
+          to_user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_material_transfers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_material_transfers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_material_transfers_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      raw_materials: {
+        Row: {
+          branch_id: string | null
+          business_id: string
+          costo_unitario: number
+          created_at: string
+          id: string
+          material_type_id: string | null
+          name: string
+          porcentaje_tinta: number
+          stock_almacen: number
+          stock_minimo: number
+          stock_vendedor: number
+        }
+        Insert: {
+          branch_id?: string | null
+          business_id: string
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          material_type_id?: string | null
+          name: string
+          porcentaje_tinta?: number
+          stock_almacen?: number
+          stock_minimo?: number
+          stock_vendedor?: number
+        }
+        Update: {
+          branch_id?: string | null
+          business_id?: string
+          costo_unitario?: number
+          created_at?: string
+          id?: string
+          material_type_id?: string | null
+          name?: string
+          porcentaje_tinta?: number
+          stock_almacen?: number
+          stock_minimo?: number
+          stock_vendedor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "raw_materials_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_materials_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_materials_material_type_id_fkey"
+            columns: ["material_type_id"]
+            isOneToOne: false
+            referencedRelation: "print_material_types"
             referencedColumns: ["id"]
           },
         ]
