@@ -2736,6 +2736,60 @@ export type Database = {
         }
         Relationships: []
       }
+      portal_promo_blocks: {
+        Row: {
+          block_number: number
+          branch_id: string
+          business_id: string
+          created_at: string
+          id: string
+          image_url: string | null
+          link_target: string | null
+          text_primary: string | null
+          text_secondary: string | null
+          updated_at: string
+        }
+        Insert: {
+          block_number: number
+          branch_id: string
+          business_id: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          link_target?: string | null
+          text_primary?: string | null
+          text_secondary?: string | null
+          updated_at?: string
+        }
+        Update: {
+          block_number?: number
+          branch_id?: string
+          business_id?: string
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          link_target?: string | null
+          text_primary?: string | null
+          text_secondary?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portal_promo_blocks_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portal_promo_blocks_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pricing_offers: {
         Row: {
           created_at: string
