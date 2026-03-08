@@ -1130,6 +1130,21 @@ const Inventory = () => {
         products={products.map(p => ({ id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price) }))}
         stockMap={stockMap}
       />
+      {/* Production Dialog */}
+      <ProductionDialog
+        open={!!productionProduct}
+        onOpenChange={(open) => { if (!open) setProductionProduct(null); }}
+        product={productionProduct}
+        branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
+      />
+      {/* Recipe Manager */}
+      {recipeProduct && (
+        <RecipeManager
+          open={!!recipeProduct}
+          onOpenChange={(open) => { if (!open) setRecipeProduct(null); }}
+          product={recipeProduct}
+        />
+      )}
       <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
     </AppLayout>
   );
