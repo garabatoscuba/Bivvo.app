@@ -40,6 +40,7 @@ const productSchema = z.object({
   unit_of_measure: z.string().min(1),
   brand: z.string().max(100).optional(),
   tipo: z.enum(['reventa', 'ingrediente', 'elaborado']).default('reventa'),
+  sale_price: z.string().optional(),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
