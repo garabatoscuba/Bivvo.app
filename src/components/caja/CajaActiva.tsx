@@ -199,7 +199,25 @@ const CajaActiva = ({ forceEmployeeMode = false }: CajaActivaProps = {}) => {
     return Number(activeRegister.opening_amount) + (salesData?.cash || 0) + (servicesData?.cash || 0) + movementsCashDelta;
   }, [activeRegister, salesData, servicesData, movementsCashDelta]);
 
-  const totalTransfers = (salesData?.transfer || 0) + (servicesData?.transfer || 0);
+  // Print jobs data for copy_shop
+  const { data: printData } = useQuery({
+    queryKey: ["caja-prints-today", branchId, activeRegister?.opened_at],
+    queryFn: async () => {
+      if (!branchId || !activeRegister?.opened_at || !businessId) return { cash: 0, transfer: 0, total: 0 };
+      // Check if copy_shop
+      const { data: biz } = await supabase.from("businesses").select("business_type").eq("id", businessId).maybeSingle();
+      if (biz?.business_type !== 'copy_shop') return { cash: 0, transfer: 0, total: 0 };
+      const { data } = await supabase.from("print_jobs").select("total, payment_method")
+        .eq("branch_id", branchId).gte("created_at", activeRegister.opened_at);
+      const cash = (data || []).filter(p => p.payment_method === 'cash').reduce((s, r) => s + Number(r.total), 0);
+      const transfer = (data || []).filter(p => p.payment_method !== 'cash').reduce((s, r) => s + Number(r.total), 0);
+      return { cash, transfer, total: cash + transfer };
+    },
+    enabled: !!activeRegister && !!businessId,
+    refetchInterval: 15000,
+  });
+
+  const totalTransfers = (salesData?.transfer || 0) + (servicesData?.transfer || 0) + (printData?.transfer || 0);
 
   const countedTotal = useMemo(() => {
     return DENOMINATIONS_ALL.reduce((sum, d) => sum + d * (billCounts[d] || 0), 0);

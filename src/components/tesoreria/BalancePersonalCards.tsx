@@ -379,9 +379,10 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
               Mis Ingresos
             </h3>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className={`grid grid-cols-2 ${isCopyShop ? 'md:grid-cols-4' : 'md:grid-cols-3'} gap-2`}>
             <MiniCard icon={<ShoppingCart className="h-3.5 w-3.5" />} label="Ventas de Productos" value={fmt(productSales)} />
             <MiniCard icon={<Wrench className="h-3.5 w-3.5" />} label="Ventas de Servicios" value={fmt(serviceSales)} />
+            {isCopyShop && <MiniCard icon={<Printer className="h-3.5 w-3.5" />} label="Ingresos Impresiones" value={fmt(printJobSales)} />}
             <MiniCard icon={<ArrowDownToLine className="h-3.5 w-3.5" />} label="Inyecciones" value={fmt(injections)} />
           </div>
           <div className="border-t pt-2">
