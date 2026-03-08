@@ -390,7 +390,15 @@ const SellerPrintView = () => {
                         <Card key={idx}>
                           <CardContent className="p-3 space-y-2">
                             <div className="flex items-center justify-between">
-                              <p className="font-medium text-sm">{item.service_name}</p>
+                              <div>
+                                <p className="font-medium text-sm">{item.service_name}</p>
+                                {/b\/?n|blanco/i.test(item.service_name) && (
+                                  <span className="text-[10px] text-muted-foreground">Blanco y Negro</span>
+                                )}
+                                {/color/i.test(item.service_name) && !/b\/?n|blanco/i.test(item.service_name) && (
+                                  <span className="text-[10px] text-muted-foreground">Color</span>
+                                )}
+                              </div>
                               <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeJobItem(idx)}>
                                 <Trash2 className="h-3.5 w-3.5 text-destructive" />
                               </Button>
