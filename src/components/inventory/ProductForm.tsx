@@ -412,6 +412,25 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
               </div>
             </div>
 
+            {/* ─── Sección 4: Receta (solo elaborado) ─── */}
+            {product && form.watch('tipo') === 'elaborado' && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Receta</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setRecipeOpen(true)}
+                  >
+                    <ChefHat className="h-4 w-4 mr-2" />
+                    Gestionar receta
+                  </Button>
+                </div>
+              </>
+            )}
+
             {/* Actions */}
             <div className="flex gap-3 pt-2">
               <Button
@@ -429,6 +448,14 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
             </div>
           </form>
         </Form>
+
+        {product && (
+          <RecipeManager
+            open={recipeOpen}
+            onOpenChange={setRecipeOpen}
+            product={product}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
