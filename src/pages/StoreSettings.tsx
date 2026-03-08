@@ -741,12 +741,12 @@ const StoreSettingsPage = () => {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent>}
 
             {/* LOYALTY TAB */}
-            <TabsContent value="loyalty">
+            {isSuperAdmin && <TabsContent value="loyalty">
               <LoyaltyRewardsTab />
-            </TabsContent>
+            </TabsContent>}
           </Tabs>
         )}
       </div>
