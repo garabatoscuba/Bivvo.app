@@ -275,7 +275,7 @@ serve(async (req) => {
       resolvedBranch = anyBranch;
     }
 
-    const [settingsResult, stockResult, reviewsResult, announcementsResult, loyaltyResult, rewardsResult] = await Promise.all([
+    const [settingsResult, stockResult, reviewsResult, announcementsResult, loyaltyResult, rewardsResult, promoBlocksResult] = await Promise.all([
       supabase
         .from("store_settings")
         .select("is_active, has_delivery, schedule, accent_color, about_text, hero_image_url, hero_title, hero_subtitle, font_heading, font_body, social_instagram, social_facebook, social_tiktok, social_twitter, contact_email")
