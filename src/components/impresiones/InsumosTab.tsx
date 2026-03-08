@@ -43,7 +43,7 @@ const InsumosTab = () => {
     saveMaterial.mutate(matForm, {
       onSuccess: () => {
         setNewOpen(false);
-        setMatForm({ name: '', material_type_id: '', stock_minimo: 0, costo_unitario: 0, porcentaje_tinta: 0 });
+        setMatForm({ name: '', material_type_id: '', stock_minimo: 0, porcentaje_tinta: 0 });
       },
     });
   };
