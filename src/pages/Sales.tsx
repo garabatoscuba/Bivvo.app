@@ -3,7 +3,7 @@ import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2, Wrench, Search, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2, Wrench, Search, ArrowUp, ArrowDown, ArrowUpDown, Printer } from 'lucide-react';
 import { PeriodFilter, type Period } from '@/components/ui/period-filter';
 import { isInPeriod } from '@/lib/periodUtils';
 import AppLayout from '@/components/layout/AppLayout';
