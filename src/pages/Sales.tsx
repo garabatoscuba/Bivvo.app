@@ -653,8 +653,8 @@ const Sales = () => {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="right" className="sm:max-w-lg overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{isServiceDetail ? 'Detalle de servicio' : 'Detalle de venta'}</SheetTitle>
-            <SheetDescription>{isServiceDetail ? (selectedEntry?.product_names || 'Servicio') : selectedSale?.sale_number}</SheetDescription>
+            <SheetTitle>{isPrintDetail ? 'Detalle de impresión' : isServiceDetail ? 'Detalle de servicio' : 'Detalle de venta'}</SheetTitle>
+            <SheetDescription>{isNonSaleDetail ? (selectedEntry?.product_names || (isPrintDetail ? 'Impresión' : 'Servicio')) : selectedSale?.sale_number}</SheetDescription>
           </SheetHeader>
 
           {isServiceDetail && selectedEntry && (
