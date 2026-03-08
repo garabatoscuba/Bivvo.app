@@ -77,6 +77,7 @@ const InsumosTab = () => {
       <ActiveSheetsSection />
 
       <div className="space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Insumos</h2>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => setEntryOpen(true)}><PackagePlus className="h-4 w-4 mr-1" />Dar entrada</Button>
