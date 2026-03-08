@@ -416,12 +416,18 @@ const SellerPrintView = () => {
                                 <Input type="number" min={0} step="0.01" className="h-8" value={item.precio_cobrado} onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)} />
                               </div>
                             </div>
-                            {svc?.admite_doble_cara && (
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {svc?.admite_doble_cara && (
+                                <div className="flex items-center gap-2">
+                                  <Switch checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
+                                  <Label className="text-xs">Doble cara</Label>
+                                </div>
+                              )}
                               <div className="flex items-center gap-2">
-                                <Switch checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
-                                <Label className="text-xs">Doble cara</Label>
+                                <Switch checked={item.es_color} onCheckedChange={v => updateJobItem(idx, 'es_color', v)} />
+                                <Label className="text-xs">{item.es_color ? 'Color' : 'B/N'}</Label>
                               </div>
-                            )}
+                            </div>
                             <Input placeholder="Nota (opcional)" className="h-8 text-xs" value={item.nota} onChange={e => updateJobItem(idx, 'nota', e.target.value)} />
                           </CardContent>
                         </Card>
