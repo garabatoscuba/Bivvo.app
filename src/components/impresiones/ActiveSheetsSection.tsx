@@ -20,7 +20,6 @@ const ActiveSheetsSection = () => {
   const { data: materialTypes = [] } = usePrintMaterialTypes();
   const { data: activeSheets = [], isLoading } = useActiveSheets();
   const { data: sheetHistory = [] } = useSheetHistory();
-  const openSheet = useOpenSheet();
   const closeSheet = useCloseSheet();
 
   const [openDialog, setOpenDialog] = useState(false);

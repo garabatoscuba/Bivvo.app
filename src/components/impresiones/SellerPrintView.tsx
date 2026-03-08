@@ -536,12 +536,26 @@ const SellerPrintView = () => {
                   )}
 
                   {/* Tramo warnings - no active sheet */}
-                  {tramoIssues.length > 0 && (
-                    <div className="rounded-md border border-warning/50 bg-warning/10 p-2 space-y-1">
+                   {tramoIssues.length > 0 && (
+                    <div className="rounded-md border border-warning/50 bg-warning/10 p-3 space-y-2">
                       {tramoIssues.map(issue => (
-                        <div key={issue.materialId} className="flex items-center gap-1.5 text-xs text-warning">
-                          <AlertTriangle className="h-3 w-3 shrink-0" />
-                          <span>No hay hoja activa de <strong>{issue.materialName}</strong>. El administrador debe abrir una desde Insumos.</span>
+                        <div key={issue.materialId} className="space-y-1.5">
+                          <div className="flex items-center gap-1.5 text-xs text-warning">
+                            <AlertTriangle className="h-3 w-3 shrink-0" />
+                            <span>No hay hoja activa de <strong>{issue.materialName}</strong></span>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="w-full text-xs"
+                            onClick={() => {
+                              setOpenSheetForm({ material_id: issue.materialId, tramos_total: 4 });
+                              setOpenSheetDialog(true);
+                            }}
+                          >
+                            <FileText className="h-3.5 w-3.5 mr-1" />
+                            Abrir hoja de {issue.materialName}
+                          </Button>
                         </div>
                       ))}
                     </div>
