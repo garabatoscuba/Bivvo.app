@@ -29,7 +29,7 @@ const InsumosTab = () => {
 
   // New material dialog
   const [newOpen, setNewOpen] = useState(false);
-  const [matForm, setMatForm] = useState({ name: '', material_type_id: '', stock_minimo: 0, costo_unitario: 0, porcentaje_tinta: 0 });
+  const [matForm, setMatForm] = useState({ name: '', material_type_id: '', stock_minimo: 0, porcentaje_tinta: 0 });
 
   // Entry dialog
   const [entryOpen, setEntryOpen] = useState(false);
