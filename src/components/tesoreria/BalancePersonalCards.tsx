@@ -450,6 +450,13 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
             ) : (
               <MiniCard icon={<Package className="h-3.5 w-3.5" />} label="Compras de inventario" value={fmt(inventoryPurchases)} />
             )}
+            {isCopyShop && (
+              mode === "operativo" ? (
+                <MiniCard icon={<ScrollText className="h-3.5 w-3.5" />} label="Costo materias primas" value={fmt(materialCostOperativo)} muted />
+              ) : (
+                <MiniCard icon={<ScrollText className="h-3.5 w-3.5" />} label="Compras materias primas" value={fmt(materialPurchasesReal)} />
+              )
+            )}
             <MiniCard icon={<Users className="h-3.5 w-3.5" />} label="Salarios pagados" value={fmt(salariesPaid)} />
             <MiniCard icon={<ArrowUpFromLine className="h-3.5 w-3.5" />} label="Dinero que sacaste" value={fmt(extractions?.retiro || 0)} />
             <MiniCard icon={<ReceiptText className="h-3.5 w-3.5" />} label="Otros gastos" value={fmt(extractions?.otros || 0)} />
