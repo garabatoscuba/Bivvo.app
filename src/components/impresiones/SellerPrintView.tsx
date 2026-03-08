@@ -19,6 +19,7 @@ import { Separator } from '@/components/ui/separator';
 import {
   Printer, Package, AlertTriangle, Plus, Trash2, Loader2,
   Banknote, ArrowLeftRight, ClipboardMinus, ChefHat, CheckCircle2,
+  Smartphone, RotateCcw, AlertCircle,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────
