@@ -484,6 +484,8 @@ const Sales = () => {
                   <TableCell>
                     {sale._type === 'service' ? (
                       <Badge variant="outline" className="text-[10px] gap-0.5"><Wrench className="h-3 w-3" />Servicio</Badge>
+                    ) : sale._type === 'print' ? (
+                      <Badge variant="outline" className="text-[10px] gap-0.5"><Printer className="h-3 w-3" />Impresión</Badge>
                     ) : (
                       <Badge variant="secondary" className="text-[10px] gap-0.5"><ShoppingCart className="h-3 w-3" />Venta</Badge>
                     )}
