@@ -45,19 +45,16 @@ const StorefrontCatalog = ({ products, accent, currencySymbol, branchId, reviews
 
   const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-  const handleShare = useCallback(async (e: React.MouseEvent, product: StorefrontProduct) => {
-    e.stopPropagation();
-    // Build the visible URL (what the user sees after redirect)
+  const doShare = useCallback(async (product: StorefrontProduct) => {
     const visibleUrl = new URL(window.location.href);
     visibleUrl.searchParams.set('producto', product.id);
 
-    // Build the OG-preview URL so bots get proper meta tags
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const pathParts = window.location.pathname.split('/').filter(Boolean);
     const bizSlug = pathParts[1] || '';
-    const branchSlug = pathParts.length >= 3 ? pathParts[2] : '';
+    const branchSlugPart = pathParts.length >= 3 ? pathParts[2] : '';
     const ogParams = new URLSearchParams({ biz: bizSlug, producto: product.id, url: visibleUrl.toString() });
-    if (branchSlug) ogParams.set('branch', branchSlug);
+    if (branchSlugPart) ogParams.set('branch', branchSlugPart);
     const shareUrl = `${supabaseUrl}/functions/v1/og-preview?${ogParams}`;
 
     const priceStr = Number.isInteger(Number(product.price)) ? String(Number(product.price)) : Number(product.price).toFixed(2);
@@ -77,6 +74,11 @@ const StorefrontCatalog = ({ products, accent, currencySymbol, branchId, reviews
       toast({ title: 'Link copiado' });
     }
   }, [currencySymbol, isMobile, toast]);
+
+  const handleShare = useCallback((e: React.MouseEvent, product: StorefrontProduct) => {
+    e.stopPropagation();
+    doShare(product);
+  }, [doShare]);
 
   const toggleFavorite = (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
