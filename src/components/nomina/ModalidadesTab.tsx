@@ -72,6 +72,16 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
     { positions: 1, service_percent: 30 },
   ]);
 
+  const { data: business } = useQuery({
+    queryKey: ['business-type', businessId],
+    queryFn: async () => {
+      const { data } = await supabase.from('businesses').select('business_type').eq('id', businessId).single();
+      return data;
+    },
+    enabled: !!businessId,
+  });
+  const isCopyShop = business?.business_type === 'punto_copias';
+
   const { data: modalities = [], isLoading } = useQuery({
     queryKey: ['salary-modalities', businessId, context],
     queryFn: async () => {
