@@ -2862,6 +2862,67 @@ export type Database = {
         }
         Relationships: []
       }
+      print_active_sheets: {
+        Row: {
+          branch_id: string
+          business_id: string
+          closed_at: string | null
+          created_at: string
+          id: string
+          material_id: string
+          status: string
+          tramos_total: number
+          tramos_usados: number
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          business_id: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          material_id: string
+          status?: string
+          tramos_total?: number
+          tramos_usados?: number
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          business_id?: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          material_id?: string
+          status?: string
+          tramos_total?: number
+          tramos_usados?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_active_sheets_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_active_sheets_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_active_sheets_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       print_categories: {
         Row: {
           business_id: string | null
@@ -3126,18 +3187,21 @@ export type Database = {
           created_at: string
           id: string
           name: string
+          permite_tramos: boolean
           unit: string
         }
         Insert: {
           created_at?: string
           id?: string
           name: string
+          permite_tramos?: boolean
           unit?: string
         }
         Update: {
           created_at?: string
           id?: string
           name?: string
+          permite_tramos?: boolean
           unit?: string
         }
         Relationships: []

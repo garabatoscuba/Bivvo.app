@@ -263,3 +263,78 @@ export const useSavePrintRecipe = () => {
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 };
+
+// ---- Active Sheets (hojas activas para tramos) ----
+
+export const useActiveSheets = () => {
+  const { businessId, branchId } = useResolvedBusinessId();
+  return useQuery({
+    queryKey: ['print-active-sheets', businessId, branchId],
+    queryFn: async () => {
+      if (!businessId || !branchId) return [];
+      const { data, error } = await supabase
+        .from('print_active_sheets' as any)
+        .select('*')
+        .eq('business_id', businessId)
+        .eq('branch_id', branchId)
+        .eq('status', 'activa');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!businessId && !!branchId,
+  });
+};
+
+export const useSheetHistory = () => {
+  const { businessId, branchId } = useResolvedBusinessId();
+  return useQuery({
+    queryKey: ['print-sheet-history', businessId, branchId],
+    queryFn: async () => {
+      if (!businessId || !branchId) return [];
+      const { data, error } = await supabase
+        .from('print_active_sheets' as any)
+        .select('*')
+        .eq('business_id', businessId)
+        .eq('branch_id', branchId)
+        .eq('status', 'agotada')
+        .order('closed_at', { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!businessId && !!branchId,
+  });
+};
+
+export const useOpenSheet = () => {
+  const qc = useQueryClient();
+  const { businessId, branchId } = useResolvedBusinessId();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async ({ material_id, tramos_total, user_id }: { material_id: string; tramos_total: number; user_id: string }) => {
+      if (!businessId || !branchId) throw new Error('Sin contexto');
+      // Deduct 1 unit from stock_vendedor
+      const { data: mat } = await supabase.from('raw_materials').select('stock_vendedor').eq('id', material_id).single();
+      if (!mat || mat.stock_vendedor < 1) throw new Error('Sin stock disponible para abrir hoja');
+      await supabase.from('raw_materials').update({ stock_vendedor: mat.stock_vendedor - 1 }).eq('id', material_id);
+      // Create active sheet
+      const { error } = await supabase.from('print_active_sheets' as any).insert({
+        business_id: businessId,
+        branch_id: branchId,
+        user_id,
+        material_id,
+        tramos_total,
+        tramos_usados: 0,
+        status: 'activa',
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['print-active-sheets'] });
+      qc.invalidateQueries({ queryKey: ['raw-materials'] });
+      toast({ title: 'Hoja abierta' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+};
