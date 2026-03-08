@@ -221,9 +221,44 @@ const SellerPrintView = () => {
     setJobItems([]);
     setPaymentMethod('cash');
     setAmountReceived('');
+    setIsMixed(false);
+    setMixedCash('0');
+    setMixedTransfer('0');
     setJobDone(null);
     setJobOpen(false);
   };
+
+  const handlePaymentSelect = (value: PaymentMethod) => {
+    if (isMixed) {
+      if (value === 'cash' || value === 'transfer') {
+        setIsMixed(false);
+        setPaymentMethod(value);
+        setAmountReceived(value !== 'cash' ? jobTotal.toFixed(2) : '');
+        return;
+      }
+    }
+    if (
+      (paymentMethod === 'cash' && value === 'transfer') ||
+      (paymentMethod === 'transfer' && value === 'cash')
+    ) {
+      setIsMixed(true);
+      setMixedCash('0');
+      setMixedTransfer(jobTotal.toFixed(2));
+      return;
+    }
+    setIsMixed(false);
+    setPaymentMethod(value);
+    if (value === 'transfer') {
+      setAmountReceived(jobTotal.toFixed(2));
+    } else {
+      setAmountReceived('');
+    }
+  };
+
+  const change = !isMixed ? Math.max(0, Number(amountReceived) - jobTotal) : 0;
+  const canConfirmPayment = isMixed
+    ? (Number(mixedCash) + Number(mixedTransfer)) >= jobTotal
+    : amountReceived !== '' && Number(amountReceived) > 0 && Number(amountReceived) >= jobTotal;
 
   // ─── Submit Shrinkage ──────────────────────────────────────
   const shrinkMutation = useMutation({
