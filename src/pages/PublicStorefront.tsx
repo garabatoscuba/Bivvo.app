@@ -35,6 +35,14 @@ export interface StorefrontAnnouncement {
   badge_text: string | null;
 }
 
+export interface StorefrontPromoBlock {
+  block_number: number;
+  image_url: string | null;
+  text_primary: string | null;
+  text_secondary: string | null;
+  link_target: string;
+}
+
 export interface StorefrontData {
   business: { name: string; logo_url: string | null };
   branch: { id: string; name: string; address: string | null; phone: string | null };
@@ -58,6 +66,7 @@ export interface StorefrontData {
   products: StorefrontProduct[];
   reviews: StorefrontReview[];
   announcements: StorefrontAnnouncement[];
+  promo_blocks?: StorefrontPromoBlock[];
 }
 
 const DAY_MAP: Record<number, string> = {
