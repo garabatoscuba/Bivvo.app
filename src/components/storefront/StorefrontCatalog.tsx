@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { ShoppingBag, Plus, LayoutGrid, List, Heart, Star } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { ShoppingBag, Plus, LayoutGrid, List, Heart, Star, Share2 } from 'lucide-react';
 import type { StorefrontProduct } from '@/pages/PublicStorefront';
 import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
 import StorefrontProductDetail from '@/components/storefront/StorefrontProductDetail';
+import { useToast } from '@/hooks/use-toast';
 
 type ViewMode = 'grid' | 'list';
 type SortMode = 'default' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc';
@@ -15,13 +16,37 @@ interface Props {
 
 const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
   const { addItem, items } = useStorefrontCart();
+  const { toast } = useToast();
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  
+
+  const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  const handleShare = useCallback(async (e: React.MouseEvent, product: StorefrontProduct) => {
+    e.stopPropagation();
+    const url = new URL(window.location.href);
+    url.searchParams.set('producto', product.id);
+    const productUrl = url.toString();
+    const text = `Mira este producto: ${product.name} - ${currencySymbol}${Number(product.price).toFixed(2)} ${productUrl}`;
+
+    if (isMobile) {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      return;
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product.name, text: `${product.name} - ${currencySymbol}${Number(product.price).toFixed(2)}`, url: productUrl });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(productUrl);
+      toast({ title: 'Link copiado' });
+    }
+  }, [currencySymbol, isMobile, toast]);
 
   const toggleFavorite = (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
@@ -159,12 +184,19 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
                       <ShoppingBag className="h-8 w-8 text-muted-foreground/15" />
                     </div>
                   )}
-                  {/* Favorite button */}
+                  {/* Favorite + Share buttons */}
                   <button
                     onClick={(e) => { e.stopPropagation(); toggleFavorite(e, product.id); }}
                     className="absolute top-2.5 right-2.5 h-8 w-8 rounded-full bg-background/70 backdrop-blur flex items-center justify-center transition-colors hover:bg-background"
                   >
                     <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground'}`} />
+                  </button>
+                  <button
+                    onClick={(e) => handleShare(e, product)}
+                    className="absolute top-2.5 right-12 h-8 w-8 rounded-full bg-background/70 backdrop-blur flex items-center justify-center transition-colors hover:bg-background"
+                    aria-label="Compartir"
+                  >
+                    <Share2 className="h-4 w-4 text-muted-foreground" />
                   </button>
                 </div>
                 <div className="p-3 space-y-2">
@@ -242,6 +274,9 @@ const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
                 <div className="flex flex-col items-center gap-1.5 shrink-0 justify-center">
                   <button onClick={(e) => { e.stopPropagation(); toggleFavorite(e, product.id); }} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors">
                     <Heart className={`h-4 w-4 ${isFav ? 'fill-red-500 text-red-500' : 'text-muted-foreground/40'}`} />
+                  </button>
+                  <button onClick={(e) => handleShare(e, product)} className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-muted transition-colors" aria-label="Compartir">
+                    <Share2 className="h-4 w-4 text-muted-foreground/40" />
                   </button>
                   {cartQty > 0 && (
                     <span
