@@ -26,7 +26,7 @@ const UNITS: Record<string, UnitDef> = {
 };
 
 /** Normalize key: lowercase, trim */
-function normalizeKey(unit: string): string {
+export function normalizeUnitKey(unit: string): string {
   const u = unit.trim().toLowerCase();
   // Common aliases
   if (u === 'gramo' || u === 'gramos') return 'g';
@@ -43,7 +43,7 @@ function normalizeKey(unit: string): string {
 }
 
 export function getUnitDef(unit: string): UnitDef | null {
-  return UNITS[normalizeKey(unit)] || null;
+  return UNITS[normalizeUnitKey(unit)] || null;
 }
 
 /** Get category of a unit */
