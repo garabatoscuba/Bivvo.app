@@ -754,6 +754,24 @@ const Inventory = () => {
                   <div className="min-w-0 flex-1">
                     <SheetTitle className="text-lg">{selectedProduct.name}</SheetTitle>
                     <p className="text-sm text-muted-foreground">{selectedProduct.code}</p>
+                    {/* Portal review stats */}
+                    {(() => {
+                      const stats = productReviewStats?.[selectedProduct.name.toLowerCase()];
+                      const avg = stats && stats.count > 0 ? stats.sum / stats.count : 0;
+                      return (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map(i => (
+                              <Star key={i} size={12} className={i <= Math.round(avg) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/20'} />
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {stats?.count ? `${avg.toFixed(1)} (${stats.count})` : 'Sin valoraciones'}
+                            {stats?.total ? ` · ${stats.total} mensajes` : ''}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   {selectedProduct.category && (
                     <span className={cn(
