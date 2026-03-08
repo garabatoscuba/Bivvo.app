@@ -951,7 +951,7 @@ const Inventory = () => {
                           </Button>
                         </>
                       )}
-                      {(selectedProduct as any).tipo !== 'ingrediente' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
+                      {(selectedProduct as any).tipo !== 'elaborado' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
@@ -964,7 +964,9 @@ const Inventory = () => {
                           }}
                         >
                           <ArrowRightLeft className="mr-2 h-4 w-4" />
-                          {selectedWarehouseStock > 0 ? 'Almacén → Venta' : 'Venta → Almacén'}
+                          {(selectedProduct as any).tipo === 'ingrediente'
+                            ? (selectedWarehouseStock > 0 ? 'Almacén → Cocina' : 'Cocina → Almacén')
+                            : (selectedWarehouseStock > 0 ? 'Almacén → Venta' : 'Venta → Almacén')}
                         </Button>
                       )}
                       {selectedWarehouseStock > 0 && (
