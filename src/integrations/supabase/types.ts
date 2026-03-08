@@ -3213,31 +3213,37 @@ export type Database = {
       }
       reviews: {
         Row: {
-          affiliate_id: string
+          affiliate_id: string | null
           branch_id: string
           comment: string | null
           created_at: string
           id: string
           is_visible: boolean
-          rating: number
+          phone_number: string | null
+          product_name: string | null
+          rating: number | null
         }
         Insert: {
-          affiliate_id: string
+          affiliate_id?: string | null
           branch_id: string
           comment?: string | null
           created_at?: string
           id?: string
           is_visible?: boolean
-          rating: number
+          phone_number?: string | null
+          product_name?: string | null
+          rating?: number | null
         }
         Update: {
-          affiliate_id?: string
+          affiliate_id?: string | null
           branch_id?: string
           comment?: string | null
           created_at?: string
           id?: string
           is_visible?: boolean
-          rating?: number
+          phone_number?: string | null
+          product_name?: string | null
+          rating?: number | null
         }
         Relationships: [
           {
