@@ -4,6 +4,7 @@ interface Props {
   socialFacebook: string | null;
   socialTiktok: string | null;
   socialTwitter: string | null;
+  whatsappNumber?: string | null;
 }
 
 const SocialIcon = ({ href, label, children }: { href: string; label: string; children: React.ReactNode }) => (
