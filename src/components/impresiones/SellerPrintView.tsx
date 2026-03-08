@@ -166,6 +166,7 @@ const SellerPrintView = () => {
         service_type_id: it.service_type_id,
         cantidad: it.cantidad,
         es_doble_cara: it.es_doble_cara,
+        es_color: it.es_color,
         precio_cobrado: it.precio_cobrado,
         costo_insumo: it.costo_insumo,
         material_consumido: it.material_consumed,
