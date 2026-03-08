@@ -907,19 +907,50 @@ const Inventory = () => {
                 <div className="space-y-2">
                   {!showTransfer ? (
                     <div className="flex flex-col gap-2">
-                      <Button 
-                        variant="outline" 
-                        className="w-full justify-start"
-                         onClick={() => {
-                           if (guardDowngrade()) return;
-                           const prod = selectedProduct;
-                           setStockEntryProduct(prod);
-                           setSelectedProduct(null);
-                         }}
-                      >
-                        <PackagePlus className="mr-2 h-4 w-4" />
-                        Nueva Compra
-                      </Button>
+                      {/* Nueva Compra - only for reventa and ingrediente */}
+                      {(selectedProduct as any).tipo !== 'elaborado' && (
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-start"
+                          onClick={() => {
+                            if (guardDowngrade()) return;
+                            const prod = selectedProduct;
+                            setStockEntryProduct(prod);
+                            setSelectedProduct(null);
+                          }}
+                        >
+                          <PackagePlus className="mr-2 h-4 w-4" />
+                          Nueva Compra
+                        </Button>
+                      )}
+                      {/* Gestionar receta + Registrar producción - only for elaborado */}
+                      {(selectedProduct as any).tipo === 'elaborado' && (
+                        <>
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start"
+                            onClick={() => {
+                              setRecipeProduct(selectedProduct);
+                              setSelectedProduct(null);
+                            }}
+                          >
+                            <ChefHat className="mr-2 h-4 w-4" />
+                            Gestionar receta
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            className="w-full justify-start"
+                            onClick={() => {
+                              if (guardDowngrade()) return;
+                              setProductionProduct(selectedProduct);
+                              setSelectedProduct(null);
+                            }}
+                          >
+                            <PackagePlus className="mr-2 h-4 w-4" />
+                            Registrar producción
+                          </Button>
+                        </>
+                      )}
                       {(selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
                           variant="outline" 
