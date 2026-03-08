@@ -8,6 +8,7 @@ import { useBranches } from '@/hooks/useBranches';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { PeriodFilter, type Period } from '@/components/ui/period-filter';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useRawMaterials } from '@/hooks/usePrintData';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button as DialogButton } from '@/components/ui/button';
