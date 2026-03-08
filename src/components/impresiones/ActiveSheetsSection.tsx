@@ -1,27 +1,17 @@
-import { useActiveSheets, useSheetHistory, useCloseSheet, useRawMaterials, usePrintMaterialTypes } from '@/hooks/usePrintData';
-import { useAuth } from '@/contexts/AuthContext';
+import { useActiveSheets, useSheetHistory, useRawMaterials, usePrintMaterialTypes } from '@/hooks/usePrintData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FileText, AlertTriangle, Loader2, History } from 'lucide-react';
 import { format } from 'date-fns';
 
 const ActiveSheetsSection = () => {
-  const { profile } = useAuth();
   const { data: materials = [] } = useRawMaterials();
   const { data: materialTypes = [] } = usePrintMaterialTypes();
   const { data: activeSheets = [], isLoading } = useActiveSheets();
   const { data: sheetHistory = [] } = useSheetHistory();
-  const closeSheet = useCloseSheet();
 
-  // Materials whose type has permite_tramos = true
   const tramoMaterials = materials.filter((m: any) => {
     const mt = materialTypes.find((t: any) => t.id === m.material_type_id);
     return mt?.permite_tramos === true;
@@ -31,43 +21,26 @@ const ActiveSheetsSection = () => {
 
   const getMatName = (matId: string) => materials.find((m: any) => m.id === matId)?.name || '—';
 
-  const handleOpen = () => {
-    if (!profile?.user_id) return;
-    openSheet.mutate(
-      { material_id: form.material_id, tramos_total: form.tramos_total, user_id: profile.user_id },
-      { onSuccess: () => { setOpenDialog(false); setForm({ material_id: '', tramos_total: 4 }); } }
-    );
-  };
-
-  // Which tramo materials have no active sheet
   const materialsWithoutSheet = tramoMaterials.filter(
     (m: any) => !activeSheets.find((s: any) => s.material_id === m.id)
   );
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-base font-semibold flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          Hojas activas (tramos)
-        </h3>
-        {materialsWithoutSheet.length > 0 && (
-          <Button size="sm" onClick={() => setOpenDialog(true)}>
-            Abrir hoja
-          </Button>
-        )}
-      </div>
+      <h3 className="text-base font-semibold flex items-center gap-2">
+        <FileText className="h-4 w-4" />
+        Hojas activas (tramos)
+      </h3>
 
       {isLoading ? (
         <div className="flex justify-center py-6"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>
       ) : (
         <>
-          {/* Active sheets */}
           {activeSheets.length === 0 && materialsWithoutSheet.length > 0 && (
             <Card>
               <CardContent className="py-6 text-center text-muted-foreground text-sm">
                 <AlertTriangle className="h-5 w-5 mx-auto mb-2 text-warning" />
-                No hay hojas abiertas. Abre una hoja para comenzar a vender tramos.
+                No hay hojas abiertas. Los empleados pueden abrir hojas desde su vista de ventas.
               </CardContent>
             </Card>
           )}
@@ -100,25 +73,15 @@ const ActiveSheetsSection = () => {
                     <Progress value={pct} className="h-2" />
                     {isExhausted && (
                       <p className="text-xs text-destructive font-medium mt-1">
-                        ¡Abre una nueva hoja para seguir vendiendo!
+                        Hoja agotada. El empleado debe abrir una nueva.
                       </p>
                     )}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="w-full mt-1 text-xs"
-                      onClick={() => closeSheet.mutate(sheet.id)}
-                      disabled={closeSheet.isPending}
-                    >
-                      Cerrar hoja
-                    </Button>
                   </CardContent>
                 </Card>
               );
             })}
           </div>
 
-          {/* History */}
           {sheetHistory.length > 0 && (
             <div className="mt-4">
               <h4 className="text-sm font-medium flex items-center gap-1.5 mb-2">
@@ -157,48 +120,6 @@ const ActiveSheetsSection = () => {
           )}
         </>
       )}
-
-      {/* Open sheet dialog */}
-      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-        <DialogContent className="max-w-sm max-h-[90vh] flex flex-col">
-          <DialogHeader><DialogTitle>Abrir hoja nueva</DialogTitle></DialogHeader>
-          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
-            <div>
-              <Label>Insumo</Label>
-              <Select value={form.material_id} onValueChange={v => setForm(f => ({ ...f, material_id: v }))}>
-                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                <SelectContent>
-                  {materialsWithoutSheet.map((m: any) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name} (Vendedor: {m.stock_vendedor})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label>¿Cuántos tramos tiene esta hoja?</Label>
-              <Input
-                type="number"
-                min={1}
-                value={form.tramos_total}
-                onChange={e => setForm(f => ({ ...f, tramos_total: parseInt(e.target.value) || 1 }))}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Se descontará 1 unidad del stock del vendedor.</p>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpenDialog(false)}>Cancelar</Button>
-            <Button
-              onClick={handleOpen}
-              disabled={!form.material_id || form.tramos_total < 1 || openSheet.isPending}
-            >
-              {openSheet.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-              Abrir hoja
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };
