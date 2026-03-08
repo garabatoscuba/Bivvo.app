@@ -347,7 +347,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                         size="icon"
                         className="flex-shrink-0"
                         onClick={handleAddIngredient}
-                        disabled={!newIngredientId || !newQuantity || addIngredient.isPending}
+                        disabled={!newIngredientId || (newType === 'agrego' ? !newGramaje : !newQuantity) || addIngredient.isPending}
                       >
                         <Plus className="h-4 w-4" />
                       </Button>
