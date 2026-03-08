@@ -366,7 +366,7 @@ export const useDailySalary = ({
         case 'sales_percent_only': {
           const pct = Number(config.sales_percent || config.percent || 0);
           displayPercent = pct;
-          if (pct > 0) earning += individualIncome * (pct / 100);
+          if (pct > 0) earning += getApplicableIncome(appliesTo) * (pct / 100);
           break;
         }
         case 'profit_percent': {
