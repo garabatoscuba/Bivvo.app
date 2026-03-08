@@ -700,7 +700,7 @@ const StoreSettingsPage = () => {
             </TabsContent>}
 
             {/* AFFILIATES TAB */}
-            <TabsContent value="affiliates" className="space-y-6">
+            {isSuperAdmin && <TabsContent value="affiliates" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2"><Users className="h-4 w-4" /> Clientes afiliados</CardTitle>
