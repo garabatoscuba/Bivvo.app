@@ -31,11 +31,10 @@ const StorefrontPromoBlocks = ({ blocks, accent, onNavigate }: Props) => {
   return (
     <section>
       {sorted.map(block => {
-        const isDark = block.block_number === 1;
         const imageFirst = block.block_number === 1;
 
         const imageEl = block.image_url ? (
-          <div className="flex-1 min-h-[280px] sm:min-h-[360px]">
+          <div className="w-full md:w-1/2 aspect-[4/3] md:aspect-auto">
             <img
               src={block.image_url}
               alt={block.text_primary || 'Promoción'}
@@ -43,7 +42,7 @@ const StorefrontPromoBlocks = ({ blocks, accent, onNavigate }: Props) => {
             />
           </div>
         ) : (
-          <div className="flex-1 min-h-[280px] sm:min-h-[360px] flex items-center justify-center bg-muted">
+          <div className="w-full md:w-1/2 aspect-[4/3] md:aspect-auto flex items-center justify-center bg-muted">
             <span className="text-muted-foreground text-lg font-medium uppercase tracking-wider" style={{ fontFamily: 'var(--font-heading)' }}>
               Imagen
             </span>
@@ -52,11 +51,7 @@ const StorefrontPromoBlocks = ({ blocks, accent, onNavigate }: Props) => {
 
         const textEl = (
           <div
-            className="flex-1 min-h-[280px] sm:min-h-[360px] flex flex-col items-center justify-center px-8 py-12 text-center"
-            style={{
-              backgroundColor: isDark ? '#18181b' : '#f5f5f4',
-              color: isDark ? '#fafafa' : '#18181b',
-            }}
+            className="w-full md:w-1/2 flex flex-col items-center justify-center px-8 py-16 text-center bg-background text-foreground"
           >
             {block.text_primary && (
               <p
@@ -67,13 +62,13 @@ const StorefrontPromoBlocks = ({ blocks, accent, onNavigate }: Props) => {
               </p>
             )}
             {block.text_secondary && (
-              <p className="mt-2 text-sm opacity-70">
+              <p className="mt-2 text-sm text-muted-foreground">
                 {block.text_secondary}
               </p>
             )}
             <button
               onClick={() => handleClick(block.link_target)}
-              className="mt-4 text-xs tracking-widest uppercase underline underline-offset-4 hover:opacity-80 transition-opacity"
+              className="mt-4 text-xs tracking-widest uppercase underline underline-offset-4 text-foreground hover:opacity-80 transition-opacity"
             >
               {linkLabel(block.link_target)}
             </button>
@@ -83,7 +78,7 @@ const StorefrontPromoBlocks = ({ blocks, accent, onNavigate }: Props) => {
         return (
           <div
             key={block.block_number}
-            className="flex flex-col md:flex-row"
+            className="flex flex-col md:flex-row md:min-h-[420px]"
           >
             {imageFirst ? (
               <>
