@@ -436,31 +436,30 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
                 className="mt-1"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">Monto ($)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Pago</Label>
-                <Select value={paymentType} onValueChange={setPaymentType}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Efectivo</SelectItem>
-                    <SelectItem value="transfer">Transferencia</SelectItem>
-                    <SelectItem value="card">Tarjeta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Monto ($)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="mt-1"
+              />
             </div>
+            <ServicePaymentSection
+              paymentType={paymentType}
+              setPaymentType={setPaymentType}
+              amount={amount}
+              total={parseFloat(amount) || 0}
+              isMixed={isMixed}
+              setIsMixed={setIsMixed}
+              mixedCash={mixedCash}
+              setMixedCash={setMixedCash}
+              mixedTransfer={mixedTransfer}
+              setMixedTransfer={setMixedTransfer}
+            />
           </div>
 
           <Button className="w-full" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } createEntryMutation.mutate(); }} disabled={!canSubmit}>
