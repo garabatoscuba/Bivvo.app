@@ -101,9 +101,11 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
 
       const detailParts = [
         `Entrada: ${reasonLabel}`,
-        `${qtyForSale} venta, ${qtyWarehouse} almacén`,
+        isIngrediente
+          ? `${qtyForSale} cocina, ${qtyWarehouse} almacén`
+          : `${qtyForSale} venta, ${qtyWarehouse} almacén`,
         `Costo: $${parseFloat(unitCost).toFixed(2)}`,
-        `Venta: $${parseFloat(newSalePrice).toFixed(2)}`,
+        ...(!isIngrediente ? [`Venta: $${parseFloat(newSalePrice).toFixed(2)}`] : []),
         `Origen: ${origin.trim()}`,
         `Autoriza: ${authorizedBy.trim()}`,
         notes.trim() ? `Obs: ${notes.trim()}` : null,
