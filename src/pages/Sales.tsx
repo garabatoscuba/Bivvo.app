@@ -3,7 +3,7 @@ import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2, Wrench, Search, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2, Wrench, Search, ArrowUp, ArrowDown, ArrowUpDown, Printer } from 'lucide-react';
 import { PeriodFilter, type Period } from '@/components/ui/period-filter';
 import { isInPeriod } from '@/lib/periodUtils';
 import AppLayout from '@/components/layout/AppLayout';
@@ -117,6 +117,45 @@ const Sales = () => {
     enabled: !!branchId && !!bizId,
   });
 
+  // Fetch print jobs for copy_shop businesses
+  const { data: printJobs = [], isLoading: isLoadingPrintJobs } = useQuery({
+    queryKey: ['branch-print-jobs', branchId, bizId],
+    queryFn: async () => {
+      if (!bizId || !branchId) return [];
+      let query = supabase
+        .from('print_jobs')
+        .select('*, print_job_items(service_type_id, cantidad, precio_cobrado, es_color, print_service_types(name))')
+        .eq('business_id', bizId)
+        .eq('branch_id', branchId);
+      if (isSellOnly && profile?.user_id) {
+        query = query.eq('user_id', profile.user_id);
+      }
+      const { data } = await query.order('created_at', { ascending: false });
+      return (data || []).map((j: any) => {
+        const itemNames = (j.print_job_items || []).map((it: any) => it.print_service_types?.name || 'Impresión').join(', ');
+        const itemCount = (j.print_job_items || []).reduce((s: number, it: any) => s + Number(it.cantidad || 1), 0);
+        return {
+          id: j.id,
+          created_at: j.created_at,
+          total: Number(j.total),
+          payment_type: j.payment_method as PaymentType,
+          status: 'completed' as SaleStatus,
+          sale_number: '',
+          seller_name: '',
+          customer_name: '',
+          product_names: itemNames || 'Impresión',
+          _type: 'print' as const,
+          description: j.nota,
+          user_id: j.user_id,
+          item_count: itemCount,
+          cash_amount: 0,
+          transfer_amount: 0,
+        };
+      });
+    },
+    enabled: !!branchId && !!bizId,
+  });
+
   // Build seller name map from employees table
   const { data: sellerNameMap = new Map<string, string>() } = useQuery({
     queryKey: ['seller-name-map', bizId],
@@ -180,10 +219,22 @@ const Sales = () => {
       ...s,
       seller_name: sellerNameMap.get(s.user_id) || '',
     }));
-    const merged = [...salesWithType, ...servicesWithSeller];
+    // Print jobs
+    let filteredPrintJobs = isSellOnly && profile?.user_id
+      ? printJobs.filter((s: any) => s.user_id === profile.user_id)
+      : printJobs;
+    if (isSellOnly) {
+      const todayStr = new Date().toISOString().slice(0, 10);
+      filteredPrintJobs = filteredPrintJobs.filter((s: any) => s.created_at?.slice(0, 10) === todayStr);
+    }
+    const printsWithSeller = filteredPrintJobs.map((s: any) => ({
+      ...s,
+      seller_name: sellerNameMap.get(s.user_id) || '',
+    }));
+    const merged = [...salesWithType, ...servicesWithSeller, ...printsWithSeller];
     merged.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return merged;
-  }, [sales, serviceEntries, isSellOnly, profile?.user_id, sellerNameMap]);
+  }, [sales, serviceEntries, printJobs, isSellOnly, profile?.user_id, sellerNameMap]);
 
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -223,7 +274,9 @@ const Sales = () => {
   const selectedEntry = useMemo(() => unifiedEntries.find((s: any) => s.id === selectedSaleId), [unifiedEntries, selectedSaleId]);
   const selectedSale = useMemo(() => sales.find((s: any) => s.id === selectedSaleId), [sales, selectedSaleId]);
   const isServiceDetail = selectedEntry?._type === 'service';
-  const { data: saleItems = [], isLoading: isLoadingItems } = useSaleItems(isServiceDetail ? null : selectedSaleId);
+  const isPrintDetail = selectedEntry?._type === 'print';
+  const isNonSaleDetail = isServiceDetail || isPrintDetail;
+  const { data: saleItems = [], isLoading: isLoadingItems } = useSaleItems(isNonSaleDetail ? null : selectedSaleId);
 
   // Metrics — respond to period filter
   const entriesInPeriod = useMemo(() => unifiedEntries.filter((s: any) => s.status !== 'cancelled' && isInPeriod(s.created_at, metricsPeriod)), [unifiedEntries, metricsPeriod]);
@@ -373,6 +426,8 @@ const Sales = () => {
                     <div className="flex items-center gap-1.5">
                       {sale._type === 'service' ? (
                         <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5"><Wrench className="h-2.5 w-2.5" />Servicio</Badge>
+                      ) : sale._type === 'print' ? (
+                        <Badge variant="outline" className="text-[9px] px-1 py-0 gap-0.5"><Printer className="h-2.5 w-2.5" />Impresión</Badge>
                       ) : (
                         <span className="font-mono text-xs text-muted-foreground">{sale.sale_number}</span>
                       )}
@@ -431,6 +486,8 @@ const Sales = () => {
                   <TableCell>
                     {sale._type === 'service' ? (
                       <Badge variant="outline" className="text-[10px] gap-0.5"><Wrench className="h-3 w-3" />Servicio</Badge>
+                    ) : sale._type === 'print' ? (
+                      <Badge variant="outline" className="text-[10px] gap-0.5"><Printer className="h-3 w-3" />Impresión</Badge>
                     ) : (
                       <Badge variant="secondary" className="text-[10px] gap-0.5"><ShoppingCart className="h-3 w-3" />Venta</Badge>
                     )}
@@ -541,6 +598,7 @@ const Sales = () => {
                 <SelectItem value="all">Tipo: Todos</SelectItem>
                 <SelectItem value="sale">Venta</SelectItem>
                 <SelectItem value="service">Servicio</SelectItem>
+                <SelectItem value="print">Impresión</SelectItem>
               </SelectContent>
             </Select>
             <Select value={filterPayment} onValueChange={setFilterPayment}>
@@ -595,16 +653,16 @@ const Sales = () => {
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="right" className="sm:max-w-lg overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{isServiceDetail ? 'Detalle de servicio' : 'Detalle de venta'}</SheetTitle>
-            <SheetDescription>{isServiceDetail ? (selectedEntry?.product_names || 'Servicio') : selectedSale?.sale_number}</SheetDescription>
+            <SheetTitle>{isPrintDetail ? 'Detalle de impresión' : isServiceDetail ? 'Detalle de servicio' : 'Detalle de venta'}</SheetTitle>
+            <SheetDescription>{isNonSaleDetail ? (selectedEntry?.product_names || (isPrintDetail ? 'Impresión' : 'Servicio')) : selectedSale?.sale_number}</SheetDescription>
           </SheetHeader>
 
-          {isServiceDetail && selectedEntry && (
+          {isNonSaleDetail && selectedEntry && (
             <div className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-muted-foreground">Fecha</div>
                 <div>{format(new Date(selectedEntry.created_at), "dd/MM/yyyy HH:mm", { locale: es })}</div>
-                <div className="text-muted-foreground">Categoría</div>
+                <div className="text-muted-foreground">{isPrintDetail ? 'Servicios' : 'Categoría'}</div>
                 <div>{selectedEntry.product_names}</div>
                 <div className="text-muted-foreground">Vendedor</div>
                 <div>{selectedEntry.seller_name || '—'}</div>
@@ -635,7 +693,7 @@ const Sales = () => {
             </div>
           )}
 
-          {!isServiceDetail && selectedSale && (
+          {!isNonSaleDetail && selectedSale && (
             <div className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <div className="text-muted-foreground">Fecha</div>
