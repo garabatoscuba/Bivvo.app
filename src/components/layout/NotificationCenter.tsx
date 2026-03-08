@@ -21,19 +21,19 @@ const typeConfig: Record<string, { icon: typeof Bell; className: string; route?:
   treasury_pending: { icon: ArrowRightLeft, className: 'text-primary bg-primary/10', route: '/tesoreria' },
 };
 
-function NotificationItem({ notif, onRead, onNavigate }: { notif: Notification; onRead: (id: string) => void; onNavigate: (route: string) => void }) {
+function NotificationItem({ notif, onRead, onNavigate, onRefetch }: { notif: Notification; onRead: (id: string) => void; onNavigate: (route: string) => void; onRefetch: () => void }) {
   const config = typeConfig[notif.type] || { icon: Bell, className: 'text-muted-foreground bg-muted' };
   const Icon = config.icon;
 
   const handleClick = () => {
     if (!notif.is_read) onRead(notif.id);
-    if (config.route) onNavigate(config.route);
+    // Don't navigate for shrinkage_pending - actions are inline
+    if (config.route && notif.type !== 'shrinkage_pending') onNavigate(config.route);
   };
 
   return (
-    <button
-      onClick={handleClick}
-      className={`w-full text-left flex gap-3 p-3 transition-colors hover:bg-muted/50 ${
+    <div
+      className={`w-full text-left flex gap-3 p-3 ${
         notif.is_read ? 'opacity-60' : ''
       }`}
     >
@@ -41,16 +41,35 @@ function NotificationItem({ notif, onRead, onNavigate }: { notif: Notification; 
         <Icon className="h-4 w-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium leading-tight text-foreground truncate">{notif.title}</p>
-        <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{notif.message}</p>
-        <p className="mt-1 text-[11px] text-muted-foreground/70">
-          {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: es })}
-        </p>
+        <button onClick={handleClick} className="w-full text-left">
+          <p className="text-sm font-medium leading-tight text-foreground truncate">{notif.title}</p>
+          <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">{notif.message}</p>
+          <p className="mt-1 text-[11px] text-muted-foreground/70">
+            {formatDistanceToNow(new Date(notif.created_at), { addSuffix: true, locale: es })}
+          </p>
+        </button>
+        
+        {/* Shrinkage notification actions */}
+        {notif.type === 'shrinkage_pending' && notif.metadata && (
+          <ShrinkageNotificationActions
+            shrinkageId={notif.metadata.shrinkage_id as string}
+            employeeName={notif.metadata.employee_name as string}
+            materialName={notif.metadata.material_name as string}
+            cantidad={notif.metadata.cantidad as number}
+            valorPerdido={notif.metadata.valor_perdido as number}
+            montoDescuento={notif.metadata.monto_descuento as number}
+            motivo={notif.metadata.motivo as string}
+            onResolved={() => {
+              onRead(notif.id);
+              onRefetch();
+            }}
+          />
+        )}
       </div>
       {!notif.is_read && (
         <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-primary" />
       )}
-    </button>
+    </div>
   );
 }
 
