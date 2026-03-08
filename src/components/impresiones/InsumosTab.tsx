@@ -106,7 +106,10 @@ const InsumosTab = () => {
             {materials.length === 0 ? (
               <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin insumos registrados</TableCell></TableRow>
             ) : materials.map((m: any) => {
-              const lowStock = m.stock_almacen < m.stock_minimo;
+              const mt = materialTypes.find((t: any) => t.id === m.material_type_id);
+              const isTramo = !!mt?.permite_tramos;
+              const sheet = isTramo ? activeSheets.find((s: any) => s.material_id === m.id) : null;
+              const lowStock = !isTramo && m.stock_almacen < m.stock_minimo;
               return (
                 <TableRow key={m.id} className={lowStock ? 'bg-destructive/5' : ''}>
                   <TableCell className="font-medium">
@@ -118,10 +121,28 @@ const InsumosTab = () => {
                       <span className="text-xs text-muted-foreground">{m.print_material_types.name}</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right">
-                    <Badge variant={lowStock ? 'destructive' : 'secondary'}>{m.stock_almacen}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{m.stock_vendedor}</TableCell>
+                  {isTramo ? (
+                    <TableCell colSpan={2} className="text-center">
+                      {sheet ? (
+                        <div className="space-y-1">
+                          <div className="flex justify-between text-xs text-muted-foreground">
+                            <span>Tramos: {(sheet as any).tramos_usados}/{(sheet as any).tramos_total}</span>
+                            <span>{Math.max(0, (sheet as any).tramos_total - (sheet as any).tramos_usados)} restantes</span>
+                          </div>
+                          <Progress value={((sheet as any).tramos_usados / (sheet as any).tramos_total) * 100} className="h-2" />
+                        </div>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Sin hoja activa</span>
+                      )}
+                    </TableCell>
+                  ) : (
+                    <>
+                      <TableCell className="text-right">
+                        <Badge variant={lowStock ? 'destructive' : 'secondary'}>{m.stock_almacen}</Badge>
+                      </TableCell>
+                      <TableCell className="text-right">{m.stock_vendedor}</TableCell>
+                    </>
+                  )}
                   <TableCell className="text-right">{m.stock_minimo}</TableCell>
                   <TableCell className="text-right">${m.costo_unitario}</TableCell>
                   <TableCell className="text-right">{m.porcentaje_tinta}%</TableCell>
