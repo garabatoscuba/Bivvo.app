@@ -143,14 +143,10 @@ const InsumosTab = () => {
                 </SelectContent>
               </Select>
             </div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label>Stock mínimo</Label>
                 <Input type="number" min={0} value={matForm.stock_minimo} onChange={e => setMatForm(f => ({ ...f, stock_minimo: parseFloat(e.target.value) || 0 }))} />
-              </div>
-              <div>
-                <Label>Costo unit.</Label>
-                <Input type="number" min={0} step="0.01" value={matForm.costo_unitario} onChange={e => setMatForm(f => ({ ...f, costo_unitario: parseFloat(e.target.value) || 0 }))} />
               </div>
               <div>
                 <Label>% Tinta</Label>

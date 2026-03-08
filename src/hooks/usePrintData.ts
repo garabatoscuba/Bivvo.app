@@ -158,12 +158,23 @@ export const useCreateMaterialEntry = () => {
         branch_id: branchId,
       });
       if (error) throw error;
-      // Update stock
+      // Update stock + recalculate weighted average cost
       const { data: mat } = await supabase.from('raw_materials').select('stock_almacen').eq('id', values.material_id).single();
+      // Fetch all entries to compute weighted average
+      const { data: entries } = await supabase
+        .from('raw_material_entries')
+        .select('cantidad, costo_unitario')
+        .eq('material_id', values.material_id);
+      let avgCost = values.costo_unitario;
+      if (entries && entries.length > 0) {
+        const totalValue = entries.reduce((sum: number, e: any) => sum + (e.cantidad * e.costo_unitario), 0);
+        const totalQty = entries.reduce((sum: number, e: any) => sum + e.cantidad, 0);
+        avgCost = totalQty > 0 ? totalValue / totalQty : 0;
+      }
       if (mat) {
         await supabase.from('raw_materials').update({
           stock_almacen: mat.stock_almacen + values.cantidad,
-          costo_unitario: values.costo_unitario,
+          costo_unitario: avgCost,
         }).eq('id', values.material_id);
       }
     },
