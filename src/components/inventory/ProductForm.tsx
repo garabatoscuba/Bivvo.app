@@ -177,6 +177,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       supplier: product?.supplier ?? null,
       unit_of_measure: data.unit_of_measure,
       brand: data.brand || null,
+      tipo: data.tipo,
     };
 
     if (product) {
