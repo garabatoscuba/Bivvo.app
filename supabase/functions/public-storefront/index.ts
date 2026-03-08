@@ -307,6 +307,11 @@ serve(async (req) => {
         .eq("business_id", business.id)
         .eq("is_active", true)
         .order("sort_order"),
+      supabase
+        .from("portal_promo_blocks")
+        .select("block_number, image_url, text_primary, text_secondary, link_target")
+        .eq("branch_id", resolvedBranch.id)
+        .order("block_number"),
     ]);
 
     const settings = settingsResult.data;
