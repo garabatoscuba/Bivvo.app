@@ -751,8 +751,12 @@ const SellerPrintView = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShrinkOpen(false)}>Cancelar</Button>
-            <Button onClick={() => shrinkMutation.mutate()} disabled={!shrinkForm.material_id || !shrinkForm.cantidad || shrinkMutation.isPending}>
-              {shrinkMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Registrar merma
+            <Button 
+              onClick={handleSubmitShrinkage} 
+              disabled={!shrinkForm.material_id || !shrinkForm.cantidad || registerShrinkage.isPending}
+            >
+              {registerShrinkage.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Registrar merma
             </Button>
           </DialogFooter>
         </DialogContent>
