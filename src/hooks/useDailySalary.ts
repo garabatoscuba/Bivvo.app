@@ -459,7 +459,7 @@ export const useDailySalary = ({
     };
   }, [
     mySalaryAssignments, salaryConfig, todayBranchServiceTotal, todayBranchSalesTotal,
-    todaySalesTotal, todayServiceTotal, activeWorkersCount, todaySaleItems, productCommissions,
+    todaySalesTotal, todayServiceTotal, todayPrintTotal, activeWorkersCount, todaySaleItems, productCommissions,
     tipConfig, todayTipEntries, jornadaAperturaAt,
   ]);
 };
