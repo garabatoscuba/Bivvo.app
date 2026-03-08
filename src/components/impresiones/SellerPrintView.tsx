@@ -55,6 +55,7 @@ const SellerPrintView = () => {
   const { data: materialTypes = [] } = usePrintMaterialTypes();
 
   const activeServices = useMemo(() => services.filter((s: any) => s.is_active), [services]);
+  const { data: activeSheets = [] } = useActiveSheets();
 
   // Active cash register for this user
   const { data: activeCaja, isLoading: loadingCaja } = useQuery({
