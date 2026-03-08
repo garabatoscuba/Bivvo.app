@@ -12,9 +12,11 @@ interface Props {
   products: StorefrontProduct[];
   accent: string;
   currencySymbol: string;
+  branchId?: string;
+  reviews?: StorefrontReview[];
 }
 
-const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
+const StorefrontCatalog = ({ products, accent, currencySymbol, branchId, reviews = [] }: Props) => {
   const { addItem, items } = useStorefrontCart();
   const { toast } = useToast();
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
