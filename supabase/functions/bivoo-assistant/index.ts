@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
     const systemPrompt = [
       `Tu nombre es ${assistantName}. Asistente de Bivoo (gestión de negocios). Tono: ${tone}.`,
       buildRoleBlock(role || "employee"),
-      baseInstructions ? baseInstructions.slice(0, 300) : "",
+      baseInstructions ? baseInstructions.slice(0, 1500) : "",
       moduleContext,
       trainingBlock,
       dataBlock,
