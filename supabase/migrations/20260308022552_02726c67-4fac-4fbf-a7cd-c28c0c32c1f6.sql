@@ -1,0 +1,1 @@
+ALTER TABLE public.portal_promo_blocks ADD COLUMN is_active boolean NOT NULL DEFAULT true;

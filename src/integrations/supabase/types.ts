@@ -2744,6 +2744,7 @@ export type Database = {
           created_at: string
           id: string
           image_url: string | null
+          is_active: boolean
           link_target: string | null
           text_primary: string | null
           text_secondary: string | null
@@ -2756,6 +2757,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          is_active?: boolean
           link_target?: string | null
           text_primary?: string | null
           text_secondary?: string | null
@@ -2768,6 +2770,7 @@ export type Database = {
           created_at?: string
           id?: string
           image_url?: string | null
+          is_active?: boolean
           link_target?: string | null
           text_primary?: string | null
           text_secondary?: string | null
