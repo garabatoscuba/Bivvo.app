@@ -295,6 +295,9 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       setAmount('');
       setSelectedCatId(null);
       setPaymentType('cash');
+      setIsMixed(false);
+      setMixedCash('0');
+      setMixedTransfer('0');
       setIsLiveService(false);
       setLiveServiceName('');
     },
