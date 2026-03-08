@@ -119,4 +119,5 @@ export interface CartItem {
   unitPrice: number;
   discount: number;
   total: number;
+  selectedAgregos?: string[]; // ingredient IDs selected as agregos
 }
