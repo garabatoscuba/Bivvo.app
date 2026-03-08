@@ -16,13 +16,37 @@ interface Props {
 
 const StorefrontCatalog = ({ products, accent, currencySymbol }: Props) => {
   const { addItem, items } = useStorefrontCart();
+  const { toast } = useToast();
   const categories = Array.from(new Set(products.map(p => p.category).filter(Boolean))) as string[];
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [selectedProduct, setSelectedProduct] = useState<StorefrontProduct | null>(null);
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
-  
+
+  const isMobile = typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+  const handleShare = useCallback(async (e: React.MouseEvent, product: StorefrontProduct) => {
+    e.stopPropagation();
+    const url = new URL(window.location.href);
+    url.searchParams.set('producto', product.id);
+    const productUrl = url.toString();
+    const text = `Mira este producto: ${product.name} - ${currencySymbol}${Number(product.price).toFixed(2)} ${productUrl}`;
+
+    if (isMobile) {
+      window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+      return;
+    }
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: product.name, text: `${product.name} - ${currencySymbol}${Number(product.price).toFixed(2)}`, url: productUrl });
+      } catch { /* user cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(productUrl);
+      toast({ title: 'Link copiado' });
+    }
+  }, [currencySymbol, isMobile, toast]);
 
   const toggleFavorite = (e: React.MouseEvent, productId: string) => {
     e.stopPropagation();
