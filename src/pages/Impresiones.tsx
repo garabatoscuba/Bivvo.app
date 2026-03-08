@@ -7,6 +7,7 @@ import InsumosTab from "@/components/impresiones/InsumosTab";
 import RecetasTab from "@/components/impresiones/RecetasTab";
 import SellerPrintView from "@/components/impresiones/SellerPrintView";
 import TintaTab from "@/components/impresiones/TintaTab";
+import MermaConfigTab from "@/components/impresiones/MermaConfigTab";
 
 const Impresiones = () => {
   const { isOwner, isSuperAdmin, isManager } = useAuth();
