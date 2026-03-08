@@ -108,6 +108,15 @@ const ActiveSheetsSection = () => {
                         ¡Abre una nueva hoja para seguir vendiendo!
                       </p>
                     )}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full mt-1 text-xs"
+                      onClick={() => closeSheet.mutate(sheet.id)}
+                      disabled={closeSheet.isPending}
+                    >
+                      Cerrar hoja
+                    </Button>
                   </CardContent>
                 </Card>
               );
