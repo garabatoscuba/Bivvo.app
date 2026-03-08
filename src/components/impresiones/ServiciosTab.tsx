@@ -30,9 +30,11 @@ const ServiciosTab = () => {
   const { data: services = [], isLoading } = usePrintServiceTypes();
   const { data: materials = [] } = useRawMaterials();
   const saveMutation = useSaveServiceType();
+  const deleteMutation = useDeleteServiceType();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [rendimientoText, setRendimientoText] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
   const openNew = () => {
     setForm(emptyForm);
