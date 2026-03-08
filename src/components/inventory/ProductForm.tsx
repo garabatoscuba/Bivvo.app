@@ -25,7 +25,8 @@ import { useCategories, useProducts, useBranchStock } from '@/hooks/useProducts'
 import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Product } from '@/types/database';
-import { Loader2, Package, Camera, X } from 'lucide-react';
+import { Loader2, Package, Camera, X, ChefHat } from 'lucide-react';
+import { RecipeManager } from '@/components/inventory/RecipeManager';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 
