@@ -462,7 +462,7 @@ const AppSidebar = () => {
 
   // Seller-allowed module names
   const SELLER_ALLOWED_MODULES = new Set([
-    "Punto de Venta", "Servicios", "Caja", "Ventas",
+    "Punto de Venta", "Servicios", "Caja", "Ventas", "Impresiones",
   ]);
 
   // Helper to resolve icon from sidebarModules by module name, with fallback
