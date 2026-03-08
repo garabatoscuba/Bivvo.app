@@ -358,6 +358,7 @@ serve(async (req) => {
         announcements: announcementsResult.data || [],
         loyalty: loyaltyResult.data || { points_welcome: 10, points_name: 10, points_phone: 10, points_email: 10 },
         rewards: rewardsResult.data || [],
+        promo_blocks: (promoBlocksResult.data || []).filter((b: any) => b.image_url || b.text_primary),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

@@ -19,6 +19,7 @@ import {
   Store, Truck, Clock, Save, Loader2, ExternalLink, Copy, Palette, Info, Globe,
   Megaphone, Plus, Trash2, Star, Eye, EyeOff, MessageSquare, Users, ImageIcon, Type, Upload,
 } from 'lucide-react';
+import PromoBlocksConfig from '@/components/storefront/PromoBlocksConfig';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
 

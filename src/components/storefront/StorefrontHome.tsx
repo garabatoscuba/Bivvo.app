@@ -95,6 +95,11 @@ const StorefrontHome = ({ data, accent, portalPath, onNavigate, currencySymbol }
         </section>
       )}
 
+      {/* Promo blocks */}
+      {data.promo_blocks && data.promo_blocks.length > 0 && (
+        <StorefrontPromoBlocks blocks={data.promo_blocks} accent={accent} onNavigate={onNavigate} />
+      )}
+
       {/* Leave a review */}
       <section className="border-t border-border">
         <div className="max-w-md mx-auto px-6 sm:px-10 py-14 sm:py-20">
