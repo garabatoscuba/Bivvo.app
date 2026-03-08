@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { ShoppingBag, Plus, LayoutGrid, List, Heart, Star, Share2 } from 'lucide-react';
-import type { StorefrontProduct } from '@/pages/PublicStorefront';
+import type { StorefrontProduct, StorefrontReview } from '@/pages/PublicStorefront';
 import { useStorefrontCart } from '@/contexts/StorefrontCartContext';
 import StorefrontProductDetail from '@/components/storefront/StorefrontProductDetail';
 import { useToast } from '@/hooks/use-toast';
