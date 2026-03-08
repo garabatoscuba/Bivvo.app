@@ -97,11 +97,12 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
         barcode: product.barcode || '',
         unit_of_measure: product.unit_of_measure || 'Pieza',
         brand: product.brand || '',
+        tipo: (product as any).tipo || 'reventa',
       });
     } else {
       form.reset({
         name: '', description: '', category_id: undefined,
-        barcode: '', unit_of_measure: 'Pieza', brand: '',
+        barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa',
       });
     }
   }, [product, form]);
