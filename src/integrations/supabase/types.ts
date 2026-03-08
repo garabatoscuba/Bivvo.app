@@ -2875,6 +2875,7 @@ export type Database = {
           cantidad: number
           costo_insumo: number
           created_at: string
+          es_color: boolean
           es_doble_cara: boolean
           id: string
           job_id: string
@@ -2887,6 +2888,7 @@ export type Database = {
           cantidad?: number
           costo_insumo?: number
           created_at?: string
+          es_color?: boolean
           es_doble_cara?: boolean
           id?: string
           job_id: string
@@ -2899,6 +2901,7 @@ export type Database = {
           cantidad?: number
           costo_insumo?: number
           created_at?: string
+          es_color?: boolean
           es_doble_cara?: boolean
           id?: string
           job_id?: string

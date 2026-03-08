@@ -27,6 +27,7 @@ interface JobItem {
   service_name: string;
   cantidad: number;
   es_doble_cara: boolean;
+  es_color: boolean;
   precio_cobrado: number;
   costo_insumo: number;
   material_consumed: number;
@@ -93,6 +94,7 @@ const SellerPrintView = () => {
         service_name: svc.name,
         cantidad: 1,
         es_doble_cara: false,
+        es_color: false,
         precio_cobrado: svc.precio_base,
         costo_insumo: svc.material_id ? (getMaterial(svc.material_id)?.costo_unitario || 0) * svc.consumo_por_unidad : 0,
         material_consumed: svc.consumo_por_unidad,
@@ -164,6 +166,7 @@ const SellerPrintView = () => {
         service_type_id: it.service_type_id,
         cantidad: it.cantidad,
         es_doble_cara: it.es_doble_cara,
+        es_color: it.es_color,
         precio_cobrado: it.precio_cobrado,
         costo_insumo: it.costo_insumo,
         material_consumido: it.material_consumed,
@@ -413,12 +416,18 @@ const SellerPrintView = () => {
                                 <Input type="number" min={0} step="0.01" className="h-8" value={item.precio_cobrado} onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)} />
                               </div>
                             </div>
-                            {svc?.admite_doble_cara && (
+                            <div className="flex items-center gap-3 flex-wrap">
+                              {svc?.admite_doble_cara && (
+                                <div className="flex items-center gap-2">
+                                  <Switch checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
+                                  <Label className="text-xs">Doble cara</Label>
+                                </div>
+                              )}
                               <div className="flex items-center gap-2">
-                                <Switch checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
-                                <Label className="text-xs">Doble cara</Label>
+                                <Switch checked={item.es_color} onCheckedChange={v => updateJobItem(idx, 'es_color', v)} />
+                                <Label className="text-xs">{item.es_color ? 'Color' : 'B/N'}</Label>
                               </div>
-                            )}
+                            </div>
                             <Input placeholder="Nota (opcional)" className="h-8 text-xs" value={item.nota} onChange={e => updateJobItem(idx, 'nota', e.target.value)} />
                           </CardContent>
                         </Card>

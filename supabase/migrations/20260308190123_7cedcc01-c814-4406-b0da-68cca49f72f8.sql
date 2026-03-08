@@ -1,0 +1,1 @@
+ALTER TABLE public.print_job_items ADD COLUMN es_color boolean NOT NULL DEFAULT false;
