@@ -155,19 +155,49 @@ const SellerPrintView = () => {
   const jobTotal = useMemo(() => jobItems.reduce((s, it) => s + it.precio_cobrado * it.cantidad, 0), [jobItems]);
 
   const materialConsumption = useMemo(() => {
-    const map = new Map<string, { name: string; needed: number; available: number }>();
+    const map = new Map<string, { name: string; needed: number; available: number; isTramo: boolean }>();
     jobItems.forEach(it => {
       if (!it.material_id) return;
       const mat = getMaterial(it.material_id);
       if (!mat) return;
-      const existing = map.get(it.material_id) || { name: mat.name, needed: 0, available: mat.stock_vendedor };
+      const matType = materialTypes.find((t: any) => t.id === mat.material_type_id);
+      const isTramo = !!matType?.permite_tramos;
+      const existing = map.get(it.material_id) || { name: mat.name, needed: 0, available: mat.stock_vendedor, isTramo };
       existing.needed += it.material_consumed;
       map.set(it.material_id, existing);
     });
     return Array.from(map.entries());
-  }, [jobItems, materials]);
+  }, [jobItems, materials, materialTypes]);
 
-  const hasStockIssue = materialConsumption.some(([, v]) => v.needed > v.available);
+  const hasStockIssue = materialConsumption.some(([, v]) => v.needed > v.available && !v.isTramo);
+
+  // Check tramo materials: verify active sheet exists
+  const tramoIssues = useMemo(() => {
+    const issues: { materialId: string; materialName: string }[] = [];
+    materialConsumption.forEach(([matId, info]) => {
+      if (!info.isTramo) return;
+      const mat = getMaterial(matId);
+      if (!mat) return;
+      const sheet = activeSheets.find((s: any) => s.material_id === matId && s.status === 'activa');
+      if (!sheet) {
+        issues.push({ materialId: matId, materialName: info.name });
+      }
+    });
+    return issues;
+  }, [materialConsumption, activeSheets, materials]);
+
+  // Tramo info chips
+  const tramoInfo = useMemo(() => {
+    const info: { name: string; remaining: number }[] = [];
+    materialConsumption.forEach(([matId, mc]) => {
+      if (!mc.isTramo) return;
+      const sheet = activeSheets.find((s: any) => s.material_id === matId && s.status === 'activa');
+      if (sheet) {
+        info.push({ name: mc.name, remaining: Math.max(0, (sheet as any).tramos_total - (sheet as any).tramos_usados) });
+      }
+    });
+    return info;
+  }, [materialConsumption, activeSheets]);
 
   // Payment helpers
   const paymentOptions: { value: PaymentMethod; label: string; Icon: React.ElementType }[] = [
