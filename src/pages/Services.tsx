@@ -24,7 +24,108 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle, Banknote, Smartphone, CreditCard, RotateCcw } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const QUICK_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000];
+
+type ServicePaymentType = 'cash' | 'transfer' | 'card' | 'mixed';
+
+const ServicePaymentSection = ({
+  paymentType,
+  setPaymentType,
+  amount,
+  total,
+  isMixed,
+  setIsMixed,
+  mixedCash,
+  setMixedCash,
+  mixedTransfer,
+  setMixedTransfer,
+}: {
+  paymentType: string;
+  setPaymentType: (v: string) => void;
+  amount: string;
+  total: number;
+  isMixed: boolean;
+  setIsMixed: (v: boolean) => void;
+  mixedCash: string;
+  setMixedCash: (v: string | ((p: string) => string)) => void;
+  mixedTransfer: string;
+  setMixedTransfer: (v: string) => void;
+}) => {
+  const paymentOptions: { value: string; label: string; Icon: React.ElementType }[] = [
+    { value: 'cash', label: 'Efectivo', Icon: Banknote },
+    { value: 'card', label: 'Tarjeta', Icon: CreditCard },
+    { value: 'transfer', label: 'Transferencia', Icon: Smartphone },
+  ];
+
+  const handlePaymentSelect = (value: string) => {
+    if (isMixed) {
+      if (value === 'cash' || value === 'transfer') {
+        setIsMixed(false);
+        setPaymentType(value);
+        return;
+      }
+    }
+    if (
+      (paymentType === 'cash' && value === 'transfer') ||
+      (paymentType === 'transfer' && value === 'cash')
+    ) {
+      setIsMixed(true);
+      setMixedCash('0');
+      setMixedTransfer(total > 0 ? total.toFixed(2) : '0');
+      return;
+    }
+    setIsMixed(false);
+    setPaymentType(value);
+  };
+
+  const isActive = (v: string) => isMixed ? (v === 'cash' || v === 'transfer') : paymentType === v;
+
+  return (
+    <div className="space-y-3">
+      <Label className="text-xs text-muted-foreground">Método de Pago</Label>
+      <div className="grid grid-cols-3 gap-2">
+        {paymentOptions.map(({ value, label, Icon }) => (
+          <Button
+            key={value}
+            type="button"
+            variant={isActive(value) ? 'default' : 'outline'}
+            className={cn('flex-col h-auto py-2.5', isActive(value) && 'ring-2 ring-primary')}
+            onClick={() => handlePaymentSelect(value)}
+          >
+            <Icon className="h-4 w-4 mb-0.5" />
+            <span className="text-xs">{label}</span>
+          </Button>
+        ))}
+      </div>
+      {isMixed && (
+        <p className="text-xs text-muted-foreground text-center">Pago mixto: Efectivo + Transferencia</p>
+      )}
+
+      {isMixed && (
+        <div className="space-y-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1"><Banknote className="h-3 w-3" /> Efectivo</Label>
+            <Input type="number" step="0.01" min="0" value={mixedCash} onChange={e => setMixedCash(e.target.value)} className="text-right font-medium" />
+            <div className="flex flex-wrap gap-1.5">
+              {QUICK_AMOUNTS.map(a => (
+                <Button key={a} type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash((p: string) => (Number(p) + a).toString())}>${a}</Button>
+              ))}
+              <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash(total > 0 ? total.toFixed(2) : '0')}>Exacto</Button>
+              <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash('0')}><RotateCcw className="h-3 w-3" /></Button>
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1"><Smartphone className="h-3 w-3" /> Transferencia</Label>
+            <Input type="number" step="0.01" min="0" value={mixedTransfer} onChange={e => setMixedTransfer(e.target.value)} className="text-right font-medium" />
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 import IconSelector, { getIconComponent } from '@/components/services/IconSelector';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -32,6 +133,7 @@ const paymentLabels: Record<string, string> = {
   cash: 'Efectivo',
   transfer: 'Transferencia',
   card: 'Tarjeta',
+  mixed: 'Mixto',
 };
 
 // ─── Shared: Recent entries list ───
@@ -122,6 +224,9 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
   const [paymentType, setPaymentType] = useState('cash');
+  const [isMixed, setIsMixed] = useState(false);
+  const [mixedCash, setMixedCash] = useState('0');
+  const [mixedTransfer, setMixedTransfer] = useState('0');
   const [isLiveService, setIsLiveService] = useState(false);
   const [liveServiceName, setLiveServiceName] = useState('');
 
@@ -164,7 +269,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
         user_id: user!.id,
         description: description.trim() || null,
         amount: parseFloat(amount),
-        payment_type: paymentType,
+        payment_type: isMixed ? 'mixed' : paymentType,
         is_catalog: !isLiveService,
       };
       if (isLiveService) {
@@ -191,6 +296,9 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       setAmount('');
       setSelectedCatId(null);
       setPaymentType('cash');
+      setIsMixed(false);
+      setMixedCash('0');
+      setMixedTransfer('0');
       setIsLiveService(false);
       setLiveServiceName('');
     },
@@ -329,31 +437,30 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
                 className="mt-1"
               />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">Monto ($)</Label>
-                <Input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label className="text-xs text-muted-foreground">Pago</Label>
-                <Select value={paymentType} onValueChange={setPaymentType}>
-                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Efectivo</SelectItem>
-                    <SelectItem value="transfer">Transferencia</SelectItem>
-                    <SelectItem value="card">Tarjeta</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">Monto ($)</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                className="mt-1"
+              />
             </div>
+            <ServicePaymentSection
+              paymentType={paymentType}
+              setPaymentType={setPaymentType}
+              amount={amount}
+              total={parseFloat(amount) || 0}
+              isMixed={isMixed}
+              setIsMixed={setIsMixed}
+              mixedCash={mixedCash}
+              setMixedCash={setMixedCash}
+              mixedTransfer={mixedTransfer}
+              setMixedTransfer={setMixedTransfer}
+            />
           </div>
 
           <Button className="w-full" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } createEntryMutation.mutate(); }} disabled={!canSubmit}>
@@ -404,6 +511,9 @@ const OwnerServicesView = () => {
   const [entryDescription, setEntryDescription] = useState('');
   const [entryAmount, setEntryAmount] = useState('');
   const [entryPaymentType, setEntryPaymentType] = useState('cash');
+  const [entryIsMixed, setEntryIsMixed] = useState(false);
+  const [entryMixedCash, setEntryMixedCash] = useState('0');
+  const [entryMixedTransfer, setEntryMixedTransfer] = useState('0');
   const [entryIsLive, setEntryIsLive] = useState(false);
   const [entryLiveName, setEntryLiveName] = useState('');
 
@@ -490,7 +600,7 @@ const OwnerServicesView = () => {
         user_id: user!.id,
         description: entryDescription.trim() || null,
         amount: parseFloat(entryAmount),
-        payment_type: entryPaymentType,
+        payment_type: entryIsMixed ? 'mixed' : entryPaymentType,
         is_catalog: !entryIsLive,
       };
       if (entryIsLive) {
@@ -518,6 +628,9 @@ const OwnerServicesView = () => {
       setEntryAmount('');
       setEntryCategoryId('');
       setEntryPaymentType('cash');
+      setEntryIsMixed(false);
+      setEntryMixedCash('0');
+      setEntryMixedTransfer('0');
       setEntryIsLive(false);
       setEntryLiveName('');
     },
@@ -821,17 +934,18 @@ const OwnerServicesView = () => {
               <Label>Monto cobrado ($)</Label>
               <Input type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="0.00" />
             </div>
-            <div>
-              <Label>Método de pago</Label>
-              <Select value={entryPaymentType} onValueChange={setEntryPaymentType}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Efectivo</SelectItem>
-                  <SelectItem value="transfer">Transferencia</SelectItem>
-                  <SelectItem value="card">Tarjeta</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            <ServicePaymentSection
+              paymentType={entryPaymentType}
+              setPaymentType={setEntryPaymentType}
+              amount={entryAmount}
+              total={parseFloat(entryAmount) || 0}
+              isMixed={entryIsMixed}
+              setIsMixed={setEntryIsMixed}
+              mixedCash={entryMixedCash}
+              setMixedCash={setEntryMixedCash}
+              mixedTransfer={entryMixedTransfer}
+              setMixedTransfer={setEntryMixedTransfer}
+            />
           </div>
           <DialogFooter>
             <Button onClick={() => createEntryMutation.mutate()} disabled={!entryCanSubmit}>
