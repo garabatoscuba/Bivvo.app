@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { db } from '@/lib/offlineDB';
-import { toast } from '@/hooks/use-toast';
 
 export function useOfflineCache() {
   const { user, profile } = useAuth();
@@ -16,11 +15,6 @@ export function useOfflineCache() {
 
     const run = async () => {
       setIsCaching(true);
-
-      const toastRef = toast({
-        title: 'Sincronizando datos offline...',
-        duration: Infinity,
-      });
 
       try {
         const businessId = profile.business_id!;
@@ -134,13 +128,9 @@ export function useOfflineCache() {
 
         // Save last sync timestamp
         localStorage.setItem(`bivoo-last-sync-${user.id}`, new Date().toISOString());
-
-        toastRef.dismiss?.();
-        toast({ title: 'Datos offline listos', duration: 2000 });
+        console.log('[useOfflineCache] Datos offline listos');
       } catch (err) {
         console.error('[useOfflineCache] Error:', err);
-        toastRef.dismiss?.();
-        toast({ title: 'Error al sincronizar datos offline', variant: 'destructive', duration: 3000 });
       } finally {
         setIsCaching(false);
       }

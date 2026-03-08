@@ -92,17 +92,13 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setSyncRequired(false);
 
         if (result.pushed > 0) {
-          toast({ title: `${result.pushed} operaciones sincronizadas` });
+          console.log(`[OfflineContext] ${result.pushed} operaciones sincronizadas`);
         }
       } else {
-        toast({
-          title: 'Error de sincronización',
-          description: result.error,
-          variant: 'destructive',
-        });
+        console.error('[OfflineContext] Error de sincronización:', result.error);
       }
     } catch (err: any) {
-      console.error('Sync error:', err);
+      console.error('[OfflineContext] Sync error:', err);
     } finally {
       syncingRef.current = false;
       setIsSyncing(false);
