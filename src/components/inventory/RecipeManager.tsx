@@ -357,6 +357,15 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
             </>
           )}
         </div>
+
+        {/* Footer with save & close */}
+        {recipe && (
+          <div className="flex-shrink-0 pt-3 border-t">
+            <Button className="w-full" onClick={() => onOpenChange(false)}>
+              Guardar y cerrar
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

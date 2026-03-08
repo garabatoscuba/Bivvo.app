@@ -137,8 +137,16 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
         });
       }
 
-      // Update product sale_price if user provided a new one (not for ingredientes)
-      if (!isIngrediente && newSalePrice && parseFloat(newSalePrice) > 0) {
+      // Update product prices
+      if (isIngrediente && unitCost && parseFloat(unitCost) > 0) {
+        // For ingredients: update cost_price so recipe calculations work
+        await supabase
+          .from('products')
+          .update({ cost_price: parseFloat(unitCost) })
+          .eq('id', product.id);
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+        queryClient.invalidateQueries({ queryKey: ['recipe-ingredients'] });
+      } else if (!isIngrediente && newSalePrice && parseFloat(newSalePrice) > 0) {
         await supabase
           .from('products')
           .update({ sale_price: parseFloat(newSalePrice) })

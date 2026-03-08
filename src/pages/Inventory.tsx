@@ -951,7 +951,7 @@ const Inventory = () => {
                           </Button>
                         </>
                       )}
-                      {(selectedWarehouseStock > 0 || selectedStock > 0) && (
+                      {(selectedProduct as any).tipo !== 'ingrediente' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
