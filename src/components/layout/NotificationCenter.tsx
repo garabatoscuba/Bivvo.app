@@ -74,7 +74,7 @@ function NotificationItem({ notif, onRead, onNavigate, onRefetch }: { notif: Not
 }
 
 export default function NotificationCenter() {
-  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, clearAll, refetch } = useNotifications();
   const navigate = useNavigate();
 
   const handleNavigate = (route: string) => {
