@@ -1,0 +1,310 @@
+import { useState } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useProducts } from '@/hooks/useProducts';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { toast } from '@/hooks/use-toast';
+import { Plus, Trash2, Loader2, ChefHat, DollarSign } from 'lucide-react';
+import type { Product } from '@/types/database';
+
+interface RecipeManagerProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  product: Product;
+}
+
+interface RecipeIngredient {
+  id: string;
+  ingredient_id: string;
+  quantity: number;
+  unit: string;
+  ingredient?: { id: string; name: string; cost_price: number; unit_of_measure: string };
+}
+
+export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProps) => {
+  const { profile } = useAuth();
+  const { products } = useProducts();
+  const queryClient = useQueryClient();
+  const businessId = profile?.business_id;
+
+  const ingredients = products.filter(p => (p as any).tipo === 'ingrediente');
+
+  // Fetch or create recipe
+  const { data: recipe, isLoading: recipeLoading } = useQuery({
+    queryKey: ['recipe', product.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('*')
+        .eq('product_id', product.id)
+        .eq('is_active', true)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: open,
+  });
+
+  // Fetch recipe ingredients
+  const { data: recipeIngredients, isLoading: ingredientsLoading } = useQuery({
+    queryKey: ['recipe-ingredients', recipe?.id],
+    queryFn: async () => {
+      if (!recipe?.id) return [];
+      const { data, error } = await supabase
+        .from('recipe_ingredients')
+        .select('*, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, cost_price, unit_of_measure)')
+        .eq('recipe_id', recipe.id);
+      if (error) throw error;
+      return (data || []) as unknown as RecipeIngredient[];
+    },
+    enabled: !!recipe?.id,
+  });
+
+  const createRecipe = useMutation({
+    mutationFn: async () => {
+      if (!businessId) throw new Error('No business');
+      const { data, error } = await supabase
+        .from('recipes')
+        .insert({ business_id: businessId, product_id: product.id, name: `Receta de ${product.name}` })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe', product.id] });
+      toast({ title: 'Receta creada' });
+    },
+  });
+
+  const updateYield = useMutation({
+    mutationFn: async (yieldQty: number) => {
+      if (!recipe?.id) return;
+      const { error } = await supabase
+        .from('recipes')
+        .update({ yield_quantity: yieldQty })
+        .eq('id', recipe.id);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['recipe', product.id] }),
+  });
+
+  const addIngredient = useMutation({
+    mutationFn: async ({ ingredientId, quantity, unit }: { ingredientId: string; quantity: number; unit: string }) => {
+      if (!recipe?.id) throw new Error('No recipe');
+      const { error } = await supabase
+        .from('recipe_ingredients')
+        .insert({ recipe_id: recipe.id, ingredient_id: ingredientId, quantity, unit });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe-ingredients', recipe?.id] });
+      toast({ title: 'Ingrediente agregado' });
+    },
+  });
+
+  const removeIngredient = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('recipe_ingredients').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe-ingredients', recipe?.id] });
+    },
+  });
+
+  // Add ingredient form state
+  const [newIngredientId, setNewIngredientId] = useState('');
+  const [newQuantity, setNewQuantity] = useState('');
+  const [newUnit, setNewUnit] = useState('');
+
+  const handleAddIngredient = () => {
+    if (!newIngredientId || !newQuantity) return;
+    const ing = ingredients.find(i => i.id === newIngredientId);
+    addIngredient.mutate({
+      ingredientId: newIngredientId,
+      quantity: Number(newQuantity),
+      unit: newUnit || ing?.unit_of_measure || 'Pieza',
+    });
+    setNewIngredientId('');
+    setNewQuantity('');
+    setNewUnit('');
+  };
+
+  // Calculate recipe cost
+  const recipeCost = (recipeIngredients || []).reduce((sum, ri) => {
+    const ing = ri.ingredient;
+    if (!ing) return sum;
+    return sum + Number(ing.cost_price) * ri.quantity;
+  }, 0);
+  const yieldQty = recipe?.yield_quantity || 1;
+  const costPerUnit = recipeCost / yieldQty;
+  const salePrice = Number(product.sale_price);
+  const margin = salePrice > 0 ? ((salePrice - costPerUnit) / salePrice * 100) : 0;
+
+  const isLoading = recipeLoading || ingredientsLoading;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] flex flex-col">
+        <DialogHeader className="flex-shrink-0">
+          <DialogTitle className="flex items-center gap-2">
+            <ChefHat className="h-5 w-5" />
+            Receta: {product.name}
+          </DialogTitle>
+        </DialogHeader>
+
+        <div className="flex-1 overflow-y-auto space-y-4">
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : !recipe ? (
+            <div className="text-center py-8 space-y-3">
+              <p className="text-sm text-muted-foreground">Este producto aún no tiene receta.</p>
+              <Button onClick={() => createRecipe.mutate()} disabled={createRecipe.isPending}>
+                {createRecipe.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Crear receta
+              </Button>
+            </div>
+          ) : (
+            <>
+              {/* Yield */}
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium whitespace-nowrap">Rinde:</label>
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  className="w-24"
+                  defaultValue={yieldQty}
+                  onBlur={(e) => {
+                    const v = Number(e.target.value);
+                    if (v > 0 && v !== yieldQty) updateYield.mutate(v);
+                  }}
+                />
+                <span className="text-sm text-muted-foreground">unidades por preparación</span>
+              </div>
+
+              <Separator />
+
+              {/* Cost summary */}
+              <div className="grid grid-cols-3 gap-2">
+                <Card className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Costo receta</p>
+                  <p className="text-lg font-bold">${recipeCost.toFixed(2)}</p>
+                </Card>
+                <Card className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Costo/unidad</p>
+                  <p className="text-lg font-bold">${costPerUnit.toFixed(2)}</p>
+                </Card>
+                <Card className="p-3 text-center">
+                  <p className="text-xs text-muted-foreground">Margen</p>
+                  <p className={`text-lg font-bold ${margin >= 30 ? 'text-green-600' : margin >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
+                    {margin.toFixed(1)}%
+                  </p>
+                </Card>
+              </div>
+
+              <Separator />
+
+              {/* Ingredients list */}
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Ingredientes</p>
+                {(recipeIngredients || []).length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Sin ingredientes aún.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {(recipeIngredients || []).map((ri) => (
+                      <div key={ri.id} className="flex items-center justify-between rounded-md border p-2">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{ri.ingredient?.name || 'Desconocido'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {ri.quantity} {ri.unit} · ${(Number(ri.ingredient?.cost_price || 0) * ri.quantity).toFixed(2)}
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-destructive flex-shrink-0"
+                          onClick={() => removeIngredient.mutate(ri.id)}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Add ingredient */}
+              <div className="space-y-2">
+                <p className="text-sm font-semibold">Agregar ingrediente</p>
+                {ingredients.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">
+                    No hay productos tipo "ingrediente". Crea uno primero en Inventario.
+                  </p>
+                ) : (
+                  <div className="flex gap-2 items-end">
+                    <div className="flex-1">
+                      <select
+                        value={newIngredientId}
+                        onChange={(e) => {
+                          setNewIngredientId(e.target.value);
+                          const ing = ingredients.find(i => i.id === e.target.value);
+                          if (ing) setNewUnit(ing.unit_of_measure);
+                        }}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      >
+                        <option value="">Seleccionar...</option>
+                        {ingredients.map(i => (
+                          <option key={i.id} value={i.id}>{i.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <Input
+                      type="number"
+                      min={0.01}
+                      step={0.01}
+                      placeholder="Cant."
+                      className="w-20"
+                      value={newQuantity}
+                      onChange={(e) => setNewQuantity(e.target.value)}
+                    />
+                    <Input
+                      placeholder="Unidad"
+                      className="w-24"
+                      value={newUnit}
+                      onChange={(e) => setNewUnit(e.target.value)}
+                    />
+                    <Button
+                      size="icon"
+                      className="flex-shrink-0"
+                      onClick={handleAddIngredient}
+                      disabled={!newIngredientId || !newQuantity || addIngredient.isPending}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};

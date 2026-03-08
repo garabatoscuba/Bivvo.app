@@ -74,8 +74,12 @@ const POS = () => {
     stockMap.set(bs.product_id, bs.quantity);
   });
 
+  const hasIngredients = products.some((p) => (p as any).tipo === 'ingrediente');
+
   const availableProducts = products.filter((p) => {
     if (p.status !== 'for_sale') return false;
+    // Only filter out ingredients if the business uses them
+    if (hasIngredients && (p as any).tipo === 'ingrediente') return false;
     const stock = stockMap.get(p.id) || 0;
     return stock > 0;
   });

@@ -25,7 +25,8 @@ import { useCategories, useProducts, useBranchStock } from '@/hooks/useProducts'
 import { useBranches } from '@/hooks/useBranches';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Product } from '@/types/database';
-import { Loader2, Package, Camera, X } from 'lucide-react';
+import { Loader2, Package, Camera, X, ChefHat } from 'lucide-react';
+import { RecipeManager } from '@/components/inventory/RecipeManager';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 
@@ -38,6 +39,7 @@ const productSchema = z.object({
   barcode: z.string().max(50).optional(),
   unit_of_measure: z.string().min(1),
   brand: z.string().max(100).optional(),
+  tipo: z.enum(['reventa', 'ingrediente', 'elaborado']).default('reventa'),
 });
 
 type ProductFormData = z.infer<typeof productSchema>;
@@ -64,6 +66,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [recipeOpen, setRecipeOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Stock info for editing
@@ -81,7 +84,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     resolver: zodResolver(productSchema),
     defaultValues: {
       name: '', description: '', category_id: undefined,
-      barcode: '', unit_of_measure: 'Pieza', brand: '',
+      barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa',
     },
   });
 
@@ -94,11 +97,12 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
         barcode: product.barcode || '',
         unit_of_measure: product.unit_of_measure || 'Pieza',
         brand: product.brand || '',
+        tipo: (product as any).tipo || 'reventa',
       });
     } else {
       form.reset({
         name: '', description: '', category_id: undefined,
-        barcode: '', unit_of_measure: 'Pieza', brand: '',
+        barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa',
       });
     }
   }, [product, form]);
@@ -173,6 +177,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       supplier: product?.supplier ?? null,
       unit_of_measure: data.unit_of_measure,
       brand: data.brand || null,
+      tipo: data.tipo,
     };
 
     if (product) {
@@ -319,6 +324,29 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
             {/* ─── Sección 2: Clasificación ─── */}
             <div className="space-y-3">
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Clasificación</p>
+              
+              <FormField
+                control={form.control}
+                name="tipo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Tipo de producto</FormLabel>
+                    <FormControl>
+                      <select
+                        value={field.value}
+                        onChange={(e) => field.onChange(e.target.value)}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        <option value="reventa">Reventa (comprado para vender)</option>
+                        <option value="ingrediente">Ingrediente (materia prima)</option>
+                        <option value="elaborado">Elaborado (producción propia)</option>
+                      </select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
@@ -384,6 +412,25 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
               </div>
             </div>
 
+            {/* ─── Sección 4: Receta (solo elaborado) ─── */}
+            {product && form.watch('tipo') === 'elaborado' && (
+              <>
+                <Separator />
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Receta</p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setRecipeOpen(true)}
+                  >
+                    <ChefHat className="h-4 w-4 mr-2" />
+                    Gestionar receta
+                  </Button>
+                </div>
+              </>
+            )}
+
             {/* Actions */}
             <div className="flex gap-3 pt-2">
               <Button
@@ -401,6 +448,14 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
             </div>
           </form>
         </Form>
+
+        {product && (
+          <RecipeManager
+            open={recipeOpen}
+            onOpenChange={setRecipeOpen}
+            product={product}
+          />
+        )}
       </DialogContent>
     </Dialog>
   );
