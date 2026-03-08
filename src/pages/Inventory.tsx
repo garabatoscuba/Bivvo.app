@@ -15,10 +15,10 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useIsDowngraded } from '@/hooks/useIsDowngraded';
 import DowngradeModal from '@/components/DowngradeModal';
 import { supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft } from 'lucide-react';
+import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft, Star } from 'lucide-react';
 import { MovementsLog } from '@/components/inventory/MovementsLog';
 import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowDialog';
 import { MermaDialog } from '@/components/inventory/MermaDialog';
@@ -127,6 +127,37 @@ const Inventory = () => {
   const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
 
   const canManage = isOwner || isManager;
+
+  // Product review stats from portal
+  const businessId = profile?.business_id;
+  const { data: productReviewStats } = useQuery({
+    queryKey: ['product-review-stats', businessId],
+    queryFn: async () => {
+      if (!businessId) return {};
+      const { data: branchIds } = await supabase
+        .from('branches').select('id').eq('business_id', businessId);
+      if (!branchIds?.length) return {};
+      const ids = branchIds.map(b => b.id);
+      const { data: reviews } = await supabase
+        .from('reviews')
+        .select('product_name, rating')
+        .in('branch_id', ids)
+        .not('product_name', 'is', null);
+      if (!reviews?.length) return {};
+      const stats: Record<string, { total: number; sum: number; count: number }> = {};
+      reviews.forEach((r: any) => {
+        const key = (r.product_name as string).toLowerCase();
+        if (!stats[key]) stats[key] = { total: 0, sum: 0, count: 0 };
+        stats[key].total++;
+        if (r.rating && r.rating > 0) {
+          stats[key].sum += r.rating;
+          stats[key].count++;
+        }
+      });
+      return stats;
+    },
+    enabled: !!businessId && (isOwner || isSuperAdmin),
+  });
 
   // Plan limits
   const FREE_PRODUCT_LIMIT = 5;
@@ -723,6 +754,24 @@ const Inventory = () => {
                   <div className="min-w-0 flex-1">
                     <SheetTitle className="text-lg">{selectedProduct.name}</SheetTitle>
                     <p className="text-sm text-muted-foreground">{selectedProduct.code}</p>
+                    {/* Portal review stats */}
+                    {(() => {
+                      const stats = productReviewStats?.[selectedProduct.name.toLowerCase()];
+                      const avg = stats && stats.count > 0 ? stats.sum / stats.count : 0;
+                      return (
+                        <div className="flex items-center gap-1.5 mt-1">
+                          <div className="flex gap-0.5">
+                            {[1, 2, 3, 4, 5].map(i => (
+                              <Star key={i} size={12} className={i <= Math.round(avg) ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/20'} />
+                            ))}
+                          </div>
+                          <span className="text-[10px] text-muted-foreground">
+                            {stats?.count ? `${avg.toFixed(1)} (${stats.count})` : 'Sin valoraciones'}
+                            {stats?.total ? ` · ${stats.total} mensajes` : ''}
+                          </span>
+                        </div>
+                      );
+                    })()}
                   </div>
                   {selectedProduct.category && (
                     <span className={cn(

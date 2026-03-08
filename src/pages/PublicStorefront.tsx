@@ -22,10 +22,11 @@ export interface StorefrontProduct {
 
 export interface StorefrontReview {
   id: string;
-  rating: number;
+  rating: number | null;
   comment: string | null;
   created_at: string;
   author: string;
+  product_name: string | null;
 }
 
 export interface StorefrontAnnouncement {
@@ -202,7 +203,7 @@ const PublicStorefront = () => {
             />
           )}
           {activeTab === 'catalog' && (
-            <StorefrontCatalogView products={data.products} accent={accent} branchId={data.branch.id} currencySymbol={currencySymbol} />
+            <StorefrontCatalogView products={data.products} accent={accent} branchId={data.branch.id} currencySymbol={currencySymbol} reviews={data.reviews} />
           )}
           {activeTab === 'contact' && (
             <StorefrontContact data={data} accent={accent} />

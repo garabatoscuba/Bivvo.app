@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { StorefrontProduct } from '@/pages/PublicStorefront';
+import type { StorefrontProduct, StorefrontReview } from '@/pages/PublicStorefront';
 import StorefrontCatalog from '@/components/storefront/StorefrontCatalog';
 import StorefrontSearch from '@/components/storefront/StorefrontSearch';
 import StorefrontReviewForm from '@/components/storefront/StorefrontReviewForm';
@@ -9,9 +9,10 @@ interface Props {
   accent: string;
   branchId?: string;
   currencySymbol: string;
+  reviews?: StorefrontReview[];
 }
 
-const StorefrontCatalogView = ({ products, accent, branchId, currencySymbol }: Props) => {
+const StorefrontCatalogView = ({ products, accent, branchId, currencySymbol, reviews = [] }: Props) => {
   const [search, setSearch] = useState('');
 
   const filteredProducts = search.trim()
@@ -35,7 +36,13 @@ const StorefrontCatalogView = ({ products, accent, branchId, currencySymbol }: P
           <StorefrontSearch value={search} onChange={setSearch} />
         </div>
       </div>
-      <StorefrontCatalog products={filteredProducts} accent={accent} currencySymbol={currencySymbol} />
+      <StorefrontCatalog
+        products={filteredProducts}
+        accent={accent}
+        currencySymbol={currencySymbol}
+        branchId={branchId}
+        reviews={reviews}
+      />
 
       {/* Review section */}
       {branchId && (
