@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Plus, PackagePlus, Send, Loader2, AlertTriangle, Pencil } from 'lucide-react';
+import ActiveSheetsSection from './ActiveSheetsSection';
 
 const InsumosTab = () => {
   const { data: materials = [], isLoading } = useRawMaterials();
