@@ -71,7 +71,7 @@ serve(async (req) => {
       }
 
       if (action === "submit_review") {
-        const { branch_id, affiliate_id, rating, comment, token } = body;
+        const { branch_id, phone_number, rating, comment, token, product_name } = body;
         
         // Support review via token (from delivery review request)
         if (token) {
@@ -87,42 +87,32 @@ serve(async (req) => {
             });
           }
 
-          // Create a temporary affiliate for the review
-          const { data: tempAffiliate } = await supabase
-            .from("affiliates")
-            .insert({ branch_id: reviewToken.branch_id, name: reviewToken.customer_name })
-            .select("id")
-            .single();
-
-          if (tempAffiliate) {
-            await supabase.from("reviews").insert({
-              branch_id: reviewToken.branch_id,
-              affiliate_id: tempAffiliate.id,
-              rating: Math.min(5, Math.max(1, rating)),
-              comment: comment?.trim() || null,
-            });
-            await supabase.from("review_tokens").update({ used_at: new Date().toISOString() }).eq("id", reviewToken.id);
-          }
+          await supabase.from("reviews").insert({
+            branch_id: reviewToken.branch_id,
+            rating: rating ? Math.min(5, Math.max(1, rating)) : null,
+            comment: comment?.trim() || null,
+            phone_number: phone_number?.replace(/[^0-9+]/g, '') || null,
+            product_name: product_name?.trim() || null,
+          });
+          await supabase.from("review_tokens").update({ used_at: new Date().toISOString() }).eq("id", reviewToken.id);
 
           return new Response(JSON.stringify({ success: true }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
 
-        if (!branch_id || !affiliate_id || !rating) {
-          return new Response(JSON.stringify({ error: "Datos incompletos" }), {
+        if (!branch_id || !phone_number?.trim()) {
+          return new Response(JSON.stringify({ error: "Número de celular requerido" }), {
             status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        const { data: affiliate } = await supabase
-          .from("affiliates").select("id").eq("id", affiliate_id).eq("branch_id", branch_id).single();
-        if (!affiliate) {
-          return new Response(JSON.stringify({ error: "Afiliado no encontrado" }), {
-            status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" },
-          });
-        }
+        const cleanPhone = phone_number.replace(/[^0-9+]/g, '');
         const { error } = await supabase.from("reviews").insert({
-          branch_id, affiliate_id, rating: Math.min(5, Math.max(1, rating)), comment: comment?.trim() || null,
+          branch_id,
+          rating: rating ? Math.min(5, Math.max(1, rating)) : null,
+          comment: comment?.trim() || null,
+          phone_number: cleanPhone,
+          product_name: product_name?.trim() || null,
         });
         if (error) {
           return new Response(JSON.stringify({ error: error.message }), {
@@ -288,7 +278,7 @@ serve(async (req) => {
         .gt("quantity", 0),
       supabase
         .from("reviews")
-        .select("id, rating, comment, created_at, is_visible, affiliate:affiliates(name)")
+        .select("id, rating, comment, created_at, is_visible, phone_number, product_name")
         .eq("branch_id", resolvedBranch.id).eq("is_visible", true)
         .order("created_at", { ascending: false }).limit(50),
       supabase
@@ -355,7 +345,7 @@ serve(async (req) => {
         products,
         reviews: (reviewsResult.data || []).map((r: any) => ({
           id: r.id, rating: r.rating, comment: r.comment, created_at: r.created_at,
-          author: r.affiliate?.name || 'Anónimo',
+          author: 'Cliente',
         })),
         announcements: announcementsResult.data || [],
         loyalty: loyaltyResult.data || { points_welcome: 10, points_name: 10, points_phone: 10, points_email: 10 },
