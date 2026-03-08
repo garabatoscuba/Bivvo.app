@@ -80,7 +80,7 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
     },
     enabled: !!businessId,
   });
-  const isCopyShop = business?.business_type === 'punto_copias';
+  const isCopyShop = business?.business_type === 'copy_shop';
 
   const { data: modalities = [], isLoading } = useQuery({
     queryKey: ['salary-modalities', businessId, context],
