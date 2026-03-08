@@ -102,13 +102,6 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
               </button>
             )}
 
-            <button
-              onClick={() => setShowMembership(true)}
-              className="h-8 w-8 rounded-full flex items-center justify-center text-white/70 hover:text-white transition-colors"
-              aria-label="Membresía"
-            >
-              <User className="h-4 w-4" />
-            </button>
 
             <button
               onClick={() => { if (activeTab !== 'catalog') onTabChange('catalog'); }}
