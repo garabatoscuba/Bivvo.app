@@ -442,7 +442,7 @@ const AppSidebar = () => {
   // Manager-allowed module names
   const MANAGER_ALLOWED_MODULES = new Set([
     "Punto de Venta", "Servicios", "Caja", "Inventario",
-    "Pedidos", "Reportes", "Recursos Humanos", "Ventas",
+    "Pedidos", "Reportes", "Recursos Humanos", "Ventas", "Impresiones",
   ]);
   // Modules the manager can see WITHOUT an active jornada (only Empleados)
   const MANAGER_NO_JORNADA_MODULES = new Set(["Recursos Humanos"]);
