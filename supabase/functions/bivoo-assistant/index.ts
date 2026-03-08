@@ -167,6 +167,31 @@ Deno.serve(async (req) => {
           .join("\n");
     }
 
+    /* ── Read per-module instructions ── */
+    let moduleInstructionsBlock = "";
+    if (active_module) {
+      // Map route to module_key (handle route variations)
+      const routeToKey: Record<string, string> = {
+        dashboard: "dashboard", pos: "pos", inventory: "inventario", inventario: "inventario",
+        services: "servicios", servicios: "servicios", sales: "ventas", ventas: "ventas",
+        reportes: "reportes", employees: "empleados", empleados: "empleados",
+        nomina: "nomina", caja: "caja", contabilidad: "contabilidad",
+        orders: "pedidos", pedidos: "pedidos", "store-settings": "portal", portal: "portal",
+        "my-employment": "mi_empleo", mi_empleo: "mi_empleo",
+        "mi-red": "mi_red", "partner-dashboard": "mi_red",
+      };
+      const moduleKey = routeToKey[active_module] || active_module;
+      const { data: modInstr } = await supabase
+        .from("assistant_module_instructions")
+        .select("instructions")
+        .eq("module_key", moduleKey)
+        .limit(1)
+        .single();
+      if (modInstr?.instructions?.trim()) {
+        moduleInstructionsBlock = `\n\nINSTRUCCIONES DEL MÓDULO (${moduleKey}):\n${modInstr.instructions.slice(0, 800)}`;
+      }
+    }
+
     /* ── Fetch real-time module context ── */
     const contextData = await fetchModuleContext(supabase, business_id, active_module);
 
@@ -182,6 +207,7 @@ Deno.serve(async (req) => {
     const systemPrompt = [
       `Tu nombre es ${assistantName}. Asistente de Bivoo (gestión de negocios). Tono: ${tone}.`,
       buildRoleBlock(role || "employee"),
+      moduleInstructionsBlock,
       baseInstructions ? baseInstructions.slice(0, 1500) : "",
       moduleContext,
       trainingBlock,
