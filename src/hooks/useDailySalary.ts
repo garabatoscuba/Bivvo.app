@@ -387,7 +387,7 @@ export const useDailySalary = ({
           base += baseSalary / days;
           const goalAmount = Number(config.goal_amount || 0);
           const goalBonus = Number(config.goal_bonus || 0);
-          if (goalAmount > 0 && individualIncome >= goalAmount) {
+          if (goalAmount > 0 && getApplicableIncome(appliesTo) >= goalAmount) {
             earning += goalBonus;
           }
           break;
