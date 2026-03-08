@@ -117,6 +117,14 @@ const InsumosTab = () => {
                   <TableCell className="text-right">{m.stock_minimo}</TableCell>
                   <TableCell className="text-right">${m.costo_unitario}</TableCell>
                   <TableCell className="text-right">{m.porcentaje_tinta}%</TableCell>
+                  <TableCell className="text-right">
+                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => {
+                      setMatForm({ name: m.name, material_type_id: m.material_type_id || '', stock_minimo: m.stock_minimo, porcentaje_tinta: m.porcentaje_tinta, id: m.id } as any);
+                      setNewOpen(true);
+                    }}>
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               );
             })}
