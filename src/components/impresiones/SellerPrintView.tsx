@@ -94,6 +94,7 @@ const SellerPrintView = () => {
         service_name: svc.name,
         cantidad: 1,
         es_doble_cara: false,
+        es_color: false,
         precio_cobrado: svc.precio_base,
         costo_insumo: svc.material_id ? (getMaterial(svc.material_id)?.costo_unitario || 0) * svc.consumo_por_unidad : 0,
         material_consumed: svc.consumo_por_unidad,
