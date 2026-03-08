@@ -37,6 +37,7 @@ export interface StoreSettings {
   social_tiktok: string | null;
   social_twitter: string | null;
   contact_email: string | null;
+  whatsapp_number: string | null;
   created_at: string;
   updated_at: string;
 }

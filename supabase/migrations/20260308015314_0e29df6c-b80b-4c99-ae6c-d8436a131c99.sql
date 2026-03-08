@@ -1,0 +1,1 @@
+ALTER TABLE public.store_settings ADD COLUMN whatsapp_number TEXT DEFAULT NULL;

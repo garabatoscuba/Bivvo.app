@@ -122,6 +122,7 @@ const StoreSettingsPage = () => {
   const [socialTiktok, setSocialTiktok] = useState('');
   const [socialTwitter, setSocialTwitter] = useState('');
   const [contactEmail, setContactEmail] = useState('');
+  const [whatsappNumber, setWhatsappNumber] = useState('');
   const [uploadingHero, setUploadingHero] = useState(false);
 
   useEffect(() => {
@@ -141,6 +142,7 @@ const StoreSettingsPage = () => {
       setSocialTiktok(settings.social_tiktok || '');
       setSocialTwitter(settings.social_twitter || '');
       setContactEmail(settings.contact_email || '');
+      setWhatsappNumber((settings as any).whatsapp_number || '');
     }
   }, [settings]);
 
@@ -195,7 +197,8 @@ const StoreSettingsPage = () => {
       social_facebook: socialFacebook || null, social_tiktok: socialTiktok || null,
       social_twitter: socialTwitter || null,
       contact_email: contactEmail || null,
-    });
+      whatsapp_number: whatsappNumber.trim() || null,
+    } as any);
   };
 
   // Announcements
@@ -494,6 +497,11 @@ const StoreSettingsPage = () => {
                   <div>
                     <Label className="text-xs text-muted-foreground">X / Twitter</Label>
                     <Input value={socialTwitter} onChange={(e) => setSocialTwitter(e.target.value)} placeholder="https://x.com/tu-negocio" className="h-8 text-sm" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">WhatsApp de contacto</Label>
+                    <Input value={whatsappNumber} onChange={(e) => setWhatsappNumber(e.target.value)} placeholder="+53 5XXXXXXX" className="h-8 text-sm" maxLength={20} />
+                    <p className="text-[10px] text-muted-foreground mt-1">Opcional. Si lo configuras, aparecerá un botón de WhatsApp en la página de Contacto.</p>
                   </div>
                 </CardContent>
               </Card>
