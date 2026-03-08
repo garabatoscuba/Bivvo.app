@@ -100,16 +100,37 @@ Deno.serve(async (req) => {
       }
     };
 
+    const safeDeleteIn = async (table: string, column: string, values: string[]) => {
+      if (values.length === 0) return;
+      try {
+        const { error } = await adminClient.from(table).delete().in(column, values);
+        if (error) {
+          console.error(`Error deleting from ${table}:`, error.message);
+          errors.push(`${table}: ${error.message}`);
+        }
+      } catch (e: any) {
+        console.error(`Exception deleting from ${table}:`, e.message);
+        errors.push(`${table}: ${e.message}`);
+      }
+    };
+
+    // Get all branch IDs for this business (needed for tables without business_id)
+    const { data: branches } = await adminClient
+      .from("branches")
+      .select("id")
+      .eq("business_id", business_id);
+    const branchIds = (branches || []).map((b: any) => b.id);
+
     // 1. audit_logs
     await safeDelete("audit_logs", { business_id });
 
-    // 2. inventory_counts (may not exist yet, ignore errors)
+    // 2. inventory_counts (may not exist yet)
     try {
       const { error } = await adminClient.from("inventory_counts").delete().eq("business_id", business_id);
       if (error) console.error("inventory_counts:", error.message);
-    } catch (_) { /* table may not exist */ }
+    } catch (_) {}
 
-    // 3. accounting_asset_interventions via asset_id
+    // 3. accounting_asset_interventions & maintenances via asset_id
     const { data: assets } = await adminClient
       .from("accounting_assets")
       .select("id")
@@ -117,29 +138,8 @@ Deno.serve(async (req) => {
     const assetIds = (assets || []).map((a: any) => a.id);
 
     if (assetIds.length > 0) {
-      // Delete interventions
-      try {
-        const { error } = await adminClient
-          .from("accounting_asset_interventions")
-          .delete()
-          .in("asset_id", assetIds);
-        if (error) {
-          console.error("accounting_asset_interventions:", error.message);
-          errors.push(`accounting_asset_interventions: ${error.message}`);
-        }
-      } catch (e: any) { errors.push(`accounting_asset_interventions: ${e.message}`); }
-
-      // Delete maintenances
-      try {
-        const { error } = await adminClient
-          .from("accounting_asset_maintenances")
-          .delete()
-          .in("asset_id", assetIds);
-        if (error) {
-          console.error("accounting_asset_maintenances:", error.message);
-          errors.push(`accounting_asset_maintenances: ${error.message}`);
-        }
-      } catch (e: any) { errors.push(`accounting_asset_maintenances: ${e.message}`); }
+      await safeDeleteIn("accounting_asset_interventions", "asset_id", assetIds);
+      await safeDeleteIn("accounting_asset_maintenances", "asset_id", assetIds);
     }
 
     // 4. accounting_assets
@@ -154,8 +154,8 @@ Deno.serve(async (req) => {
     // 7. daily_reports
     await safeDelete("daily_reports", { business_id });
 
-    // 8. jornadas
-    await safeDelete("jornadas", { business_id });
+    // 8. jornadas (uses sucursal_id, no business_id)
+    await safeDeleteIn("jornadas", "sucursal_id", branchIds);
 
     // 9. cash_register_movements
     await safeDelete("cash_register_movements", { business_id });
@@ -172,30 +172,23 @@ Deno.serve(async (req) => {
     // 13. product_stock_entries
     await safeDelete("product_stock_entries", { business_id });
 
-    // 14. sale_items via sale_id
+    // 14. sale_items via sale_id (sales uses branch_id, no business_id)
     const { data: salesData } = await adminClient
       .from("sales")
       .select("id")
-      .eq("business_id", business_id);
+      .in("branch_id", branchIds);
     const saleIds = (salesData || []).map((s: any) => s.id);
 
     if (saleIds.length > 0) {
-      // Batch delete sale_items
       const batchSize = 200;
       for (let i = 0; i < saleIds.length; i += batchSize) {
         const batch = saleIds.slice(i, i + batchSize);
-        try {
-          const { error } = await adminClient.from("sale_items").delete().in("sale_id", batch);
-          if (error) {
-            console.error("sale_items batch:", error.message);
-            errors.push(`sale_items: ${error.message}`);
-          }
-        } catch (e: any) { errors.push(`sale_items: ${e.message}`); }
+        await safeDeleteIn("sale_items", "sale_id", batch);
       }
     }
 
-    // 15. sales
-    await safeDelete("sales", { business_id });
+    // 15. sales (uses branch_id)
+    await safeDeleteIn("sales", "branch_id", branchIds);
 
     // 16. daily_copies
     await safeDelete("daily_copies", { business_id });
@@ -204,23 +197,10 @@ Deno.serve(async (req) => {
     try {
       const { error } = await adminClient.from("tip_entries").delete().eq("business_id", business_id);
       if (error) console.error("tip_entries:", error.message);
-    } catch (_) { /* may not exist */ }
+    } catch (_) {}
 
-    // 18. inventory_movements via branch
-    const { data: branches } = await adminClient
-      .from("branches")
-      .select("id")
-      .eq("business_id", business_id);
-    const branchIds = (branches || []).map((b: any) => b.id);
-
-    if (branchIds.length > 0) {
-      for (const bid of branchIds) {
-        try {
-          const { error } = await adminClient.from("inventory_movements").delete().eq("branch_id", bid);
-          if (error) console.error("inventory_movements:", error.message);
-        } catch (_) { /* ignore */ }
-      }
-    }
+    // 18. inventory_movements (uses branch_id, no business_id)
+    await safeDeleteIn("inventory_movements", "branch_id", branchIds);
 
     // 19. notifications
     await safeDelete("notifications", { business_id });
