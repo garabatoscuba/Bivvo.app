@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useRawMaterials, usePrintServiceTypes, usePrintRecipes, useEmployeesForTransfer, usePrintMaterialTypes, useActiveSheets, useOpenSheet, useCloseSheet } from '@/hooks/usePrintData';
+import { useRegisterPrintShrinkage } from '@/hooks/usePrintShrinkage';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
