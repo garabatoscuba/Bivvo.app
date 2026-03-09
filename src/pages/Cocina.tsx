@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChefHat, Clock, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useIsRestaurant } from '@/hooks/useIsRestaurant';
 
 type KitchenStatus = 'recibido' | 'preparando' | 'listo';
 
