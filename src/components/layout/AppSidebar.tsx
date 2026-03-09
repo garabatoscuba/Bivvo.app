@@ -146,6 +146,7 @@ const AppSidebar = () => {
   const employeePosition = normalizeEmployeePosition((employeeRecord as any)?.position);
   const isEmployeeSession = hasEmployeeRecord;
   const isEmployeeManager = employeePosition === "manager";
+  const isEmployeeKitchen = employeePosition === "cocina";
   const shouldWaitEmployeeResolution = isBivooAccount && employeeRecordLoading;
 
   // Employees must not run owner/owner_id sidebar flow
@@ -155,9 +156,12 @@ const AppSidebar = () => {
   const showManagerModules =
     !shouldWaitEmployeeResolution && (isEmployeeSession ? isEmployeeManager : isManager && !isOwner && !isSuperAdmin);
 
+  // Kitchen staff only sees cocina
+  const showKitchenModule = !shouldWaitEmployeeResolution && isEmployeeSession && isEmployeeKitchen;
+
   // Jornada check for operational employee tools
   const { jornadaActiva } = useJornadaActiva();
-  const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && jornadaActiva;
+  const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && jornadaActiva;
 
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
