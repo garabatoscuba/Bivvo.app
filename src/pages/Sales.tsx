@@ -444,6 +444,9 @@ const Sales = () => {
                           {statusLabels[sale.status as SaleStatus]}
                         </span>
                       )}
+                      {sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
+                        <KitchenOrderStatus saleId={sale.id} businessId={resolvedBusinessId} />
+                      )}
                     </div>
                   </div>
                   {sale.seller_name && <p className="text-[10px] text-muted-foreground">{sale.seller_name}</p>}
