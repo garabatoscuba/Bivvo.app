@@ -436,12 +436,16 @@ const AppSidebar = () => {
   // Owner sees both Tesorería and Caja as separate sidebar items
   const ownerFilteredModules = sidebarModules;
 
+  const isOwnerRestaurant = resolvedBusiness?.business_type === 'estaurente/safetería';
+
   const businessItems = [
     ...ownerFilteredModules.map((m) => ({
       title: m.sidebar_label,
       url: moduleUrlMap[m.name] || "/",
       icon: getIconComponent(m.icon),
     })),
+    // Cocina (KDS) only for restaurant owners
+    ...(isOwnerRestaurant ? [{ title: "Cocina (KDS)", url: "/cocina", icon: ChefHat }] : []),
     { title: "Configuración", url: "/settings", icon: Settings },
     ...(!isManager || isOwner || isSuperAdmin ? [{ title: "Planes", url: "/plans", icon: CreditCard }] : []),
   ];
