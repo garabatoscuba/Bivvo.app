@@ -389,9 +389,9 @@ const SellerPrintView = () => {
     return ((selectedRecipe as any).print_recipe_materials || []).map((rm: any) => {
       const mat = getMaterial(rm.material_id);
       const needed = rm.cantidad_por_produccion * prodForm.cantidad_producida;
-      return { material_id: rm.material_id, name: mat?.name || '—', needed, available: mat?.stock_vendedor || 0 };
+      return { material_id: rm.material_id, name: mat?.name || '—', needed, available: getMyStock(rm.material_id) };
     });
-  }, [selectedRecipe, prodForm.cantidad_producida, materials]);
+  }, [selectedRecipe, prodForm.cantidad_producida, materials, myStocks]);
 
   const prodMutation = useMutation({
     mutationFn: async () => {
