@@ -541,18 +541,43 @@ const SellerPrintView = () => {
                 <div className="mt-4 space-y-2">
                   <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Recientes</p>
                   {recentJobs.slice(0, 5).map((job: any) => {
-                    const itemCount = (job.print_job_items || []).reduce((s: number, it: any) => s + it.cantidad, 0);
+                    const items = job.print_job_items || [];
                     return (
-                      <div key={job.id} className="flex items-center justify-between rounded-lg border p-2.5">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Printer className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                          <Badge variant="secondary" className="text-[10px]">{itemCount} item{itemCount !== 1 ? 's' : ''}</Badge>
-                          <Badge variant="outline" className="text-[10px]">{paymentLabels[job.payment_method] || job.payment_method}</Badge>
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(job.created_at).toLocaleString('es', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                      <div key={job.id} className="rounded-lg border p-2.5 space-y-1.5">
+                        {items.map((it: any, i: number) => {
+                          const svc = activeServices.find((s: any) => s.id === it.service_type_id);
+                          const svcName = svc?.name || 'Servicio';
+                          const flags: string[] = [];
+                          if (it.es_doble_cara) flags.push('Doble cara');
+                          if (it.es_color) flags.push('Color');
+                          if (it.es_full) flags.push('Full');
+                          return (
+                            <div key={i} className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-xs font-medium">{svcName}</span>
+                              <Badge variant="secondary" className="text-[10px]">×{it.cantidad}</Badge>
+                              {flags.map(f => (
+                                <Badge key={f} variant="outline" className="text-[10px]">{f}</Badge>
+                              ))}
+                              {it.nota && (
+                                <button
+                                  className="text-[10px] text-primary underline cursor-pointer"
+                                  onClick={() => setViewingNote(it.nota)}
+                                >
+                                  Ver nota
+                                </button>
+                              )}
+                            </div>
+                          );
+                        })}
+                        <div className="flex items-center justify-between pt-1 border-t border-border/50">
+                          <div className="flex items-center gap-1.5">
+                            <Badge variant="outline" className="text-[10px]">{paymentLabels[job.payment_method] || job.payment_method}</Badge>
+                            <span className="text-[10px] text-muted-foreground">
+                              {new Date(job.created_at).toLocaleString('es', { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <span className="text-xs font-bold">${Number(job.total).toFixed(2)}</span>
                         </div>
-                        <span className="text-xs font-bold shrink-0 ml-2">${Number(job.total).toFixed(2)}</span>
                       </div>
                     );
                   })}
