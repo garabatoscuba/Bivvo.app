@@ -61,6 +61,7 @@ import {
   Bot,
   Tag,
   Network,
+  ChefHat,
 } from "lucide-react";
 import { getIconComponent } from "@/components/services/IconSelector";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
