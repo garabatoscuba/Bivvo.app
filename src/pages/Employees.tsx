@@ -204,6 +204,15 @@ const Employees = () => {
   const isCopyShop = businessData?.business_type === 'copy_shop';
   const isRestaurant = businessData?.business_type === 'estaurente/safetería';
 
+  // Filter cocina role/position for non-restaurant businesses
+  const POSITION_OPTIONS = isRestaurant ? BASE_POSITION_OPTIONS : BASE_POSITION_OPTIONS.filter(p => p.value !== 'cocina');
+  const ALL_ASSIGNABLE_ROLES = isRestaurant
+    ? ALL_BASE_ASSIGNABLE_ROLES
+    : ALL_BASE_ASSIGNABLE_ROLES.filter(r => r !== 'cocina');
+  const ASSIGNABLE_ROLES = isOwner || isSuperAdmin
+    ? ALL_ASSIGNABLE_ROLES
+    : ALL_ASSIGNABLE_ROLES.filter(r => r !== 'owner');
+
   // Fetch salary modalities for this business (all contexts)
   const { data: allSalaryModalities = [] } = useQuery({
     queryKey: ['salary-modalities', businessId],
