@@ -4942,6 +4942,10 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      recalculate_elaborado_stock: {
+        Args: { _branch_id: string; _elaborado_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:
