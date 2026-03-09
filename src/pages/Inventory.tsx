@@ -27,6 +27,7 @@ import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
 import { ProductionDialog } from '@/components/inventory/ProductionDialog';
 import { RecipeManager } from '@/components/inventory/RecipeManager';
 import { useProductionCapacity } from '@/hooks/useProductionCapacity';
+import { useProductionCapacities } from '@/hooks/useProductionCapacities';
 import {
   Select,
   SelectContent,
@@ -130,15 +131,23 @@ const Inventory = () => {
   const [recipeProduct, setRecipeProduct] = useState<Product | null>(null);
   const { isDowngraded } = useIsDowngraded();
 
-  const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
+  const effectiveBranchId = selectedBranch || profile?.branch_id || branches?.[0]?.id;
+  const { data: branchStock } = useBranchStock(effectiveBranchId);
 
   const canManage = isOwner || isManager;
 
-  // Production capacity for elaborado products
+  // Production capacity for elaborado products (detail sheet)
   const { data: productionCapacity, isLoading: capacityLoading } = useProductionCapacity(
     (selectedProduct as any)?.tipo === 'elaborado' ? selectedProduct?.id || null : null,
-    selectedBranch || profile?.branch_id || branches?.[0]?.id
+    effectiveBranchId
   );
+
+  // Batch capacity map for list badges (finite values only)
+  const elaboradoIds = useMemo(
+    () => products.filter((p: any) => p.tipo === 'elaborado').map(p => p.id),
+    [products]
+  );
+  const { data: productionCapacities } = useProductionCapacities(elaboradoIds, effectiveBranchId);
 
   // Product review stats from portal
   const businessId = profile?.business_id;
@@ -186,6 +195,14 @@ const Inventory = () => {
     warehouseStockMap.set(bs.product_id, bs.warehouse_quantity || 0);
   });
 
+  const getDisplayForSaleStock = (product: Product & { [key: string]: any }) => {
+    if (product?.tipo === 'elaborado') {
+      const cap = productionCapacities?.[product.id];
+      if (typeof cap === 'number' && Number.isFinite(cap)) return cap;
+    }
+    return stockMap.get(product.id) || 0;
+  };
+
   // Check if business has kitchen products
   const hasKitchenProducts = useMemo(() => 
     products.some((p: any) => p.tipo === 'ingrediente' || p.tipo === 'elaborado'),
@@ -208,7 +225,7 @@ const Inventory = () => {
     
     if (!activeFilter) return true;
     
-    const stock = stockMap.get(product.id) || 0;
+    const stock = getDisplayForSaleStock(product as any);
     const wStock = warehouseStockMap.get(product.id) || 0;
     
     switch (activeFilter) {
@@ -218,7 +235,7 @@ const Inventory = () => {
       case 'outOfStock': return stock <= 0 && product.status === 'for_sale';
       default: return true;
     }
-  }), [products, search, activeFilter, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab]);
+  }), [products, search, activeFilter, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
 
   // Group products by category
   const groupedProducts = useMemo(() => {
@@ -440,7 +457,15 @@ const Inventory = () => {
   // Product detail data
   const selectedStock = selectedProduct ? (stockMap.get(selectedProduct.id) || 0) : 0;
   const selectedWarehouseStock = selectedProduct ? (warehouseStockMap.get(selectedProduct.id) || 0) : 0;
-  const selectedTotalStock = selectedStock + selectedWarehouseStock;
+
+  const selectedDisplayStock = selectedProduct && (selectedProduct as any)?.tipo === 'elaborado'
+    ? (productionCapacity && !capacityLoading && Number.isFinite(productionCapacity.maxUnits)
+        ? productionCapacity.maxUnits
+        : selectedStock)
+    : selectedStock;
+
+  const selectedDisplayTotalStock = selectedDisplayStock + selectedWarehouseStock;
+
   const selectedMargin = selectedProduct 
     ? ((Number(selectedProduct.sale_price) - Number(selectedProduct.cost_price)) / Number(selectedProduct.sale_price) * 100)
     : 0;
@@ -685,7 +710,7 @@ const Inventory = () => {
                       <ProductRow
                         key={product.id}
                         product={product}
-                        stock={stockMap.get(product.id) || 0}
+                        stock={getDisplayForSaleStock(product as any)}
                         warehouseStock={warehouseStockMap.get(product.id) || 0}
                         color={product.category?.color || 'blue'}
                         onClick={() => handleProductTap(product)}
@@ -706,7 +731,7 @@ const Inventory = () => {
                       <ProductRow
                         key={product.id}
                         product={product}
-                        stock={stockMap.get(product.id) || 0}
+                        stock={getDisplayForSaleStock(product as any)}
                         warehouseStock={warehouseStockMap.get(product.id) || 0}
                         color="blue"
                         onClick={() => handleProductTap(product)}
@@ -800,9 +825,9 @@ const Inventory = () => {
 
       {/* ─── Product Detail Sheet ─── */}
       <Sheet open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
-        <SheetContent side="bottom" className="h-auto max-h-[70vh] rounded-t-2xl">
+        <SheetContent side="bottom" className="h-[85dvh] max-h-[85dvh] rounded-t-2xl">
           {selectedProduct && (
-            <div className="space-y-4 pb-4">
+            <div className="space-y-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               <SheetHeader className="text-left">
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
@@ -851,9 +876,9 @@ const Inventory = () => {
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard
                   label={(selectedProduct as any).tipo === 'ingrediente' ? 'En cocina' : 'En venta'}
-                  value={selectedStock.toString()}
+                  value={selectedDisplayStock.toString()}
                   sublabel={(selectedProduct as any).tipo === 'ingrediente' ? 'Materia prima' : 'Disponible en POS'}
-                  alert={selectedStock <= selectedProduct.min_stock}
+                  alert={selectedDisplayStock <= selectedProduct.min_stock}
                 />
                 <MetricCard
                   label="En almacén"
@@ -867,40 +892,40 @@ const Inventory = () => {
                 />
                 <MetricCard
                   label="Valor en stock"
-                  value={`$${(selectedTotalStock * Number(selectedProduct.sale_price)).toFixed(2)}`}
-                  sublabel={`${selectedTotalStock} uds. total`}
+                  value={`$${(selectedDisplayTotalStock * Number(selectedProduct.sale_price)).toFixed(2)}`}
+                  sublabel={`${selectedDisplayTotalStock} uds. total`}
                 />
               </div>
 
               {/* Stock distribution bar */}
-              {selectedTotalStock > 0 && (
+              {selectedDisplayTotalStock > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-xs font-medium text-muted-foreground">Distribución de stock</p>
                   <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
                     <div 
                       className="bg-primary transition-all" 
-                      style={{ width: `${(selectedStock / selectedTotalStock) * 100}%` }} 
-                      title={`Venta: ${selectedStock}`}
+                      style={{ width: `${(selectedDisplayStock / selectedDisplayTotalStock) * 100}%` }} 
+                      title={`Venta: ${selectedDisplayStock}`}
                     />
                     <div 
                       className="bg-muted-foreground/30 transition-all" 
-                      style={{ width: `${(selectedWarehouseStock / selectedTotalStock) * 100}%` }} 
+                      style={{ width: `${(selectedWarehouseStock / selectedDisplayTotalStock) * 100}%` }} 
                       title={`Almacén: ${selectedWarehouseStock}`}
                     />
                   </div>
                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> Venta ({selectedStock})</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> Venta ({selectedDisplayStock})</span>
                     <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground/30 inline-block" /> Almacén ({selectedWarehouseStock})</span>
                   </div>
                 </div>
               )}
 
               {/* Stock alert */}
-              {selectedStock <= selectedProduct.min_stock && (
+              {selectedDisplayStock <= selectedProduct.min_stock && (
                 <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm">
                   <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
                   <span>
-                    {selectedStock <= 0 
+                    {selectedDisplayStock <= 0 
                       ? 'Sin stock disponible para venta' 
                       : `Stock bajo — mínimo recomendado: ${selectedProduct.min_stock}`
                     }
