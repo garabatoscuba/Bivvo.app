@@ -108,11 +108,7 @@ interface PricingOffer {
   is_active: boolean;
 }
 
-const BUSINESS_TYPES = [
-  { value: 'store', label: 'Tienda' },
-  { value: 'copy_shop', label: 'Punto de Copias' },
-  { value: 'gym', label: 'Gimnasio' },
-];
+// Dynamic — loaded from business_type_configs table
 
 const COUNTRIES = [
   { value: 'cuba', label: 'Cuba' },
@@ -133,7 +129,7 @@ const AVAILABILITY_OPTIONS = [
 ];
 
 // ─── Sortable Row Component ──────────────────────────────────────────
-const SortableModuleRow = ({ module, onEdit, onToggle }: { module: PlatformModule; onEdit: () => void; onToggle: (active: boolean) => void }) => {
+const SortableModuleRow = ({ module, onEdit, onToggle, businessTypeLabels }: { module: PlatformModule; onEdit: () => void; onToggle: (active: boolean) => void; businessTypeLabels: Record<string, string> }) => {
   const {
     attributes,
     listeners,
@@ -170,7 +166,7 @@ const SortableModuleRow = ({ module, onEdit, onToggle }: { module: PlatformModul
       <TableCell>
         <div className="flex gap-1 flex-wrap">
           {module.business_types.map(t => (
-            <Badge key={t} variant="secondary" className="text-[10px]">{BUSINESS_TYPES.find(bt => bt.value === t)?.label || t}</Badge>
+            <Badge key={t} variant="secondary" className="text-[10px]">{businessTypeLabels[t] || t}</Badge>
           ))}
         </div>
       </TableCell>
@@ -211,7 +207,17 @@ const ModulesTab = () => {
     },
   });
 
-  // Fetch assignments for current editing module
+  // Dynamic business types from DB
+  const { data: businessTypesFromDB = [] } = useQuery({
+    queryKey: ['business-type-configs-for-modules'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('business_type_configs').select('key, name').eq('is_active', true).order('sort_order');
+      if (error) throw error;
+      return (data || []) as { key: string; name: string }[];
+    },
+  });
+  const BUSINESS_TYPES = businessTypesFromDB.map(bt => ({ value: bt.key, label: bt.name }));
+  const businessTypeLabels: Record<string, string> = Object.fromEntries(BUSINESS_TYPES.map(bt => [bt.value, bt.label]));
   const { data: assignments = [] } = useQuery({
     queryKey: ['module-assignments', editing?.id],
     queryFn: async () => {
@@ -416,6 +422,7 @@ const ModulesTab = () => {
                       module={m}
                       onEdit={() => openEdit(m)}
                       onToggle={(is_active) => toggleMutation.mutate({ id: m.id, is_active })}
+                      businessTypeLabels={businessTypeLabels}
                     />
                   ))}
                   {modules.length === 0 && (
