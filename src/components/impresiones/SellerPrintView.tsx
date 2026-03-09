@@ -168,31 +168,38 @@ const SellerPrintView = () => {
       if (!it.material_id) return;
       const mat = getMaterial(it.material_id);
       if (!mat) return;
-      const matType = materialTypes.find((t: any) => t.id === mat.material_type_id);
-      const isTramo = !!matType?.permite_tramos;
+      const svc = activeServices.find((s: any) => s.id === it.service_type_id);
+      const isTramo = !!svc?.vende_por_tramos;
       const existing = map.get(it.material_id) || { name: mat.name, needed: 0, available: mat.stock_vendedor, isTramo };
+      // If any service using this material is tramo, mark it
+      if (isTramo) existing.isTramo = true;
       existing.needed += it.material_consumed;
       map.set(it.material_id, existing);
     });
     return Array.from(map.entries());
-  }, [jobItems, materials, materialTypes]);
+  }, [jobItems, materials, activeServices]);
 
   const hasStockIssue = materialConsumption.some(([, v]) => v.needed > v.available && !v.isTramo);
 
-  // Check tramo materials: verify active sheet exists
+  // Check tramo services: verify active sheet exists for the material
   const tramoIssues = useMemo(() => {
     const issues: { materialId: string; materialName: string }[] = [];
-    materialConsumption.forEach(([matId, info]) => {
-      if (!info.isTramo) return;
-      const mat = getMaterial(matId);
+    const checked = new Set<string>();
+    jobItems.forEach(it => {
+      if (!it.material_id) return;
+      const svc = activeServices.find((s: any) => s.id === it.service_type_id);
+      if (!svc?.vende_por_tramos) return;
+      if (checked.has(it.material_id)) return;
+      checked.add(it.material_id);
+      const mat = getMaterial(it.material_id);
       if (!mat) return;
-      const sheet = activeSheets.find((s: any) => s.material_id === matId && s.status === 'activa');
+      const sheet = activeSheets.find((s: any) => s.material_id === it.material_id && s.status === 'activa');
       if (!sheet) {
-        issues.push({ materialId: matId, materialName: info.name });
+        issues.push({ materialId: it.material_id, materialName: mat.name });
       }
     });
     return issues;
-  }, [materialConsumption, activeSheets, materials]);
+  }, [jobItems, activeServices, activeSheets, materials]);
 
   // (tramoInfo removed - no longer tracking tramos)
 
