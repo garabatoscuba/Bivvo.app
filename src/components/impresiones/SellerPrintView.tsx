@@ -449,8 +449,8 @@ const SellerPrintView = () => {
                     // Find active sheet for tramo materials
                     const matType = materialTypes.find((t: any) => t.id === m.material_type_id);
                     const isTramo = matType?.permite_tramos === true;
-                    const sheet = isTramo ? activeSheets.find((s: any) => s.material_id === m.id && s.status === 'activa') : null;
-                    const tramoCount = sheet ? (tramoUsageMap[sheet.id] || 0) : 0;
+                    const sheet = isTramo ? (activeSheets as any[]).find((s: any) => s.material_id === m.id && s.status === 'activa') : null;
+                    const tramoCount = sheet ? (tramoUsageMap[(sheet as any).id] || 0) : 0;
                     return (
                       <div key={m.id} className={cn('flex items-center justify-between gap-2 rounded-lg border p-2', isLow && !isTramo && 'border-destructive bg-destructive/5')}>
                         <div className="min-w-0">
