@@ -129,7 +129,7 @@ const AVAILABILITY_OPTIONS = [
 ];
 
 // ─── Sortable Row Component ──────────────────────────────────────────
-const SortableModuleRow = ({ module, onEdit, onToggle }: { module: PlatformModule; onEdit: () => void; onToggle: (active: boolean) => void }) => {
+const SortableModuleRow = ({ module, onEdit, onToggle, businessTypeLabels }: { module: PlatformModule; onEdit: () => void; onToggle: (active: boolean) => void; businessTypeLabels: Record<string, string> }) => {
   const {
     attributes,
     listeners,
