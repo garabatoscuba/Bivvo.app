@@ -181,7 +181,7 @@ const POS = () => {
     if (quantity <= 0) {
       setCart((prev) => prev.filter((item) => item.product.id !== productId));
     } else {
-      const maxStock = stockMap.get(productId) || 0;
+      const maxStock = getDisplayStock(productId);
       const clampedQty = Math.min(quantity, maxStock);
       setCart((prev) =>
         prev.map((item) =>
@@ -191,7 +191,7 @@ const POS = () => {
         )
       );
     }
-  }, [stockMap]);
+  }, [getDisplayStock]);
 
   const removeItem = useCallback((productId: string) => {
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
