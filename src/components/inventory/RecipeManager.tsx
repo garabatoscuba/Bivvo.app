@@ -160,13 +160,30 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
     } else {
       if (!newIngredientId || !newQuantity) return;
     }
+
+    const ing = ingredients.find(i => i.id === newIngredientId);
+    const purchaseUnitRaw = ing?.unit_of_measure || 'pieza';
+    const purchaseUnit = normalizeUnitKey(purchaseUnitRaw);
+    const unit = normalizeUnitKey(newUnit || purchaseUnit);
+
+    const qty = newType === 'agrego' ? Number(newGramaje) : Number(newQuantity);
+
+    // For agregos we keep `quantity/unit` as entered, and store `gramaje` as the
+    // quantity converted to the ingredient stock unit (unit_of_measure) per unidad vendida.
+    let gramaje = 0;
+    if (newType === 'agrego') {
+      const converted = convertUnits(qty, unit, purchaseUnit);
+      gramaje = converted ?? qty;
+    }
+
     addIngredient.mutate({
       ingredientId: newIngredientId,
-      quantity: newType === 'agrego' ? Number(newGramaje) : Number(newQuantity),
-      unit: newUnit || 'pieza',
+      quantity: qty,
+      unit: unit || 'pieza',
       ingredientType: newType,
-      gramaje: newType === 'agrego' ? Number(newGramaje) || 0 : 0,
+      gramaje,
     });
+
     setNewIngredientId('');
     setNewQuantity('');
     setNewUnit('');
