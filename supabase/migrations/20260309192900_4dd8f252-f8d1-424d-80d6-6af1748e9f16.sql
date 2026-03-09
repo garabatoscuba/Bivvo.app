@@ -1,0 +1,1 @@
+ALTER TABLE public.print_job_items ADD COLUMN IF NOT EXISTS es_full boolean NOT NULL DEFAULT false;
