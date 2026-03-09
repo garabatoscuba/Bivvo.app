@@ -214,17 +214,28 @@ export const useCreateMaterialTransfer = () => {
         branch_id: branchId,
       });
       if (error) throw error;
-      // Move stock: almacen → vendedor
-      const { data: mat } = await supabase.from('raw_materials').select('stock_almacen, stock_vendedor').eq('id', values.material_id).single();
+      // Move stock: almacen → employee via employee_material_stock
+      const { data: mat } = await supabase.from('raw_materials').select('stock_almacen').eq('id', values.material_id).single();
       if (mat) {
         await supabase.from('raw_materials').update({
           stock_almacen: mat.stock_almacen - values.cantidad,
-          stock_vendedor: mat.stock_vendedor + values.cantidad,
         }).eq('id', values.material_id);
+      }
+      // Find employee by auth_user_id
+      const { data: emp } = await supabase.from('employees').select('id').eq('auth_user_id', values.to_user_id).maybeSingle();
+      if (emp) {
+        const { data: empStock } = await supabase.from('employee_material_stock' as any).select('id, stock').eq('employee_id', emp.id).eq('material_id', values.material_id).maybeSingle();
+        if (empStock) {
+          await supabase.from('employee_material_stock' as any).update({ stock: (empStock as any).stock + values.cantidad, updated_at: new Date().toISOString() }).eq('id', (empStock as any).id);
+        } else {
+          await supabase.from('employee_material_stock' as any).insert({ business_id: businessId, branch_id: branchId, employee_id: emp.id, material_id: values.material_id, stock: values.cantidad });
+        }
       }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['raw-materials'] });
+      qc.invalidateQueries({ queryKey: ['employee-material-stock'] });
+      qc.invalidateQueries({ queryKey: ['my-material-stock'] });
       toast({ title: 'Entrega registrada' });
     },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
