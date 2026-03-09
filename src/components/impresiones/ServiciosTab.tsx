@@ -55,6 +55,7 @@ const ServiciosTab = () => {
       precio_base: s.precio_base,
       admite_doble_cara: s.admite_doble_cara,
       admite_color: s.admite_color ?? false,
+      admite_full: s.admite_full ?? false,
       material_id: s.material_id || '',
       consumo_por_unidad: s.consumo_por_unidad,
       rendimiento_especial: s.rendimiento_especial,
