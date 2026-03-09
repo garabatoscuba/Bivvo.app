@@ -50,6 +50,7 @@ const OnboardingEmpleado = lazy(() => import("./pages/OnboardingEmpleado"));
 const MyEmployment = lazy(() => import("./pages/MyEmployment"));
 const ReviewPage = lazy(() => import("./pages/ReviewPage"));
 const PartnerDashboard = lazy(() => import("./pages/PartnerDashboard"));
+const Cocina = lazy(() => import("./pages/Cocina"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -105,6 +106,7 @@ const App = () => {
                         <Route path="/contabilidad" element={<ProtectedRoute><Contabilidad /></ProtectedRoute>} />
                         <Route path="/impresiones" element={<ProtectedRoute><Impresiones /></ProtectedRoute>} />
                         <Route path="/mi-red" element={<ProtectedRoute><PartnerDashboard /></ProtectedRoute>} />
+                        <Route path="/cocina" element={<ProtectedRoute><Cocina /></ProtectedRoute>} />
                         <Route path="/admin/businesses" element={<ProtectedRoute requireSuperAdmin><AdminBusinesses /></ProtectedRoute>} />
                         <Route path="/admin/offers" element={<ProtectedRoute requireSuperAdmin><AdminOffers /></ProtectedRoute>} />
                         <Route path="/admin/users" element={<ProtectedRoute requireSuperAdmin><AdminUsers /></ProtectedRoute>} />

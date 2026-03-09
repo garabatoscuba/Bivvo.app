@@ -26,7 +26,7 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
   Loader2, Pencil, Trash2, Activity, Mail, MapPin, StopCircle, Clock,
-  Play, Square, Plus, Save,
+  Play, Square, Plus, Save, ChefHat,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import PerformanceChart from '@/components/employees/PerformanceChart';
@@ -43,6 +43,7 @@ const ROLE_CONFIG: Record<AppRole, { label: string; icon: typeof Shield; color: 
   owner: { label: 'Dueño', icon: Shield, color: 'bg-primary text-primary-foreground' },
   manager: { label: 'Gerente', icon: Store, color: 'bg-accent text-accent-foreground' },
   seller: { label: 'Vendedor', icon: ShoppingCart, color: 'bg-secondary text-secondary-foreground' },
+  cocina: { label: 'Cocina', icon: ChefHat, color: 'bg-warning/15 text-warning' },
   accountant: { label: 'Contable', icon: Calculator, color: 'bg-muted text-muted-foreground' },
   affiliated: { label: 'Afiliado', icon: Users, color: 'bg-muted text-muted-foreground' },
   partner: { label: 'Partner', icon: Users, color: 'bg-muted text-muted-foreground' },
@@ -52,10 +53,11 @@ const POSITION_OPTIONS = [
   { value: 'owner', label: 'Dueño' },
   { value: 'manager', label: 'Gerente' },
   { value: 'seller', label: 'Vendedor' },
+  { value: 'cocina', label: 'Cocina' },
   { value: 'accountant', label: 'Contable' },
 ];
 
-const ALL_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'accountant'];
+const ALL_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'cocina', 'accountant'];
 
 interface Employee {
   id: string;

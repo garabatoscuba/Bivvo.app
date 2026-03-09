@@ -39,6 +39,7 @@ interface AuthContextType {
   isOwner: boolean;
   isManager: boolean;
   isSeller: boolean;
+  isKitchen: boolean;
   isAccountant: boolean;
   isAffiliated: boolean;
   isPartner: boolean;
@@ -249,6 +250,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isOwner: roles.includes('owner'),
     isManager: roles.includes('manager'),
     isSeller: roles.includes('seller'),
+    isKitchen: roles.includes('cocina'),
     isAccountant: roles.includes('accountant'),
     isAffiliated: profile?.user_type === 'affiliated',
     isPartner: roles.includes('partner'),

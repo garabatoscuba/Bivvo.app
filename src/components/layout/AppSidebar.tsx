@@ -61,6 +61,7 @@ import {
   Bot,
   Tag,
   Network,
+  ChefHat,
 } from "lucide-react";
 import { getIconComponent } from "@/components/services/IconSelector";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -110,12 +111,13 @@ const AppSidebar = () => {
   const activeBranch = branches.find((b) => b.id === profile?.branch_id);
   const isBivooAccount = profile?.email?.toLowerCase().endsWith("@bivoo.app") || false;
 
-  const normalizeEmployeePosition = (position?: string | null): "manager" | "seller" | "accountant" | null => {
+  const normalizeEmployeePosition = (position?: string | null): "manager" | "seller" | "accountant" | "cocina" | null => {
     const raw = position?.toLowerCase().trim();
     if (!raw) return null;
     if (["manager", "gerente"].includes(raw)) return "manager";
     if (["accountant", "contable"].includes(raw)) return "accountant";
     if (["seller", "vendedor", "dependiente", "dependent"].includes(raw)) return "seller";
+    if (["cocina", "cocinero", "kitchen", "chef"].includes(raw)) return "cocina";
     return null;
   };
 
@@ -145,6 +147,7 @@ const AppSidebar = () => {
   const employeePosition = normalizeEmployeePosition((employeeRecord as any)?.position);
   const isEmployeeSession = hasEmployeeRecord;
   const isEmployeeManager = employeePosition === "manager";
+  const isEmployeeKitchen = employeePosition === "cocina";
   const shouldWaitEmployeeResolution = isBivooAccount && employeeRecordLoading;
 
   // Employees must not run owner/owner_id sidebar flow
@@ -154,9 +157,12 @@ const AppSidebar = () => {
   const showManagerModules =
     !shouldWaitEmployeeResolution && (isEmployeeSession ? isEmployeeManager : isManager && !isOwner && !isSuperAdmin);
 
+  // Kitchen staff only sees cocina
+  const showKitchenModule = !shouldWaitEmployeeResolution && isEmployeeSession && isEmployeeKitchen;
+
   // Jornada check for operational employee tools
   const { jornadaActiva } = useJornadaActiva();
-  const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && jornadaActiva;
+  const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && jornadaActiva;
 
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
@@ -571,6 +577,40 @@ const AppSidebar = () => {
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Cocina section - kitchen staff only */}
+        {showKitchenModule && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
+              <span>Cocina</span>
+              {employerName && (
+                <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
+                  {employerName}
+                </span>
+              )}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/mi-empleo")}>
+                    <Link to="/mi-empleo">
+                      <Briefcase className="h-4 w-4" />
+                      <span className="text-sm">Mi Empleo</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/cocina")}>
+                    <Link to="/cocina">
+                      <ChefHat className="h-4 w-4" />
+                      <span className="text-sm">Pedidos</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
