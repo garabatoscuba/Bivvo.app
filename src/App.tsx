@@ -50,6 +50,7 @@ const OnboardingEmpleado = lazy(() => import("./pages/OnboardingEmpleado"));
 const MyEmployment = lazy(() => import("./pages/MyEmployment"));
 const ReviewPage = lazy(() => import("./pages/ReviewPage"));
 const PartnerDashboard = lazy(() => import("./pages/PartnerDashboard"));
+const Cocina = lazy(() => import("./pages/Cocina"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
