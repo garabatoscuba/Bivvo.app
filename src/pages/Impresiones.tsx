@@ -7,6 +7,7 @@ import InsumosTab from "@/components/impresiones/InsumosTab";
 import RecetasTab from "@/components/impresiones/RecetasTab";
 import SellerPrintView from "@/components/impresiones/SellerPrintView";
 import TintaTab from "@/components/impresiones/TintaTab";
+import MermaConfigTab from "@/components/impresiones/MermaConfigTab";
 
 const Impresiones = () => {
   const { isOwner, isSuperAdmin, isManager } = useAuth();
@@ -32,6 +33,7 @@ const Impresiones = () => {
             <TabsTrigger value="insumos">Insumos</TabsTrigger>
             <TabsTrigger value="recetas">Recetas</TabsTrigger>
             {canSeeTinta && <TabsTrigger value="tinta">Tinta</TabsTrigger>}
+            <TabsTrigger value="mermas">Config. Mermas</TabsTrigger>
             <TabsTrigger value="reportes">Reportes</TabsTrigger>
           </TabsList>
 
@@ -52,6 +54,10 @@ const Impresiones = () => {
               <TintaTab />
             </TabsContent>
           )}
+
+          <TabsContent value="mermas" className="mt-4">
+            <MermaConfigTab />
+          </TabsContent>
 
           <TabsContent value="reportes" className="mt-4">
             <div className="flex flex-col items-center justify-center py-16 gap-4 text-muted-foreground">

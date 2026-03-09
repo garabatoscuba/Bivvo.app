@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useRawMaterials, usePrintServiceTypes, usePrintRecipes, useEmployeesForTransfer, usePrintMaterialTypes, useActiveSheets, useOpenSheet, useCloseSheet } from '@/hooks/usePrintData';
+import { useRegisterPrintShrinkage } from '@/hooks/usePrintShrinkage';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
@@ -58,6 +59,7 @@ const SellerPrintView = () => {
   const { data: activeSheets = [] } = useActiveSheets();
   const openSheetMut = useOpenSheet();
   const closeSheetMut = useCloseSheet();
+  const registerShrinkage = useRegisterPrintShrinkage();
 
   // Open sheet modal state
   const [openSheetDialog, setOpenSheetDialog] = useState(false);
@@ -315,34 +317,27 @@ const SellerPrintView = () => {
   });
 
   // ─── Submit Shrinkage ──────────────────────────────────────
-  const shrinkMutation = useMutation({
-    mutationFn: async () => {
-      if (!businessId || !branchId || !user?.id) throw new Error('Sin contexto');
-      const { error } = await supabase.from('print_shrinkage').insert({
-        business_id: businessId,
-        branch_id: branchId,
-        user_id: user.id,
+  const handleSubmitShrinkage = () => {
+    if (!shrinkForm.material_id || shrinkForm.cantidad <= 0) {
+      toast({ title: 'Error', description: 'Material y cantidad son obligatorios', variant: 'destructive' });
+      return;
+    }
+
+    registerShrinkage.mutate(
+      {
         material_id: shrinkForm.material_id,
         cantidad: shrinkForm.cantidad,
-        motivo: shrinkForm.motivo || null,
-        nota: shrinkForm.nota || null,
-      });
-      if (error) throw error;
-      const mat = getMaterial(shrinkForm.material_id);
-      if (mat) {
-        await supabase.from('raw_materials').update({
-          stock_vendedor: Math.max(0, mat.stock_vendedor - shrinkForm.cantidad),
-        }).eq('id', shrinkForm.material_id);
+        motivo: shrinkForm.motivo || 'Sin especificar',
+        nota: shrinkForm.nota,
+      },
+      {
+        onSuccess: () => {
+          setShrinkForm({ material_id: '', cantidad: 0, motivo: '', nota: '' });
+          setShrinkOpen(false);
+        },
       }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
-      toast({ title: 'Merma registrada' });
-      setShrinkForm({ material_id: '', cantidad: 0, motivo: '', nota: '' });
-      setShrinkOpen(false);
-    },
-    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
-  });
+    );
+  };
 
   // ─── Submit Production ─────────────────────────────────────
   const activeRecipes = recipes.filter((r: any) => r.is_active);
@@ -755,8 +750,12 @@ const SellerPrintView = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShrinkOpen(false)}>Cancelar</Button>
-            <Button onClick={() => shrinkMutation.mutate()} disabled={!shrinkForm.material_id || !shrinkForm.cantidad || shrinkMutation.isPending}>
-              {shrinkMutation.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Registrar merma
+            <Button 
+              onClick={handleSubmitShrinkage} 
+              disabled={!shrinkForm.material_id || !shrinkForm.cantidad || registerShrinkage.isPending}
+            >
+              {registerShrinkage.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Registrar merma
             </Button>
           </DialogFooter>
         </DialogContent>

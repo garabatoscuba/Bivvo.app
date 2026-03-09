@@ -1822,6 +1822,69 @@ export type Database = {
           },
         ]
       }
+      employee_salary_deductions: {
+        Row: {
+          aplicado: boolean | null
+          business_id: string
+          concepto: string
+          created_at: string | null
+          created_by: string | null
+          employee_id: string
+          id: string
+          monto: number
+          notas: string | null
+          periodo_fin: string
+          periodo_inicio: string
+          referencia_id: string | null
+          referencia_tipo: string | null
+        }
+        Insert: {
+          aplicado?: boolean | null
+          business_id: string
+          concepto: string
+          created_at?: string | null
+          created_by?: string | null
+          employee_id: string
+          id?: string
+          monto: number
+          notas?: string | null
+          periodo_fin: string
+          periodo_inicio: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+        }
+        Update: {
+          aplicado?: boolean | null
+          business_id?: string
+          concepto?: string
+          created_at?: string | null
+          created_by?: string | null
+          employee_id?: string
+          id?: string
+          monto?: number
+          notas?: string | null
+          periodo_fin?: string
+          periodo_inicio?: string
+          referencia_id?: string | null
+          referencia_tipo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_salary_deductions_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_salary_deductions_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_salary_records: {
         Row: {
           amount: number
@@ -1897,6 +1960,7 @@ export type Database = {
           full_name: string
           id: string
           license_number: string | null
+          merma_descuento_pct: number | null
           position: string
           start_date: string
           station: string
@@ -1915,6 +1979,7 @@ export type Database = {
           full_name: string
           id?: string
           license_number?: string | null
+          merma_descuento_pct?: number | null
           position?: string
           start_date?: string
           station?: string
@@ -1933,6 +1998,7 @@ export type Database = {
           full_name?: string
           id?: string
           license_number?: string | null
+          merma_descuento_pct?: number | null
           position?: string
           start_date?: string
           station?: string
@@ -3404,33 +3470,48 @@ export type Database = {
           business_id: string
           cantidad: number
           created_at: string
+          estado: string | null
           id: string
           material_id: string
+          monto_descuento: number | null
           motivo: string | null
           nota: string | null
+          resuelto_at: string | null
+          resuelto_por: string | null
           user_id: string
+          valor_perdido: number | null
         }
         Insert: {
           branch_id?: string | null
           business_id: string
           cantidad?: number
           created_at?: string
+          estado?: string | null
           id?: string
           material_id: string
+          monto_descuento?: number | null
           motivo?: string | null
           nota?: string | null
+          resuelto_at?: string | null
+          resuelto_por?: string | null
           user_id: string
+          valor_perdido?: number | null
         }
         Update: {
           branch_id?: string | null
           business_id?: string
           cantidad?: number
           created_at?: string
+          estado?: string | null
           id?: string
           material_id?: string
+          monto_descuento?: number | null
           motivo?: string | null
           nota?: string | null
+          resuelto_at?: string | null
+          resuelto_por?: string | null
           user_id?: string
+          valor_perdido?: number | null
         }
         Relationships: [
           {
