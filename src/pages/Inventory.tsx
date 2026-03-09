@@ -909,6 +909,69 @@ const Inventory = () => {
                 </div>
               )}
 
+              {/* Production capacity card for elaborado */}
+              {(selectedProduct as any).tipo === 'elaborado' && (
+                <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
+                  {capacityLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Calculando capacidad...
+                    </div>
+                  ) : !productionCapacity || productionCapacity.maxUnits === 0 && productionCapacity.bottleneck === null ? (
+                    <div className="space-y-1.5">
+                      <p className="text-sm font-medium text-muted-foreground">
+                        Configura una receta para ver la producción posible
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          setRecipeProduct(selectedProduct);
+                          setSelectedProduct(null);
+                        }}
+                      >
+                        <ChefHat className="mr-2 h-4 w-4" />
+                        Gestionar receta
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-baseline gap-2">
+                        <ChefHat className="h-5 w-5 text-primary" />
+                        <div>
+                          <p className="text-sm font-medium">Producción posible:</p>
+                          <p className="text-2xl font-bold text-primary">
+                            {productionCapacity.maxUnits === Infinity ? '∞' : productionCapacity.maxUnits} unidades
+                          </p>
+                        </div>
+                      </div>
+                      {productionCapacity.bottleneck && (
+                        <div className="flex items-start gap-1.5 text-xs text-muted-foreground">
+                          <AlertTriangle className="h-3.5 w-3.5 text-amber-500 mt-0.5 flex-shrink-0" />
+                          <p>
+                            <span className="font-medium">Limitado por:</span> {productionCapacity.bottleneck.name}
+                            {' '}({productionCapacity.bottleneck.available} {productionCapacity.bottleneck.unit} disponible)
+                          </p>
+                        </div>
+                      )}
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="w-full"
+                        onClick={() => {
+                          setRecipeProduct(selectedProduct);
+                          setSelectedProduct(null);
+                        }}
+                      >
+                        <ChefHat className="mr-2 h-4 w-4" />
+                        Gestionar receta
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Transfer warehouse → sale */}
               {canManage && (
                 <div className="space-y-2">
@@ -929,34 +992,6 @@ const Inventory = () => {
                           <PackagePlus className="mr-2 h-4 w-4" />
                           Nueva Compra
                         </Button>
-                      )}
-                      {/* Gestionar receta + Registrar producción - only for elaborado */}
-                      {(selectedProduct as any).tipo === 'elaborado' && (
-                        <>
-                          <Button 
-                            variant="outline" 
-                            className="w-full justify-start"
-                            onClick={() => {
-                              setRecipeProduct(selectedProduct);
-                              setSelectedProduct(null);
-                            }}
-                          >
-                            <ChefHat className="mr-2 h-4 w-4" />
-                            Gestionar receta
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            className="w-full justify-start"
-                            onClick={() => {
-                              if (guardDowngrade()) return;
-                              setProductionProduct(selectedProduct);
-                              setSelectedProduct(null);
-                            }}
-                          >
-                            <PackagePlus className="mr-2 h-4 w-4" />
-                            Registrar producción
-                          </Button>
-                        </>
                       )}
                       {(selectedProduct as any).tipo !== 'elaborado' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
