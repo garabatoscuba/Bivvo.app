@@ -152,6 +152,10 @@ const ServiciosTab = () => {
               <Label>Admite color</Label>
             </div>
             <div className="flex items-center gap-3">
+              <Switch checked={form.admite_full} onCheckedChange={v => setForm(f => ({ ...f, admite_full: v }))} />
+              <Label>Admite full</Label>
+            </div>
+            <div className="flex items-center gap-3">
               <Switch checked={form.vende_por_tramos} onCheckedChange={v => setForm(f => ({ ...f, vende_por_tramos: v }))} />
               <Label>Vende por tramos</Label>
             </div>

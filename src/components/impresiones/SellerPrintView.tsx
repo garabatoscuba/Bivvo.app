@@ -586,13 +586,13 @@ const SellerPrintView = () => {
                           <div className="flex items-center gap-1.5 shrink-0">
                             <Input type="number" min={1} className="h-7 w-14 text-xs text-center" value={item.cantidad} onChange={e => updateJobItem(idx, 'cantidad', parseInt(e.target.value) || 1)} />
                             <span className="text-xs text-muted-foreground">×</span>
-                            <Input type="number" min={0} step="0.01" className="h-7 w-20 text-xs text-right" value={item.precio_cobrado} onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)} />
+                            <Input type="number" min={0} step="0.01" className="h-7 w-20 text-xs text-right" value={item.precio_cobrado === ('' as any) ? '' : item.precio_cobrado} onChange={e => updateJobItem(idx, 'precio_cobrado', e.target.value === '' ? '' : (parseFloat(e.target.value) || 0))} placeholder="0.00" />
                             <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeJobItem(idx)}>
                               <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </div>
                         </div>
-                        {(svc?.admite_doble_cara || svc?.admite_color) && (
+                        {(svc?.admite_doble_cara || svc?.admite_color || svc?.admite_full) && (
                           <div className="flex items-center gap-4 pl-1">
                             {svc?.admite_doble_cara && (
                               <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
@@ -606,8 +606,25 @@ const SellerPrintView = () => {
                                 Color
                               </label>
                             )}
+                            {svc?.admite_full && (
+                              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                                <Switch className="scale-75" checked={item.es_full} onCheckedChange={v => updateJobItem(idx, 'es_full', v)} />
+                                Full
+                              </label>
+                            )}
                           </div>
                         )}
+                        {/* Quick price buttons */}
+                        <div className="flex flex-wrap gap-1.5">
+                          {CART_QUICK_AMOUNTS.map(amount => (
+                            <Button key={amount} type="button" variant="outline" size="sm" className="h-6 px-2 text-[10px]" onClick={() => updateJobItem(idx, 'precio_cobrado', (Number(item.precio_cobrado) || 0) + amount)}>
+                              ${amount}
+                            </Button>
+                          ))}
+                          <Button type="button" variant="outline" size="sm" className="h-6 px-2 text-[10px]" onClick={() => updateJobItem(idx, 'precio_cobrado', '' as any)}>
+                            <RotateCcw className="h-3 w-3" />
+                          </Button>
+                        </div>
                         {isTramo && sheet && (
                           <Button
                             variant="outline"
