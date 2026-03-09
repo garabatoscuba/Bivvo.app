@@ -132,6 +132,66 @@ const AVAILABILITY_OPTIONS = [
   { value: 'unavailable', label: 'No disponible' },
 ];
 
+// ─── Sortable Row Component ──────────────────────────────────────────
+const SortableModuleRow = ({ module, onEdit, onToggle }: { module: PlatformModule; onEdit: () => void; onToggle: (active: boolean) => void }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: module.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} className={isDragging ? 'relative z-50' : ''}>
+      <TableCell className="w-8">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded transition-colors"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </TableCell>
+      <TableCell>
+        <div>
+          <p className="text-sm font-medium">{module.name}</p>
+          {module.description && <p className="text-[11px] text-muted-foreground line-clamp-1">{module.description}</p>}
+        </div>
+      </TableCell>
+      <TableCell><Badge variant="outline" className="text-[11px]">{module.sidebar_label}</Badge></TableCell>
+      <TableCell>
+        <div className="flex gap-1 flex-wrap">
+          {module.business_types.map(t => (
+            <Badge key={t} variant="secondary" className="text-[10px]">{BUSINESS_TYPES.find(bt => bt.value === t)?.label || t}</Badge>
+          ))}
+        </div>
+      </TableCell>
+      <TableCell>
+        {module.countries.length === 0
+          ? <span className="text-[11px] text-muted-foreground">Global</span>
+          : module.countries.map(c => <Badge key={c} variant="secondary" className="text-[10px] mr-1">{COUNTRIES.find(cc => cc.value === c)?.label || c}</Badge>)
+        }
+      </TableCell>
+      <TableCell className="text-center">
+        <Switch checked={module.is_active} onCheckedChange={onToggle} />
+      </TableCell>
+      <TableCell>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+};
+
 // ─── Módulos Tab ─────────────────────────────────────────────────────
 const ModulesTab = () => {
   const { toast } = useToast();
@@ -185,6 +245,48 @@ const ModulesTab = () => {
     enabled: dialogOpen && !!editing,
   });
 
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedModules: PlatformModule[]) => {
+      const updates = reorderedModules.map((m, index) => ({
+        id: m.id,
+        sort_order: index + 1,
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('platform_modules')
+          .update({ sort_order: update.sort_order } as any)
+          .eq('id', update.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['platform-modules'] });
+      toast({ title: 'Orden actualizado' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = modules.findIndex((m) => m.id === active.id);
+      const newIndex = modules.findIndex((m) => m.id === over.id);
+
+      const reordered = arrayMove(modules, oldIndex, newIndex);
+      reorderMutation.mutate(reordered);
+    }
+  };
+
   const addAssignment = useMutation({
     mutationFn: async ({ target_type, target_id }: { target_type: string; target_id: string }) => {
       const { error } = await supabase.from('module_assignments').insert({ module_id: editing!.id, target_type, target_id } as any);
@@ -224,7 +326,8 @@ const ModulesTab = () => {
         const { error } = await supabase.from('platform_modules').update(payload as any).eq('id', editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('platform_modules').insert(payload as any);
+        const maxOrder = Math.max(0, ...modules.map(m => m.sort_order));
+        const { error } = await supabase.from('platform_modules').insert({ ...payload, sort_order: maxOrder + 1 } as any);
         if (error) throw error;
       }
     },
