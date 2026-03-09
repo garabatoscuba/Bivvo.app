@@ -403,12 +403,17 @@ const SellerPrintView = () => {
         nota: prodForm.nota || null,
       });
       if (error) throw error;
-      for (const pc of prodConsumption) {
-        const mat = getMaterial(pc.material_id);
-        if (mat) {
-          await supabase.from('raw_materials').update({
-            stock_vendedor: Math.max(0, mat.stock_vendedor - pc.needed),
-          }).eq('id', pc.material_id);
+      // Deduct from employee's personal stock
+      const { data: emp } = await supabase.from('employees').select('id').eq('business_id', businessId).eq('auth_user_id', user.id).maybeSingle();
+      if (emp) {
+        for (const pc of prodConsumption) {
+          const { data: empStock } = await supabase.from('employee_material_stock' as any).select('id, stock').eq('employee_id', emp.id).eq('material_id', pc.material_id).maybeSingle();
+          if (empStock) {
+            await supabase.from('employee_material_stock' as any).update({
+              stock: Math.max(0, (empStock as any).stock - pc.needed),
+              updated_at: new Date().toISOString(),
+            }).eq('id', (empStock as any).id);
+          }
         }
       }
     },
