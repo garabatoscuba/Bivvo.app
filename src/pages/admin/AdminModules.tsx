@@ -166,7 +166,7 @@ const SortableModuleRow = ({ module, onEdit, onToggle, businessTypeLabels }: { m
       <TableCell>
         <div className="flex gap-1 flex-wrap">
           {module.business_types.map(t => (
-            <Badge key={t} variant="secondary" className="text-[10px]">{BUSINESS_TYPES.find(bt => bt.value === t)?.label || t}</Badge>
+            <Badge key={t} variant="secondary" className="text-[10px]">{businessTypeLabels[t] || t}</Badge>
           ))}
         </div>
       </TableCell>
