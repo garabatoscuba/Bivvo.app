@@ -110,12 +110,13 @@ const AppSidebar = () => {
   const activeBranch = branches.find((b) => b.id === profile?.branch_id);
   const isBivooAccount = profile?.email?.toLowerCase().endsWith("@bivoo.app") || false;
 
-  const normalizeEmployeePosition = (position?: string | null): "manager" | "seller" | "accountant" | null => {
+  const normalizeEmployeePosition = (position?: string | null): "manager" | "seller" | "accountant" | "cocina" | null => {
     const raw = position?.toLowerCase().trim();
     if (!raw) return null;
     if (["manager", "gerente"].includes(raw)) return "manager";
     if (["accountant", "contable"].includes(raw)) return "accountant";
     if (["seller", "vendedor", "dependiente", "dependent"].includes(raw)) return "seller";
+    if (["cocina", "cocinero", "kitchen", "chef"].includes(raw)) return "cocina";
     return null;
   };
 
