@@ -113,11 +113,20 @@ export interface Branch {
 }
 
 // Tipos para el carrito de POS
+export interface AgregoSelection {
+  ingredientId: string;
+  name: string;
+  surcharge: number;
+  count: number;
+}
+
 export interface CartItem {
   product: Product;
   quantity: number;
   unitPrice: number;
   discount: number;
   total: number;
-  selectedAgregos?: string[]; // ingredient IDs selected as agregos
+  selectedAgregos?: string[]; // ingredient IDs for stock deduction (repeated for multiples)
+  agregoSelections?: AgregoSelection[]; // detailed agrego info for display & pricing
+  agregoTotal?: number; // sum of agrego surcharges per unit
 }
