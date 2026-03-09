@@ -157,8 +157,9 @@ const AppSidebar = () => {
   const showManagerModules =
     !shouldWaitEmployeeResolution && (isEmployeeSession ? isEmployeeManager : isManager && !isOwner && !isSuperAdmin);
 
-  // Kitchen staff only sees cocina
-  const showKitchenModule = !shouldWaitEmployeeResolution && isEmployeeSession && isEmployeeKitchen;
+  // Kitchen staff only sees cocina — restricted to restaurant/cafetería business types
+  const isRestaurantBusiness = (employeeRecord as any)?.businesses?.business_type === 'estaurente/safetería';
+  const showKitchenModule = !shouldWaitEmployeeResolution && isEmployeeSession && isEmployeeKitchen && isRestaurantBusiness;
 
   // Jornada check for operational employee tools
   const { jornadaActiva } = useJornadaActiva();
