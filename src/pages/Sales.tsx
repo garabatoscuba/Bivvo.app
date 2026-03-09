@@ -457,7 +457,7 @@ const Sales = () => {
                           {statusLabels[sale.status as SaleStatus]}
                         </span>
                       )}
-                      {sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
+                      {isRestaurantBiz && sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
                         <KitchenOrderStatus saleId={sale.id} businessId={resolvedBusinessId} />
                       )}
                     </div>
