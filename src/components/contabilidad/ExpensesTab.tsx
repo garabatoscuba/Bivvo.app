@@ -214,7 +214,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     const totalRemaining = colorData.reduce((s, c) => s + c.remaining, 0);
 
     return { colorData, totalInvested, totalConsumed, totalRemaining };
-
+  }, [isCopyShop, inkUsage, inkInventory]);
   // ── Seed default fixed expenses (check all fixed for business, not filtered by branch) ──
   const [seeded, setSeeded] = useState(false);
   useEffect(() => {
