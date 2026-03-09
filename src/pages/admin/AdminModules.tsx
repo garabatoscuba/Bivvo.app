@@ -108,11 +108,7 @@ interface PricingOffer {
   is_active: boolean;
 }
 
-const BUSINESS_TYPES = [
-  { value: 'store', label: 'Tienda' },
-  { value: 'copy_shop', label: 'Punto de Copias' },
-  { value: 'gym', label: 'Gimnasio' },
-];
+// Dynamic — loaded from business_type_configs table
 
 const COUNTRIES = [
   { value: 'cuba', label: 'Cuba' },
