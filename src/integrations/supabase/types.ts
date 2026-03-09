@@ -2238,6 +2238,61 @@ export type Database = {
           },
         ]
       }
+      kitchen_orders: {
+        Row: {
+          branch_id: string
+          business_id: string
+          created_at: string
+          id: string
+          items: Json
+          sale_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          branch_id: string
+          business_id: string
+          created_at?: string
+          id?: string
+          items?: Json
+          sale_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string
+          business_id?: string
+          created_at?: string
+          id?: string
+          items?: Json
+          sale_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kitchen_orders_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kitchen_orders_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: true
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       module_assignments: {
         Row: {
           created_at: string
@@ -4956,6 +5011,7 @@ export type Database = {
         | "accountant"
         | "affiliated"
         | "partner"
+        | "cocina"
       inventory_movement_type:
         | "purchase"
         | "sale"
@@ -5114,6 +5170,7 @@ export const Constants = {
         "accountant",
         "affiliated",
         "partner",
+        "cocina",
       ],
       inventory_movement_type: [
         "purchase",
