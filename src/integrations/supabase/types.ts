@@ -4211,6 +4211,7 @@ export type Database = {
           ingredient_type: string
           quantity: number
           recipe_id: string
+          surcharge: number
           unit: string
         }
         Insert: {
@@ -4221,6 +4222,7 @@ export type Database = {
           ingredient_type?: string
           quantity?: number
           recipe_id: string
+          surcharge?: number
           unit?: string
         }
         Update: {
@@ -4231,6 +4233,7 @@ export type Database = {
           ingredient_type?: string
           quantity?: number
           recipe_id?: string
+          surcharge?: number
           unit?: string
         }
         Relationships: [
