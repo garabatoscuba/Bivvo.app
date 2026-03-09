@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { normalizeUnitKey } from '@/lib/unitConversion';
+import {
+  calcIngredientCost,
+  convertUnits,
+  getCompatibleUnits,
+  getUnitCategory,
+  normalizeUnitKey,
+} from '@/lib/unitConversion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +23,6 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Trash2, Loader2, ChefHat } from 'lucide-react';
-import { calcIngredientCost, getCompatibleUnits, getUnitCategory } from '@/lib/unitConversion';
 import type { Product } from '@/types/database';
 
 interface RecipeManagerProps {

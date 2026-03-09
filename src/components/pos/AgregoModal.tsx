@@ -24,8 +24,10 @@ interface AgregoModalProps {
 interface AgregoItem {
   id: string;
   ingredient_id: string;
+  quantity: number;
+  unit: string;
   gramaje: number;
-  ingredient?: { id: string; name: string; cost_price: number };
+  ingredient?: { id: string; name: string; cost_price: number; unit_of_measure: string };
 }
 
 export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoModalProps) => {
