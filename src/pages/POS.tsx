@@ -16,6 +16,7 @@ import { useBranches } from '@/hooks/useBranches';
 import { useSales } from '@/hooks/useSales';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
+import { useProductionCapacities } from '@/hooks/useProductionCapacities';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, ShoppingCart, Loader2, Package, PackageX, AlertTriangle } from 'lucide-react';
 import { MermaDialog } from '@/components/inventory/MermaDialog';
