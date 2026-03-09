@@ -304,16 +304,23 @@ const SellerPrintView = () => {
       const { error: itemsErr } = await supabase.from('print_job_items').insert(items);
       if (itemsErr) throw itemsErr;
 
-      // Deduct stock only for non-tramo materials (tramo materials are handled via active sheets)
+      // Deduct stock only for non-tramo materials from employee's personal stock
       for (const [matId, info] of materialConsumption) {
         const mat = getMaterial(matId);
         if (!mat) continue;
-        // Check if this material's type has permite_tramos
         const matType = materialTypes.find((t: any) => t.id === mat.material_type_id);
-        if (matType?.permite_tramos) continue; // Skip: tramos are managed via print_active_sheets trigger
-        await supabase.from('raw_materials').update({
-          stock_vendedor: Math.max(0, mat.stock_vendedor - info.needed),
-        }).eq('id', matId);
+        if (matType?.permite_tramos) continue; // tramos managed via print_active_sheets
+        // Find employee record
+        const { data: emp } = await supabase.from('employees').select('id').eq('business_id', businessId).eq('auth_user_id', user.id).maybeSingle();
+        if (emp) {
+          const { data: empStock } = await supabase.from('employee_material_stock' as any).select('id, stock').eq('employee_id', emp.id).eq('material_id', matId).maybeSingle();
+          if (empStock) {
+            await supabase.from('employee_material_stock' as any).update({
+              stock: Math.max(0, (empStock as any).stock - info.needed),
+              updated_at: new Date().toISOString(),
+            }).eq('id', (empStock as any).id);
+          }
+        }
       }
 
       if (activeCaja?.id && (finalPayment === 'cash' || finalPayment === 'mixed')) {
