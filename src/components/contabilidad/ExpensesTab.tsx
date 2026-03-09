@@ -498,6 +498,107 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
         ))}
       </div>
 
+      {/* ── INK EXPENSE CARD (copy_shop only) ── */}
+      {isCopyShop && (
+        <div className="space-y-3">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Droplets className="h-4 w-4" /> Gasto de Tinta
+          </h3>
+          {!inkAnalysis ? (
+            <Card>
+              <CardContent className="p-6 text-center text-muted-foreground">
+                <Droplets className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">Registra cobros en Impresiones para ver el análisis de consumo de tinta.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <Card>
+                  <CardContent className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Invertido</p>
+                    <p className="text-lg font-bold">${inkAnalysis.totalInvested.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Consumido</p>
+                    <p className="text-lg font-bold text-destructive">${inkAnalysis.totalConsumed.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Restante</p>
+                    <p className={`text-lg font-bold ${inkAnalysis.totalRemaining <= 0 ? 'text-destructive' : 'text-primary'}`}>
+                      ${inkAnalysis.totalRemaining.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Color</TableHead>
+                          <TableHead className="text-right">Consumo/día</TableHead>
+                          <TableHead className="text-right">Consumido</TableHead>
+                          <TableHead className="text-right">Restante</TableHead>
+                          <TableHead className="text-right">Días rest.</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {inkAnalysis.colorData.map((c) => {
+                          const colorStyles: Record<string, string> = {
+                            negro: "bg-gray-900 dark:bg-gray-600",
+                            cian: "bg-cyan-500",
+                            magenta: "bg-pink-500",
+                            amarillo: "bg-yellow-400",
+                          };
+                          const colorLabels: Record<string, string> = {
+                            negro: "Negro", cian: "Cian", magenta: "Magenta", amarillo: "Amarillo",
+                          };
+                          return (
+                            <TableRow key={c.color}>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5">
+                                  <div className={`h-3 w-3 rounded-full ${colorStyles[c.color] || ""}`} />
+                                  <span className="text-sm font-medium">{colorLabels[c.color] || c.color}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right text-sm">
+                                ${c.dailyAvg.toFixed(2)}<span className="text-muted-foreground">/día</span>
+                              </TableCell>
+                              <TableCell className="text-right text-sm text-destructive">
+                                ${c.totalConsumed.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right text-sm">
+                                ${c.remaining.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {c.daysRemaining !== null ? (
+                                  <Badge variant={c.daysRemaining <= 7 ? "destructive" : c.daysRemaining <= 15 ? "secondary" : "default"} className="text-xs">
+                                    {c.daysRemaining}d
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
+      )}
+
 
       {/* ── FIXED EXPENSES ── */}
       <div className="space-y-3">
