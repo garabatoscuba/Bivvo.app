@@ -854,10 +854,10 @@ const SellerPrintView = () => {
               <Label>Insumo</Label>
               <Input value={getMaterial(openSheetForm.material_id)?.name || ''} disabled className="bg-muted" />
             </div>
-            <p className="text-xs text-muted-foreground">Se descontará 1 unidad de tu stock de vendedor.</p>
+            <p className="text-xs text-muted-foreground">Se descontará 1 unidad de tu stock.</p>
             {openSheetForm.material_id && (
               <p className="text-xs text-muted-foreground">
-                Stock disponible: {getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0}
+                Stock disponible: {getMyStock(openSheetForm.material_id)}
               </p>
             )}
           </div>
