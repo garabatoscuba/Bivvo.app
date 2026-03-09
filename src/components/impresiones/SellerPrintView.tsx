@@ -936,6 +936,16 @@ const SellerPrintView = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      {/* Note Viewer Dialog */}
+      <Dialog open={!!viewingNote} onOpenChange={() => setViewingNote(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader><DialogTitle>Nota</DialogTitle></DialogHeader>
+          <p className="text-sm whitespace-pre-wrap">{viewingNote}</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewingNote(null)}>Cerrar</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
