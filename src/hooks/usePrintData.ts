@@ -312,19 +312,19 @@ export const useOpenSheet = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ material_id, tramos_total, user_id }: { material_id: string; tramos_total: number; user_id: string }) => {
+    mutationFn: async ({ material_id, user_id }: { material_id: string; user_id: string }) => {
       if (!businessId || !branchId) throw new Error('Sin contexto');
       // Deduct 1 unit from stock_vendedor
       const { data: mat } = await supabase.from('raw_materials').select('stock_vendedor').eq('id', material_id).single();
       if (!mat || mat.stock_vendedor < 1) throw new Error('Sin stock disponible para abrir hoja');
       await supabase.from('raw_materials').update({ stock_vendedor: mat.stock_vendedor - 1 }).eq('id', material_id);
-      // Create active sheet
+      // Create active sheet (tramos_total set to a high number since we don't track tramos)
       const { error } = await supabase.from('print_active_sheets' as any).insert({
         business_id: businessId,
         branch_id: branchId,
         user_id,
         material_id,
-        tramos_total,
+        tramos_total: 999999,
         tramos_usados: 0,
         status: 'activa',
       });

@@ -519,14 +519,29 @@ const SellerPrintView = () => {
                     );
                   })}
 
-                  {/* Tramo info chips */}
-                  {tramoInfo.length > 0 && (
+                  {/* Active sheets with close button */}
+                  {activeSheets.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      {tramoInfo.map(t => (
-                        <Badge key={t.name} variant="outline" className="text-xs">
-                          {t.name}: {t.remaining} tramos disponibles
-                        </Badge>
-                      ))}
+                      {activeSheets.map((sheet: any) => {
+                        const mat = getMaterial(sheet.material_id);
+                        if (!mat) return null;
+                        return (
+                          <div key={sheet.id} className="flex items-center gap-1.5 rounded-md border px-2 py-1">
+                            <Badge variant="outline" className="text-xs">
+                              📄 {mat.name}: Activa
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 px-1.5 text-[10px] text-destructive hover:text-destructive"
+                              onClick={() => closeSheetMut.mutate(sheet.id)}
+                              disabled={closeSheetMut.isPending}
+                            >
+                              Marcar usada
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
