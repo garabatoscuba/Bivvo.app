@@ -237,7 +237,7 @@ export const useSales = (branchId?: string | null) => {
         return sale;
       };
 
-      alert('Paso 1: online=' + navigator.onLine);
+      
 
       // If clearly offline, skip Supabase entirely
       if (!navigator.onLine) {
