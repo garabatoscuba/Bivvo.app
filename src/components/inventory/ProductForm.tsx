@@ -29,6 +29,7 @@ import { Loader2, Package, Camera, X, ChefHat } from 'lucide-react';
 import { RecipeManager } from '@/components/inventory/RecipeManager';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
+import { useIsRestaurant } from '@/hooks/useIsRestaurant';
 
 const MAX_IMAGE_SIZE = 512000; // 500 KB
 
