@@ -56,6 +56,8 @@ const ServiciosTab = () => {
       consumo_por_unidad: s.consumo_por_unidad,
       rendimiento_especial: s.rendimiento_especial,
       is_active: s.is_active,
+      vende_por_tramos: s.vende_por_tramos ?? false,
+      tramos_por_unidad: s.tramos_por_unidad ?? 1,
     });
     setRendimientoText(s.rendimiento_especial ? JSON.stringify(s.rendimiento_especial) : '');
     setOpen(true);
