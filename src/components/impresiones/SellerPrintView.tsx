@@ -153,6 +153,10 @@ const SellerPrintView = () => {
 
   // ─── Helpers ────────────────────────────────────────────────
   const getMaterial = (id: string | null) => materials.find((m: any) => m.id === id);
+  const getMyStock = (materialId: string) => {
+    const record = myStocks.find((s: any) => s.material_id === materialId);
+    return record ? Number(record.stock) : 0;
+  };
 
   const addJobItem = (svc: any) => {
     setJobItems(prev => [
