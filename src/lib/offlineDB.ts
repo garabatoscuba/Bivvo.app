@@ -1,4 +1,6 @@
-import Dexie, { type Table } from 'dexie';
+import Dexie from 'dexie/dist/dexie.mjs';
+
+type Table<T = any, TKey = any> = any;
 
 export interface OfflineProduct {
   id: string;
