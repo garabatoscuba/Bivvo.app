@@ -451,18 +451,6 @@ const ModulesTab = () => {
               <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
             </div>
             <div className="space-y-1.5">
-              <Label className="text-sm">Orden en sidebar</Label>
-              <Input
-                type="number"
-                min={0}
-                value={form.sort_order}
-                onChange={e => setForm(f => ({ ...f, sort_order: parseInt(e.target.value) || 0 }))}
-                placeholder="0"
-                className="w-24"
-              />
-              <p className="text-[10px] text-muted-foreground">Menor número = aparece primero</p>
-            </div>
-            <div className="space-y-1.5">
               <Label className="text-sm">Tipos de negocio</Label>
               <div className="flex flex-wrap gap-3 pt-1">
                 {BUSINESS_TYPES.map(bt => (
