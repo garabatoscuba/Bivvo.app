@@ -39,6 +39,7 @@ interface AuthContextType {
   isOwner: boolean;
   isManager: boolean;
   isSeller: boolean;
+  isKitchen: boolean;
   isAccountant: boolean;
   isAffiliated: boolean;
   isPartner: boolean;
