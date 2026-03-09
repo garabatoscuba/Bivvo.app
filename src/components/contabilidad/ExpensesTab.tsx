@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { toast } from "sonner";
-import { format, addDays, addWeeks, addMonths, addYears, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isBefore, parseISO } from "date-fns";
+import { format, addDays, addWeeks, addMonths, addYears, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isBefore, parseISO, subDays, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt } from "lucide-react";
+import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt, Droplets } from "lucide-react";
 
 // ── Types ──
 type Expense = {
