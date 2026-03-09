@@ -134,6 +134,12 @@ const Inventory = () => {
 
   const canManage = isOwner || isManager;
 
+  // Production capacity for elaborado products
+  const { data: productionCapacity, isLoading: capacityLoading } = useProductionCapacity(
+    (selectedProduct as any)?.tipo === 'elaborado' ? selectedProduct?.id || null : null,
+    selectedBranch || profile?.branch_id || branches?.[0]?.id
+  );
+
   // Product review stats from portal
   const businessId = profile?.business_id;
   const { data: productReviewStats } = useQuery({
