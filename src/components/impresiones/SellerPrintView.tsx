@@ -559,7 +559,7 @@ const SellerPrintView = () => {
                             variant="outline"
                             className="w-full text-xs"
                             onClick={() => {
-                              setOpenSheetForm({ material_id: issue.materialId, tramos_total: 4 });
+                              setOpenSheetForm({ material_id: issue.materialId });
                               setOpenSheetDialog(true);
                             }}
                           >
