@@ -115,7 +115,7 @@ const SellerPrintView = () => {
 
   // ─── Shrinkage Modal ───────────────────────────────────────
   const [shrinkOpen, setShrinkOpen] = useState(false);
-  const [shrinkForm, setShrinkForm] = useState({ material_id: '', cantidad: 0, motivo: '', nota: '' });
+  const [shrinkForm, setShrinkForm] = useState({ material_id: '', cantidad: 0, costo_unitario: 0, motivo: '', nota: '' });
 
   // ─── Production Modal ──────────────────────────────────────
   const [prodOpen, setProdOpen] = useState(false);
@@ -316,12 +316,13 @@ const SellerPrintView = () => {
       {
         material_id: shrinkForm.material_id,
         cantidad: shrinkForm.cantidad,
+        costo_unitario: shrinkForm.costo_unitario,
         motivo: shrinkForm.motivo || 'Sin especificar',
         nota: shrinkForm.nota,
       },
       {
         onSuccess: () => {
-          setShrinkForm({ material_id: '', cantidad: 0, motivo: '', nota: '' });
+          setShrinkForm({ material_id: '', cantidad: 0, costo_unitario: 0, motivo: '', nota: '' });
           setShrinkOpen(false);
         },
       }
@@ -730,7 +731,10 @@ const SellerPrintView = () => {
           <div className="space-y-3 overflow-y-auto flex-1 pr-1">
             <div>
               <Label>Insumo</Label>
-              <Select value={shrinkForm.material_id} onValueChange={v => setShrinkForm(f => ({ ...f, material_id: v }))}>
+              <Select value={shrinkForm.material_id} onValueChange={v => {
+                const mat = materials.find((m: any) => m.id === v);
+                setShrinkForm(f => ({ ...f, material_id: v, costo_unitario: mat?.costo_unitario || 0 }));
+              }}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>
                   {materials.filter((m: any) => m.stock_vendedor > 0).map((m: any) => (
@@ -743,6 +747,15 @@ const SellerPrintView = () => {
               <Label>Cantidad</Label>
               <Input type="number" min={1} value={shrinkForm.cantidad || ''} onChange={e => setShrinkForm(f => ({ ...f, cantidad: parseFloat(e.target.value) || 0 }))} />
             </div>
+            <div>
+              <Label>Costo unitario ($)</Label>
+              <Input type="number" min={0} step="0.01" value={shrinkForm.costo_unitario || ''} onChange={e => setShrinkForm(f => ({ ...f, costo_unitario: parseFloat(e.target.value) || 0 }))} placeholder="Precio por unidad dañada" />
+            </div>
+            {shrinkForm.cantidad > 0 && shrinkForm.costo_unitario > 0 && (
+              <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm space-y-1">
+                <p className="font-medium text-destructive">Daño estimado: ${(shrinkForm.cantidad * shrinkForm.costo_unitario).toFixed(2)}</p>
+              </div>
+            )}
             <div>
               <Label>Motivo</Label>
               <Input value={shrinkForm.motivo} onChange={e => setShrinkForm(f => ({ ...f, motivo: e.target.value }))} placeholder="Ej: Atasco en impresora" />
