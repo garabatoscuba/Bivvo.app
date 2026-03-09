@@ -1111,15 +1111,6 @@ const BusinessTypesTab = () => {
     },
   });
 
-  const { data: printCategories = [] } = useQuery({
-    queryKey: ['print-categories-defaults'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('print_categories').select('*').is('business_id', null).order('sort_order');
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
   const saveMutation = useMutation({
     mutationFn: async () => {
       const payload = {
