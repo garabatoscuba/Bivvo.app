@@ -203,6 +203,12 @@ const Inventory = () => {
     return stockMap.get(product.id) || 0;
   };
 
+  // Check if business has kitchen products
+  const hasKitchenProducts = useMemo(() => 
+    products.some((p: any) => p.tipo === 'ingrediente' || p.tipo === 'elaborado'),
+    [products]
+  );
+
   // Filter products (all statuses except discontinued)
   const filteredProducts = useMemo(() => products.filter((product) => {
     const matchesSearch = !search || 
@@ -219,7 +225,7 @@ const Inventory = () => {
     
     if (!activeFilter) return true;
     
-    const stock = stockMap.get(product.id) || 0;
+    const stock = getDisplayForSaleStock(product as any);
     const wStock = warehouseStockMap.get(product.id) || 0;
     
     switch (activeFilter) {
@@ -229,7 +235,7 @@ const Inventory = () => {
       case 'outOfStock': return stock <= 0 && product.status === 'for_sale';
       default: return true;
     }
-  }), [products, search, activeFilter, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab]);
+  }), [products, search, activeFilter, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
 
   // Group products by category
   const groupedProducts = useMemo(() => {
