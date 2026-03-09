@@ -460,7 +460,8 @@ const SellerPrintView = () => {
             {materials.length > 0 && (
               <div className="flex gap-2 overflow-x-auto scrollbar-none shrink-0 pb-1">
                 {materials.map((m: any) => {
-                  const isLow = m.stock_vendedor <= 0;
+                  const myStock = getMyStock(m.id);
+                  const isLow = myStock <= 0;
                   const matType = materialTypes.find((t: any) => t.id === m.material_type_id);
                   const isTramo = matType?.permite_tramos === true;
                   const sheet = isTramo ? (activeSheets as any[]).find((s: any) => s.material_id === m.id && s.status === 'activa') : null;
@@ -469,7 +470,7 @@ const SellerPrintView = () => {
                     <div key={m.id} className={cn('flex items-center gap-2 rounded-lg border px-3 py-1.5 flex-shrink-0', isLow && !isTramo && 'border-destructive bg-destructive/5')}>
                       <span className="text-xs font-medium whitespace-nowrap">{m.name}</span>
                       <Badge variant={isLow && !isTramo ? 'destructive' : 'secondary'} className="text-xs">
-                        {isTramo && sheet ? `🗎 ${tramoCount}` : m.stock_vendedor}
+                        {isTramo && sheet ? `🗎 ${tramoCount}` : myStock}
                       </Badge>
                     </div>
                   );
