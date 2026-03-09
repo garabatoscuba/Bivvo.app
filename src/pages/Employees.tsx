@@ -49,7 +49,7 @@ const ROLE_CONFIG: Record<AppRole, { label: string; icon: typeof Shield; color: 
   partner: { label: 'Partner', icon: Users, color: 'bg-muted text-muted-foreground' },
 };
 
-const POSITION_OPTIONS = [
+const BASE_POSITION_OPTIONS = [
   { value: 'owner', label: 'Dueño' },
   { value: 'manager', label: 'Gerente' },
   { value: 'seller', label: 'Vendedor' },

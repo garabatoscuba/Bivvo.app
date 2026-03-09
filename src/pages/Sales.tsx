@@ -68,6 +68,19 @@ const Sales = () => {
   const canBypassJornada = isOwner || isSuperAdmin;
   const isSellOnly = isSeller && !isPrivileged;
 
+  // Check if business is restaurant for kitchen order status badges
+  const { data: salesBusinessData } = useQuery({
+    queryKey: ['sales-business-type', resolvedBusinessId],
+    queryFn: async () => {
+      if (!resolvedBusinessId) return null;
+      const { data } = await supabase.from('businesses').select('business_type').eq('id', resolvedBusinessId).maybeSingle();
+      return data;
+    },
+    enabled: !!resolvedBusinessId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isRestaurantBiz = salesBusinessData?.business_type === 'estaurente/safetería';
+
   const branchId = resolvedBranchId || profile?.branch_id;
   const { sales, isLoadingSales, useSaleItems, cancelSale, registerPayment } = useSales(branchId);
 
