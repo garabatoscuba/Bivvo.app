@@ -407,14 +407,39 @@ const SellerPrintView = () => {
         </Card>
       ) : (
         <>
-          {/* Total del día */}
+          {/* Mi stock de insumos - moved up */}
           <Card>
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total del día</p>
-                <p className="text-2xl font-bold">${todayTotal.toFixed(2)}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-primary opacity-50" />
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Mi stock de insumos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {materials.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No tienes insumos asignados</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {materials.map((m: any) => {
+                    const isLow = m.stock_vendedor <= 0;
+                    // Find active sheet for tramo materials
+                    const matType = materialTypes.find((t: any) => t.id === m.material_type_id);
+                    const isTramo = matType?.permite_tramos === true;
+                    const sheet = isTramo ? activeSheets.find((s: any) => s.material_id === m.id && s.status === 'activa') : null;
+                    const tramoCount = sheet ? (tramoUsageMap[sheet.id] || 0) : 0;
+                    return (
+                      <div key={m.id} className={cn('flex items-center justify-between gap-2 rounded-lg border p-2', isLow && !isTramo && 'border-destructive bg-destructive/5')}>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium truncate">{m.name}</p>
+                          {isTramo && sheet && (
+                            <p className="text-[10px] text-muted-foreground">{tramoCount} tramo{tramoCount !== 1 ? 's' : ''} usados</p>
+                          )}
+                        </div>
+                        <Badge variant={isLow && !isTramo ? 'destructive' : 'secondary'} className="shrink-0 text-xs">
+                          {isTramo && sheet ? `🗎 ${tramoCount}` : m.stock_vendedor}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
