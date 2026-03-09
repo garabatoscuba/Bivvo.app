@@ -343,6 +343,8 @@ const SellerPrintView = () => {
       queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
       queryClient.invalidateQueries({ queryKey: ['caja-movements'] });
       queryClient.invalidateQueries({ queryKey: ['print-jobs-recent'] });
+      queryClient.invalidateQueries({ queryKey: ['my-material-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-material-stock'] });
       setJobItems([]);
       setDescription('');
       setPaymentMethod('cash');
