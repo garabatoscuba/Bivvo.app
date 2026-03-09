@@ -382,63 +382,49 @@ const ModulesTab = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Módulos disponibles en la plataforma.</p>
+        <p className="text-sm text-muted-foreground">Módulos disponibles en la plataforma. Arrastra para reordenar.</p>
         <Button size="sm" onClick={openCreate}><Plus className="h-3.5 w-3.5 mr-1.5" />Nuevo módulo</Button>
       </div>
 
       <Card className="border-border/60">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-[11px] uppercase tracking-wide w-12">Orden</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide">Módulo</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide">Sidebar</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide">Tipos</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide">País</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide text-center">Activo</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide w-10"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {modules.map(m => (
-                <TableRow key={m.id}>
-                  <TableCell className="text-center text-xs text-muted-foreground font-mono">{m.sort_order}</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="text-sm font-medium">{m.name}</p>
-                      {m.description && <p className="text-[11px] text-muted-foreground line-clamp-1">{m.description}</p>}
-                    </div>
-                  </TableCell>
-                  <TableCell><Badge variant="outline" className="text-[11px]">{m.sidebar_label}</Badge></TableCell>
-                  <TableCell>
-                    <div className="flex gap-1 flex-wrap">
-                      {m.business_types.map(t => (
-                        <Badge key={t} variant="secondary" className="text-[10px]">{BUSINESS_TYPES.find(bt => bt.value === t)?.label || t}</Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {m.countries.length === 0
-                      ? <span className="text-[11px] text-muted-foreground">Global</span>
-                      : m.countries.map(c => <Badge key={c} variant="secondary" className="text-[10px] mr-1">{COUNTRIES.find(cc => cc.value === c)?.label || c}</Badge>)
-                    }
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Switch checked={m.is_active} onCheckedChange={v => toggleMutation.mutate({ id: m.id, is_active: v })} />
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(m)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  </TableCell>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-[11px] uppercase tracking-wide w-8"></TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Módulo</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Sidebar</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Tipos</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">País</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-center">Activo</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide w-10"></TableHead>
                 </TableRow>
-              ))}
-              {modules.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">No hay módulos creados.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <SortableContext
+                items={modules.map(m => m.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <TableBody>
+                  {modules.map(m => (
+                    <SortableModuleRow
+                      key={m.id}
+                      module={m}
+                      onEdit={() => openEdit(m)}
+                      onToggle={(is_active) => toggleMutation.mutate({ id: m.id, is_active })}
+                    />
+                  ))}
+                  {modules.length === 0 && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">No hay módulos creados.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </SortableContext>
+            </Table>
+          </DndContext>
         </CardContent>
       </Card>
 
