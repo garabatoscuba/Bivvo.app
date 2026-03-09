@@ -314,11 +314,15 @@ export const useOpenSheet = () => {
   return useMutation({
     mutationFn: async ({ material_id, user_id }: { material_id: string; user_id: string }) => {
       if (!businessId || !branchId) throw new Error('Sin contexto');
-      // Deduct 1 unit from stock_vendedor
-      const { data: mat } = await supabase.from('raw_materials').select('stock_vendedor').eq('id', material_id).single();
-      if (!mat || mat.stock_vendedor < 1) throw new Error('Sin stock disponible para abrir hoja');
-      await supabase.from('raw_materials').update({ stock_vendedor: mat.stock_vendedor - 1 }).eq('id', material_id);
-      // Create active sheet (tramos_total set to a high number since we don't track tramos)
+      // Find employee by auth_user_id
+      const { data: emp } = await supabase.from('employees').select('id').eq('business_id', businessId).eq('auth_user_id', user_id).maybeSingle();
+      if (!emp) throw new Error('Empleado no encontrado');
+      // Check employee stock
+      const { data: empStock } = await supabase.from('employee_material_stock' as any).select('id, stock').eq('employee_id', emp.id).eq('material_id', material_id).maybeSingle();
+      if (!empStock || (empStock as any).stock < 1) throw new Error('Sin stock disponible para abrir hoja');
+      // Deduct 1 from employee stock
+      await supabase.from('employee_material_stock' as any).update({ stock: (empStock as any).stock - 1, updated_at: new Date().toISOString() }).eq('id', (empStock as any).id);
+      // Create active sheet
       const { error } = await supabase.from('print_active_sheets' as any).insert({
         business_id: businessId,
         branch_id: branchId,
