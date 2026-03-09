@@ -116,6 +116,17 @@ const Cocina = () => {
   const activeOrders = useMemo(() => orders.filter(o => o.status !== 'listo'), [orders]);
   const completedOrders = useMemo(() => orders.filter(o => o.status === 'listo').slice(0, 20), [orders]);
 
+  // Block access for non-restaurant businesses
+  if (!restaurantLoading && !isRestaurant) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-20">
+          <p className="text-muted-foreground">Este módulo solo está disponible para restaurantes y cafeterías.</p>
+        </div>
+      </AppLayout>
+    );
+  }
+
   const getSaleNumber = (saleId: string) => saleId.slice(-6).toUpperCase();
 
   const renderOrderCard = (order: KitchenOrder) => {
