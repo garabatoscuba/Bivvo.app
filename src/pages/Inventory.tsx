@@ -195,11 +195,13 @@ const Inventory = () => {
     warehouseStockMap.set(bs.product_id, bs.warehouse_quantity || 0);
   });
 
-  // Check if business has kitchen products
-  const hasKitchenProducts = useMemo(() => 
-    products.some((p: any) => p.tipo === 'ingrediente' || p.tipo === 'elaborado'),
-    [products]
-  );
+  const getDisplayForSaleStock = (product: Product & { [key: string]: any }) => {
+    if (product?.tipo === 'elaborado') {
+      const cap = productionCapacities?.[product.id];
+      if (typeof cap === 'number' && Number.isFinite(cap)) return cap;
+    }
+    return stockMap.get(product.id) || 0;
+  };
 
   // Filter products (all statuses except discontinued)
   const filteredProducts = useMemo(() => products.filter((product) => {
