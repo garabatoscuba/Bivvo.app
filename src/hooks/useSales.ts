@@ -241,7 +241,7 @@ export const useSales = (branchId?: string | null) => {
 
       // If clearly offline, skip Supabase entirely
       if (!navigator.onLine) {
-        alert('Paso 4: guardando offline (sin conexión detectada)');
+        
         const offlineResult = await saveOffline();
         alert('Paso 5: offline guardado OK');
         return offlineResult;
