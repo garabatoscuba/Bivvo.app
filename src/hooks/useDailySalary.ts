@@ -454,6 +454,7 @@ export const useDailySalary = ({
       todayBranchSalesTotal,
       todaySalesTotal,
       todayServiceTotal,
+      todayPrintTotal,
       displayPercent,
       hasAssignment: mySalaryAssignments.length > 0,
       modalityName,

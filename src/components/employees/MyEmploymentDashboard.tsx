@@ -281,7 +281,7 @@ const MyEmploymentDashboard = ({
               <ShoppingCart className="h-3 w-3" /> Ventas del día
             </p>
             <p className="text-xl font-bold">${todayTotal.toLocaleString('es', { minimumFractionDigits: 2 })}</p>
-            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground flex-wrap">
               <span className="flex items-center gap-0.5">
                 <Package className="h-2.5 w-2.5" />
                 ${dailySalary.todayBranchSalesTotal.toFixed(0)}
@@ -290,6 +290,12 @@ const MyEmploymentDashboard = ({
                 <Wrench className="h-2.5 w-2.5" />
                 ${dailySalary.todayBranchServiceTotal.toFixed(0)}
               </span>
+              {dailySalary.todayPrintTotal > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Printer className="h-2.5 w-2.5" />
+                  ${dailySalary.todayPrintTotal.toFixed(0)}
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>
