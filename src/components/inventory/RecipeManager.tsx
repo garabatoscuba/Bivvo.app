@@ -133,6 +133,17 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
     },
   });
 
+  const updateSurcharge = useMutation({
+    mutationFn: async ({ id, surcharge }: { id: string; surcharge: number }) => {
+      const { error } = await supabase.from('recipe_ingredients').update({ surcharge }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe-ingredients', recipe?.id] });
+      toast({ title: 'Precio de agrego actualizado' });
+    },
+  });
+
   // Add ingredient form state
   const [newIngredientId, setNewIngredientId] = useState('');
   const [newQuantity, setNewQuantity] = useState('');
