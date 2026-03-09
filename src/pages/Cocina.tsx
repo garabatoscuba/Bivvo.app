@@ -49,17 +49,6 @@ const Cocina = () => {
   const { profile } = useAuth();
   const { businessId, branchId } = useResolvedBusinessId();
   const { isRestaurant, isLoading: restaurantLoading } = useIsRestaurant();
-
-  // Block access for non-restaurant businesses
-  if (!restaurantLoading && !isRestaurant) {
-    return (
-      <AppLayout>
-        <div className="flex items-center justify-center py-20">
-          <p className="text-muted-foreground">Este módulo solo está disponible para restaurantes y cafeterías.</p>
-        </div>
-      </AppLayout>
-    );
-  }
   const queryClient = useQueryClient();
   const [now, setNow] = useState(new Date());
 
