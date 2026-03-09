@@ -188,7 +188,7 @@ const MyEmploymentDashboard = ({
     return prev.length > 0 ? sum / prev.length : 0;
   }, [weekSales]);
 
-  const todayTotal = dailySalary.todayBranchSalesTotal + dailySalary.todayBranchServiceTotal;
+  const todayTotal = dailySalary.todayBranchSalesTotal + dailySalary.todayBranchServiceTotal + (dailySalary.todayPrintTotal || 0);
   const progressPct = weekAvg > 0 ? Math.min(100, Math.round((todayTotal / weekAvg) * 100)) : (todayTotal > 0 ? 100 : 0);
 
   // Include print_jobs in pie data if available
