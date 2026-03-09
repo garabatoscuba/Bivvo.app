@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { db } from './offlineDB';
+import { db } from './offlineDexieDb';
 
 const SYNC_TABLES = [
   { local: 'sales', remote: 'sales' },

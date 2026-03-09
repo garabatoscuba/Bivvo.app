@@ -2,6 +2,8 @@ import Dexie from 'dexie/dist/dexie.mjs';
 
 type Table<T = any, TKey = any> = any;
 
+const DexieAny: any = Dexie;
+
 export interface OfflineProduct {
   id: string;
   business_id: string;
@@ -89,7 +91,7 @@ export interface PendingSyncRecord {
   created_at: string;
 }
 
-class BivooDB extends Dexie {
+class BivooDB extends DexieAny {
   products!: Table<OfflineProduct, string>;
   product_categories!: Table<OfflineProductCategory, string>;
   services!: Table<OfflineService, string>;
@@ -117,4 +119,4 @@ class BivooDB extends Dexie {
   }
 }
 
-export const db = new BivooDB();
+export const db: any = new BivooDB();
