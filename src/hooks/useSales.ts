@@ -243,7 +243,6 @@ export const useSales = (branchId?: string | null) => {
       if (!navigator.onLine) {
         
         const offlineResult = await saveOffline();
-        alert('Paso 5: offline guardado OK');
         return offlineResult;
       }
 
