@@ -3276,6 +3276,7 @@ export type Database = {
           created_at: string
           es_color: boolean
           es_doble_cara: boolean
+          es_full: boolean
           id: string
           job_id: string
           material_consumido: number
@@ -3289,6 +3290,7 @@ export type Database = {
           created_at?: string
           es_color?: boolean
           es_doble_cara?: boolean
+          es_full?: boolean
           id?: string
           job_id: string
           material_consumido?: number
@@ -3302,6 +3304,7 @@ export type Database = {
           created_at?: string
           es_color?: boolean
           es_doble_cara?: boolean
+          es_full?: boolean
           id?: string
           job_id?: string
           material_consumido?: number
