@@ -20,6 +20,7 @@ const emptyForm = {
   unit_label: 'hoja',
   precio_base: 0,
   admite_doble_cara: false,
+  admite_color: false,
   material_id: '',
   consumo_por_unidad: 1,
   rendimiento_especial: null as any,
@@ -52,6 +53,7 @@ const ServiciosTab = () => {
       unit_label: s.unit_label,
       precio_base: s.precio_base,
       admite_doble_cara: s.admite_doble_cara,
+      admite_color: s.admite_color ?? false,
       material_id: s.material_id || '',
       consumo_por_unidad: s.consumo_por_unidad,
       rendimiento_especial: s.rendimiento_especial,
@@ -102,6 +104,7 @@ const ServiciosTab = () => {
                   <div className="flex items-center gap-1 shrink-0">
                     {!s.is_active && <Badge variant="secondary" className="text-[10px]">Inactivo</Badge>}
                     {s.admite_doble_cara && <Badge variant="outline" className="text-[10px]">2 caras</Badge>}
+                    {s.admite_color && <Badge variant="outline" className="text-[10px]">Color</Badge>}
                     {s.vende_por_tramos && <Badge variant="outline" className="text-[10px]">Tramos</Badge>}
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(s)}><Pencil className="h-3.5 w-3.5" /></Button>
                     <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => setDeleteTarget(s)}><Trash2 className="h-3.5 w-3.5" /></Button>
@@ -140,6 +143,10 @@ const ServiciosTab = () => {
             <div className="flex items-center gap-3">
               <Switch checked={form.admite_doble_cara} onCheckedChange={v => setForm(f => ({ ...f, admite_doble_cara: v }))} />
               <Label>Admite doble cara</Label>
+            </div>
+            <div className="flex items-center gap-3">
+              <Switch checked={form.admite_color} onCheckedChange={v => setForm(f => ({ ...f, admite_color: v }))} />
+              <Label>Admite color</Label>
             </div>
             <div className="flex items-center gap-3">
               <Switch checked={form.vende_por_tramos} onCheckedChange={v => setForm(f => ({ ...f, vende_por_tramos: v }))} />
