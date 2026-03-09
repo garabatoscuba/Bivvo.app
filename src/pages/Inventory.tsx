@@ -131,15 +131,23 @@ const Inventory = () => {
   const [recipeProduct, setRecipeProduct] = useState<Product | null>(null);
   const { isDowngraded } = useIsDowngraded();
 
-  const { data: branchStock } = useBranchStock(selectedBranch || profile?.branch_id || branches?.[0]?.id);
+  const effectiveBranchId = selectedBranch || profile?.branch_id || branches?.[0]?.id;
+  const { data: branchStock } = useBranchStock(effectiveBranchId);
 
   const canManage = isOwner || isManager;
 
-  // Production capacity for elaborado products
+  // Production capacity for elaborado products (detail sheet)
   const { data: productionCapacity, isLoading: capacityLoading } = useProductionCapacity(
     (selectedProduct as any)?.tipo === 'elaborado' ? selectedProduct?.id || null : null,
-    selectedBranch || profile?.branch_id || branches?.[0]?.id
+    effectiveBranchId
   );
+
+  // Batch capacity map for list badges (finite values only)
+  const elaboradoIds = useMemo(
+    () => products.filter((p: any) => p.tipo === 'elaborado').map(p => p.id),
+    [products]
+  );
+  const { data: productionCapacities } = useProductionCapacities(elaboradoIds, effectiveBranchId);
 
   // Product review stats from portal
   const businessId = profile?.business_id;
