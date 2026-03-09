@@ -731,7 +731,10 @@ const SellerPrintView = () => {
           <div className="space-y-3 overflow-y-auto flex-1 pr-1">
             <div>
               <Label>Insumo</Label>
-              <Select value={shrinkForm.material_id} onValueChange={v => setShrinkForm(f => ({ ...f, material_id: v }))}>
+              <Select value={shrinkForm.material_id} onValueChange={v => {
+                const mat = materials.find((m: any) => m.id === v);
+                setShrinkForm(f => ({ ...f, material_id: v, costo_unitario: mat?.costo_unitario || 0 }));
+              }}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>
                   {materials.filter((m: any) => m.stock_vendedor > 0).map((m: any) => (
