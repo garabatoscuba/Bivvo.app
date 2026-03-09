@@ -139,6 +139,7 @@ const SellerPrintView = () => {
   const [isMixed, setIsMixed] = useState(false);
   const [mixedCash, setMixedCash] = useState('0');
   const [mixedTransfer, setMixedTransfer] = useState('0');
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   // ─── Shrinkage Modal ───────────────────────────────────────
   const [shrinkOpen, setShrinkOpen] = useState(false);
@@ -335,6 +336,7 @@ const SellerPrintView = () => {
       setIsMixed(false);
       setMixedCash('0');
       setMixedTransfer('0');
+      setPaymentDialogOpen(false);
     },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
@@ -416,159 +418,163 @@ const SellerPrintView = () => {
 
   // ─── Render ─────────────────────────────────────────────────
   return (
-    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold">Impresiones</h1>
-        <p className="text-sm text-muted-foreground">Registra trabajos de impresión</p>
-      </div>
-
+    <div className="p-3 md:p-4">
       {loadingCaja ? (
-        <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : !activeCaja ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
             <DollarSign className="h-10 w-10 opacity-40 mb-3" />
             <p className="text-sm font-medium">Debes abrir tu caja primero</p>
-            <p className="text-xs mt-1">Ve al módulo Caja para abrir tu caja antes de registrar trabajos.</p>
+            <p className="text-xs mt-1">Ve al módulo Caja para abrir tu caja.</p>
           </CardContent>
         </Card>
       ) : (
-        <>
-          {/* Mi stock de insumos - moved up */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Mi stock de insumos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {materials.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No tienes insumos asignados</p>
+        <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-8rem)]">
+          {/* ─── Left Panel: Stock + Services ─── */}
+          <div className="flex-1 flex flex-col min-w-0 gap-3">
+            <div className="flex items-center justify-between shrink-0">
+              <div>
+                <h1 className="text-xl font-bold">Impresiones</h1>
+                <p className="text-xs text-muted-foreground">Registra trabajos de impresión</p>
+              </div>
+              <div className="flex gap-1.5">
+                <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setShrinkOpen(true)} title="Registrar merma">
+                  <ClipboardMinus className="h-4 w-4" />
+                </Button>
+                {activeRecipes.length > 0 && (
+                  <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setProdOpen(true)} title="Producción">
+                    <ChefHat className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Stock strip */}
+            {materials.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto scrollbar-none shrink-0 pb-1">
+                {materials.map((m: any) => {
+                  const isLow = m.stock_vendedor <= 0;
+                  const matType = materialTypes.find((t: any) => t.id === m.material_type_id);
+                  const isTramo = matType?.permite_tramos === true;
+                  const sheet = isTramo ? (activeSheets as any[]).find((s: any) => s.material_id === m.id && s.status === 'activa') : null;
+                  const tramoCount = sheet ? (tramoUsageMap[(sheet as any).id] || 0) : 0;
+                  return (
+                    <div key={m.id} className={cn('flex items-center gap-2 rounded-lg border px-3 py-1.5 flex-shrink-0', isLow && !isTramo && 'border-destructive bg-destructive/5')}>
+                      <span className="text-xs font-medium whitespace-nowrap">{m.name}</span>
+                      <Badge variant={isLow && !isTramo ? 'destructive' : 'secondary'} className="text-xs">
+                        {isTramo && sheet ? `🗎 ${tramoCount}` : m.stock_vendedor}
+                      </Badge>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Services grid */}
+            <div className="flex-1 overflow-y-auto pb-4 lg:pb-0">
+              {activeServices.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <Printer className="h-10 w-10 opacity-30 mb-2" />
+                  <p className="text-sm">No hay servicios configurados</p>
+                </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {materials.map((m: any) => {
-                    const isLow = m.stock_vendedor <= 0;
-                    // Find active sheet for tramo materials
-                    const matType = materialTypes.find((t: any) => t.id === m.material_type_id);
-                    const isTramo = matType?.permite_tramos === true;
-                    const sheet = isTramo ? (activeSheets as any[]).find((s: any) => s.material_id === m.id && s.status === 'activa') : null;
-                    const tramoCount = sheet ? (tramoUsageMap[(sheet as any).id] || 0) : 0;
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                  {activeServices.map((svc: any) => {
+                    const SvcIcon = getIconComponent(svc.icon);
+                    const count = jobItems.filter(it => it.service_type_id === svc.id).reduce((s, it) => s + it.cantidad, 0);
                     return (
-                      <div key={m.id} className={cn('flex items-center justify-between gap-2 rounded-lg border p-2', isLow && !isTramo && 'border-destructive bg-destructive/5')}>
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium truncate">{m.name}</p>
-                          {isTramo && sheet && (
-                            <p className="text-[10px] text-muted-foreground">{tramoCount} tramo{tramoCount !== 1 ? 's' : ''} usados</p>
+                      <button
+                        key={svc.id}
+                        onClick={() => addJobItem(svc)}
+                        className={cn(
+                          'flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all hover:shadow-sm',
+                          count > 0 ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/50'
+                        )}
+                      >
+                        <div className={cn('rounded-lg p-2', count > 0 ? 'bg-primary/10' : 'bg-muted')}>
+                          <SvcIcon className={cn('h-4 w-4', count > 0 ? 'text-primary' : 'text-muted-foreground')} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{svc.name}</p>
+                          {svc.precio_base > 0 && (
+                            <p className="text-[11px] text-muted-foreground">${Number(svc.precio_base).toFixed(2)}</p>
                           )}
                         </div>
-                        <Badge variant={isLow && !isTramo ? 'destructive' : 'secondary'} className="shrink-0 text-xs">
-                          {isTramo && sheet ? `🗎 ${tramoCount}` : m.stock_vendedor}
-                        </Badge>
+                        {count > 0 && <Badge className="shrink-0 text-xs">{count}</Badge>}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Recent jobs */}
+              {recentJobs.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Recientes</p>
+                  {recentJobs.slice(0, 5).map((job: any) => {
+                    const itemCount = (job.print_job_items || []).reduce((s: number, it: any) => s + it.cantidad, 0);
+                    return (
+                      <div key={job.id} className="flex items-center justify-between rounded-lg border p-2.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <Printer className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                          <Badge variant="secondary" className="text-[10px]">{itemCount} item{itemCount !== 1 ? 's' : ''}</Badge>
+                          <Badge variant="outline" className="text-[10px]">{paymentLabels[job.payment_method] || job.payment_method}</Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(job.created_at).toLocaleString('es', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold shrink-0 ml-2">${Number(job.total).toFixed(2)}</span>
                       </div>
                     );
                   })}
                 </div>
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Registrar Trabajo - inline */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Registrar Trabajo</CardTitle>
+          {/* ─── Right Panel: Cart ─── */}
+          <Card className="w-full lg:w-96 flex flex-col lg:max-h-full overflow-hidden flex-shrink-0">
+            <CardHeader className="pb-2 shrink-0">
+              <CardTitle className="text-sm font-medium">Detalle del trabajo</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {/* Service selector */}
-              <div>
-                <Label className="text-xs text-muted-foreground mb-2 block">Selecciona un servicio</Label>
-                {activeServices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-3">No hay servicios configurados</p>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {activeServices.map((svc: any) => {
-                      const SvcIcon = getIconComponent(svc.icon);
-                      const count = jobItems.filter(it => it.service_type_id === svc.id).length;
-                      return (
-                        <button
-                          key={svc.id}
-                          onClick={() => addJobItem(svc)}
-                          className={cn(
-                            'flex items-center gap-2 rounded-lg border p-3 text-left transition-colors hover:bg-muted/50',
-                            count > 0 && 'border-primary bg-primary/10 ring-1 ring-primary'
-                          )}
-                        >
-                          <SvcIcon className={cn('h-4 w-4 shrink-0', count > 0 ? 'text-primary' : 'text-muted-foreground')} />
-                          <div className="min-w-0 flex-1">
-                            <span className="text-sm font-medium truncate block">{svc.name}</span>
-                            {svc.precio_base > 0 && (
-                              <span className="text-[10px] text-muted-foreground">${Number(svc.precio_base).toFixed(2)}</span>
-                            )}
-                          </div>
-                          {count > 0 && (
-                            <Badge variant="default" className="shrink-0 text-[10px] h-5 min-w-5 flex items-center justify-center">{count}</Badge>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-
-              {/* Items detail */}
-              {jobItems.length > 0 && (
-                <div className="space-y-2">
-                  {jobItems.map((item, idx) => {
-                    const svc = activeServices.find((s: any) => s.id === item.service_type_id);
-                    return (
-                      <div key={idx} className="rounded-lg border p-2 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">{item.service_name}</p>
-                          </div>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <Input
-                              type="number"
-                              min={1}
-                              className="h-7 w-14 text-xs text-center"
-                              value={item.cantidad}
-                              onChange={e => updateJobItem(idx, 'cantidad', parseInt(e.target.value) || 1)}
-                            />
-                            <span className="text-xs text-muted-foreground">×</span>
-                            <Input
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              className="h-7 w-20 text-xs text-right"
-                              value={item.precio_cobrado}
-                              onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)}
-                            />
-                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeJobItem(idx)}>
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                            </Button>
-                          </div>
+            <div className="flex-1 overflow-y-auto px-4 space-y-3">
+              {jobItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                  <Printer className="h-8 w-8 opacity-20 mb-2" />
+                  <p className="text-sm">Selecciona servicios para agregar</p>
+                </div>
+              ) : (
+                <>
+                  {jobItems.map((item, idx) => (
+                    <div key={idx} className="rounded-lg border p-2.5 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">{item.service_name}</p>
                         </div>
-                        {/* Switches: doble cara & color */}
-                        <div className="flex items-center gap-4 pl-1">
-                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                            <Switch
-                              className="scale-75"
-                              checked={item.es_doble_cara}
-                              onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)}
-                            />
-                            Doble cara
-                          </label>
-                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                            <Switch
-                              className="scale-75"
-                              checked={item.es_color}
-                              onCheckedChange={v => updateJobItem(idx, 'es_color', v)}
-                            />
-                            Color
-                          </label>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <Input type="number" min={1} className="h-7 w-14 text-xs text-center" value={item.cantidad} onChange={e => updateJobItem(idx, 'cantidad', parseInt(e.target.value) || 1)} />
+                          <span className="text-xs text-muted-foreground">×</span>
+                          <Input type="number" min={0} step="0.01" className="h-7 w-20 text-xs text-right" value={item.precio_cobrado} onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)} />
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeJobItem(idx)}>
+                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                          </Button>
                         </div>
                       </div>
-                    );
-                  })}
+                      <div className="flex items-center gap-4 pl-1">
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                          <Switch className="scale-75" checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
+                          Doble cara
+                        </label>
+                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                          <Switch className="scale-75" checked={item.es_color} onCheckedChange={v => updateJobItem(idx, 'es_color', v)} />
+                          Color
+                        </label>
+                      </div>
+                    </div>
+                  ))}
 
-                  {/* Active sheets with close button */}
+                  {/* Active sheets */}
                   {activeSheets.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {activeSheets.map((sheet: any) => {
@@ -576,16 +582,8 @@ const SellerPrintView = () => {
                         if (!mat) return null;
                         return (
                           <div key={sheet.id} className="flex items-center gap-1.5 rounded-md border px-2 py-1">
-                            <Badge variant="outline" className="text-xs">
-                              📄 {mat.name}: Activa
-                            </Badge>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-5 px-1.5 text-[10px] text-destructive hover:text-destructive"
-                              onClick={() => closeSheetMut.mutate(sheet.id)}
-                              disabled={closeSheetMut.isPending}
-                            >
+                            <Badge variant="outline" className="text-xs">📄 {mat.name}: Activa</Badge>
+                            <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-destructive hover:text-destructive" onClick={() => closeSheetMut.mutate(sheet.id)} disabled={closeSheetMut.isPending}>
                               Marcar usada
                             </Button>
                           </div>
@@ -594,170 +592,122 @@ const SellerPrintView = () => {
                     </div>
                   )}
 
-                  {/* Tramo warnings - no active sheet */}
-                   {tramoIssues.length > 0 && (
-                    <div className="rounded-md border border-warning/50 bg-warning/10 p-3 space-y-2">
+                  {/* Tramo warnings */}
+                  {tramoIssues.length > 0 && (
+                    <div className="rounded-md border border-warning/50 bg-warning/10 p-2.5 space-y-2">
                       {tramoIssues.map(issue => (
-                        <div key={issue.materialId} className="space-y-1.5">
+                        <div key={issue.materialId} className="space-y-1">
                           <div className="flex items-center gap-1.5 text-xs text-warning">
                             <AlertTriangle className="h-3 w-3 shrink-0" />
-                            <span>No hay hoja activa de <strong>{issue.materialName}</strong></span>
+                            <span>Sin hoja activa: <strong>{issue.materialName}</strong></span>
                           </div>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="w-full text-xs"
-                            onClick={() => {
-                              setOpenSheetForm({ material_id: issue.materialId });
-                              setOpenSheetDialog(true);
-                            }}
-                          >
-                            <FileText className="h-3.5 w-3.5 mr-1" />
-                            Abrir hoja de {issue.materialName}
+                          <Button size="sm" variant="outline" className="w-full text-xs h-7" onClick={() => { setOpenSheetForm({ material_id: issue.materialId }); setOpenSheetDialog(true); }}>
+                            <FileText className="h-3 w-3 mr-1" /> Abrir hoja
                           </Button>
                         </div>
                       ))}
                     </div>
                   )}
 
-                  {/* Material warnings */}
-                  {materialConsumption.length > 0 && hasStockIssue && (
+                  {hasStockIssue && (
                     <div className="flex items-center gap-1 text-destructive text-xs">
                       <AlertTriangle className="h-3 w-3" />
-                      <span>Stock insuficiente para algunos insumos</span>
+                      <span>Stock insuficiente</span>
                     </div>
                   )}
 
-                  {/* Total inline */}
-                  <div className="flex justify-between items-center px-1 pt-1">
-                    <span className="text-sm font-medium text-muted-foreground">Total</span>
-                    <span className="text-lg font-bold">${jobTotal.toFixed(2)}</span>
-                  </div>
-                </div>
+                  <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Nota (opcional)..." rows={2} className="text-sm" />
+                </>
               )}
-
-              {/* Description */}
-              <div>
-                <Label className="text-xs text-muted-foreground">Descripción (opcional)</Label>
-                <Textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Detalle del trabajo..."
-                  rows={2}
-                  className="mt-1"
-                />
+            </div>
+            {jobItems.length > 0 && (
+              <div className="p-4 border-t space-y-2 shrink-0">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Total</span>
+                  <span className="text-xl font-bold">${jobTotal.toFixed(2)}</span>
+                </div>
+                <Button className="w-full h-11 font-bold" onClick={() => setPaymentDialogOpen(true)} disabled={!canSubmit}>
+                  <DollarSign className="h-4 w-4 mr-1" />
+                  Cobrar ${jobTotal.toFixed(2)}
+                </Button>
               </div>
+            )}
+          </Card>
+        </div>
+      )}
 
-              {/* Payment method */}
+      {/* ─── Payment Dialog ─── */}
+      <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader><DialogTitle>Procesar Pago</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg bg-muted/50 p-4">
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">Artículos ({jobItems.reduce((s, it) => s + it.cantidad, 0)})</span>
+                <span className="text-lg font-bold text-primary">${jobTotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm">Método de Pago</Label>
+              <div className="grid grid-cols-3 gap-2">
+                {paymentOptions.map(({ value, label, Icon }) => (
+                  <Button
+                    key={value}
+                    type="button"
+                    variant={isPaymentActive(value) ? 'default' : 'outline'}
+                    className={cn('flex-col h-auto py-3', isPaymentActive(value) && 'ring-2 ring-primary')}
+                    onClick={() => handlePaymentSelect(value)}
+                  >
+                    <Icon className="h-5 w-5 mb-1" />
+                    <span className="text-xs">{label}</span>
+                  </Button>
+                ))}
+              </div>
+              {isMixed && <p className="text-xs text-muted-foreground text-center">Pago mixto: Efectivo + Transferencia</p>}
+            </div>
+
+            {(paymentMethod === 'cash' || isMixed) && (
               <div className="space-y-3">
-                <Label className="text-xs text-muted-foreground">Método de Pago</Label>
-                <div className="grid grid-cols-3 gap-2">
-                  {paymentOptions.map(({ value, label, Icon }) => (
-                    <Button
-                      key={value}
-                      type="button"
-                      variant={isPaymentActive(value) ? 'default' : 'outline'}
-                      className={cn('flex-col h-auto py-2.5', isPaymentActive(value) && 'ring-2 ring-primary')}
-                      onClick={() => handlePaymentSelect(value)}
-                    >
-                      <Icon className="h-4 w-4 mb-0.5" />
-                      <span className="text-xs">{label}</span>
-                    </Button>
-                  ))}
+                <div className="space-y-1.5">
+                  <Label className="flex items-center gap-2 text-sm"><Banknote className="h-4 w-4" /> Efectivo</Label>
+                  <Input type="number" step="0.01" min="0" value={mixedCash} onChange={e => setMixedCash(e.target.value)} className="text-lg font-medium text-right" />
+                  <div className="flex flex-wrap gap-2">
+                    {QUICK_AMOUNTS.map(a => (
+                      <Button key={a} type="button" variant="outline" size="sm" onClick={() => setMixedCash(p => (Number(p) + a).toString())}>${a}</Button>
+                    ))}
+                    <Button type="button" variant="outline" size="sm" onClick={() => setMixedCash(jobTotal.toFixed(2))}>Exacto</Button>
+                    <Button type="button" variant="outline" size="sm" onClick={() => setMixedCash('0')}><RotateCcw className="h-3.5 w-3.5" /></Button>
+                  </div>
                 </div>
                 {isMixed && (
-                  <p className="text-xs text-muted-foreground text-center">Pago mixto: Efectivo + Transferencia</p>
-                )}
-
-                {/* Cash denomination selector for cash or mixed */}
-                {(paymentMethod === 'cash' || isMixed) && (
-                  <div className="space-y-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs flex items-center gap-1"><Banknote className="h-3 w-3" /> Efectivo</Label>
-                      <Input type="number" step="0.01" min="0" value={mixedCash} onChange={e => setMixedCash(e.target.value)} className="text-right font-medium" />
-                      <div className="flex flex-wrap gap-1.5">
-                        {QUICK_AMOUNTS.map(a => (
-                          <Button key={a} type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash(p => (Number(p) + a).toString())}>${a}</Button>
-                        ))}
-                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash(jobTotal > 0 ? jobTotal.toFixed(2) : '0')}>Exacto</Button>
-                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash('0')}><RotateCcw className="h-3 w-3" /></Button>
-                      </div>
-                    </div>
-                    {isMixed && (
-                      <div className="space-y-1.5">
-                        <Label className="text-xs flex items-center gap-1"><Smartphone className="h-3 w-3" /> Transferencia</Label>
-                        <Input type="number" step="0.01" min="0" value={mixedTransfer} onChange={e => setMixedTransfer(e.target.value)} className="text-right font-medium" />
-                      </div>
-                    )}
+                  <div className="space-y-1.5">
+                    <Label className="flex items-center gap-2 text-sm"><Smartphone className="h-4 w-4" /> Transferencia</Label>
+                    <Input type="number" step="0.01" min="0" value={mixedTransfer} onChange={e => setMixedTransfer(e.target.value)} className="text-lg font-medium text-right" />
                   </div>
                 )}
               </div>
+            )}
 
-              {/* Submit */}
-              <Button
-                className="w-full"
-                onClick={() => jobMutation.mutate()}
-                disabled={!canSubmit || jobMutation.isPending}
-              >
-                {jobMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-                Registrar Cobro
-              </Button>
-            </CardContent>
-          </Card>
-
-
-          {/* Action buttons */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button variant="outline" className="gap-2" onClick={() => setShrinkOpen(true)}>
-              <ClipboardMinus className="h-4 w-4" />
-              Registrar Merma
-            </Button>
-            {activeRecipes.length > 0 && (
-              <Button variant="outline" className="gap-2" onClick={() => setProdOpen(true)}>
-                <ChefHat className="h-4 w-4" />
-                Registrar Producción
-              </Button>
+            {!isMixed && paymentMethod === 'cash' && Number(mixedCash) > jobTotal && jobTotal > 0 && (
+              <div className="rounded-lg bg-muted/30 p-4 text-center">
+                <p className="text-sm text-muted-foreground">Cambio</p>
+                <p className="text-2xl font-bold text-primary">${(Number(mixedCash) - jobTotal).toFixed(2)}</p>
+              </div>
             )}
           </div>
-
-          {/* Cobros Recientes */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Cobros Recientes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {loadingJobs ? (
-                <div className="flex justify-center py-4"><Loader2 className="h-5 w-5 animate-spin" /></div>
-              ) : recentJobs.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No hay trabajos registrados hoy</p>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPaymentDialogOpen(false)} disabled={jobMutation.isPending}>Cancelar</Button>
+            <Button onClick={() => jobMutation.mutate()} disabled={!canSubmit || jobMutation.isPending} className="min-w-32">
+              {jobMutation.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</>
               ) : (
-                <div className="space-y-2">
-                  {recentJobs.map((job: any) => {
-                    const itemCount = (job.print_job_items || []).reduce((s: number, it: any) => s + it.cantidad, 0);
-                    return (
-                      <div key={job.id} className="flex items-center justify-between rounded-lg border p-3">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <Printer className="h-4 w-4 shrink-0 text-primary" />
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <Badge variant="secondary" className="text-[10px]">{itemCount} item{itemCount !== 1 ? 's' : ''}</Badge>
-                              <Badge variant="outline" className="text-[10px]">{paymentLabels[job.payment_method] || job.payment_method}</Badge>
-                            </div>
-                            <p className="text-[11px] text-muted-foreground/60 mt-0.5">
-                              {new Date(job.created_at).toLocaleString('es', { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
-                        </div>
-                        <span className="text-sm font-bold shrink-0 ml-2">${Number(job.total).toFixed(2)}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <><CheckCircle2 className="mr-2 h-4 w-4" />Confirmar</>
               )}
-            </CardContent>
-          </Card>
-        </>
-      )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* ─── SHRINKAGE MODAL ───────────────────────────── */}
       <Dialog open={shrinkOpen} onOpenChange={setShrinkOpen}>
