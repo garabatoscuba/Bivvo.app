@@ -575,16 +575,22 @@ const SellerPrintView = () => {
                             </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 pl-1">
-                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                            <Switch className="scale-75" checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
-                            Doble cara
-                          </label>
-                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                            <Switch className="scale-75" checked={item.es_color} onCheckedChange={v => updateJobItem(idx, 'es_color', v)} />
-                            Color
-                          </label>
-                        </div>
+                        {(svc?.admite_doble_cara || svc?.admite_color) && (
+                          <div className="flex items-center gap-4 pl-1">
+                            {svc?.admite_doble_cara && (
+                              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                                <Switch className="scale-75" checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
+                                Doble cara
+                              </label>
+                            )}
+                            {svc?.admite_color && (
+                              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                                <Switch className="scale-75" checked={item.es_color} onCheckedChange={v => updateJobItem(idx, 'es_color', v)} />
+                                Color
+                              </label>
+                            )}
+                          </div>
+                        )}
                         {isTramo && sheet && (
                           <Button
                             variant="outline"
