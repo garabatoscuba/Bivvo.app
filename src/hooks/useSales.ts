@@ -251,7 +251,7 @@ export const useSales = (branchId?: string | null) => {
         setTimeout(() => reject(new Error('timeout')), 5000)
       );
 
-      alert('Paso 2: intentando Supabase');
+      
 
       try {
         const onlineResult = await Promise.race([
