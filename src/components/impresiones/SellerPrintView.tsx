@@ -194,18 +194,7 @@ const SellerPrintView = () => {
     return issues;
   }, [materialConsumption, activeSheets, materials]);
 
-  // Tramo info chips
-  const tramoInfo = useMemo(() => {
-    const info: { name: string; remaining: number }[] = [];
-    materialConsumption.forEach(([matId, mc]) => {
-      if (!mc.isTramo) return;
-      const sheet = activeSheets.find((s: any) => s.material_id === matId && s.status === 'activa');
-      if (sheet) {
-        info.push({ name: mc.name, remaining: Math.max(0, (sheet as any).tramos_total - (sheet as any).tramos_usados) });
-      }
-    });
-    return info;
-  }, [materialConsumption, activeSheets]);
+  // (tramoInfo removed - no longer tracking tramos)
 
   // Payment helpers
   const paymentOptions: { value: PaymentMethod; label: string; Icon: React.ElementType }[] = [
