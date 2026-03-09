@@ -53,10 +53,11 @@ const POSITION_OPTIONS = [
   { value: 'owner', label: 'Dueño' },
   { value: 'manager', label: 'Gerente' },
   { value: 'seller', label: 'Vendedor' },
+  { value: 'cocina', label: 'Cocina' },
   { value: 'accountant', label: 'Contable' },
 ];
 
-const ALL_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'accountant'];
+const ALL_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'cocina', 'accountant'];
 
 interface Employee {
   id: string;
