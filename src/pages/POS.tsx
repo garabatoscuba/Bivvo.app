@@ -120,10 +120,10 @@ const POS = () => {
   }, [cart]);
 
   const getAvailableStock = useCallback((productId: string) => {
-    const realStock = stockMap.get(productId) || 0;
+    const realStock = getDisplayStock(productId);
     const inCart = getCartQuantity(productId);
     return realStock - inCart;
-  }, [stockMap, getCartQuantity]);
+  }, [getDisplayStock, getCartQuantity]);
 
   const addToCart = useCallback((product: Product & { category: Category | null }, selectedAgregos?: string[]) => {
     const realStock = stockMap.get(product.id) || 0;
