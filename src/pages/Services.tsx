@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle, Banknote, Smartphone, CreditCard, RotateCcw } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle, Banknote, Smartphone, CreditCard, RotateCcw, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const QUICK_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000];
@@ -104,7 +104,7 @@ const ServicePaymentSection = ({
         <p className="text-xs text-muted-foreground text-center">Pago mixto: Efectivo + Transferencia</p>
       )}
 
-      {isMixed && (
+      {(paymentType === 'cash' || isMixed) && (
         <div className="space-y-3">
           <div className="space-y-1.5">
             <Label className="text-xs flex items-center gap-1"><Banknote className="h-3 w-3" /> Efectivo</Label>
@@ -117,10 +117,12 @@ const ServicePaymentSection = ({
               <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash('0')}><RotateCcw className="h-3 w-3" /></Button>
             </div>
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs flex items-center gap-1"><Smartphone className="h-3 w-3" /> Transferencia</Label>
-            <Input type="number" step="0.01" min="0" value={mixedTransfer} onChange={e => setMixedTransfer(e.target.value)} className="text-right font-medium" />
-          </div>
+          {isMixed && (
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1"><Smartphone className="h-3 w-3" /> Transferencia</Label>
+              <Input type="number" step="0.01" min="0" value={mixedTransfer} onChange={e => setMixedTransfer(e.target.value)} className="text-right font-medium" />
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -227,6 +229,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const [isMixed, setIsMixed] = useState(false);
   const [mixedCash, setMixedCash] = useState('0');
   const [mixedTransfer, setMixedTransfer] = useState('0');
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [isLiveService, setIsLiveService] = useState(false);
   const [liveServiceName, setLiveServiceName] = useState('');
 
@@ -299,6 +302,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       setIsMixed(false);
       setMixedCash('0');
       setMixedTransfer('0');
+      setPaymentDialogOpen(false);
       setIsLiveService(false);
       setLiveServiceName('');
     },
@@ -334,14 +338,9 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
 
   return (
     <>
-    <div className="space-y-4 md:space-y-6">
-      <div>
-        <h1 className="text-xl md:text-2xl font-bold">Servicios</h1>
-        <p className="text-sm text-muted-foreground">Registra cobros de servicios</p>
-      </div>
-
+    <div className="p-3 md:p-4">
       {loadingRegister ? (
-        <div className="flex justify-center py-8"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+        <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
       ) : !hasOpenRegister ? (
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-10 text-center text-muted-foreground">
@@ -351,53 +350,45 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
           </CardContent>
         </Card>
       ) : (
-        <>
-
-      <Card>
-        <CardContent className="p-4 flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Total del día</p>
-            <p className="text-2xl font-bold">${todayTotal.toFixed(2)}</p>
-          </div>
-          <DollarSign className="h-8 w-8 text-primary opacity-50" />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-base">Registrar Servicio</CardTitle>
-            <Button
-              variant={isLiveService ? 'default' : 'outline'}
-              size="sm"
-              onClick={handleLiveToggle}
-            >
-              <Zap className="h-3.5 w-3.5 mr-1" />
-              En vivo
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {isLiveService ? (
-            <div>
-              <Label className="text-xs text-muted-foreground">Nombre del servicio</Label>
-              <Input
-                value={liveServiceName}
-                onChange={(e) => setLiveServiceName(e.target.value)}
-                placeholder="Ej: Reparación de pantalla"
-                className="mt-1"
-              />
-              <p className="text-[10px] text-muted-foreground mt-1">Este servicio no se agrega al catálogo automáticamente</p>
+        <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-8rem)]">
+          {/* ─── Left Panel: Services ─── */}
+          <div className="flex-1 flex flex-col min-w-0 gap-3">
+            <div className="flex items-center justify-between shrink-0">
+              <div>
+                <h1 className="text-xl font-bold">Servicios</h1>
+                <p className="text-xs text-muted-foreground">Registra cobros de servicios</p>
+              </div>
+              <Button variant={isLiveService ? 'default' : 'outline'} size="sm" onClick={handleLiveToggle}>
+                <Zap className="h-3.5 w-3.5 mr-1" /> En vivo
+              </Button>
             </div>
-          ) : (
-            <div>
-              <Label className="text-xs text-muted-foreground mb-2 block">Selecciona un servicio</Label>
-              {loadingCats ? (
-                <div className="flex justify-center py-3"><Loader2 className="h-5 w-5 animate-spin" /></div>
+
+            {/* Total strip */}
+            <div className="flex items-center gap-3 rounded-lg bg-muted/50 px-4 py-2 shrink-0">
+              <DollarSign className="h-5 w-5 text-primary opacity-60" />
+              <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Total del día</p>
+                <p className="text-lg font-bold">${todayTotal.toFixed(2)}</p>
+              </div>
+            </div>
+
+            {/* Service grid / live input */}
+            <div className="flex-1 overflow-y-auto pb-4 lg:pb-0">
+              {isLiveService ? (
+                <div className="space-y-2 p-1">
+                  <Label className="text-xs text-muted-foreground">Nombre del servicio</Label>
+                  <Input value={liveServiceName} onChange={e => setLiveServiceName(e.target.value)} placeholder="Ej: Reparación de pantalla" />
+                  <p className="text-[10px] text-muted-foreground">No se agrega al catálogo automáticamente</p>
+                </div>
+              ) : loadingCats ? (
+                <div className="flex justify-center py-8"><Loader2 className="h-5 w-5 animate-spin" /></div>
               ) : categories.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-3">No hay servicios configurados</p>
+                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+                  <DollarSign className="h-10 w-10 opacity-30 mb-2" />
+                  <p className="text-sm">No hay servicios configurados</p>
+                </div>
               ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
                   {categories.map((cat: any) => {
                     const Icon = getIconComponent(cat.icon);
                     const isSelected = selectedCatId === cat.id;
@@ -405,17 +396,18 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
                       <button
                         key={cat.id}
                         onClick={() => handleSelectCategory(cat.id)}
-                        className={`flex items-center gap-2 rounded-lg border p-3 text-left transition-colors ${
-                          isSelected
-                            ? 'border-primary bg-primary/10 ring-1 ring-primary'
-                            : 'hover:bg-muted/50'
-                        }`}
+                        className={cn(
+                          'flex items-center gap-3 rounded-xl border p-3.5 text-left transition-all hover:shadow-sm',
+                          isSelected ? 'border-primary bg-primary/5 ring-1 ring-primary' : 'hover:bg-muted/50'
+                        )}
                       >
-                        <Icon className={`h-4 w-4 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-                        <div className="min-w-0">
+                        <div className={cn('rounded-lg p-2', isSelected ? 'bg-primary/10' : 'bg-muted')}>
+                          <Icon className={cn('h-4 w-4', isSelected ? 'text-primary' : 'text-muted-foreground')} />
+                        </div>
+                        <div className="min-w-0 flex-1">
                           <span className="text-sm font-medium truncate block">{cat.name}</span>
                           {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
-                            <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
+                            <span className="text-[11px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
                           )}
                         </div>
                       </button>
@@ -423,64 +415,136 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
                   })}
                 </div>
               )}
-            </div>
-          )}
 
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs text-muted-foreground">Descripción (opcional)</Label>
-              <Textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Detalle del servicio..."
-                rows={2}
-                className="mt-1"
-              />
+              {/* Recent entries */}
+              {todayEntries.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Recientes</p>
+                  {todayEntries.slice(0, 5).map((entry: any) => {
+                    const isLive = entry.is_catalog === false;
+                    const EntryIcon = isLive ? Zap : getIconComponent(entry.service_categories?.icon);
+                    return (
+                      <div key={entry.id} className="flex items-center justify-between rounded-lg border p-2.5">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <EntryIcon className={cn('h-3.5 w-3.5 shrink-0', isLive ? 'text-amber-500' : 'text-muted-foreground')} />
+                          <Badge variant="secondary" className="text-[10px]">
+                            {isLive ? (entry.service_name || 'En vivo') : entry.service_categories?.name}
+                          </Badge>
+                          <span className="text-[10px] text-muted-foreground">
+                            {new Date(entry.created_at).toLocaleString('es', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                        <span className="text-xs font-bold shrink-0 ml-2">${Number(entry.amount).toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-            <div>
-              <Label className="text-xs text-muted-foreground">Monto ($)</Label>
-              <Input
-                type="number"
-                min="0"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0.00"
-                className="mt-1"
-              />
-            </div>
-            <ServicePaymentSection
-              paymentType={paymentType}
-              setPaymentType={setPaymentType}
-              amount={amount}
-              total={parseFloat(amount) || 0}
-              isMixed={isMixed}
-              setIsMixed={setIsMixed}
-              mixedCash={mixedCash}
-              setMixedCash={setMixedCash}
-              mixedTransfer={mixedTransfer}
-              setMixedTransfer={setMixedTransfer}
-            />
           </div>
 
-          <Button className="w-full" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } createEntryMutation.mutate(); }} disabled={!canSubmit}>
-            {createEntryMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Send className="h-4 w-4 mr-1" />}
-            Registrar Cobro
-          </Button>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Cobros Recientes</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RecentEntriesList entries={todayEntries} isLoading={loadingEntries} isOwner={false} />
-        </CardContent>
-      </Card>
-      </>
+          {/* ─── Right Panel: Checkout ─── */}
+          <Card className="w-full lg:w-96 flex flex-col lg:max-h-full overflow-hidden flex-shrink-0">
+            <CardHeader className="pb-2 shrink-0">
+              <CardTitle className="text-sm font-medium">Detalle del cobro</CardTitle>
+            </CardHeader>
+            <div className="flex-1 overflow-y-auto px-4 space-y-4">
+              {!selectedCatId && !isLiveService ? (
+                <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
+                  <DollarSign className="h-8 w-8 opacity-20 mb-2" />
+                  <p className="text-sm">Selecciona un servicio</p>
+                </div>
+              ) : (
+                <>
+                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                    {isLiveService ? (
+                      <div className="flex items-center gap-2">
+                        <Zap className="h-4 w-4 text-amber-500" />
+                        <span className="text-sm font-medium">{liveServiceName || 'Servicio en vivo'}</span>
+                      </div>
+                    ) : (() => {
+                      const cat = categories.find((c: any) => c.id === selectedCatId);
+                      const CatIcon = getIconComponent(cat?.icon);
+                      return (
+                        <div className="flex items-center gap-2">
+                          <CatIcon className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium">{cat?.name}</span>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Descripción (opcional)</Label>
+                    <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalle del servicio..." rows={2} className="mt-1" />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Monto ($)</Label>
+                    <Input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="mt-1 text-lg font-medium text-right" />
+                  </div>
+                </>
+              )}
+            </div>
+            {(selectedCatId || isLiveService) && (
+              <div className="p-4 border-t space-y-2 shrink-0">
+                {amount && parseFloat(amount) > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Total</span>
+                    <span className="text-xl font-bold">${parseFloat(amount).toFixed(2)}</span>
+                  </div>
+                )}
+                <Button className="w-full h-11 font-bold" onClick={() => setPaymentDialogOpen(true)} disabled={!canSubmit}>
+                  <DollarSign className="h-4 w-4 mr-1" />
+                  Cobrar {amount && parseFloat(amount) > 0 ? `$${parseFloat(amount).toFixed(2)}` : ''}
+                </Button>
+              </div>
+            )}
+          </Card>
+        </div>
       )}
     </div>
+
+    {/* ─── Payment Dialog ─── */}
+    <Dialog open={paymentDialogOpen} onOpenChange={setPaymentDialogOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader><DialogTitle>Procesar Pago</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div className="rounded-lg bg-muted/50 p-4">
+            <div className="flex justify-between font-bold text-lg">
+              <span>Total</span>
+              <span className="text-primary">${(parseFloat(amount) || 0).toFixed(2)}</span>
+            </div>
+          </div>
+          <ServicePaymentSection
+            paymentType={paymentType}
+            setPaymentType={setPaymentType}
+            amount={amount}
+            total={parseFloat(amount) || 0}
+            isMixed={isMixed}
+            setIsMixed={setIsMixed}
+            mixedCash={mixedCash}
+            setMixedCash={setMixedCash}
+            mixedTransfer={mixedTransfer}
+            setMixedTransfer={setMixedTransfer}
+          />
+          {!isMixed && paymentType === 'cash' && Number(mixedCash) > (parseFloat(amount) || 0) && (parseFloat(amount) || 0) > 0 && (
+            <div className="rounded-lg bg-muted/30 p-4 text-center">
+              <p className="text-sm text-muted-foreground">Cambio</p>
+              <p className="text-2xl font-bold text-primary">${(Number(mixedCash) - (parseFloat(amount) || 0)).toFixed(2)}</p>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setPaymentDialogOpen(false)}>Cancelar</Button>
+          <Button onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } createEntryMutation.mutate(); }} disabled={!canSubmit} className="min-w-32">
+            {createEntryMutation.isPending ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Procesando...</>
+            ) : (
+              <><CheckCircle2 className="mr-2 h-4 w-4" />Confirmar</>
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
     <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
     </>
   );
