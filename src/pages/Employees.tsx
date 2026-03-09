@@ -57,7 +57,7 @@ const BASE_POSITION_OPTIONS = [
   { value: 'accountant', label: 'Contable' },
 ];
 
-const ALL_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'cocina', 'accountant'];
+const ALL_BASE_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'cocina', 'accountant'];
 
 interface Employee {
   id: string;
