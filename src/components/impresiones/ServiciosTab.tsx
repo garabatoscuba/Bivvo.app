@@ -24,6 +24,8 @@ const emptyForm = {
   consumo_por_unidad: 1,
   rendimiento_especial: null as any,
   is_active: true,
+  vende_por_tramos: false,
+  tramos_por_unidad: 1,
 };
 
 const ServiciosTab = () => {
