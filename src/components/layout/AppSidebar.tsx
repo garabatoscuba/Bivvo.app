@@ -431,6 +431,7 @@ const AppSidebar = () => {
     Tesorería: "/tesoreria",
     Contabilidad: "/contabilidad",
     Impresiones: "/impresiones",
+    Cocina: "/cocina",
   };
 
   // Owner sees both Tesorería and Caja as separate sidebar items
