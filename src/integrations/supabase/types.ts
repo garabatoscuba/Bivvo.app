@@ -3472,7 +3472,9 @@ export type Database = {
           name: string
           precio_base: number
           rendimiento_especial: Json | null
+          tramos_por_unidad: number
           unit_label: string
+          vende_por_tramos: boolean
         }
         Insert: {
           admite_doble_cara?: boolean
@@ -3486,7 +3488,9 @@ export type Database = {
           name: string
           precio_base?: number
           rendimiento_especial?: Json | null
+          tramos_por_unidad?: number
           unit_label?: string
+          vende_por_tramos?: boolean
         }
         Update: {
           admite_doble_cara?: boolean
@@ -3500,7 +3504,9 @@ export type Database = {
           name?: string
           precio_base?: number
           rendimiento_especial?: Json | null
+          tramos_por_unidad?: number
           unit_label?: string
+          vende_por_tramos?: boolean
         }
         Relationships: [
           {
