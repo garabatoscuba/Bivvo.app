@@ -521,7 +521,7 @@ const Sales = () => {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[sale.status as SaleStatus]}`}>
                         {statusLabels[sale.status as SaleStatus]}
                       </span>
-                      {sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
+                      {isRestaurantBiz && sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
                         <KitchenOrderStatus saleId={sale.id} businessId={resolvedBusinessId} />
                       )}
                     </div>
