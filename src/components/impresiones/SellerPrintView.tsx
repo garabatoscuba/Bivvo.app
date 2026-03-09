@@ -835,21 +835,12 @@ const SellerPrintView = () => {
               <Label>Insumo</Label>
               <Input value={getMaterial(openSheetForm.material_id)?.name || ''} disabled className="bg-muted" />
             </div>
-            <div>
-              <Label>¿Cuántos tramos tiene esta hoja?</Label>
-              <Input
-                type="number"
-                min={1}
-                value={openSheetForm.tramos_total}
-                onChange={e => setOpenSheetForm(f => ({ ...f, tramos_total: parseInt(e.target.value) || 1 }))}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Se descontará 1 unidad de tu stock de vendedor.</p>
-              {openSheetForm.material_id && (
-                <p className="text-xs text-muted-foreground">
-                  Stock disponible: {getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0}
-                </p>
-              )}
-            </div>
+            <p className="text-xs text-muted-foreground">Se descontará 1 unidad de tu stock de vendedor.</p>
+            {openSheetForm.material_id && (
+              <p className="text-xs text-muted-foreground">
+                Stock disponible: {getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0}
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenSheetDialog(false)}>Cancelar</Button>
@@ -857,17 +848,17 @@ const SellerPrintView = () => {
               onClick={() => {
                 if (!profile?.user_id) return;
                 openSheetMut.mutate(
-                  { material_id: openSheetForm.material_id, tramos_total: openSheetForm.tramos_total, user_id: profile.user_id },
+                  { material_id: openSheetForm.material_id, user_id: profile.user_id },
                   {
                     onSuccess: () => {
                       setOpenSheetDialog(false);
-                      setOpenSheetForm({ material_id: '', tramos_total: 4 });
+                      setOpenSheetForm({ material_id: '' });
                       queryClient.invalidateQueries({ queryKey: ['print-active-sheets'] });
                     },
                   }
                 );
               }}
-              disabled={!openSheetForm.material_id || openSheetForm.tramos_total < 1 || openSheetMut.isPending || (getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0) < 1}
+              disabled={!openSheetForm.material_id || openSheetMut.isPending || (getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0) < 1}
             >
               {openSheetMut.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Abrir hoja
