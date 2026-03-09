@@ -634,7 +634,7 @@ const Inventory = () => {
                       : "text-muted-foreground hover:text-foreground"
                   )}
                 >
-                  🍳 Cocina
+                  Cocina
                 </button>
               </div>
             )}

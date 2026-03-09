@@ -725,7 +725,9 @@ const AppSidebar = () => {
                                           ? "Punto de Copias"
                                           : biz.business_type === "gym"
                                             ? "Gym"
-                                            : biz.business_type}
+                                            : biz.business_type === "estaurente/safetería"
+                                              ? "Restaurante / Cafetería"
+                                              : biz.business_type}
                                     </span>
                                   </div>
                                 </div>
