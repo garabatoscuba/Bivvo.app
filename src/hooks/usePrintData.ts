@@ -337,6 +337,8 @@ export const useOpenSheet = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['print-active-sheets'] });
       qc.invalidateQueries({ queryKey: ['raw-materials'] });
+      qc.invalidateQueries({ queryKey: ['my-material-stock'] });
+      qc.invalidateQueries({ queryKey: ['employee-material-stock'] });
       toast({ title: 'Hoja abierta' });
     },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
