@@ -68,6 +68,19 @@ const Sales = () => {
   const canBypassJornada = isOwner || isSuperAdmin;
   const isSellOnly = isSeller && !isPrivileged;
 
+  // Check if business is restaurant for kitchen order status badges
+  const { data: salesBusinessData } = useQuery({
+    queryKey: ['sales-business-type', resolvedBusinessId],
+    queryFn: async () => {
+      if (!resolvedBusinessId) return null;
+      const { data } = await supabase.from('businesses').select('business_type').eq('id', resolvedBusinessId).maybeSingle();
+      return data;
+    },
+    enabled: !!resolvedBusinessId,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isRestaurantBiz = salesBusinessData?.business_type === 'estaurente/safetería';
+
   const branchId = resolvedBranchId || profile?.branch_id;
   const { sales, isLoadingSales, useSaleItems, cancelSale, registerPayment } = useSales(branchId);
 
@@ -444,7 +457,7 @@ const Sales = () => {
                           {statusLabels[sale.status as SaleStatus]}
                         </span>
                       )}
-                      {sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
+                      {isRestaurantBiz && sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
                         <KitchenOrderStatus saleId={sale.id} businessId={resolvedBusinessId} />
                       )}
                     </div>
@@ -508,7 +521,7 @@ const Sales = () => {
                       <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[sale.status as SaleStatus]}`}>
                         {statusLabels[sale.status as SaleStatus]}
                       </span>
-                      {sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
+                      {isRestaurantBiz && sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
                         <KitchenOrderStatus saleId={sale.id} businessId={resolvedBusinessId} />
                       )}
                     </div>

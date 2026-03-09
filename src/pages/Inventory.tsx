@@ -203,10 +203,23 @@ const Inventory = () => {
     return stockMap.get(product.id) || 0;
   };
 
-  // Check if business has kitchen products
+  // Check if business is restaurant type (for kitchen features)
+  const { data: inventoryBusinessData } = useQuery({
+    queryKey: ['inventory-business-type', profile?.business_id],
+    queryFn: async () => {
+      if (!profile?.business_id) return null;
+      const { data } = await supabase.from('businesses').select('business_type').eq('id', profile.business_id).maybeSingle();
+      return data;
+    },
+    enabled: !!profile?.business_id,
+    staleTime: 5 * 60 * 1000,
+  });
+  const isRestaurantBiz = inventoryBusinessData?.business_type === 'estaurente/safetería';
+
+  // Check if business has kitchen products (only relevant for restaurants)
   const hasKitchenProducts = useMemo(() => 
-    products.some((p: any) => p.tipo === 'ingrediente' || p.tipo === 'elaborado'),
-    [products]
+    isRestaurantBiz && products.some((p: any) => p.tipo === 'ingrediente' || p.tipo === 'elaborado'),
+    [products, isRestaurantBiz]
   );
 
   // Filter products (all statuses except discontinued)

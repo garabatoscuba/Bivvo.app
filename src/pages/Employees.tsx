@@ -49,7 +49,7 @@ const ROLE_CONFIG: Record<AppRole, { label: string; icon: typeof Shield; color: 
   partner: { label: 'Partner', icon: Users, color: 'bg-muted text-muted-foreground' },
 };
 
-const POSITION_OPTIONS = [
+const BASE_POSITION_OPTIONS = [
   { value: 'owner', label: 'Dueño' },
   { value: 'manager', label: 'Gerente' },
   { value: 'seller', label: 'Vendedor' },
@@ -57,7 +57,7 @@ const POSITION_OPTIONS = [
   { value: 'accountant', label: 'Contable' },
 ];
 
-const ALL_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'cocina', 'accountant'];
+const ALL_BASE_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'cocina', 'accountant'];
 
 interface Employee {
   id: string;
@@ -174,10 +174,7 @@ const Employees = () => {
   const businessId = resolvedBusinessId || profile?.business_id;
   const canManage = isOwner || isManager || isSuperAdmin;
   const canDelete = isOwner || isSuperAdmin;
-  // Managers can't assign the 'owner' role
-  const ASSIGNABLE_ROLES = isOwner || isSuperAdmin
-    ? ALL_ASSIGNABLE_ROLES
-    : ALL_ASSIGNABLE_ROLES.filter(r => r !== 'owner');
+  // (cocina role filtering moved below after businessData fetch)
 
   // Fetch HR employees
   const { data: hrEmployees = [], isLoading: loadingHR } = useQuery({
@@ -205,6 +202,16 @@ const Employees = () => {
     enabled: !!businessId,
   });
   const isCopyShop = businessData?.business_type === 'copy_shop';
+  const isRestaurant = businessData?.business_type === 'estaurente/safetería';
+
+  // Filter cocina role/position for non-restaurant businesses
+  const POSITION_OPTIONS = isRestaurant ? BASE_POSITION_OPTIONS : BASE_POSITION_OPTIONS.filter(p => p.value !== 'cocina');
+  const ALL_ASSIGNABLE_ROLES = isRestaurant
+    ? ALL_BASE_ASSIGNABLE_ROLES
+    : ALL_BASE_ASSIGNABLE_ROLES.filter(r => r !== 'cocina');
+  const ASSIGNABLE_ROLES = isOwner || isSuperAdmin
+    ? ALL_ASSIGNABLE_ROLES
+    : ALL_ASSIGNABLE_ROLES.filter(r => r !== 'owner');
 
   // Fetch salary modalities for this business (all contexts)
   const { data: allSalaryModalities = [] } = useQuery({

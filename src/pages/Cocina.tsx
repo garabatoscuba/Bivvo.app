@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ChefHat, Clock, CheckCircle2, Loader2, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { useIsRestaurant } from '@/hooks/useIsRestaurant';
 
 type KitchenStatus = 'recibido' | 'preparando' | 'listo';
 
@@ -47,6 +48,7 @@ const NEXT_STATUS: Record<string, KitchenStatus> = {
 const Cocina = () => {
   const { profile } = useAuth();
   const { businessId, branchId } = useResolvedBusinessId();
+  const { isRestaurant, isLoading: restaurantLoading } = useIsRestaurant();
   const queryClient = useQueryClient();
   const [now, setNow] = useState(new Date());
 
@@ -113,6 +115,17 @@ const Cocina = () => {
 
   const activeOrders = useMemo(() => orders.filter(o => o.status !== 'listo'), [orders]);
   const completedOrders = useMemo(() => orders.filter(o => o.status === 'listo').slice(0, 20), [orders]);
+
+  // Block access for non-restaurant businesses
+  if (!restaurantLoading && !isRestaurant) {
+    return (
+      <AppLayout>
+        <div className="flex items-center justify-center py-20">
+          <p className="text-muted-foreground">Este módulo solo está disponible para restaurantes y cafeterías.</p>
+        </div>
+      </AppLayout>
+    );
+  }
 
   const getSaleNumber = (saleId: string) => saleId.slice(-6).toUpperCase();
 
