@@ -440,7 +440,15 @@ const Inventory = () => {
   // Product detail data
   const selectedStock = selectedProduct ? (stockMap.get(selectedProduct.id) || 0) : 0;
   const selectedWarehouseStock = selectedProduct ? (warehouseStockMap.get(selectedProduct.id) || 0) : 0;
-  const selectedTotalStock = selectedStock + selectedWarehouseStock;
+
+  const selectedDisplayStock = selectedProduct && (selectedProduct as any)?.tipo === 'elaborado'
+    ? (productionCapacity && !capacityLoading && Number.isFinite(productionCapacity.maxUnits)
+        ? productionCapacity.maxUnits
+        : selectedStock)
+    : selectedStock;
+
+  const selectedDisplayTotalStock = selectedDisplayStock + selectedWarehouseStock;
+
   const selectedMargin = selectedProduct 
     ? ((Number(selectedProduct.sale_price) - Number(selectedProduct.cost_price)) / Number(selectedProduct.sale_price) * 100)
     : 0;
