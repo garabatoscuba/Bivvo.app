@@ -3534,6 +3534,7 @@ export type Database = {
         Row: {
           admite_color: boolean
           admite_doble_cara: boolean
+          admite_full: boolean
           business_id: string
           consumo_por_unidad: number
           created_at: string
@@ -3551,6 +3552,7 @@ export type Database = {
         Insert: {
           admite_color?: boolean
           admite_doble_cara?: boolean
+          admite_full?: boolean
           business_id: string
           consumo_por_unidad?: number
           created_at?: string
@@ -3568,6 +3570,7 @@ export type Database = {
         Update: {
           admite_color?: boolean
           admite_doble_cara?: boolean
+          admite_full?: boolean
           business_id?: string
           consumo_por_unidad?: number
           created_at?: string

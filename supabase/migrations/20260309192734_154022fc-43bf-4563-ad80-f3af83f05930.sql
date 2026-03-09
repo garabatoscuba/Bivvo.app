@@ -1,0 +1,1 @@
+ALTER TABLE public.print_service_types ADD COLUMN IF NOT EXISTS admite_full boolean NOT NULL DEFAULT false;
