@@ -27,6 +27,7 @@ import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
 import { ProductionDialog } from '@/components/inventory/ProductionDialog';
 import { RecipeManager } from '@/components/inventory/RecipeManager';
 import { useProductionCapacity } from '@/hooks/useProductionCapacity';
+import { useProductionCapacities } from '@/hooks/useProductionCapacities';
 import {
   Select,
   SelectContent,
