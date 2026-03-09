@@ -1697,6 +1697,68 @@ export type Database = {
           },
         ]
       }
+      employee_material_stock: {
+        Row: {
+          branch_id: string | null
+          business_id: string
+          created_at: string
+          employee_id: string
+          id: string
+          material_id: string
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          branch_id?: string | null
+          business_id: string
+          created_at?: string
+          employee_id: string
+          id?: string
+          material_id: string
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          branch_id?: string | null
+          business_id?: string
+          created_at?: string
+          employee_id?: string
+          id?: string
+          material_id?: string
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_material_stock_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_material_stock_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_material_stock_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_material_stock_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_onboarding_tokens: {
         Row: {
           branch_id: string | null
@@ -3470,6 +3532,7 @@ export type Database = {
       }
       print_service_types: {
         Row: {
+          admite_color: boolean
           admite_doble_cara: boolean
           business_id: string
           consumo_por_unidad: number
@@ -3486,6 +3549,7 @@ export type Database = {
           vende_por_tramos: boolean
         }
         Insert: {
+          admite_color?: boolean
           admite_doble_cara?: boolean
           business_id: string
           consumo_por_unidad?: number
@@ -3502,6 +3566,7 @@ export type Database = {
           vende_por_tramos?: boolean
         }
         Update: {
+          admite_color?: boolean
           admite_doble_cara?: boolean
           business_id?: string
           consumo_por_unidad?: number
