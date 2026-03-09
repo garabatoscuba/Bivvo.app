@@ -431,6 +431,7 @@ const AppSidebar = () => {
     Tesorería: "/tesoreria",
     Contabilidad: "/contabilidad",
     Impresiones: "/impresiones",
+    Cocina: "/cocina",
   };
 
   // Owner sees both Tesorería and Caja as separate sidebar items
@@ -444,8 +445,6 @@ const AppSidebar = () => {
       url: moduleUrlMap[m.name] || "/",
       icon: getIconComponent(m.icon),
     })),
-    // Cocina (KDS) only for restaurant owners
-    ...(isOwnerRestaurant ? [{ title: "Cocina (KDS)", url: "/cocina", icon: ChefHat }] : []),
     { title: "Configuración", url: "/settings", icon: Settings },
     ...(!isManager || isOwner || isSuperAdmin ? [{ title: "Planes", url: "/plans", icon: CreditCard }] : []),
   ];
