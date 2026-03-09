@@ -1082,23 +1082,6 @@ const PricingTab = () => {
 };
 
 // ─── Business Types Tab ──────────────────────────────────────────────
-const COPY_SHOP_MODES = [
-  { value: 1, label: 'Solo Servicios', desc: 'El módulo Impresiones no aparece. Solo servicios.' },
-  { value: 2, label: 'Solo Impresiones', desc: 'Solo el módulo de impresiones, sin servicios.' },
-  { value: 3, label: 'Ambos — Contabilidad conjunta', desc: 'Servicios e Impresiones con contabilidad unificada.' },
-  { value: 4, label: 'Ambos — Contabilidad separada', desc: 'Servicios e Impresiones con contabilidad independiente.' },
-];
-
-const EMPLOYEE_STATIONS = [
-  { value: 'prints', label: 'Solo Impresiones' },
-  { value: 'services', label: 'Solo Servicios' },
-  { value: 'both', label: 'Ambos' },
-];
-
-const DEFAULT_PRINT_CATEGORIES = [
-  'Hojas', 'Fotos Carnet', 'Cartulinas', 'Micas Completas',
-  'Micas por Tramos', 'Files', 'Carpetas Plásticas', 'Trabajos Digitales',
-];
 
 const BusinessTypesTab = () => {
   const { toast } = useToast();
