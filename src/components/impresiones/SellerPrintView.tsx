@@ -669,7 +669,8 @@ const SellerPrintView = () => {
                   <p className="text-xs text-muted-foreground text-center">Pago mixto: Efectivo + Transferencia</p>
                 )}
 
-                {isMixed && (
+                {/* Cash denomination selector for cash or mixed */}
+                {(paymentMethod === 'cash' || isMixed) && (
                   <div className="space-y-3">
                     <div className="space-y-1.5">
                       <Label className="text-xs flex items-center gap-1"><Banknote className="h-3 w-3" /> Efectivo</Label>
@@ -682,10 +683,12 @@ const SellerPrintView = () => {
                         <Button type="button" variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setMixedCash('0')}><RotateCcw className="h-3 w-3" /></Button>
                       </div>
                     </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs flex items-center gap-1"><Smartphone className="h-3 w-3" /> Transferencia</Label>
-                      <Input type="number" step="0.01" min="0" value={mixedTransfer} onChange={e => setMixedTransfer(e.target.value)} className="text-right font-medium" />
-                    </div>
+                    {isMixed && (
+                      <div className="space-y-1.5">
+                        <Label className="text-xs flex items-center gap-1"><Smartphone className="h-3 w-3" /> Transferencia</Label>
+                        <Input type="number" step="0.01" min="0" value={mixedTransfer} onChange={e => setMixedTransfer(e.target.value)} className="text-right font-medium" />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
