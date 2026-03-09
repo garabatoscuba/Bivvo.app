@@ -176,8 +176,16 @@ const Cocina = () => {
         .eq('id', orderId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['kitchen-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      const statusLabels: Record<string, string> = {
+        preparando: 'En preparación — stock descontado',
+        listo: 'Pedido listo para entregar',
+        entregado: 'Pedido entregado',
+      };
+      toast({ title: statusLabels[variables.newStatus] || 'Estado actualizado' });
     },
   });
 
