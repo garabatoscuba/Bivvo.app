@@ -321,7 +321,7 @@ const SellerPrintView = () => {
       },
       {
         onSuccess: () => {
-          setShrinkForm({ material_id: '', cantidad: 0, motivo: '', nota: '' });
+          setShrinkForm({ material_id: '', cantidad: 0, costo_unitario: 0, motivo: '', nota: '' });
           setShrinkOpen(false);
         },
       }
