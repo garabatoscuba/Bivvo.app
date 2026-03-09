@@ -145,13 +145,6 @@ const ServiciosTab = () => {
               <Switch checked={form.vende_por_tramos} onCheckedChange={v => setForm(f => ({ ...f, vende_por_tramos: v }))} />
               <Label>Vende por tramos</Label>
             </div>
-            {form.vende_por_tramos && (
-              <div>
-                <Label>Tramos por unidad</Label>
-                <Input type="number" min={1} step="1" value={form.tramos_por_unidad} onChange={e => setForm(f => ({ ...f, tramos_por_unidad: parseInt(e.target.value) || 1 }))} />
-                <p className="text-xs text-muted-foreground mt-1">Cuántos tramos se obtienen de una unidad del insumo</p>
-              </div>
-            )}
             <div>
               <Label>Insumo que consume</Label>
               <Select value={form.material_id} onValueChange={v => setForm(f => ({ ...f, material_id: v }))}>
