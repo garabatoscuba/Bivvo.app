@@ -17,7 +17,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
-  Package, Puzzle, DollarSign, Plus, Pencil, Loader2, Trash2, Tag, Building2, X, Search, Users, Store,
+  Package, Puzzle, DollarSign, Plus, Pencil, Loader2, Trash2, Tag, Building2, X, Search, Users, Store, GripVertical,
 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -26,6 +26,23 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 // ─── Types ───────────────────────────────────────────────────────────
 interface PlatformModule {
@@ -115,6 +132,66 @@ const AVAILABILITY_OPTIONS = [
   { value: 'unavailable', label: 'No disponible' },
 ];
 
+// ─── Sortable Row Component ──────────────────────────────────────────
+const SortableModuleRow = ({ module, onEdit, onToggle }: { module: PlatformModule; onEdit: () => void; onToggle: (active: boolean) => void }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: module.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <TableRow ref={setNodeRef} style={style} className={isDragging ? 'relative z-50' : ''}>
+      <TableCell className="w-8">
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab active:cursor-grabbing p-1 hover:bg-muted rounded transition-colors"
+        >
+          <GripVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
+      </TableCell>
+      <TableCell>
+        <div>
+          <p className="text-sm font-medium">{module.name}</p>
+          {module.description && <p className="text-[11px] text-muted-foreground line-clamp-1">{module.description}</p>}
+        </div>
+      </TableCell>
+      <TableCell><Badge variant="outline" className="text-[11px]">{module.sidebar_label}</Badge></TableCell>
+      <TableCell>
+        <div className="flex gap-1 flex-wrap">
+          {module.business_types.map(t => (
+            <Badge key={t} variant="secondary" className="text-[10px]">{BUSINESS_TYPES.find(bt => bt.value === t)?.label || t}</Badge>
+          ))}
+        </div>
+      </TableCell>
+      <TableCell>
+        {module.countries.length === 0
+          ? <span className="text-[11px] text-muted-foreground">Global</span>
+          : module.countries.map(c => <Badge key={c} variant="secondary" className="text-[10px] mr-1">{COUNTRIES.find(cc => cc.value === c)?.label || c}</Badge>)
+        }
+      </TableCell>
+      <TableCell className="text-center">
+        <Switch checked={module.is_active} onCheckedChange={onToggle} />
+      </TableCell>
+      <TableCell>
+        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+          <Pencil className="h-3.5 w-3.5" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+};
+
 // ─── Módulos Tab ─────────────────────────────────────────────────────
 const ModulesTab = () => {
   const { toast } = useToast();
@@ -168,6 +245,48 @@ const ModulesTab = () => {
     enabled: dialogOpen && !!editing,
   });
 
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const reorderMutation = useMutation({
+    mutationFn: async (reorderedModules: PlatformModule[]) => {
+      const updates = reorderedModules.map((m, index) => ({
+        id: m.id,
+        sort_order: index + 1,
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('platform_modules')
+          .update({ sort_order: update.sort_order } as any)
+          .eq('id', update.id);
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['platform-modules'] });
+      toast({ title: 'Orden actualizado' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = modules.findIndex((m) => m.id === active.id);
+      const newIndex = modules.findIndex((m) => m.id === over.id);
+
+      const reordered = arrayMove(modules, oldIndex, newIndex);
+      reorderMutation.mutate(reordered);
+    }
+  };
+
   const addAssignment = useMutation({
     mutationFn: async ({ target_type, target_id }: { target_type: string; target_id: string }) => {
       const { error } = await supabase.from('module_assignments').insert({ module_id: editing!.id, target_type, target_id } as any);
@@ -207,7 +326,8 @@ const ModulesTab = () => {
         const { error } = await supabase.from('platform_modules').update(payload as any).eq('id', editing.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from('platform_modules').insert(payload as any);
+        const maxOrder = Math.max(0, ...modules.map(m => m.sort_order));
+        const { error } = await supabase.from('platform_modules').insert({ ...payload, sort_order: maxOrder + 1 } as any);
         if (error) throw error;
       }
     },
@@ -262,63 +382,49 @@ const ModulesTab = () => {
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-muted-foreground">Módulos disponibles en la plataforma.</p>
+        <p className="text-sm text-muted-foreground">Módulos disponibles en la plataforma. Arrastra para reordenar.</p>
         <Button size="sm" onClick={openCreate}><Plus className="h-3.5 w-3.5 mr-1.5" />Nuevo módulo</Button>
       </div>
 
       <Card className="border-border/60">
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="text-[11px] uppercase tracking-wide w-12">Orden</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide">Módulo</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide">Sidebar</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide">Tipos</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide">País</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide text-center">Activo</TableHead>
-                <TableHead className="text-[11px] uppercase tracking-wide w-10"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {modules.map(m => (
-                <TableRow key={m.id}>
-                  <TableCell className="text-center text-xs text-muted-foreground font-mono">{m.sort_order}</TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="text-sm font-medium">{m.name}</p>
-                      {m.description && <p className="text-[11px] text-muted-foreground line-clamp-1">{m.description}</p>}
-                    </div>
-                  </TableCell>
-                  <TableCell><Badge variant="outline" className="text-[11px]">{m.sidebar_label}</Badge></TableCell>
-                  <TableCell>
-                    <div className="flex gap-1 flex-wrap">
-                      {m.business_types.map(t => (
-                        <Badge key={t} variant="secondary" className="text-[10px]">{BUSINESS_TYPES.find(bt => bt.value === t)?.label || t}</Badge>
-                      ))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {m.countries.length === 0
-                      ? <span className="text-[11px] text-muted-foreground">Global</span>
-                      : m.countries.map(c => <Badge key={c} variant="secondary" className="text-[10px] mr-1">{COUNTRIES.find(cc => cc.value === c)?.label || c}</Badge>)
-                    }
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <Switch checked={m.is_active} onCheckedChange={v => toggleMutation.mutate({ id: m.id, is_active: v })} />
-                  </TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEdit(m)}>
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                  </TableCell>
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <Table>
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead className="text-[11px] uppercase tracking-wide w-8"></TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Módulo</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Sidebar</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">Tipos</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide">País</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide text-center">Activo</TableHead>
+                  <TableHead className="text-[11px] uppercase tracking-wide w-10"></TableHead>
                 </TableRow>
-              ))}
-              {modules.length === 0 && (
-                <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">No hay módulos creados.</TableCell></TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <SortableContext
+                items={modules.map(m => m.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <TableBody>
+                  {modules.map(m => (
+                    <SortableModuleRow
+                      key={m.id}
+                      module={m}
+                      onEdit={() => openEdit(m)}
+                      onToggle={(is_active) => toggleMutation.mutate({ id: m.id, is_active })}
+                    />
+                  ))}
+                  {modules.length === 0 && (
+                    <TableRow><TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">No hay módulos creados.</TableCell></TableRow>
+                  )}
+                </TableBody>
+              </SortableContext>
+            </Table>
+          </DndContext>
         </CardContent>
       </Card>
 
@@ -343,18 +449,6 @@ const ModulesTab = () => {
             <div className="space-y-1.5">
               <Label className="text-sm">Descripción</Label>
               <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">Orden en sidebar</Label>
-              <Input
-                type="number"
-                min={0}
-                value={form.sort_order}
-                onChange={e => setForm(f => ({ ...f, sort_order: parseInt(e.target.value) || 0 }))}
-                placeholder="0"
-                className="w-24"
-              />
-              <p className="text-[10px] text-muted-foreground">Menor número = aparece primero</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Tipos de negocio</Label>
