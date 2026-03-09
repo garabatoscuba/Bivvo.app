@@ -108,7 +108,10 @@ export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoMo
                     {agrego.ingredient?.name || 'Ingrediente'}
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    {agrego.gramaje > 0 ? `${agrego.gramaje} por unidad` : ''}
+                    {agrego.quantity > 0 ? `${agrego.quantity} ${agrego.unit} por unidad` : ''}
+                    {agrego.ingredient?.unit_of_measure && agrego.unit !== agrego.ingredient.unit_of_measure ? (
+                      <span className="text-muted-foreground/60"> (consume {agrego.gramaje} {agrego.ingredient.unit_of_measure})</span>
+                    ) : null}
                   </p>
                 </div>
               </div>

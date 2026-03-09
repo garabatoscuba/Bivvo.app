@@ -382,7 +382,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                           type="number"
                           min={0.01}
                           step={0.01}
-                          placeholder="Gramaje"
+                          placeholder="Cant."
                           className="w-24"
                           value={newGramaje}
                           onChange={(e) => setNewGramaje(e.target.value)}
@@ -399,7 +399,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                         />
                       )}
                       {/* Unit selector with compatible units */}
-                      {newType === 'base' && compatibleUnits.length > 1 ? (
+                      {compatibleUnits.length > 1 ? (
                         <select
                           value={newUnit}
                           onChange={(e) => setNewUnit(e.target.value)}
@@ -415,7 +415,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                           className="w-24"
                           value={newUnit}
                           onChange={(e) => setNewUnit(e.target.value)}
-                          readOnly={newType === 'agrego'}
+                          readOnly
                         />
                       )}
                       <Button
