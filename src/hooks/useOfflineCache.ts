@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { db } from '@/lib/offlineDB';
+import { db } from '@/lib/offlineDexieDb';
 
 export function useOfflineCache() {
   const { user, profile } = useAuth();
@@ -20,7 +20,7 @@ export function useOfflineCache() {
         const businessId = profile.business_id!;
         const branchId = profile.branch_id!;
 
-        const [productsRes, categoriesRes, servicesRes, cashRes, jornadaRes] = await Promise.all([
+        const [productsRes, categoriesRes, servicesRes, cashRes, jornadaRes] = (await Promise.all([
           supabase
             .from('products')
             .select('id, business_id, name, sale_price, cost_price, status, category_id, image_url')
@@ -44,14 +44,14 @@ export function useOfflineCache() {
             .order('created_at', { ascending: false })
             .limit(1),
           supabase
-            .from('jornadas')
+            .from('jornadas' as any)
             .select('*')
             .eq('branch_id', branchId)
             .eq('user_id', user.id)
             .eq('status', 'active')
             .order('created_at', { ascending: false })
             .limit(1),
-        ]);
+        ])) as any;
 
         // Store products
         if (productsRes.data) {

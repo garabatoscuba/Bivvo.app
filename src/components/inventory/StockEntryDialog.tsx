@@ -63,7 +63,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     onOpenChange(value);
   };
 
-  const isIngrediente = product?.tipo === 'ingrediente';
+  const isIngrediente = (product as any)?.tipo === 'ingrediente';
   const totalQty = qtyForSale + qtyWarehouse;
   const reasonLabel = ENTRY_REASONS.find(r => r.value === reason)?.label || reason;
 

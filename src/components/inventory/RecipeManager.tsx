@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { normalizeUnitKey } from '@/lib/unitConversion';
+import {
+  calcIngredientCost,
+  convertUnits,
+  getCompatibleUnits,
+  getUnitCategory,
+  normalizeUnitKey,
+} from '@/lib/unitConversion';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -17,7 +23,6 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Trash2, Loader2, ChefHat } from 'lucide-react';
-import { calcIngredientCost, getCompatibleUnits, getUnitCategory } from '@/lib/unitConversion';
 import type { Product } from '@/types/database';
 
 interface RecipeManagerProps {
@@ -155,13 +160,30 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
     } else {
       if (!newIngredientId || !newQuantity) return;
     }
+
+    const ing = ingredients.find(i => i.id === newIngredientId);
+    const purchaseUnitRaw = ing?.unit_of_measure || 'pieza';
+    const purchaseUnit = normalizeUnitKey(purchaseUnitRaw);
+    const unit = normalizeUnitKey(newUnit || purchaseUnit);
+
+    const qty = newType === 'agrego' ? Number(newGramaje) : Number(newQuantity);
+
+    // For agregos we keep `quantity/unit` as entered, and store `gramaje` as the
+    // quantity converted to the ingredient stock unit (unit_of_measure) per unidad vendida.
+    let gramaje = 0;
+    if (newType === 'agrego') {
+      const converted = convertUnits(qty, unit, purchaseUnit);
+      gramaje = converted ?? qty;
+    }
+
     addIngredient.mutate({
       ingredientId: newIngredientId,
-      quantity: newType === 'agrego' ? Number(newGramaje) : Number(newQuantity),
-      unit: newUnit || 'pieza',
+      quantity: qty,
+      unit: unit || 'pieza',
       ingredientType: newType,
-      gramaje: newType === 'agrego' ? Number(newGramaje) || 0 : 0,
+      gramaje,
     });
+
     setNewIngredientId('');
     setNewQuantity('');
     setNewUnit('');
@@ -296,19 +318,29 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                   <p className="text-sm text-muted-foreground">Sin agregos configurados.</p>
                 ) : (
                   <div className="space-y-1.5">
-                    {agregoIngredients.map((ri) => (
-                      <div key={ri.id} className="flex items-center justify-between rounded-md border border-dashed p-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{ri.ingredient?.name || 'Desconocido'}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Gramaje: {ri.gramaje} por unidad vendida
-                          </p>
+                    {agregoIngredients.map((ri) => {
+                      const cost = calcCostForIngredient(ri);
+                      const purchaseUnit = ri.ingredient?.unit_of_measure || 'pieza';
+                      const showConversion = ri.unit && ri.unit !== purchaseUnit && getUnitCategory(ri.unit) !== 'unit';
+                      return (
+                        <div key={ri.id} className="flex items-center justify-between rounded-md border border-dashed p-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{ri.ingredient?.name || 'Desconocido'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {ri.quantity} {ri.unit} por unidad vendida
+                              {showConversion && (
+                                <span className="text-muted-foreground/60"> (consume {ri.gramaje} {purchaseUnit})</span>
+                              )}
+                              {' · '}
+                              <span className="font-medium text-foreground">${cost.toFixed(2)}</span>
+                            </p>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => removeIngredient.mutate(ri.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => removeIngredient.mutate(ri.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -350,7 +382,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                           type="number"
                           min={0.01}
                           step={0.01}
-                          placeholder="Gramaje"
+                          placeholder="Cant."
                           className="w-24"
                           value={newGramaje}
                           onChange={(e) => setNewGramaje(e.target.value)}
@@ -367,7 +399,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                         />
                       )}
                       {/* Unit selector with compatible units */}
-                      {newType === 'base' && compatibleUnits.length > 1 ? (
+                      {compatibleUnits.length > 1 ? (
                         <select
                           value={newUnit}
                           onChange={(e) => setNewUnit(e.target.value)}
@@ -383,7 +415,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                           className="w-24"
                           value={newUnit}
                           onChange={(e) => setNewUnit(e.target.value)}
-                          readOnly={newType === 'agrego'}
+                          readOnly
                         />
                       )}
                       <Button

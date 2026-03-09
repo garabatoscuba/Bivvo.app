@@ -24,8 +24,10 @@ interface AgregoModalProps {
 interface AgregoItem {
   id: string;
   ingredient_id: string;
+  quantity: number;
+  unit: string;
   gramaje: number;
-  ingredient?: { id: string; name: string; cost_price: number };
+  ingredient?: { id: string; name: string; cost_price: number; unit_of_measure: string };
 }
 
 export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoModalProps) => {
@@ -47,7 +49,7 @@ export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoMo
 
       const { data, error } = await supabase
         .from('recipe_ingredients')
-        .select('id, ingredient_id, gramaje, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, cost_price)')
+        .select('id, ingredient_id, quantity, unit, gramaje, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, cost_price, unit_of_measure)')
         .eq('recipe_id', recipe.id)
         .eq('ingredient_type', 'agrego');
       if (error) throw error;
@@ -106,7 +108,10 @@ export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoMo
                     {agrego.ingredient?.name || 'Ingrediente'}
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    {agrego.gramaje > 0 ? `${agrego.gramaje} por unidad` : ''}
+                    {agrego.quantity > 0 ? `${agrego.quantity} ${agrego.unit} por unidad` : ''}
+                    {agrego.ingredient?.unit_of_measure && agrego.unit !== agrego.ingredient.unit_of_measure ? (
+                      <span className="text-muted-foreground/60"> (consume {agrego.gramaje} {agrego.ingredient.unit_of_measure})</span>
+                    ) : null}
                   </p>
                 </div>
               </div>
