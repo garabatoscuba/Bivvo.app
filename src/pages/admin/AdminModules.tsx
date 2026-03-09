@@ -1082,23 +1082,6 @@ const PricingTab = () => {
 };
 
 // ─── Business Types Tab ──────────────────────────────────────────────
-const COPY_SHOP_MODES = [
-  { value: 1, label: 'Solo Servicios', desc: 'El módulo Impresiones no aparece. Solo servicios.' },
-  { value: 2, label: 'Solo Impresiones', desc: 'Solo el módulo de impresiones, sin servicios.' },
-  { value: 3, label: 'Ambos — Contabilidad conjunta', desc: 'Servicios e Impresiones con contabilidad unificada.' },
-  { value: 4, label: 'Ambos — Contabilidad separada', desc: 'Servicios e Impresiones con contabilidad independiente.' },
-];
-
-const EMPLOYEE_STATIONS = [
-  { value: 'prints', label: 'Solo Impresiones' },
-  { value: 'services', label: 'Solo Servicios' },
-  { value: 'both', label: 'Ambos' },
-];
-
-const DEFAULT_PRINT_CATEGORIES = [
-  'Hojas', 'Fotos Carnet', 'Cartulinas', 'Micas Completas',
-  'Micas por Tramos', 'Files', 'Carpetas Plásticas', 'Trabajos Digitales',
-];
 
 const BusinessTypesTab = () => {
   const { toast } = useToast();
@@ -1125,15 +1108,6 @@ const BusinessTypesTab = () => {
       const { data, error } = await supabase.from('business_type_configs').select('*').order('sort_order');
       if (error) throw error;
       return (data || []) as BusinessTypeConfig[];
-    },
-  });
-
-  const { data: printCategories = [] } = useQuery({
-    queryKey: ['print-categories-defaults'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('print_categories').select('*').is('business_id', null).order('sort_order');
-      if (error) throw error;
-      return data || [];
     },
   });
 
@@ -1231,41 +1205,6 @@ const BusinessTypesTab = () => {
                   }
                 </div>
               </div>
-
-              {/* Copy Shop specific info */}
-              {bt.key === 'copy_shop' && (
-                <div className="rounded-lg border border-border/60 p-3 space-y-2 bg-muted/30">
-                  <p className="text-xs font-medium">Configuración Punto de Copias</p>
-                  <div className="space-y-1">
-                    <p className="text-[11px] text-muted-foreground font-medium">Modos de operación:</p>
-                    {COPY_SHOP_MODES.map(m => (
-                      <div key={m.value} className="flex items-start gap-2 text-[11px]">
-                        <Badge variant="secondary" className="text-[9px] mt-0.5 shrink-0">Modo {m.value}</Badge>
-                        <span className="text-muted-foreground">{m.label} — {m.desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[11px] text-muted-foreground font-medium">Puestos de empleados:</p>
-                    <div className="flex gap-1">
-                      {EMPLOYEE_STATIONS.map(s => (
-                        <Badge key={s.value} variant="outline" className="text-[10px]">{s.label}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[11px] text-muted-foreground font-medium">Categorías base de Impresiones:</p>
-                    <div className="flex gap-1 flex-wrap">
-                      {printCategories.map((pc: any) => (
-                        <Badge key={pc.id} variant="secondary" className="text-[10px]">{pc.name}</Badge>
-                      ))}
-                      {printCategories.length === 0 && DEFAULT_PRINT_CATEGORIES.map(c => (
-                        <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
             </CardContent>
           </Card>
         ))}
