@@ -710,7 +710,7 @@ const Inventory = () => {
                       <ProductRow
                         key={product.id}
                         product={product}
-                        stock={stockMap.get(product.id) || 0}
+                        stock={getDisplayForSaleStock(product as any)}
                         warehouseStock={warehouseStockMap.get(product.id) || 0}
                         color={product.category?.color || 'blue'}
                         onClick={() => handleProductTap(product)}
