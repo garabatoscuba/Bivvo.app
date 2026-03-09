@@ -60,6 +60,7 @@ const unitOptions = [
 
 export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) => {
   const { profile } = useAuth();
+  const { isRestaurant } = useIsRestaurant();
   const { categories } = useCategories();
   const { createProduct, updateProduct } = useProducts();
   const { data: branches } = useBranches();
