@@ -1,4 +1,5 @@
 import { useState, useMemo, useCallback } from 'react';
+import { KitchenOrderStatus } from '@/components/pos/KitchenOrderStatus';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
