@@ -205,6 +205,7 @@ const Employees = () => {
     enabled: !!businessId,
   });
   const isCopyShop = businessData?.business_type === 'copy_shop';
+  const isRestaurant = businessData?.business_type === 'estaurente/safetería';
 
   // Fetch salary modalities for this business (all contexts)
   const { data: allSalaryModalities = [] } = useQuery({
