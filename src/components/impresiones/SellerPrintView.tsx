@@ -52,6 +52,7 @@ const SellerPrintView = () => {
   const queryClient = useQueryClient();
 
   const { data: materials = [], isLoading: matLoading } = useRawMaterials();
+  const { data: myStocks = [] } = useMyMaterialStock(user?.id);
   const { data: services = [] } = usePrintServiceTypes();
   const { data: recipes = [] } = usePrintRecipes();
   const { data: materialTypes = [] } = usePrintMaterialTypes();
