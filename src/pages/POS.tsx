@@ -16,6 +16,7 @@ import { useBranches } from '@/hooks/useBranches';
 import { useSales } from '@/hooks/useSales';
 import { useAuth } from '@/contexts/AuthContext';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
+import { useProductionCapacities } from '@/hooks/useProductionCapacities';
 import { supabase } from '@/integrations/supabase/client';
 import { Search, ShoppingCart, Loader2, Package, PackageX, AlertTriangle } from 'lucide-react';
 import { MermaDialog } from '@/components/inventory/MermaDialog';
@@ -43,6 +44,13 @@ const POS = () => {
 
   const currentBranch = resolvedBranchId || jornada?.sucursal_id || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
+
+  // Get elaborado product IDs for production capacity calculation
+  const elaboradoIds = products
+    .filter(p => (p as any).tipo === 'elaborado')
+    .map(p => p.id);
+  
+  const { data: productionCapacities } = useProductionCapacities(elaboradoIds, currentBranch);
 
   // Check if the user has an open cash register
   const { data: openCashRegister } = useQuery({
@@ -79,11 +87,23 @@ const POS = () => {
 
   const hasIngredients = products.some((p) => (p as any).tipo === 'ingrediente');
 
+  // Helper to get the real available stock (considering production capacity for elaborados)
+  const getDisplayStock = useCallback((productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (product && (product as any).tipo === 'elaborado') {
+      const capacity = productionCapacities?.[productId];
+      if (typeof capacity === 'number' && Number.isFinite(capacity)) {
+        return capacity;
+      }
+    }
+    return stockMap.get(productId) || 0;
+  }, [products, productionCapacities, stockMap]);
+
   const availableProducts = products.filter((p) => {
     if (p.status !== 'for_sale') return false;
     // Only filter out ingredients if the business uses them
     if (hasIngredients && (p as any).tipo === 'ingrediente') return false;
-    const stock = stockMap.get(p.id) || 0;
+    const stock = getDisplayStock(p.id);
     return stock > 0;
   });
 
@@ -100,13 +120,13 @@ const POS = () => {
   }, [cart]);
 
   const getAvailableStock = useCallback((productId: string) => {
-    const realStock = stockMap.get(productId) || 0;
+    const realStock = getDisplayStock(productId);
     const inCart = getCartQuantity(productId);
     return realStock - inCart;
-  }, [stockMap, getCartQuantity]);
+  }, [getDisplayStock, getCartQuantity]);
 
   const addToCart = useCallback((product: Product & { category: Category | null }, selectedAgregos?: string[]) => {
-    const realStock = stockMap.get(product.id) || 0;
+    const realStock = getDisplayStock(product.id);
 
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
@@ -138,7 +158,7 @@ const POS = () => {
         },
       ];
     });
-  }, [stockMap]);
+  }, [getDisplayStock]);
 
   // Handle adding elaborado products - check for agregos first
   const handleAddProduct = useCallback((product: Product & { category: Category | null }) => {
@@ -161,7 +181,7 @@ const POS = () => {
     if (quantity <= 0) {
       setCart((prev) => prev.filter((item) => item.product.id !== productId));
     } else {
-      const maxStock = stockMap.get(productId) || 0;
+      const maxStock = getDisplayStock(productId);
       const clampedQty = Math.min(quantity, maxStock);
       setCart((prev) =>
         prev.map((item) =>
@@ -171,7 +191,7 @@ const POS = () => {
         )
       );
     }
-  }, [stockMap]);
+  }, [getDisplayStock]);
 
   const removeItem = useCallback((productId: string) => {
     setCart((prev) => prev.filter((item) => item.product.id !== productId));
