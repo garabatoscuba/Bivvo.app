@@ -6,7 +6,6 @@ import {
   useCreateMaterialEntry,
   useCreateMaterialTransfer,
   useEmployeesForTransfer,
-  useActiveSheets,
 } from '@/hooks/usePrintData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -17,15 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { Plus, PackagePlus, Send, Loader2, AlertTriangle, Pencil } from 'lucide-react';
-import ActiveSheetsSection from './ActiveSheetsSection';
 
 const InsumosTab = () => {
   const { data: materials = [], isLoading } = useRawMaterials();
   const { data: materialTypes = [] } = usePrintMaterialTypes();
   const { data: employees = [] } = useEmployeesForTransfer();
-  const { data: activeSheets = [] } = useActiveSheets();
   const saveMaterial = useSaveRawMaterial();
   const createEntry = useCreateMaterialEntry();
   const createTransfer = useCreateMaterialTransfer();
@@ -75,11 +71,7 @@ const InsumosTab = () => {
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
   return (
-    <div className="space-y-6">
-      {/* Active Sheets Section */}
-      <ActiveSheetsSection />
-
-      <div className="space-y-4">
+    <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Insumos</h2>
         <div className="flex gap-2">
