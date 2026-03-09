@@ -61,6 +61,33 @@ const SellerPrintView = () => {
   const closeSheetMut = useCloseSheet();
   const registerShrinkage = useRegisterPrintShrinkage();
 
+  // Count tramos used per active sheet (print_job_items since sheet opened)
+  const { data: tramoUsageMap = {} } = useQuery({
+    queryKey: ['tramo-usage', activeSheets.map((s: any) => s.id).join(',')],
+    queryFn: async () => {
+      if (activeSheets.length === 0) return {};
+      const map: Record<string, number> = {};
+      for (const sheet of activeSheets as any[]) {
+        const { data } = await supabase
+          .from('print_job_items')
+          .select('cantidad, job_id, print_jobs!inner(branch_id, created_at)')
+          .gte('print_jobs.created_at', sheet.created_at)
+          .eq('print_jobs.branch_id', branchId!);
+        // Filter items that use a service with this sheet's material and vende_por_tramos
+        const tramoServiceIds = activeServices
+          .filter((s: any) => s.vende_por_tramos && s.material_id === sheet.material_id)
+          .map((s: any) => s.id);
+        const total = (data || [])
+          .filter((item: any) => tramoServiceIds.includes(item.service_type_id))
+          .reduce((sum: number, item: any) => sum + Number(item.cantidad), 0);
+        map[sheet.id] = total;
+      }
+      return map;
+    },
+    enabled: activeSheets.length > 0 && !!branchId,
+    refetchInterval: 30000,
+  });
+
   // Open sheet modal state
   const [openSheetDialog, setOpenSheetDialog] = useState(false);
   const [openSheetForm, setOpenSheetForm] = useState({ material_id: '' });
