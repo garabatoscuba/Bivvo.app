@@ -4,9 +4,9 @@ import {
   usePrintMaterialTypes,
   useSaveRawMaterial,
   useCreateMaterialEntry,
-  useCreateMaterialTransfer,
   useEmployeesForTransfer,
 } from '@/hooks/usePrintData';
+import { useEmployeeMaterialStock, useTransferToEmployee } from '@/hooks/useEmployeeMaterialStock';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -22,22 +22,20 @@ const InsumosTab = () => {
   const { data: materials = [], isLoading } = useRawMaterials();
   const { data: materialTypes = [] } = usePrintMaterialTypes();
   const { data: employees = [] } = useEmployeesForTransfer();
+  const { data: empStocks = [] } = useEmployeeMaterialStock();
   const saveMaterial = useSaveRawMaterial();
   const createEntry = useCreateMaterialEntry();
-  const createTransfer = useCreateMaterialTransfer();
+  const transferToEmployee = useTransferToEmployee();
   const { profile } = useAuth();
 
-  // New material dialog
   const [newOpen, setNewOpen] = useState(false);
   const [matForm, setMatForm] = useState({ name: '', material_type_id: '', stock_minimo: 0, porcentaje_tinta: 0 });
 
-  // Entry dialog
   const [entryOpen, setEntryOpen] = useState(false);
   const [entryForm, setEntryForm] = useState({ material_id: '', cantidad: 0, costo_unitario: 0, nota: '' });
 
-  // Transfer dialog
   const [transferOpen, setTransferOpen] = useState(false);
-  const [transferForm, setTransferForm] = useState({ material_id: '', cantidad: 0, to_user_id: '', nota: '' });
+  const [transferForm, setTransferForm] = useState({ material_id: '', cantidad: 0, employee_id: '', nota: '' });
 
   const handleSaveMaterial = () => {
     saveMaterial.mutate(matForm, {
@@ -60,12 +58,18 @@ const InsumosTab = () => {
 
   const handleTransfer = () => {
     if (!profile?.user_id) return;
-    createTransfer.mutate({ ...transferForm, from_user_id: profile.user_id }, {
+    transferToEmployee.mutate({ ...transferForm, from_user_id: profile.user_id }, {
       onSuccess: () => {
         setTransferOpen(false);
-        setTransferForm({ material_id: '', cantidad: 0, to_user_id: '', nota: '' });
+        setTransferForm({ material_id: '', cantidad: 0, employee_id: '', nota: '' });
       },
     });
+  };
+
+  // Build per-employee stock lookup: { materialId: { employeeId: stock } }
+  const getEmployeeStock = (materialId: string, employeeId: string): number => {
+    const record = empStocks.find((s: any) => s.material_id === materialId && s.employee_id === employeeId);
+    return record ? Number(record.stock) : 0;
   };
 
   if (isLoading) return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
@@ -76,7 +80,7 @@ const InsumosTab = () => {
         <h2 className="text-lg font-semibold">Insumos</h2>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => setEntryOpen(true)}><PackagePlus className="h-4 w-4 mr-1" />Dar entrada</Button>
-          <Button size="sm" variant="outline" onClick={() => setTransferOpen(true)}><Send className="h-4 w-4 mr-1" />Entregar a vendedor</Button>
+          <Button size="sm" variant="outline" onClick={() => setTransferOpen(true)}><Send className="h-4 w-4 mr-1" />Entregar a empleado</Button>
           <Button size="sm" onClick={() => setNewOpen(true)}><Plus className="h-4 w-4 mr-1" />Nuevo insumo</Button>
         </div>
       </div>
@@ -87,7 +91,9 @@ const InsumosTab = () => {
             <TableRow>
               <TableHead>Nombre</TableHead>
               <TableHead className="text-right">Almacén</TableHead>
-              <TableHead className="text-right">Vendedor</TableHead>
+              {employees.map((emp: any) => (
+                <TableHead key={emp.id} className="text-right text-xs whitespace-nowrap">{emp.full_name}</TableHead>
+              ))}
               <TableHead className="text-right">Mínimo</TableHead>
               <TableHead className="text-right">Costo prom.</TableHead>
               <TableHead className="text-right">% Tinta</TableHead>
@@ -96,7 +102,7 @@ const InsumosTab = () => {
           </TableHeader>
           <TableBody>
             {materials.length === 0 ? (
-              <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin insumos registrados</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6 + employees.length} className="text-center text-muted-foreground py-8">Sin insumos registrados</TableCell></TableRow>
             ) : materials.map((m: any) => {
               const lowStock = m.stock_almacen < m.stock_minimo;
               return (
@@ -113,7 +119,16 @@ const InsumosTab = () => {
                   <TableCell className="text-right">
                     <Badge variant={lowStock ? 'destructive' : 'secondary'}>{m.stock_almacen}</Badge>
                   </TableCell>
-                  <TableCell className="text-right">{m.stock_vendedor}</TableCell>
+                  {employees.map((emp: any) => {
+                    const empStock = getEmployeeStock(m.id, emp.id);
+                    return (
+                      <TableCell key={emp.id} className="text-right">
+                        <Badge variant={empStock > 0 ? 'secondary' : 'outline'} className="text-xs">
+                          {empStock}
+                        </Badge>
+                      </TableCell>
+                    );
+                  })}
                   <TableCell className="text-right">{m.stock_minimo}</TableCell>
                   <TableCell className="text-right">${m.costo_unitario}</TableCell>
                   <TableCell className="text-right">{m.porcentaje_tinta}%</TableCell>
@@ -215,7 +230,7 @@ const InsumosTab = () => {
       {/* Transfer Dialog */}
       <Dialog open={transferOpen} onOpenChange={setTransferOpen}>
         <DialogContent className="max-w-sm max-h-[90vh] flex flex-col">
-          <DialogHeader><DialogTitle>Entregar a vendedor</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Entregar a empleado</DialogTitle></DialogHeader>
           <div className="space-y-3 overflow-y-auto flex-1 pr-1">
             <div>
               <Label>Insumo</Label>
@@ -234,11 +249,11 @@ const InsumosTab = () => {
             </div>
             <div>
               <Label>Empleado destino</Label>
-              <Select value={transferForm.to_user_id} onValueChange={v => setTransferForm(f => ({ ...f, to_user_id: v }))}>
+              <Select value={transferForm.employee_id} onValueChange={v => setTransferForm(f => ({ ...f, employee_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar empleado" /></SelectTrigger>
                 <SelectContent>
                   {employees.map((e: any) => (
-                    <SelectItem key={e.id} value={e.auth_user_id || e.id}>{e.full_name}</SelectItem>
+                    <SelectItem key={e.id} value={e.id}>{e.full_name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -250,8 +265,8 @@ const InsumosTab = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setTransferOpen(false)}>Cancelar</Button>
-            <Button onClick={handleTransfer} disabled={!transferForm.material_id || !transferForm.cantidad || !transferForm.to_user_id || createTransfer.isPending}>
-              {createTransfer.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Entregar
+            <Button onClick={handleTransfer} disabled={!transferForm.material_id || !transferForm.cantidad || !transferForm.employee_id || transferToEmployee.isPending}>
+              {transferToEmployee.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Entregar
             </Button>
           </DialogFooter>
         </DialogContent>

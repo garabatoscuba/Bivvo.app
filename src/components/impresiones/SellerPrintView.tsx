@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useRawMaterials, usePrintServiceTypes, usePrintRecipes, useEmployeesForTransfer, usePrintMaterialTypes, useActiveSheets, useOpenSheet, useCloseSheet } from '@/hooks/usePrintData';
+import { useMyMaterialStock } from '@/hooks/useEmployeeMaterialStock';
 import { useRegisterPrintShrinkage } from '@/hooks/usePrintShrinkage';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import { useAuth } from '@/contexts/AuthContext';
@@ -51,6 +52,7 @@ const SellerPrintView = () => {
   const queryClient = useQueryClient();
 
   const { data: materials = [], isLoading: matLoading } = useRawMaterials();
+  const { data: myStocks = [] } = useMyMaterialStock(user?.id);
   const { data: services = [] } = usePrintServiceTypes();
   const { data: recipes = [] } = usePrintRecipes();
   const { data: materialTypes = [] } = usePrintMaterialTypes();
@@ -151,6 +153,10 @@ const SellerPrintView = () => {
 
   // ─── Helpers ────────────────────────────────────────────────
   const getMaterial = (id: string | null) => materials.find((m: any) => m.id === id);
+  const getMyStock = (materialId: string) => {
+    const record = myStocks.find((s: any) => s.material_id === materialId);
+    return record ? Number(record.stock) : 0;
+  };
 
   const addJobItem = (svc: any) => {
     setJobItems(prev => [
@@ -198,14 +204,14 @@ const SellerPrintView = () => {
       if (!mat) return;
       const svc = activeServices.find((s: any) => s.id === it.service_type_id);
       const isTramo = !!svc?.vende_por_tramos;
-      const existing = map.get(it.material_id) || { name: mat.name, needed: 0, available: mat.stock_vendedor, isTramo };
-      // If any service using this material is tramo, mark it
+      const myStock = getMyStock(it.material_id);
+      const existing = map.get(it.material_id) || { name: mat.name, needed: 0, available: myStock, isTramo };
       if (isTramo) existing.isTramo = true;
       existing.needed += it.material_consumed;
       map.set(it.material_id, existing);
     });
     return Array.from(map.entries());
-  }, [jobItems, materials, activeServices]);
+  }, [jobItems, materials, activeServices, myStocks]);
 
   const hasStockIssue = materialConsumption.some(([, v]) => v.needed > v.available && !v.isTramo);
 
@@ -298,16 +304,23 @@ const SellerPrintView = () => {
       const { error: itemsErr } = await supabase.from('print_job_items').insert(items);
       if (itemsErr) throw itemsErr;
 
-      // Deduct stock only for non-tramo materials (tramo materials are handled via active sheets)
+      // Deduct stock only for non-tramo materials from employee's personal stock
       for (const [matId, info] of materialConsumption) {
         const mat = getMaterial(matId);
         if (!mat) continue;
-        // Check if this material's type has permite_tramos
         const matType = materialTypes.find((t: any) => t.id === mat.material_type_id);
-        if (matType?.permite_tramos) continue; // Skip: tramos are managed via print_active_sheets trigger
-        await supabase.from('raw_materials').update({
-          stock_vendedor: Math.max(0, mat.stock_vendedor - info.needed),
-        }).eq('id', matId);
+        if (matType?.permite_tramos) continue; // tramos managed via print_active_sheets
+        // Find employee record
+        const { data: emp } = await supabase.from('employees').select('id').eq('business_id', businessId).eq('auth_user_id', user.id).maybeSingle();
+        if (emp) {
+          const { data: empStock } = await supabase.from('employee_material_stock' as any).select('id, stock').eq('employee_id', emp.id).eq('material_id', matId).maybeSingle();
+          if (empStock) {
+            await supabase.from('employee_material_stock' as any).update({
+              stock: Math.max(0, (empStock as any).stock - info.needed),
+              updated_at: new Date().toISOString(),
+            }).eq('id', (empStock as any).id);
+          }
+        }
       }
 
       if (activeCaja?.id && (finalPayment === 'cash' || finalPayment === 'mixed')) {
@@ -330,6 +343,8 @@ const SellerPrintView = () => {
       queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
       queryClient.invalidateQueries({ queryKey: ['caja-movements'] });
       queryClient.invalidateQueries({ queryKey: ['print-jobs-recent'] });
+      queryClient.invalidateQueries({ queryKey: ['my-material-stock'] });
+      queryClient.invalidateQueries({ queryKey: ['employee-material-stock'] });
       setJobItems([]);
       setDescription('');
       setPaymentMethod('cash');
@@ -374,9 +389,9 @@ const SellerPrintView = () => {
     return ((selectedRecipe as any).print_recipe_materials || []).map((rm: any) => {
       const mat = getMaterial(rm.material_id);
       const needed = rm.cantidad_por_produccion * prodForm.cantidad_producida;
-      return { material_id: rm.material_id, name: mat?.name || '—', needed, available: mat?.stock_vendedor || 0 };
+      return { material_id: rm.material_id, name: mat?.name || '—', needed, available: getMyStock(rm.material_id) };
     });
-  }, [selectedRecipe, prodForm.cantidad_producida, materials]);
+  }, [selectedRecipe, prodForm.cantidad_producida, materials, myStocks]);
 
   const prodMutation = useMutation({
     mutationFn: async () => {
@@ -390,12 +405,17 @@ const SellerPrintView = () => {
         nota: prodForm.nota || null,
       });
       if (error) throw error;
-      for (const pc of prodConsumption) {
-        const mat = getMaterial(pc.material_id);
-        if (mat) {
-          await supabase.from('raw_materials').update({
-            stock_vendedor: Math.max(0, mat.stock_vendedor - pc.needed),
-          }).eq('id', pc.material_id);
+      // Deduct from employee's personal stock
+      const { data: emp } = await supabase.from('employees').select('id').eq('business_id', businessId).eq('auth_user_id', user.id).maybeSingle();
+      if (emp) {
+        for (const pc of prodConsumption) {
+          const { data: empStock } = await supabase.from('employee_material_stock' as any).select('id, stock').eq('employee_id', emp.id).eq('material_id', pc.material_id).maybeSingle();
+          if (empStock) {
+            await supabase.from('employee_material_stock' as any).update({
+              stock: Math.max(0, (empStock as any).stock - pc.needed),
+              updated_at: new Date().toISOString(),
+            }).eq('id', (empStock as any).id);
+          }
         }
       }
     },
@@ -454,7 +474,8 @@ const SellerPrintView = () => {
             {materials.length > 0 && (
               <div className="flex gap-2 overflow-x-auto scrollbar-none shrink-0 pb-1">
                 {materials.map((m: any) => {
-                  const isLow = m.stock_vendedor <= 0;
+                  const myStock = getMyStock(m.id);
+                  const isLow = myStock <= 0;
                   const matType = materialTypes.find((t: any) => t.id === m.material_type_id);
                   const isTramo = matType?.permite_tramos === true;
                   const sheet = isTramo ? (activeSheets as any[]).find((s: any) => s.material_id === m.id && s.status === 'activa') : null;
@@ -463,7 +484,7 @@ const SellerPrintView = () => {
                     <div key={m.id} className={cn('flex items-center gap-2 rounded-lg border px-3 py-1.5 flex-shrink-0', isLow && !isTramo && 'border-destructive bg-destructive/5')}>
                       <span className="text-xs font-medium whitespace-nowrap">{m.name}</span>
                       <Badge variant={isLow && !isTramo ? 'destructive' : 'secondary'} className="text-xs">
-                        {isTramo && sheet ? `🗎 ${tramoCount}` : m.stock_vendedor}
+                        {isTramo && sheet ? `🗎 ${tramoCount}` : myStock}
                       </Badge>
                     </div>
                   );
@@ -551,7 +572,8 @@ const SellerPrintView = () => {
                     const isTramo = !!svc?.vende_por_tramos;
                     const sheet = isTramo && item.material_id ? (activeSheets as any[]).find((s: any) => s.material_id === item.material_id && s.status === 'activa') : null;
                     const mat = item.material_id ? getMaterial(item.material_id) : null;
-                    const hasStock = mat ? mat.stock_vendedor > 0 : false;
+                    const myStock = item.material_id ? getMyStock(item.material_id) : 0;
+                    const hasStock = myStock > 0;
                     return (
                       <div key={idx} className="rounded-lg border p-2.5 space-y-2">
                         <div className="flex items-center gap-2">
@@ -567,16 +589,22 @@ const SellerPrintView = () => {
                             </Button>
                           </div>
                         </div>
-                        <div className="flex items-center gap-4 pl-1">
-                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                            <Switch className="scale-75" checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
-                            Doble cara
-                          </label>
-                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                            <Switch className="scale-75" checked={item.es_color} onCheckedChange={v => updateJobItem(idx, 'es_color', v)} />
-                            Color
-                          </label>
-                        </div>
+                        {(svc?.admite_doble_cara || svc?.admite_color) && (
+                          <div className="flex items-center gap-4 pl-1">
+                            {svc?.admite_doble_cara && (
+                              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                                <Switch className="scale-75" checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
+                                Doble cara
+                              </label>
+                            )}
+                            {svc?.admite_color && (
+                              <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                                <Switch className="scale-75" checked={item.es_color} onCheckedChange={v => updateJobItem(idx, 'es_color', v)} />
+                                Color
+                              </label>
+                            )}
+                          </div>
+                        )}
                         {isTramo && sheet && (
                           <Button
                             variant="outline"
@@ -728,8 +756,8 @@ const SellerPrintView = () => {
               }}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>
-                  {materials.filter((m: any) => m.stock_vendedor > 0).map((m: any) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name} (Stock: {m.stock_vendedor})</SelectItem>
+                  {materials.filter((m: any) => getMyStock(m.id) > 0).map((m: any) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name} (Stock: {getMyStock(m.id)})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -828,10 +856,10 @@ const SellerPrintView = () => {
               <Label>Insumo</Label>
               <Input value={getMaterial(openSheetForm.material_id)?.name || ''} disabled className="bg-muted" />
             </div>
-            <p className="text-xs text-muted-foreground">Se descontará 1 unidad de tu stock de vendedor.</p>
+            <p className="text-xs text-muted-foreground">Se descontará 1 unidad de tu stock.</p>
             {openSheetForm.material_id && (
               <p className="text-xs text-muted-foreground">
-                Stock disponible: {getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0}
+                Stock disponible: {getMyStock(openSheetForm.material_id)}
               </p>
             )}
           </div>
@@ -851,7 +879,7 @@ const SellerPrintView = () => {
                   }
                 );
               }}
-              disabled={!openSheetForm.material_id || openSheetMut.isPending || (getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0) < 1}
+              disabled={!openSheetForm.material_id || openSheetMut.isPending || getMyStock(openSheetForm.material_id) < 1}
             >
               {openSheetMut.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Abrir hoja
