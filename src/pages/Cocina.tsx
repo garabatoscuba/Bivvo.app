@@ -47,7 +47,7 @@ interface KitchenOrder {
 const STATUS_CONFIG: Record<KitchenStatus, { label: string; colorClass: string; icon: typeof Clock; actionLabel?: string }> = {
   recibido: { label: 'Recibido', colorClass: 'border-warning/50 bg-warning/10', icon: Clock, actionLabel: 'Empezar a preparar' },
   preparando: { label: 'Preparando', colorClass: 'border-blue-500/50 bg-blue-500/10', icon: RefreshCw, actionLabel: 'Marcar listo' },
-  listo: { label: 'Listo', colorClass: 'border-green-500/50 bg-green-500/10', icon: CheckCircle2, actionLabel: 'Entregar' },
+  listo: { label: 'Listo', colorClass: 'border-green-500/50 bg-green-500/10', icon: CheckCircle2, actionLabel: 'Entrega' },
   entregado: { label: 'Entregado', colorClass: 'border-muted bg-muted/30', icon: PackageCheck },
 };
 
