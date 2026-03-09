@@ -16,6 +16,7 @@ export interface DailySalaryBreakdown {
   todayBranchSalesTotal: number;
   todaySalesTotal: number;
   todayServiceTotal: number;
+  todayPrintTotal: number;
   displayPercent: number;
   hasAssignment: boolean;
   modalityName: string;
