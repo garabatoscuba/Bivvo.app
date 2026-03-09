@@ -69,34 +69,22 @@ export const useRegisterPrintShrinkage = () => {
 
       if (shrinkError) throw shrinkError;
 
-      // 4. Update material stock
-      const { data: mat } = await supabase
-        .from('raw_materials')
-        .select('stock_almacen, stock_vendedor')
-        .eq('id', params.material_id)
-        .single();
+      // 4. Deduct from employee's personal stock
+      if (employee) {
+        const { data: empStock } = await supabase
+          .from('employee_material_stock' as any)
+          .select('id, stock')
+          .eq('employee_id', employee.id)
+          .eq('material_id', params.material_id)
+          .maybeSingle();
 
-      if (mat) {
-        // Deduct from stock_vendedor first, then stock_almacen if needed
-        let remaining = params.cantidad;
-        let new_vendedor = mat.stock_vendedor;
-        let new_almacen = mat.stock_almacen;
-
-        if (new_vendedor >= remaining) {
-          new_vendedor -= remaining;
-        } else {
-          remaining -= new_vendedor;
-          new_vendedor = 0;
-          new_almacen = Math.max(0, new_almacen - remaining);
+        if (empStock) {
+          const newStock = Math.max(0, (empStock as any).stock - params.cantidad);
+          await supabase
+            .from('employee_material_stock' as any)
+            .update({ stock: newStock, updated_at: new Date().toISOString() })
+            .eq('id', (empStock as any).id);
         }
-
-        await supabase
-          .from('raw_materials')
-          .update({
-            stock_vendedor: new_vendedor,
-            stock_almacen: new_almacen,
-          })
-          .eq('id', params.material_id);
       }
 
       // 5. Get material name for notification
