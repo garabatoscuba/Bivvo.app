@@ -43,6 +43,7 @@ const ROLE_CONFIG: Record<AppRole, { label: string; icon: typeof Shield; color: 
   owner: { label: 'Dueño', icon: Shield, color: 'bg-primary text-primary-foreground' },
   manager: { label: 'Gerente', icon: Store, color: 'bg-accent text-accent-foreground' },
   seller: { label: 'Vendedor', icon: ShoppingCart, color: 'bg-secondary text-secondary-foreground' },
+  cocina: { label: 'Cocina', icon: ChefHat, color: 'bg-warning/15 text-warning' },
   accountant: { label: 'Contable', icon: Calculator, color: 'bg-muted text-muted-foreground' },
   affiliated: { label: 'Afiliado', icon: Users, color: 'bg-muted text-muted-foreground' },
   partner: { label: 'Partner', icon: Users, color: 'bg-muted text-muted-foreground' },
