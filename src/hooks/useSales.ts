@@ -340,7 +340,7 @@ export const useSales = (branchId?: string | null) => {
         
         
         const offlineResult = await saveOffline();
-        alert('Paso 5: offline guardado OK');
+        
         return offlineResult;
       }
     },
