@@ -662,7 +662,9 @@ const AppSidebar = () => {
                       ? "Punto de Copias"
                       : activeBusiness.business_type === "gym"
                         ? "Gym"
-                        : activeBusiness.business_type}
+                        : activeBusiness.business_type === "estaurente/safetería"
+                          ? "Restaurante / Cafetería"
+                          : activeBusiness.business_type}
                 </span>
               )}
             </SidebarGroupLabel>
@@ -723,7 +725,9 @@ const AppSidebar = () => {
                                           ? "Punto de Copias"
                                           : biz.business_type === "gym"
                                             ? "Gym"
-                                            : biz.business_type}
+                                            : biz.business_type === "estaurente/safetería"
+                                              ? "Restaurante / Cafetería"
+                                              : biz.business_type}
                                     </span>
                                   </div>
                                 </div>
