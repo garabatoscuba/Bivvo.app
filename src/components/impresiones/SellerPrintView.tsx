@@ -33,6 +33,7 @@ interface JobItem {
   cantidad: number;
   es_doble_cara: boolean;
   es_color: boolean;
+  es_full: boolean;
   precio_cobrado: number;
   costo_insumo: number;
   material_consumed: number;
