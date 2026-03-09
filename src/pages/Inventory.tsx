@@ -808,9 +808,9 @@ const Inventory = () => {
 
       {/* ─── Product Detail Sheet ─── */}
       <Sheet open={!!selectedProduct} onOpenChange={(open) => !open && setSelectedProduct(null)}>
-        <SheetContent side="bottom" className="h-auto max-h-[70vh] rounded-t-2xl">
+        <SheetContent side="bottom" className="h-[85dvh] max-h-[85dvh] rounded-t-2xl">
           {selectedProduct && (
-            <div className="space-y-4 pb-4">
+            <div className="space-y-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
               <SheetHeader className="text-left">
                 <div className="flex items-start justify-between">
                   <div className="min-w-0 flex-1">
@@ -859,9 +859,9 @@ const Inventory = () => {
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard
                   label={(selectedProduct as any).tipo === 'ingrediente' ? 'En cocina' : 'En venta'}
-                  value={selectedStock.toString()}
+                  value={selectedDisplayStock.toString()}
                   sublabel={(selectedProduct as any).tipo === 'ingrediente' ? 'Materia prima' : 'Disponible en POS'}
-                  alert={selectedStock <= selectedProduct.min_stock}
+                  alert={selectedDisplayStock <= selectedProduct.min_stock}
                 />
                 <MetricCard
                   label="En almacén"
@@ -875,40 +875,40 @@ const Inventory = () => {
                 />
                 <MetricCard
                   label="Valor en stock"
-                  value={`$${(selectedTotalStock * Number(selectedProduct.sale_price)).toFixed(2)}`}
-                  sublabel={`${selectedTotalStock} uds. total`}
+                  value={`$${(selectedDisplayTotalStock * Number(selectedProduct.sale_price)).toFixed(2)}`}
+                  sublabel={`${selectedDisplayTotalStock} uds. total`}
                 />
               </div>
 
               {/* Stock distribution bar */}
-              {selectedTotalStock > 0 && (
+              {selectedDisplayTotalStock > 0 && (
                 <div className="space-y-1.5">
                   <p className="text-xs font-medium text-muted-foreground">Distribución de stock</p>
                   <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
                     <div 
                       className="bg-primary transition-all" 
-                      style={{ width: `${(selectedStock / selectedTotalStock) * 100}%` }} 
-                      title={`Venta: ${selectedStock}`}
+                      style={{ width: `${(selectedDisplayStock / selectedDisplayTotalStock) * 100}%` }} 
+                      title={`Venta: ${selectedDisplayStock}`}
                     />
                     <div 
                       className="bg-muted-foreground/30 transition-all" 
-                      style={{ width: `${(selectedWarehouseStock / selectedTotalStock) * 100}%` }} 
+                      style={{ width: `${(selectedWarehouseStock / selectedDisplayTotalStock) * 100}%` }} 
                       title={`Almacén: ${selectedWarehouseStock}`}
                     />
                   </div>
                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> Venta ({selectedStock})</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> Venta ({selectedDisplayStock})</span>
                     <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground/30 inline-block" /> Almacén ({selectedWarehouseStock})</span>
                   </div>
                 </div>
               )}
 
               {/* Stock alert */}
-              {selectedStock <= selectedProduct.min_stock && (
+              {selectedDisplayStock <= selectedProduct.min_stock && (
                 <div className="flex items-center gap-2 rounded-lg bg-destructive/10 p-3 text-sm">
                   <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
                   <span>
-                    {selectedStock <= 0 
+                    {selectedDisplayStock <= 0 
                       ? 'Sin stock disponible para venta' 
                       : `Stock bajo — mínimo recomendado: ${selectedProduct.min_stock}`
                     }
