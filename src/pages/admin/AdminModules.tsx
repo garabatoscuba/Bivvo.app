@@ -422,6 +422,7 @@ const ModulesTab = () => {
                       module={m}
                       onEdit={() => openEdit(m)}
                       onToggle={(is_active) => toggleMutation.mutate({ id: m.id, is_active })}
+                      businessTypeLabels={businessTypeLabels}
                     />
                   ))}
                   {modules.length === 0 && (
