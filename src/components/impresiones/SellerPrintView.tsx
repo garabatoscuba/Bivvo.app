@@ -43,6 +43,7 @@ interface JobItem {
 
 type PaymentMethod = 'cash' | 'transfer' | 'card' | 'mixed';
 const QUICK_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000];
+const CART_QUICK_AMOUNTS = [1, 5, 10, 20, 50];
 
 // ─── Component ────────────────────────────────────────────────
 const SellerPrintView = () => {
