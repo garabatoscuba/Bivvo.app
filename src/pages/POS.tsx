@@ -26,8 +26,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import type { CartItem, Product, Category, PaymentType } from '@/types/database';
-import { cn } from '@/lib/utils';
+import type { CartItem, Product, Category, PaymentType, AgregoSelection } from '@/types/database';
 
 const POS = () => {
   const { profile, isOwner, isManager, isSuperAdmin, user } = useAuth();
