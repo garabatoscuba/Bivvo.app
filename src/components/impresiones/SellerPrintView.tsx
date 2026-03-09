@@ -121,7 +121,7 @@ const SellerPrintView = () => {
       const today = new Date().toISOString().split('T')[0];
       const { data, error } = await supabase
         .from('print_jobs')
-        .select('*, print_job_items(service_type_id, cantidad, precio_cobrado)')
+        .select('*, print_job_items(service_type_id, cantidad, precio_cobrado, es_doble_cara, es_color, es_full, nota)')
         .eq('business_id', businessId)
         .eq('branch_id', branchId)
         .eq('user_id', user!.id)
@@ -133,6 +133,9 @@ const SellerPrintView = () => {
     },
     enabled: !!businessId && !!branchId && !!user?.id,
   });
+
+  // State for viewing notes
+  const [viewingNote, setViewingNote] = useState<string | null>(null);
 
   const todayTotal = useMemo(() => recentJobs.reduce((s: number, j: any) => s + Number(j.total), 0), [recentJobs]);
 
