@@ -9,6 +9,7 @@ interface RegisterShrinkageParams {
   cantidad: number;
   motivo: string;
   nota?: string;
+  costo_unitario?: number;
 }
 
 export const useRegisterPrintShrinkage = () => {
