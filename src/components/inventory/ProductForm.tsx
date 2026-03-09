@@ -29,6 +29,7 @@ import { Loader2, Package, Camera, X, ChefHat } from 'lucide-react';
 import { RecipeManager } from '@/components/inventory/RecipeManager';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
+import { useIsRestaurant } from '@/hooks/useIsRestaurant';
 
 const MAX_IMAGE_SIZE = 512000; // 500 KB
 
@@ -59,6 +60,7 @@ const unitOptions = [
 
 export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) => {
   const { profile } = useAuth();
+  const { isRestaurant } = useIsRestaurant();
   const { categories } = useCategories();
   const { createProduct, updateProduct } = useProducts();
   const { data: branches } = useBranches();
@@ -344,8 +346,12 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <option value="reventa">Reventa (comprado para vender)</option>
-                        <option value="ingrediente">Ingrediente (materia prima)</option>
-                        <option value="elaborado">Elaborado (producción propia)</option>
+                        {isRestaurant && (
+                          <>
+                            <option value="ingrediente">Ingrediente (materia prima)</option>
+                            <option value="elaborado">Elaborado (producción propia)</option>
+                          </>
+                        )}
                       </select>
                     </FormControl>
                     <FormMessage />
