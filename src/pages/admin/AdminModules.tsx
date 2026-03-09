@@ -207,7 +207,17 @@ const ModulesTab = () => {
     },
   });
 
-  // Fetch assignments for current editing module
+  // Dynamic business types from DB
+  const { data: businessTypesFromDB = [] } = useQuery({
+    queryKey: ['business-type-configs-for-modules'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('business_type_configs').select('key, name').eq('is_active', true).order('sort_order');
+      if (error) throw error;
+      return (data || []) as { key: string; name: string }[];
+    },
+  });
+  const BUSINESS_TYPES = businessTypesFromDB.map(bt => ({ value: bt.key, label: bt.name }));
+  const businessTypeLabels: Record<string, string> = Object.fromEntries(BUSINESS_TYPES.map(bt => [bt.value, bt.label]));
   const { data: assignments = [] } = useQuery({
     queryKey: ['module-assignments', editing?.id],
     queryFn: async () => {
