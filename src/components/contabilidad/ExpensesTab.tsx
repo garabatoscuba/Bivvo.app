@@ -4,9 +4,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { toast } from "sonner";
-import { format, addDays, addWeeks, addMonths, addYears, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isBefore, parseISO } from "date-fns";
+import { format, addDays, addWeeks, addMonths, addYears, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter, startOfYear, endOfYear, isBefore, parseISO, subDays, differenceInDays } from "date-fns";
 import { es } from "date-fns/locale";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt } from "lucide-react";
+import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt, Droplets } from "lucide-react";
 
 // ── Types ──
 type Expense = {
@@ -134,6 +134,87 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     },
   });
 
+  // ── Business type check for ink card ──
+  const { data: business } = useQuery({
+    queryKey: ["business-type", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("businesses")
+        .select("business_type")
+        .eq("id", businessId)
+        .single();
+      return data;
+    },
+  });
+
+  const isCopyShop = business?.business_type === "copy_shop";
+
+  // ── Ink usage data (only for copy shops) ──
+  const { data: inkUsage = [] } = useQuery({
+    queryKey: ["ink-usage-expenses", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("print_ink_usage")
+        .select("color, cantidad_consumida, costo_por_hoja, hojas_impresas, created_at, is_automatic")
+        .eq("business_id", businessId)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: isCopyShop,
+  });
+
+  const { data: inkInventory = [] } = useQuery({
+    queryKey: ["ink-inventory-expenses", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("print_ink_inventory")
+        .select("color, cantidad, ubicacion, costo_total, created_at")
+        .eq("business_id", businessId);
+      return data || [];
+    },
+    enabled: isCopyShop,
+  });
+
+  const inkAnalysis = useMemo(() => {
+    if (!isCopyShop || inkUsage.length === 0) return null;
+    const colors = ["negro", "cian", "magenta", "amarillo"] as const;
+    const thirtyDaysAgo = subDays(new Date(), 30);
+    const now = new Date();
+
+    const autoUsages = inkUsage.filter((r: any) => r.is_automatic);
+    if (autoUsages.length === 0) return null;
+
+    const firstDate = new Date(autoUsages[autoUsages.length - 1]?.created_at || now);
+    const totalDays = Math.max(1, differenceInDays(now, firstDate));
+
+    // Total invested in ink
+    const totalInvested = inkInventory.reduce((s: number, r: any) => s + Math.max(0, Number(r.costo_total)), 0);
+
+    // Consumption per color
+    const colorData = colors.map(color => {
+      const colorUsage = inkUsage.filter((r: any) => r.color === color);
+      const totalConsumed = colorUsage.reduce((s: number, r: any) => s + Number(r.cantidad_consumida), 0);
+      const last30 = colorUsage
+        .filter((r: any) => new Date(r.created_at) >= thirtyDaysAgo)
+        .reduce((s: number, r: any) => s + Number(r.cantidad_consumida), 0);
+      const daysForAvg = Math.min(totalDays, 30);
+      const dailyAvg = daysForAvg > 0 ? last30 / daysForAvg : totalConsumed / totalDays;
+
+      // Stock in taller
+      const tallerCost = inkInventory
+        .filter((r: any) => r.color === color && r.ubicacion === "taller")
+        .reduce((s: number, r: any) => s + Number(r.costo_total), 0);
+      const remaining = Math.max(0, tallerCost - totalConsumed);
+      const daysRemaining = dailyAvg > 0 ? Math.floor(remaining / dailyAvg) : null;
+
+      return { color, totalConsumed, dailyAvg, remaining, daysRemaining };
+    });
+
+    const totalConsumed = colorData.reduce((s, c) => s + c.totalConsumed, 0);
+    const totalRemaining = colorData.reduce((s, c) => s + c.remaining, 0);
+
+    return { colorData, totalInvested, totalConsumed, totalRemaining };
+  }, [isCopyShop, inkUsage, inkInventory]);
   // ── Seed default fixed expenses (check all fixed for business, not filtered by branch) ──
   const [seeded, setSeeded] = useState(false);
   useEffect(() => {
@@ -416,6 +497,107 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
           </Card>
         ))}
       </div>
+
+      {/* ── INK EXPENSE CARD (copy_shop only) ── */}
+      {isCopyShop && (
+        <div className="space-y-3">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Droplets className="h-4 w-4" /> Gasto de Tinta
+          </h3>
+          {!inkAnalysis ? (
+            <Card>
+              <CardContent className="p-6 text-center text-muted-foreground">
+                <Droplets className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p className="text-sm">Registra cobros en Impresiones para ver el análisis de consumo de tinta.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <>
+              <div className="grid grid-cols-3 gap-3">
+                <Card>
+                  <CardContent className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Invertido</p>
+                    <p className="text-lg font-bold">${inkAnalysis.totalInvested.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Consumido</p>
+                    <p className="text-lg font-bold text-destructive">${inkAnalysis.totalConsumed.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                  </CardContent>
+                </Card>
+                <Card>
+                  <CardContent className="p-3">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Restante</p>
+                    <p className={`text-lg font-bold ${inkAnalysis.totalRemaining <= 0 ? 'text-destructive' : 'text-primary'}`}>
+                      ${inkAnalysis.totalRemaining.toLocaleString("es", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              <Card>
+                <CardContent className="p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Color</TableHead>
+                          <TableHead className="text-right">Consumo/día</TableHead>
+                          <TableHead className="text-right">Consumido</TableHead>
+                          <TableHead className="text-right">Restante</TableHead>
+                          <TableHead className="text-right">Días rest.</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {inkAnalysis.colorData.map((c) => {
+                          const colorStyles: Record<string, string> = {
+                            negro: "bg-gray-900 dark:bg-gray-600",
+                            cian: "bg-cyan-500",
+                            magenta: "bg-pink-500",
+                            amarillo: "bg-yellow-400",
+                          };
+                          const colorLabels: Record<string, string> = {
+                            negro: "Negro", cian: "Cian", magenta: "Magenta", amarillo: "Amarillo",
+                          };
+                          return (
+                            <TableRow key={c.color}>
+                              <TableCell>
+                                <div className="flex items-center gap-1.5">
+                                  <div className={`h-3 w-3 rounded-full ${colorStyles[c.color] || ""}`} />
+                                  <span className="text-sm font-medium">{colorLabels[c.color] || c.color}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right text-sm">
+                                ${c.dailyAvg.toFixed(2)}<span className="text-muted-foreground">/día</span>
+                              </TableCell>
+                              <TableCell className="text-right text-sm text-destructive">
+                                ${c.totalConsumed.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right text-sm">
+                                ${c.remaining.toFixed(2)}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                {c.daysRemaining !== null ? (
+                                  <Badge variant={c.daysRemaining <= 7 ? "destructive" : c.daysRemaining <= 15 ? "secondary" : "default"} className="text-xs">
+                                    {c.daysRemaining}d
+                                  </Badge>
+                                ) : (
+                                  <span className="text-xs text-muted-foreground">—</span>
+                                )}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </div>
+      )}
 
 
       {/* ── FIXED EXPENSES ── */}
