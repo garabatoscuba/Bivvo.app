@@ -546,51 +546,57 @@ const SellerPrintView = () => {
                 </div>
               ) : (
                 <>
-                  {jobItems.map((item, idx) => (
-                    <div key={idx} className="rounded-lg border p-2.5 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium truncate">{item.service_name}</p>
-                        </div>
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <Input type="number" min={1} className="h-7 w-14 text-xs text-center" value={item.cantidad} onChange={e => updateJobItem(idx, 'cantidad', parseInt(e.target.value) || 1)} />
-                          <span className="text-xs text-muted-foreground">×</span>
-                          <Input type="number" min={0} step="0.01" className="h-7 w-20 text-xs text-right" value={item.precio_cobrado} onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)} />
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeJobItem(idx)}>
-                            <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                          </Button>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 pl-1">
-                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                          <Switch className="scale-75" checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
-                          Doble cara
-                        </label>
-                        <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
-                          <Switch className="scale-75" checked={item.es_color} onCheckedChange={v => updateJobItem(idx, 'es_color', v)} />
-                          Color
-                        </label>
-                      </div>
-                    </div>
-                  ))}
-
-                  {/* Active sheets */}
-                  {activeSheets.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
-                      {activeSheets.map((sheet: any) => {
-                        const mat = getMaterial(sheet.material_id);
-                        if (!mat) return null;
-                        return (
-                          <div key={sheet.id} className="flex items-center gap-1.5 rounded-md border px-2 py-1">
-                            <Badge variant="outline" className="text-xs">📄 {mat.name}: Activa</Badge>
-                            <Button variant="ghost" size="sm" className="h-5 px-1.5 text-[10px] text-destructive hover:text-destructive" onClick={() => closeSheetMut.mutate(sheet.id)} disabled={closeSheetMut.isPending}>
-                              Marcar usada
+                  {jobItems.map((item, idx) => {
+                    const svc = activeServices.find((s: any) => s.id === item.service_type_id);
+                    const isTramo = !!svc?.vende_por_tramos;
+                    const sheet = isTramo && item.material_id ? (activeSheets as any[]).find((s: any) => s.material_id === item.material_id && s.status === 'activa') : null;
+                    const mat = item.material_id ? getMaterial(item.material_id) : null;
+                    const hasStock = mat ? mat.stock_vendedor > 0 : false;
+                    return (
+                      <div key={idx} className="rounded-lg border p-2.5 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium truncate">{item.service_name}</p>
+                          </div>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <Input type="number" min={1} className="h-7 w-14 text-xs text-center" value={item.cantidad} onChange={e => updateJobItem(idx, 'cantidad', parseInt(e.target.value) || 1)} />
+                            <span className="text-xs text-muted-foreground">×</span>
+                            <Input type="number" min={0} step="0.01" className="h-7 w-20 text-xs text-right" value={item.precio_cobrado} onChange={e => updateJobItem(idx, 'precio_cobrado', parseFloat(e.target.value) || 0)} />
+                            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => removeJobItem(idx)}>
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
                             </Button>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                        </div>
+                        <div className="flex items-center gap-4 pl-1">
+                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                            <Switch className="scale-75" checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
+                            Doble cara
+                          </label>
+                          <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
+                            <Switch className="scale-75" checked={item.es_color} onCheckedChange={v => updateJobItem(idx, 'es_color', v)} />
+                            Color
+                          </label>
+                        </div>
+                        {isTramo && sheet && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full text-xs h-7"
+                            disabled={closeSheetMut.isPending || openSheetMut.isPending || !hasStock}
+                            onClick={async () => {
+                              await closeSheetMut.mutateAsync(sheet.id);
+                              if (hasStock && user?.id) {
+                                openSheetMut.mutate({ material_id: item.material_id!, user_id: user.id });
+                              }
+                            }}
+                          >
+                            <FileText className="h-3 w-3 mr-1" />
+                            {hasStock ? `Insertar otra hoja de ${mat?.name || ''}` : `Sin stock de ${mat?.name || ''}`}
+                          </Button>
+                        )}
+                      </div>
+                    );
+                  })}
 
                   {/* Tramo warnings */}
                   {tramoIssues.length > 0 && (
