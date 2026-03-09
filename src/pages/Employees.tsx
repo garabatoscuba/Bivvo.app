@@ -174,16 +174,7 @@ const Employees = () => {
   const businessId = resolvedBusinessId || profile?.business_id;
   const canManage = isOwner || isManager || isSuperAdmin;
   const canDelete = isOwner || isSuperAdmin;
-  // Filter cocina role/position for non-restaurant businesses
-  const POSITION_OPTIONS = isRestaurant ? BASE_POSITION_OPTIONS : BASE_POSITION_OPTIONS.filter(p => p.value !== 'cocina');
-  const ALL_ASSIGNABLE_ROLES = isRestaurant
-    ? ALL_BASE_ASSIGNABLE_ROLES
-    : ALL_BASE_ASSIGNABLE_ROLES.filter(r => r !== 'cocina');
-
-  // Managers can't assign the 'owner' role
-  const ASSIGNABLE_ROLES = isOwner || isSuperAdmin
-    ? ALL_ASSIGNABLE_ROLES
-    : ALL_ASSIGNABLE_ROLES.filter(r => r !== 'owner');
+  // (cocina role filtering moved below after businessData fetch)
 
   // Fetch HR employees
   const { data: hrEmployees = [], isLoading: loadingHR } = useQuery({
