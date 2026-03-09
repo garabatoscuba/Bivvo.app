@@ -126,7 +126,7 @@ const POS = () => {
   }, [getDisplayStock, getCartQuantity]);
 
   const addToCart = useCallback((product: Product & { category: Category | null }, selectedAgregos?: string[]) => {
-    const realStock = stockMap.get(product.id) || 0;
+    const realStock = getDisplayStock(product.id);
 
     setCart((prev) => {
       const existing = prev.find((item) => item.product.id === product.id);
@@ -158,7 +158,7 @@ const POS = () => {
         },
       ];
     });
-  }, [stockMap]);
+  }, [getDisplayStock]);
 
   // Handle adding elaborado products - check for agregos first
   const handleAddProduct = useCallback((product: Product & { category: Category | null }) => {
