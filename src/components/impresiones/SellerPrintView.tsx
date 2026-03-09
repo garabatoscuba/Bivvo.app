@@ -115,7 +115,7 @@ const SellerPrintView = () => {
 
   // ─── Shrinkage Modal ───────────────────────────────────────
   const [shrinkOpen, setShrinkOpen] = useState(false);
-  const [shrinkForm, setShrinkForm] = useState({ material_id: '', cantidad: 0, motivo: '', nota: '' });
+  const [shrinkForm, setShrinkForm] = useState({ material_id: '', cantidad: 0, costo_unitario: 0, motivo: '', nota: '' });
 
   // ─── Production Modal ──────────────────────────────────────
   const [prodOpen, setProdOpen] = useState(false);
