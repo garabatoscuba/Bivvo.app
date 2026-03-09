@@ -26,7 +26,7 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
   Loader2, Pencil, Trash2, Activity, Mail, MapPin, StopCircle, Clock,
-  Play, Square, Plus, Save,
+  Play, Square, Plus, Save, ChefHat,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import PerformanceChart from '@/components/employees/PerformanceChart';
