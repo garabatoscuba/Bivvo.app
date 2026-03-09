@@ -558,7 +558,8 @@ const SellerPrintView = () => {
                     const isTramo = !!svc?.vende_por_tramos;
                     const sheet = isTramo && item.material_id ? (activeSheets as any[]).find((s: any) => s.material_id === item.material_id && s.status === 'activa') : null;
                     const mat = item.material_id ? getMaterial(item.material_id) : null;
-                    const hasStock = mat ? mat.stock_vendedor > 0 : false;
+                    const myStock = item.material_id ? getMyStock(item.material_id) : 0;
+                    const hasStock = myStock > 0;
                     return (
                       <div key={idx} className="rounded-lg border p-2.5 space-y-2">
                         <div className="flex items-center gap-2">
