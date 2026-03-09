@@ -745,6 +745,15 @@ const SellerPrintView = () => {
               <Input type="number" min={1} value={shrinkForm.cantidad || ''} onChange={e => setShrinkForm(f => ({ ...f, cantidad: parseFloat(e.target.value) || 0 }))} />
             </div>
             <div>
+              <Label>Costo unitario ($)</Label>
+              <Input type="number" min={0} step="0.01" value={shrinkForm.costo_unitario || ''} onChange={e => setShrinkForm(f => ({ ...f, costo_unitario: parseFloat(e.target.value) || 0 }))} placeholder="Precio por unidad dañada" />
+            </div>
+            {shrinkForm.cantidad > 0 && shrinkForm.costo_unitario > 0 && (
+              <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm space-y-1">
+                <p className="font-medium text-destructive">Daño estimado: ${(shrinkForm.cantidad * shrinkForm.costo_unitario).toFixed(2)}</p>
+              </div>
+            )}
+            <div>
               <Label>Motivo</Label>
               <Input value={shrinkForm.motivo} onChange={e => setShrinkForm(f => ({ ...f, motivo: e.target.value }))} placeholder="Ej: Atasco en impresora" />
             </div>
