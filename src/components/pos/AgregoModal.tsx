@@ -9,16 +9,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
-import type { Product, Category } from '@/types/database';
+import { Loader2, Minus, Plus } from 'lucide-react';
+import type { Product, Category, AgregoSelection } from '@/types/database';
 
 interface AgregoModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   product: (Product & { category: Category | null }) | null;
-  onConfirm: (selectedAgregoIds: string[]) => void;
+  onConfirm: (agregoSelections: AgregoSelection[]) => void;
 }
 
 interface AgregoItem {
@@ -27,18 +25,17 @@ interface AgregoItem {
   quantity: number;
   unit: string;
   gramaje: number;
+  surcharge: number;
   ingredient?: { id: string; name: string; cost_price: number; unit_of_measure: string };
 }
 
 export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoModalProps) => {
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [counts, setCounts] = useState<Map<string, number>>(new Map());
 
-  // Fetch agregos for this product's active recipe
   const { data: agregos, isLoading } = useQuery({
     queryKey: ['product-agregos', product?.id],
     queryFn: async () => {
       if (!product?.id) return [];
-      // Get active recipe
       const { data: recipe } = await supabase
         .from('recipes')
         .select('id')
@@ -49,7 +46,7 @@ export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoMo
 
       const { data, error } = await supabase
         .from('recipe_ingredients')
-        .select('id, ingredient_id, quantity, unit, gramaje, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, cost_price, unit_of_measure)')
+        .select('id, ingredient_id, quantity, unit, gramaje, surcharge, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, cost_price, unit_of_measure)')
         .eq('recipe_id', recipe.id)
         .eq('ingredient_type', 'agrego');
       if (error) throw error;
@@ -59,20 +56,39 @@ export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoMo
   });
 
   useEffect(() => {
-    if (open) setSelected(new Set());
+    if (open) setCounts(new Map());
   }, [open]);
 
-  const toggleAgrego = (ingredientId: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(ingredientId)) next.delete(ingredientId);
-      else next.add(ingredientId);
+  const setCount = (ingredientId: string, delta: number) => {
+    setCounts((prev) => {
+      const next = new Map(prev);
+      const current = next.get(ingredientId) || 0;
+      const newVal = Math.max(0, current + delta);
+      if (newVal === 0) next.delete(ingredientId);
+      else next.set(ingredientId, newVal);
       return next;
     });
   };
 
+  const totalSurcharge = (agregos || []).reduce((sum, a) => {
+    const count = counts.get(a.ingredient_id) || 0;
+    return sum + (a.surcharge || 0) * count;
+  }, 0);
+
   const handleConfirm = () => {
-    onConfirm(Array.from(selected));
+    const selections: AgregoSelection[] = [];
+    counts.forEach((count, ingredientId) => {
+      const agrego = agregos?.find(a => a.ingredient_id === ingredientId);
+      if (agrego && count > 0) {
+        selections.push({
+          ingredientId,
+          name: agrego.ingredient?.name || 'Agrego',
+          surcharge: agrego.surcharge || 0,
+          count,
+        });
+      }
+    });
+    onConfirm(selections);
     onOpenChange(false);
   };
 
@@ -93,38 +109,59 @@ export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoMo
               No hay agregos configurados.
             </p>
           ) : (
-            agregos.map((agrego) => (
-              <div
-                key={agrego.id}
-                className="flex items-center gap-3 rounded-md border p-3 cursor-pointer hover:bg-muted/50"
-                onClick={() => toggleAgrego(agrego.ingredient_id)}
-              >
-                <Checkbox
-                  checked={selected.has(agrego.ingredient_id)}
-                  onCheckedChange={() => toggleAgrego(agrego.ingredient_id)}
-                />
-                <div className="flex-1 min-w-0">
-                  <Label className="text-sm font-medium cursor-pointer">
-                    {agrego.ingredient?.name || 'Ingrediente'}
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    {agrego.quantity > 0 ? `${agrego.quantity} ${agrego.unit} por unidad` : ''}
-                    {agrego.ingredient?.unit_of_measure && agrego.unit !== agrego.ingredient.unit_of_measure ? (
-                      <span className="text-muted-foreground/60"> (consume {agrego.gramaje} {agrego.ingredient.unit_of_measure})</span>
-                    ) : null}
-                  </p>
+            agregos.map((agrego) => {
+              const count = counts.get(agrego.ingredient_id) || 0;
+              return (
+                <div
+                  key={agrego.id}
+                  className="flex items-center gap-3 rounded-md border p-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium">
+                      {agrego.ingredient?.name || 'Ingrediente'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {agrego.surcharge > 0 ? `+$${agrego.surcharge.toFixed(2)} c/u` : 'Sin costo extra'}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setCount(agrego.ingredient_id, -1)}
+                      disabled={count === 0}
+                    >
+                      <Minus className="h-3 w-3" />
+                    </Button>
+                    <span className="w-6 text-center text-sm font-medium">{count}</span>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => setCount(agrego.ingredient_id, 1)}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
+
+        {totalSurcharge > 0 && (
+          <div className="text-sm font-medium text-right text-primary px-1">
+            +${totalSurcharge.toFixed(2)} por agregos
+          </div>
+        )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => { onConfirm([]); onOpenChange(false); }}>
             Sin agregos
           </Button>
           <Button onClick={handleConfirm}>
-            Confirmar {selected.size > 0 ? `(${selected.size})` : ''}
+            Confirmar {counts.size > 0 ? `(${Array.from(counts.values()).reduce((a, b) => a + b, 0)})` : ''}
           </Button>
         </DialogFooter>
       </DialogContent>

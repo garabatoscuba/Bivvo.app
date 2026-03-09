@@ -26,7 +26,7 @@ import {
   SheetContent,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import type { CartItem, Product, Category, PaymentType } from '@/types/database';
+import type { CartItem, Product, Category, PaymentType, AgregoSelection } from '@/types/database';
 import { cn } from '@/lib/utils';
 
 const POS = () => {
@@ -125,23 +125,31 @@ const POS = () => {
     return realStock - inCart;
   }, [getDisplayStock, getCartQuantity]);
 
-  const addToCart = useCallback((product: Product & { category: Category | null }, selectedAgregos?: string[]) => {
+  const addToCart = useCallback((product: Product & { category: Category | null }, agregoSelections?: AgregoSelection[]) => {
     const realStock = getDisplayStock(product.id);
 
+    // Build selectedAgregos (flat list of ingredient IDs, repeated for multiples) for stock deduction
+    const selectedAgregos = agregoSelections?.flatMap(a => Array(a.count).fill(a.ingredientId));
+    const agregoTotal = agregoSelections?.reduce((sum, a) => sum + a.surcharge * a.count, 0) || 0;
+
     setCart((prev) => {
-      const existing = prev.find((item) => item.product.id === product.id);
-      const currentQty = existing ? existing.quantity : 0;
+      // For elaborado products with agregos, always add as new line (different agrego combos)
+      const isElaborado = (product as any).tipo === 'elaborado';
+      const existing = isElaborado && agregoSelections?.length ? null : prev.find((item) => item.product.id === product.id);
+      const currentQty = prev.filter(i => i.product.id === product.id).reduce((s, i) => s + i.quantity, 0);
 
       if (currentQty >= realStock) return prev;
 
+      const basePrice = Number(product.sale_price);
+      const unitPriceWithAgregos = basePrice + agregoTotal;
+
       if (existing) {
         return prev.map((item) =>
-          item.product.id === product.id
+          item.product.id === product.id && item === existing
             ? {
                 ...item,
                 quantity: item.quantity + 1,
                 total: (item.quantity + 1) * item.unitPrice - item.discount,
-                selectedAgregos: selectedAgregos || item.selectedAgregos,
               }
             : item
         );
@@ -151,10 +159,12 @@ const POS = () => {
         {
           product,
           quantity: 1,
-          unitPrice: Number(product.sale_price),
+          unitPrice: unitPriceWithAgregos,
           discount: 0,
-          total: Number(product.sale_price),
+          total: unitPriceWithAgregos,
           selectedAgregos,
+          agregoSelections,
+          agregoTotal,
         },
       ];
     });
@@ -170,9 +180,9 @@ const POS = () => {
     }
   }, [addToCart]);
 
-  const handleAgregoConfirm = useCallback((selectedAgregos: string[]) => {
+  const handleAgregoConfirm = useCallback((agregoSelections: AgregoSelection[]) => {
     if (pendingAgregoProduct) {
-      addToCart(pendingAgregoProduct, selectedAgregos.length > 0 ? selectedAgregos : undefined);
+      addToCart(pendingAgregoProduct, agregoSelections.length > 0 ? agregoSelections : undefined);
       setPendingAgregoProduct(null);
     }
   }, [pendingAgregoProduct, addToCart]);

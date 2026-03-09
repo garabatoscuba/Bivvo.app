@@ -53,16 +53,29 @@ export const POSCart = ({
       {/* Items - vertical scroll only */}
       <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
         <div className="p-3 space-y-2">
-          {items.map((item) => (
-            <div key={item.product.id} className="rounded-lg border bg-card p-2.5 min-w-0">
+          {items.map((item, idx) => (
+            <div key={`${item.product.id}-${idx}`} className="rounded-lg border bg-card p-2.5 min-w-0">
               <div className="flex items-center gap-2 min-w-0">
                 <div className="flex-1 min-w-0 overflow-hidden">
                   <h4 className="font-medium text-sm leading-tight break-words line-clamp-2">
                     {item.product.name}
                   </h4>
                   <span className="text-xs text-muted-foreground">
-                    ${item.unitPrice.toFixed(2)} c/u
+                    ${Number(item.product.sale_price).toFixed(2)} c/u
+                    {item.agregoTotal && item.agregoTotal > 0 ? (
+                      <span className="text-primary"> +${item.agregoTotal.toFixed(2)} agregos</span>
+                    ) : null}
                   </span>
+                  {item.agregoSelections && item.agregoSelections.length > 0 && (
+                    <div className="text-[10px] text-muted-foreground mt-0.5">
+                      {item.agregoSelections.map((a, i) => (
+                        <span key={i}>
+                          {i > 0 ? ', ' : ''}
+                          {a.count > 1 ? `${a.count}× ` : ''}{a.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <Button
                   variant="ghost"

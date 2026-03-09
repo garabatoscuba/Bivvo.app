@@ -1,0 +1,1 @@
+ALTER TABLE public.recipe_ingredients ADD COLUMN IF NOT EXISTS surcharge numeric NOT NULL DEFAULT 0;
