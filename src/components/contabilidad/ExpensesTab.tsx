@@ -134,6 +134,87 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     },
   });
 
+  // ── Business type check for ink card ──
+  const { data: business } = useQuery({
+    queryKey: ["business-type", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("businesses")
+        .select("business_type")
+        .eq("id", businessId)
+        .single();
+      return data;
+    },
+  });
+
+  const isCopyShop = business?.business_type === "copy_shop";
+
+  // ── Ink usage data (only for copy shops) ──
+  const { data: inkUsage = [] } = useQuery({
+    queryKey: ["ink-usage-expenses", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("print_ink_usage")
+        .select("color, cantidad_consumida, costo_por_hoja, hojas_impresas, created_at, is_automatic")
+        .eq("business_id", businessId)
+        .order("created_at", { ascending: false });
+      return data || [];
+    },
+    enabled: isCopyShop,
+  });
+
+  const { data: inkInventory = [] } = useQuery({
+    queryKey: ["ink-inventory-expenses", businessId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("print_ink_inventory")
+        .select("color, cantidad, ubicacion, costo_total, created_at")
+        .eq("business_id", businessId);
+      return data || [];
+    },
+    enabled: isCopyShop,
+  });
+
+  const inkAnalysis = useMemo(() => {
+    if (!isCopyShop || inkUsage.length === 0) return null;
+    const colors = ["negro", "cian", "magenta", "amarillo"] as const;
+    const thirtyDaysAgo = subDays(new Date(), 30);
+    const now = new Date();
+
+    const autoUsages = inkUsage.filter((r: any) => r.is_automatic);
+    if (autoUsages.length === 0) return null;
+
+    const firstDate = new Date(autoUsages[autoUsages.length - 1]?.created_at || now);
+    const totalDays = Math.max(1, differenceInDays(now, firstDate));
+
+    // Total invested in ink
+    const totalInvested = inkInventory.reduce((s: number, r: any) => s + Math.max(0, Number(r.costo_total)), 0);
+
+    // Consumption per color
+    const colorData = colors.map(color => {
+      const colorUsage = inkUsage.filter((r: any) => r.color === color);
+      const totalConsumed = colorUsage.reduce((s: number, r: any) => s + Number(r.cantidad_consumida), 0);
+      const last30 = colorUsage
+        .filter((r: any) => new Date(r.created_at) >= thirtyDaysAgo)
+        .reduce((s: number, r: any) => s + Number(r.cantidad_consumida), 0);
+      const daysForAvg = Math.min(totalDays, 30);
+      const dailyAvg = daysForAvg > 0 ? last30 / daysForAvg : totalConsumed / totalDays;
+
+      // Stock in taller
+      const tallerCost = inkInventory
+        .filter((r: any) => r.color === color && r.ubicacion === "taller")
+        .reduce((s: number, r: any) => s + Number(r.costo_total), 0);
+      const remaining = Math.max(0, tallerCost - totalConsumed);
+      const daysRemaining = dailyAvg > 0 ? Math.floor(remaining / dailyAvg) : null;
+
+      return { color, totalConsumed, dailyAvg, remaining, daysRemaining };
+    });
+
+    const totalConsumed = colorData.reduce((s, c) => s + c.totalConsumed, 0);
+    const totalRemaining = colorData.reduce((s, c) => s + c.remaining, 0);
+
+    return { colorData, totalInvested, totalConsumed, totalRemaining };
+
   // ── Seed default fixed expenses (check all fixed for business, not filtered by branch) ──
   const [seeded, setSeeded] = useState(false);
   useEffect(() => {
