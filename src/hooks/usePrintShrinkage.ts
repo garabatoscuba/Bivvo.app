@@ -137,6 +137,8 @@ export const useRegisterPrintShrinkage = () => {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['raw-materials'] });
       qc.invalidateQueries({ queryKey: ['print-shrinkage'] });
+      qc.invalidateQueries({ queryKey: ['my-material-stock'] });
+      qc.invalidateQueries({ queryKey: ['employee-material-stock'] });
       toast({
         title: 'Merma registrada',
         description: 'La merma ha sido registrada y notificada al dueño',
