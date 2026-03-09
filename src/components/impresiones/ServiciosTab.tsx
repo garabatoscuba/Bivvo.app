@@ -21,6 +21,7 @@ const emptyForm = {
   precio_base: 0,
   admite_doble_cara: false,
   admite_color: false,
+  admite_full: false,
   material_id: '',
   consumo_por_unidad: 1,
   rendimiento_especial: null as any,
