@@ -63,7 +63,7 @@ const SellerPrintView = () => {
 
   // Open sheet modal state
   const [openSheetDialog, setOpenSheetDialog] = useState(false);
-  const [openSheetForm, setOpenSheetForm] = useState({ material_id: '', tramos_total: 4 });
+  const [openSheetForm, setOpenSheetForm] = useState({ material_id: '' });
 
   // Active cash register for this user
   const { data: activeCaja, isLoading: loadingCaja } = useQuery({
