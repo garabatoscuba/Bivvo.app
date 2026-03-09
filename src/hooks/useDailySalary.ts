@@ -186,7 +186,7 @@ export const useDailySalary = ({
     queryFn: async () => {
       const { data } = await supabase
         .from('employee_salary_assignments')
-        .select('*, salary_modalities(name, modality_type, config, presets, context)')
+        .select('*, salary_modalities(name, modality_type, config, presets, context, applies_to)')
         .eq('employee_id', employeeId!)
         .eq('is_active', true);
       return data || [];
