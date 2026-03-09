@@ -877,7 +877,7 @@ const SellerPrintView = () => {
                   }
                 );
               }}
-              disabled={!openSheetForm.material_id || openSheetMut.isPending || (getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0) < 1}
+              disabled={!openSheetForm.material_id || openSheetMut.isPending || getMyStock(openSheetForm.material_id) < 1}
             >
               {openSheetMut.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Abrir hoja
