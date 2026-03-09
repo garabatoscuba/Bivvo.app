@@ -139,6 +139,7 @@ const SellerPrintView = () => {
   const [isMixed, setIsMixed] = useState(false);
   const [mixedCash, setMixedCash] = useState('0');
   const [mixedTransfer, setMixedTransfer] = useState('0');
+  const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
 
   // ─── Shrinkage Modal ───────────────────────────────────────
   const [shrinkOpen, setShrinkOpen] = useState(false);
