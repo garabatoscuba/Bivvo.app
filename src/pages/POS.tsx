@@ -87,11 +87,23 @@ const POS = () => {
 
   const hasIngredients = products.some((p) => (p as any).tipo === 'ingrediente');
 
+  // Helper to get the real available stock (considering production capacity for elaborados)
+  const getDisplayStock = useCallback((productId: string) => {
+    const product = products.find(p => p.id === productId);
+    if (product && (product as any).tipo === 'elaborado') {
+      const capacity = productionCapacities?.[productId];
+      if (typeof capacity === 'number' && Number.isFinite(capacity)) {
+        return capacity;
+      }
+    }
+    return stockMap.get(productId) || 0;
+  }, [products, productionCapacities, stockMap]);
+
   const availableProducts = products.filter((p) => {
     if (p.status !== 'for_sale') return false;
     // Only filter out ingredients if the business uses them
     if (hasIngredients && (p as any).tipo === 'ingrediente') return false;
-    const stock = stockMap.get(p.id) || 0;
+    const stock = getDisplayStock(p.id);
     return stock > 0;
   });
 
