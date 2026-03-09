@@ -45,6 +45,13 @@ const POS = () => {
   const currentBranch = resolvedBranchId || jornada?.sucursal_id || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
 
+  // Get elaborado product IDs for production capacity calculation
+  const elaboradoIds = products
+    .filter(p => (p as any).tipo === 'elaborado')
+    .map(p => p.id);
+  
+  const { data: productionCapacities } = useProductionCapacities(elaboradoIds, currentBranch);
+
   // Check if the user has an open cash register
   const { data: openCashRegister } = useQuery({
     queryKey: ['pos-open-register', user?.id, currentBranch],
