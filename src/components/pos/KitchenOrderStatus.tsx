@@ -10,8 +10,9 @@ interface KitchenOrderStatusProps {
 
 const STATUS_DISPLAY: Record<string, { emoji: string; label: string; className: string }> = {
   recibido: { emoji: '🟡', label: 'En espera', className: 'bg-warning/15 text-warning' },
-  preparando: { emoji: '🔵', label: 'En preparación', className: 'bg-info/15 text-info' },
-  listo: { emoji: '🟢', label: 'Listo', className: 'bg-success/15 text-success' },
+  preparando: { emoji: '🔵', label: 'Preparando', className: 'bg-blue-500/15 text-blue-500' },
+  listo: { emoji: '🟢', label: 'Listo', className: 'bg-green-500/15 text-green-500' },
+  entregado: { emoji: '✅', label: 'Entregado', className: 'bg-muted text-muted-foreground' },
 };
 
 export const KitchenOrderStatus = ({ saleId, businessId }: KitchenOrderStatusProps) => {
