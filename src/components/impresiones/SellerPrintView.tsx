@@ -61,6 +61,33 @@ const SellerPrintView = () => {
   const closeSheetMut = useCloseSheet();
   const registerShrinkage = useRegisterPrintShrinkage();
 
+  // Count tramos used per active sheet (print_job_items since sheet opened)
+  const { data: tramoUsageMap = {} } = useQuery({
+    queryKey: ['tramo-usage', activeSheets.map((s: any) => s.id).join(',')],
+    queryFn: async () => {
+      if (activeSheets.length === 0) return {};
+      const map: Record<string, number> = {};
+      for (const sheet of activeSheets as any[]) {
+        const { data } = await supabase
+          .from('print_job_items')
+          .select('cantidad, job_id, print_jobs!inner(branch_id, created_at)')
+          .gte('print_jobs.created_at', sheet.created_at)
+          .eq('print_jobs.branch_id', branchId!);
+        // Filter items that use a service with this sheet's material and vende_por_tramos
+        const tramoServiceIds = activeServices
+          .filter((s: any) => s.vende_por_tramos && s.material_id === sheet.material_id)
+          .map((s: any) => s.id);
+        const total = (data || [])
+          .filter((item: any) => tramoServiceIds.includes(item.service_type_id))
+          .reduce((sum: number, item: any) => sum + Number(item.cantidad), 0);
+        map[sheet.id] = total;
+      }
+      return map;
+    },
+    enabled: activeSheets.length > 0 && !!branchId,
+    refetchInterval: 30000,
+  });
+
   // Open sheet modal state
   const [openSheetDialog, setOpenSheetDialog] = useState(false);
   const [openSheetForm, setOpenSheetForm] = useState({ material_id: '' });
@@ -407,14 +434,39 @@ const SellerPrintView = () => {
         </Card>
       ) : (
         <>
-          {/* Total del día */}
+          {/* Mi stock de insumos - moved up */}
           <Card>
-            <CardContent className="p-4 flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Total del día</p>
-                <p className="text-2xl font-bold">${todayTotal.toFixed(2)}</p>
-              </div>
-              <DollarSign className="h-8 w-8 text-primary opacity-50" />
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Mi stock de insumos</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {materials.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No tienes insumos asignados</p>
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  {materials.map((m: any) => {
+                    const isLow = m.stock_vendedor <= 0;
+                    // Find active sheet for tramo materials
+                    const matType = materialTypes.find((t: any) => t.id === m.material_type_id);
+                    const isTramo = matType?.permite_tramos === true;
+                    const sheet = isTramo ? (activeSheets as any[]).find((s: any) => s.material_id === m.id && s.status === 'activa') : null;
+                    const tramoCount = sheet ? (tramoUsageMap[(sheet as any).id] || 0) : 0;
+                    return (
+                      <div key={m.id} className={cn('flex items-center justify-between gap-2 rounded-lg border p-2', isLow && !isTramo && 'border-destructive bg-destructive/5')}>
+                        <div className="min-w-0">
+                          <p className="text-xs font-medium truncate">{m.name}</p>
+                          {isTramo && sheet && (
+                            <p className="text-[10px] text-muted-foreground">{tramoCount} tramo{tramoCount !== 1 ? 's' : ''} usados</p>
+                          )}
+                        </div>
+                        <Badge variant={isLow && !isTramo ? 'destructive' : 'secondary'} className="shrink-0 text-xs">
+                          {isTramo && sheet ? `🗎 ${tramoCount}` : m.stock_vendedor}
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -650,33 +702,6 @@ const SellerPrintView = () => {
             </CardContent>
           </Card>
 
-          {/* Stock de insumos colapsado */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Mi stock de insumos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {materials.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No tienes insumos asignados</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {materials.map((m: any) => {
-                    const isLow = m.stock_vendedor <= 0;
-                    return (
-                      <div key={m.id} className={cn('flex items-center justify-between gap-2 rounded-lg border p-2', isLow && 'border-destructive bg-destructive/5')}>
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium truncate">{m.name}</p>
-                        </div>
-                        <Badge variant={isLow ? 'destructive' : 'secondary'} className="shrink-0 text-xs">
-                          {m.stock_vendedor}
-                        </Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
           {/* Action buttons */}
           <div className="grid grid-cols-2 gap-3">

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
   ShoppingCart, Wrench, Package, DollarSign, Clock, TrendingUp,
-  LogOut, Trophy, AlertTriangle, Sun, AlertCircle, ThumbsUp,
+  LogOut, Trophy, AlertTriangle, Sun, AlertCircle, ThumbsUp, Printer,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -188,15 +188,13 @@ const MyEmploymentDashboard = ({
     return prev.length > 0 ? sum / prev.length : 0;
   }, [weekSales]);
 
-  const todayTotal = dailySalary.todayBranchSalesTotal + dailySalary.todayBranchServiceTotal;
+  const todayTotal = dailySalary.todayBranchSalesTotal + dailySalary.todayBranchServiceTotal + (dailySalary.todayPrintTotal || 0);
   const progressPct = weekAvg > 0 ? Math.min(100, Math.round((todayTotal / weekAvg) * 100)) : (todayTotal > 0 ? 100 : 0);
 
-  // Include print_jobs in pie data if available
-  const hasPrintIncome = (dailySalary as any).todayPrintTotal > 0;
   const pieData = [
     { name: 'Productos', value: dailySalary.todayBranchSalesTotal, fill: 'hsl(var(--primary))' },
     { name: 'Servicios', value: dailySalary.todayBranchServiceTotal, fill: 'hsl(var(--accent))' },
-    ...((dailySalary as any).todayPrintTotal > 0 ? [{ name: 'Impresiones', value: (dailySalary as any).todayPrintTotal, fill: 'hsl(var(--chart-3))' }] : []),
+    ...(dailySalary.todayPrintTotal > 0 ? [{ name: 'Impresiones', value: dailySalary.todayPrintTotal, fill: 'hsl(var(--chart-3))' }] : []),
   ].filter(d => d.value > 0);
 
   if (!jornadaActiva) {
@@ -283,7 +281,7 @@ const MyEmploymentDashboard = ({
               <ShoppingCart className="h-3 w-3" /> Ventas del día
             </p>
             <p className="text-xl font-bold">${todayTotal.toLocaleString('es', { minimumFractionDigits: 2 })}</p>
-            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
+            <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground flex-wrap">
               <span className="flex items-center gap-0.5">
                 <Package className="h-2.5 w-2.5" />
                 ${dailySalary.todayBranchSalesTotal.toFixed(0)}
@@ -292,6 +290,12 @@ const MyEmploymentDashboard = ({
                 <Wrench className="h-2.5 w-2.5" />
                 ${dailySalary.todayBranchServiceTotal.toFixed(0)}
               </span>
+              {dailySalary.todayPrintTotal > 0 && (
+                <span className="flex items-center gap-0.5">
+                  <Printer className="h-2.5 w-2.5" />
+                  ${dailySalary.todayPrintTotal.toFixed(0)}
+                </span>
+              )}
             </div>
           </CardContent>
         </Card>

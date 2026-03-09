@@ -16,6 +16,7 @@ export interface DailySalaryBreakdown {
   todayBranchSalesTotal: number;
   todaySalesTotal: number;
   todayServiceTotal: number;
+  todayPrintTotal: number;
   displayPercent: number;
   hasAssignment: boolean;
   modalityName: string;
@@ -453,6 +454,7 @@ export const useDailySalary = ({
       todayBranchSalesTotal,
       todaySalesTotal,
       todayServiceTotal,
+      todayPrintTotal,
       displayPercent,
       hasAssignment: mySalaryAssignments.length > 0,
       modalityName,
