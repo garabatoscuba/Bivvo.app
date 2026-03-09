@@ -63,7 +63,7 @@ const SellerPrintView = () => {
 
   // Open sheet modal state
   const [openSheetDialog, setOpenSheetDialog] = useState(false);
-  const [openSheetForm, setOpenSheetForm] = useState({ material_id: '', tramos_total: 4 });
+  const [openSheetForm, setOpenSheetForm] = useState({ material_id: '' });
 
   // Active cash register for this user
   const { data: activeCaja, isLoading: loadingCaja } = useQuery({
@@ -194,18 +194,7 @@ const SellerPrintView = () => {
     return issues;
   }, [materialConsumption, activeSheets, materials]);
 
-  // Tramo info chips
-  const tramoInfo = useMemo(() => {
-    const info: { name: string; remaining: number }[] = [];
-    materialConsumption.forEach(([matId, mc]) => {
-      if (!mc.isTramo) return;
-      const sheet = activeSheets.find((s: any) => s.material_id === matId && s.status === 'activa');
-      if (sheet) {
-        info.push({ name: mc.name, remaining: Math.max(0, (sheet as any).tramos_total - (sheet as any).tramos_usados) });
-      }
-    });
-    return info;
-  }, [materialConsumption, activeSheets]);
+  // (tramoInfo removed - no longer tracking tramos)
 
   // Payment helpers
   const paymentOptions: { value: PaymentMethod; label: string; Icon: React.ElementType }[] = [
@@ -519,14 +508,29 @@ const SellerPrintView = () => {
                     );
                   })}
 
-                  {/* Tramo info chips */}
-                  {tramoInfo.length > 0 && (
+                  {/* Active sheets with close button */}
+                  {activeSheets.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
-                      {tramoInfo.map(t => (
-                        <Badge key={t.name} variant="outline" className="text-xs">
-                          {t.name}: {t.remaining} tramos disponibles
-                        </Badge>
-                      ))}
+                      {activeSheets.map((sheet: any) => {
+                        const mat = getMaterial(sheet.material_id);
+                        if (!mat) return null;
+                        return (
+                          <div key={sheet.id} className="flex items-center gap-1.5 rounded-md border px-2 py-1">
+                            <Badge variant="outline" className="text-xs">
+                              📄 {mat.name}: Activa
+                            </Badge>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-5 px-1.5 text-[10px] text-destructive hover:text-destructive"
+                              onClick={() => closeSheetMut.mutate(sheet.id)}
+                              disabled={closeSheetMut.isPending}
+                            >
+                              Marcar usada
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -544,7 +548,7 @@ const SellerPrintView = () => {
                             variant="outline"
                             className="w-full text-xs"
                             onClick={() => {
-                              setOpenSheetForm({ material_id: issue.materialId, tramos_total: 4 });
+                              setOpenSheetForm({ material_id: issue.materialId });
                               setOpenSheetDialog(true);
                             }}
                           >
@@ -820,21 +824,12 @@ const SellerPrintView = () => {
               <Label>Insumo</Label>
               <Input value={getMaterial(openSheetForm.material_id)?.name || ''} disabled className="bg-muted" />
             </div>
-            <div>
-              <Label>¿Cuántos tramos tiene esta hoja?</Label>
-              <Input
-                type="number"
-                min={1}
-                value={openSheetForm.tramos_total}
-                onChange={e => setOpenSheetForm(f => ({ ...f, tramos_total: parseInt(e.target.value) || 1 }))}
-              />
-              <p className="text-xs text-muted-foreground mt-1">Se descontará 1 unidad de tu stock de vendedor.</p>
-              {openSheetForm.material_id && (
-                <p className="text-xs text-muted-foreground">
-                  Stock disponible: {getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0}
-                </p>
-              )}
-            </div>
+            <p className="text-xs text-muted-foreground">Se descontará 1 unidad de tu stock de vendedor.</p>
+            {openSheetForm.material_id && (
+              <p className="text-xs text-muted-foreground">
+                Stock disponible: {getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0}
+              </p>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpenSheetDialog(false)}>Cancelar</Button>
@@ -842,17 +837,17 @@ const SellerPrintView = () => {
               onClick={() => {
                 if (!profile?.user_id) return;
                 openSheetMut.mutate(
-                  { material_id: openSheetForm.material_id, tramos_total: openSheetForm.tramos_total, user_id: profile.user_id },
+                  { material_id: openSheetForm.material_id, user_id: profile.user_id },
                   {
                     onSuccess: () => {
                       setOpenSheetDialog(false);
-                      setOpenSheetForm({ material_id: '', tramos_total: 4 });
+                      setOpenSheetForm({ material_id: '' });
                       queryClient.invalidateQueries({ queryKey: ['print-active-sheets'] });
                     },
                   }
                 );
               }}
-              disabled={!openSheetForm.material_id || openSheetForm.tramos_total < 1 || openSheetMut.isPending || (getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0) < 1}
+              disabled={!openSheetForm.material_id || openSheetMut.isPending || (getMaterial(openSheetForm.material_id)?.stock_vendedor ?? 0) < 1}
             >
               {openSheetMut.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
               Abrir hoja
