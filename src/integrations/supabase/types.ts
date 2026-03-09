@@ -5038,6 +5038,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      convert_recipe_units: {
+        Args: { _from_unit: string; _qty: number; _to_unit: string }
+        Returns: number
+      }
       generate_product_code: { Args: { _business_id: string }; Returns: string }
       generate_sale_number: { Args: { _branch_id: string }; Returns: string }
       generate_slug: { Args: { input: string }; Returns: string }
