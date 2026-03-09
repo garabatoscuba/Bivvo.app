@@ -338,7 +338,7 @@ export const useSales = (branchId?: string | null) => {
         return onlineResult;
       } catch (err: any) {
         
-        alert('Paso 4: guardando offline (fallback)');
+        
         const offlineResult = await saveOffline();
         alert('Paso 5: offline guardado OK');
         return offlineResult;
