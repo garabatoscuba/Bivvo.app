@@ -33,7 +33,8 @@ export const useRegisterPrintShrinkage = () => {
 
       if (matError) throw matError;
 
-      const valor_perdido = params.cantidad * (material?.costo_unitario || 0);
+      const costoFinal = params.costo_unitario ?? material?.costo_unitario ?? 0;
+      const valor_perdido = params.cantidad * costoFinal;
 
       // 2. Get employee's merma_descuento_pct
       const { data: employee, error: empError } = await supabase

@@ -316,6 +316,7 @@ const SellerPrintView = () => {
       {
         material_id: shrinkForm.material_id,
         cantidad: shrinkForm.cantidad,
+        costo_unitario: shrinkForm.costo_unitario,
         motivo: shrinkForm.motivo || 'Sin especificar',
         nota: shrinkForm.nota,
       },
