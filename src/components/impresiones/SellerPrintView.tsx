@@ -702,33 +702,6 @@ const SellerPrintView = () => {
             </CardContent>
           </Card>
 
-          {/* Stock de insumos colapsado */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">Mi stock de insumos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {materials.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No tienes insumos asignados</p>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                  {materials.map((m: any) => {
-                    const isLow = m.stock_vendedor <= 0;
-                    return (
-                      <div key={m.id} className={cn('flex items-center justify-between gap-2 rounded-lg border p-2', isLow && 'border-destructive bg-destructive/5')}>
-                        <div className="min-w-0">
-                          <p className="text-xs font-medium truncate">{m.name}</p>
-                        </div>
-                        <Badge variant={isLow ? 'destructive' : 'secondary'} className="shrink-0 text-xs">
-                          {m.stock_vendedor}
-                        </Badge>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </CardContent>
-          </Card>
 
           {/* Action buttons */}
           <div className="grid grid-cols-2 gap-3">
