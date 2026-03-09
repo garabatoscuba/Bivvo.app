@@ -204,14 +204,14 @@ const SellerPrintView = () => {
       if (!mat) return;
       const svc = activeServices.find((s: any) => s.id === it.service_type_id);
       const isTramo = !!svc?.vende_por_tramos;
-      const existing = map.get(it.material_id) || { name: mat.name, needed: 0, available: mat.stock_vendedor, isTramo };
-      // If any service using this material is tramo, mark it
+      const myStock = getMyStock(it.material_id);
+      const existing = map.get(it.material_id) || { name: mat.name, needed: 0, available: myStock, isTramo };
       if (isTramo) existing.isTramo = true;
       existing.needed += it.material_consumed;
       map.set(it.material_id, existing);
     });
     return Array.from(map.entries());
-  }, [jobItems, materials, activeServices]);
+  }, [jobItems, materials, activeServices, myStocks]);
 
   const hasStockIssue = materialConsumption.some(([, v]) => v.needed > v.available && !v.isTramo);
 
