@@ -197,7 +197,7 @@ const SellerPrintView = () => {
 
   const removeJobItem = (idx: number) => setJobItems(prev => prev.filter((_, i) => i !== idx));
 
-  const jobTotal = useMemo(() => jobItems.reduce((s, it) => s + it.precio_cobrado * it.cantidad, 0), [jobItems]);
+  const jobTotal = useMemo(() => jobItems.reduce((s, it) => s + (Number(it.precio_cobrado) || 0) * it.cantidad, 0), [jobItems]);
 
   const materialConsumption = useMemo(() => {
     const map = new Map<string, { name: string; needed: number; available: number; isTramo: boolean }>();
