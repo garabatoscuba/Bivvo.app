@@ -318,19 +318,29 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                   <p className="text-sm text-muted-foreground">Sin agregos configurados.</p>
                 ) : (
                   <div className="space-y-1.5">
-                    {agregoIngredients.map((ri) => (
-                      <div key={ri.id} className="flex items-center justify-between rounded-md border border-dashed p-2">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium truncate">{ri.ingredient?.name || 'Desconocido'}</p>
-                          <p className="text-xs text-muted-foreground">
-                            Gramaje: {ri.gramaje} por unidad vendida
-                          </p>
+                    {agregoIngredients.map((ri) => {
+                      const cost = calcCostForIngredient(ri);
+                      const purchaseUnit = ri.ingredient?.unit_of_measure || 'pieza';
+                      const showConversion = ri.unit && ri.unit !== purchaseUnit && getUnitCategory(ri.unit) !== 'unit';
+                      return (
+                        <div key={ri.id} className="flex items-center justify-between rounded-md border border-dashed p-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate">{ri.ingredient?.name || 'Desconocido'}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {ri.quantity} {ri.unit} por unidad vendida
+                              {showConversion && (
+                                <span className="text-muted-foreground/60"> (consume {ri.gramaje} {purchaseUnit})</span>
+                              )}
+                              {' · '}
+                              <span className="font-medium text-foreground">${cost.toFixed(2)}</span>
+                            </p>
+                          </div>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => removeIngredient.mutate(ri.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
                         </div>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive flex-shrink-0" onClick={() => removeIngredient.mutate(ri.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
