@@ -2245,7 +2245,10 @@ export type Database = {
           created_at: string
           id: string
           items: Json
+          notes: string | null
+          priority: string | null
           sale_id: string | null
+          sale_number: string | null
           status: string
           updated_at: string
         }
@@ -2255,7 +2258,10 @@ export type Database = {
           created_at?: string
           id?: string
           items?: Json
+          notes?: string | null
+          priority?: string | null
           sale_id?: string | null
+          sale_number?: string | null
           status?: string
           updated_at?: string
         }
@@ -2265,7 +2271,10 @@ export type Database = {
           created_at?: string
           id?: string
           items?: Json
+          notes?: string | null
+          priority?: string | null
           sale_id?: string | null
+          sale_number?: string | null
           status?: string
           updated_at?: string
         }
