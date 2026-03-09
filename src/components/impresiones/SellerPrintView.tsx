@@ -756,8 +756,8 @@ const SellerPrintView = () => {
               }}>
                 <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                 <SelectContent>
-                  {materials.filter((m: any) => m.stock_vendedor > 0).map((m: any) => (
-                    <SelectItem key={m.id} value={m.id}>{m.name} (Stock: {m.stock_vendedor})</SelectItem>
+                  {materials.filter((m: any) => getMyStock(m.id) > 0).map((m: any) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name} (Stock: {getMyStock(m.id)})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
