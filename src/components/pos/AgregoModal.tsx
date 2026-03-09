@@ -49,7 +49,7 @@ export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoMo
 
       const { data, error } = await supabase
         .from('recipe_ingredients')
-        .select('id, ingredient_id, gramaje, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, cost_price)')
+        .select('id, ingredient_id, quantity, unit, gramaje, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, cost_price, unit_of_measure)')
         .eq('recipe_id', recipe.id)
         .eq('ingredient_type', 'agrego');
       if (error) throw error;
