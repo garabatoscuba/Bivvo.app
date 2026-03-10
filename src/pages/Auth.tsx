@@ -12,6 +12,7 @@ import { useTheme } from "next-themes";
 import { z } from "zod";
 import logoLight from "@/assets/logo-light.png";
 import logoDark from "@/assets/logo-dark.png";
+import WhatIsBivooPanel from "@/components/auth/WhatIsBivooPanel";
 
 const emailSchema = z.string().email("Email inválido");
 const passwordSchema = z.string().min(6, "La contraseña debe tener al menos 6 caracteres");
