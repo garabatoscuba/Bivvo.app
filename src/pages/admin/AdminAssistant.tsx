@@ -599,9 +599,9 @@ function ModuleInstructionsTab() {
 
   const openNewQ = (moduleKey: string) => {
     const qKey = MODULE_QUESTION_KEYS[moduleKey] || moduleKey;
-    setEditingQ(null); setQText(''); setQModule(qKey); setQDialog(true);
+    setEditingQ(null); setQText(''); setQAnswer(''); setQModule(qKey); setQDialog(true);
   };
-  const openEditQ = (q: any) => { setEditingQ(q); setQText(q.question); setQModule(q.module_key); setQDialog(true); };
+  const openEditQ = (q: any) => { setEditingQ(q); setQText(q.question); setQAnswer(q.answer || ''); setQModule(q.module_key); setQDialog(true); };
 
   if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
