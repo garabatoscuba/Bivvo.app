@@ -736,8 +736,8 @@ function GeneralQuestionsTab() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-general-questions'] }); qc.invalidateQueries({ queryKey: ['assistant-quick-questions'] }); setDeleteTarget(null); toast({ title: 'Pregunta eliminada' }); },
   });
 
-  const openNew = () => { setEditing(null); setQText(''); setDialog(true); };
-  const openEdit = (q: any) => { setEditing(q); setQText(q.question); setDialog(true); };
+  const openNew = () => { setEditing(null); setQText(''); setQAnswer(''); setDialog(true); };
+  const openEdit = (q: any) => { setEditing(q); setQText(q.question); setQAnswer(q.answer || ''); setDialog(true); };
 
   if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
