@@ -150,7 +150,7 @@ const BusinessDetailSheet = ({ businessId, onClose, onEdit, onDeactivate }: Busi
 
       // Employees
       const employees = employeesRes.data || [];
-      const activeEmployees = employees.filter(e => (e as any).status !== 'inactive').length;
+      const activeEmployees = employees.length;
 
       // Modules
       const bizTypeConfig = (bizTypeRes.data || []).find(c => c.key === biz.business_type);
