@@ -938,6 +938,11 @@ const Employees = () => {
                                           <Button variant="ghost" size="icon" onClick={() => setPerfEmployee(emp)} title="Evaluación">
                                             <Activity className="h-4 w-4" />
                                           </Button>
+                                          {canManage && (
+                                            <Button variant="ghost" size="icon" onClick={() => setQrEmployee(emp)} title="QR de asistencia">
+                                              <QrCode className="h-4 w-4" />
+                                            </Button>
+                                          )}
                                           <Button variant="ghost" size="icon" onClick={() => openEditEmployee(emp)}>
                                             <Pencil className="h-4 w-4" />
                                           </Button>
