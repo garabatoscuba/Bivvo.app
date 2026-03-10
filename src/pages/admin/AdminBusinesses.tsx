@@ -547,6 +547,17 @@ const AdminBusinesses = () => {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        <BusinessDetailSheet
+          businessId={detailBizId}
+          onClose={() => setDetailBizId(null)}
+          onEdit={(biz) => { setDetailBizId(null); openEditBiz(biz); }}
+          onDeactivate={async (id, isActive) => {
+            await supabase.from('businesses').update({ is_active: !isActive } as any).eq('id', id);
+            queryClient.invalidateQueries({ queryKey: ['admin-businesses-page'] });
+            queryClient.invalidateQueries({ queryKey: ['admin-biz-detail', id] });
+            toast({ title: isActive ? 'Negocio desactivado' : 'Negocio activado' });
+          }}
+        />
       </div>
     </AppLayout>
   );
