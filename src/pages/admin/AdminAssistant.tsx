@@ -710,6 +710,7 @@ function GeneralQuestionsTab() {
   const [dialog, setDialog] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [qText, setQText] = useState('');
+  const [qAnswer, setQAnswer] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
   const saveMutation = useMutation({
