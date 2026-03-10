@@ -167,8 +167,9 @@ Deno.serve(async (req) => {
           .join("\n");
     }
 
-    /* ── Read per-module instructions ── */
+    /* ── Read per-module instructions + quick questions ── */
     let moduleInstructionsBlock = "";
+    let quickQuestionsBlock = "";
     if (active_module) {
       // Map route to module_key (handle route variations)
       const routeToKey: Record<string, string> = {
@@ -181,15 +182,48 @@ Deno.serve(async (req) => {
         "mi-red": "mi_red", "partner-dashboard": "mi_red",
       };
       const moduleKey = routeToKey[active_module] || active_module;
-      const { data: modInstr } = await supabase
-        .from("assistant_module_instructions")
-        .select("instructions")
-        .eq("module_key", moduleKey)
-        .limit(1)
-        .single();
-      if (modInstr?.instructions?.trim()) {
-        moduleInstructionsBlock = `\n\nINSTRUCCIONES DEL MÓDULO (${moduleKey}):\n${modInstr.instructions.slice(0, 800)}`;
+      const [modInstrRes, quickQRes] = await Promise.all([
+        supabase
+          .from("assistant_module_instructions")
+          .select("instructions")
+          .eq("module_key", moduleKey)
+          .limit(1)
+          .single(),
+        supabase
+          .from("assistant_quick_questions")
+          .select("question, answer")
+          .eq("module_key", moduleKey)
+          .eq("is_active", true)
+          .order("sort_order", { ascending: true })
+          .limit(10),
+      ]);
+      if (modInstrRes.data?.instructions?.trim()) {
+        moduleInstructionsBlock = `\n\nINSTRUCCIONES DEL MÓDULO (${moduleKey}):\n${modInstrRes.data.instructions.slice(0, 800)}`;
       }
+      const qqWithAnswers = (quickQRes.data || []).filter((q: any) => q.answer?.trim());
+      if (qqWithAnswers.length > 0) {
+        quickQuestionsBlock = "\n\nPREGUNTAS FRECUENTES DEL MÓDULO:\n" +
+          qqWithAnswers.map((q: any, i: number) =>
+            `${i + 1}. P: "${q.question}"\n   R: "${q.answer}"`
+          ).join("\n");
+      }
+    }
+
+    // Also load general quick questions with answers (no module_key)
+    const { data: generalQQ } = await supabase
+      .from("assistant_quick_questions")
+      .select("question, answer")
+      .is("module_key", null)
+      .eq("is_active", true)
+      .order("sort_order", { ascending: true })
+      .limit(10);
+    const generalQQWithAnswers = (generalQQ || []).filter((q: any) => q.answer?.trim());
+    let generalQQBlock = "";
+    if (generalQQWithAnswers.length > 0) {
+      generalQQBlock = "\n\nPREGUNTAS FRECUENTES GENERALES:\n" +
+        generalQQWithAnswers.map((q: any, i: number) =>
+          `${i + 1}. P: "${q.question}"\n   R: "${q.answer}"`
+        ).join("\n");
     }
 
     /* ── Fetch real-time module context ── */
