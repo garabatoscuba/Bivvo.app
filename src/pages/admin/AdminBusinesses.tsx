@@ -106,6 +106,7 @@ const AdminBusinesses = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkAction, setBulkAction] = useState<'deactivate' | 'delete' | null>(null);
   const [bulkConfirmText, setBulkConfirmText] = useState('');
+  const [detailBizId, setDetailBizId] = useState<string | null>(null);
 
   // Business filters
   const [bizSearch, setBizSearch] = useState('');
