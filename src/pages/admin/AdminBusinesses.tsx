@@ -116,20 +116,16 @@ const AdminBusinesses = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['admin-businesses-page'],
     queryFn: async () => {
-      const [businesses, profiles, products, branches, planRequests, businessRequests] = await Promise.all([
+      const [businesses, profiles, products, branches] = await Promise.all([
         supabase.from('businesses').select('*, is_active').order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, full_name, email, business_id, user_id, plan_type'),
         supabase.from('products').select('id, business_id'),
         supabase.from('branches').select('id, business_id, name, is_main, address, phone'),
-        supabase.from('plan_requests').select('*').order('created_at', { ascending: false }),
-        supabase.from('business_requests').select('*').order('created_at', { ascending: false }),
       ]);
 
       const allProfiles = profiles.data || [];
       const allProducts = products.data || [];
       const allBranches = branches.data || [];
-      const allPlanRequests = planRequests.data || [];
-      const allBusinessRequests = businessRequests.data || [];
 
       const enriched = (businesses.data || []).map(b => {
         const owner = allProfiles.find(p => p.id === (b.owner_id ?? ''));
@@ -143,18 +139,7 @@ const AdminBusinesses = () => {
         };
       });
 
-      const enrichReqs = (reqs: any[]) => reqs.map((r: any) => {
-        const prof = allProfiles.find(p => (p as any).user_id === r.user_id);
-        return { ...r, user_name: prof?.full_name || 'Desconocido', user_email: prof?.email || '' };
-      });
-
-      return {
-        businesses: enriched,
-        planRequests: enrichReqs(allPlanRequests),
-        pendingRequests: enrichReqs(allPlanRequests).filter((r: any) => r.status === 'pending'),
-        businessRequests: enrichReqs(allBusinessRequests),
-        pendingBizRequests: enrichReqs(allBusinessRequests).filter((r: any) => r.status === 'pending'),
-      };
+      return { businesses: enriched };
     },
   });
 
