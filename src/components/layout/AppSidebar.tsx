@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link, useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -329,10 +329,36 @@ const AppSidebar = () => {
     setBranchDialogOpen(true);
   };
 
+  // Realtime pending requests count for sidebar badge
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+
+    const fetchCount = async () => {
+      const [planRes, bizRes] = await Promise.all([
+        supabase.from('plan_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('business_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      ]);
+      setPendingRequestsCount((planRes.count || 0) + (bizRes.count || 0));
+    };
+
+    fetchCount();
+
+    const channel = supabase
+      .channel('admin-requests-badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_requests' }, () => fetchCount())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_requests' }, () => fetchCount())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isSuperAdmin]);
+
   const superAdminItems = [
     { title: "Resumen", url: "/admin", icon: Shield },
     { title: "Usuarios", url: "/admin/users", icon: Users },
     { title: "Negocios", url: "/admin/businesses", icon: Store },
+    { title: "Solicitudes", url: "/admin/requests", icon: FileText, badge: pendingRequestsCount },
     { title: "Ofertas", url: "/admin/offers", icon: Tag },
     { title: "Módulos y Plugins", url: "/admin/modules", icon: Settings2 },
     { title: "Partners", url: "/admin/partners", icon: Network },
@@ -535,6 +561,11 @@ const AppSidebar = () => {
                       <Link to={item.url}>
                         <item.icon className="h-4 w-4" />
                         <span className="text-sm">{item.title}</span>
+                        {'badge' in item && (item as any).badge > 0 && (
+                          <Badge variant="destructive" className="ml-auto h-4 min-w-4 px-1 text-[10px] leading-none">
+                            {(item as any).badge}
+                          </Badge>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>

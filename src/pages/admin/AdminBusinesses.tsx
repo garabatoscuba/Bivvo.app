@@ -6,10 +6,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+// Tabs removed — solicitudes moved to /admin/requests
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription,
 } from '@/components/ui/dialog';
@@ -21,7 +22,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Store, Search, Loader2, Building2, Settings, Trash2, FileText, Check, X,
+  Store, Search, Loader2, Building2, Settings, Trash2, Check, X,
   Pencil, MapPin, ArrowUp, ArrowDown, ArrowUpDown, Ban, CheckCircle2,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -111,34 +112,20 @@ const AdminBusinesses = () => {
   const [bizFilterPlan, setBizFilterPlan] = useState('all');
   const bizSort = useSortToggle<string>('created_at');
 
-  // Plan request filters
-  const [reqSearch, setReqSearch] = useState('');
-  const [reqFilterStatus, setReqFilterStatus] = useState('all');
-  const reqSort = useSortToggle<string>('created_at');
-
-  // Business request filters
-  const [bizReqSearch, setBizReqSearch] = useState('');
-  const [bizReqFilterStatus, setBizReqFilterStatus] = useState('all');
-  const [bizReqFilterType, setBizReqFilterType] = useState('all');
-  const bizReqSort = useSortToggle<string>('created_at');
-
+  // (Plan/biz request filters removed — moved to AdminRequests)
   const { data, isLoading } = useQuery({
     queryKey: ['admin-businesses-page'],
     queryFn: async () => {
-      const [businesses, profiles, products, branches, planRequests, businessRequests] = await Promise.all([
+      const [businesses, profiles, products, branches] = await Promise.all([
         supabase.from('businesses').select('*, is_active').order('created_at', { ascending: false }),
         supabase.from('profiles').select('id, full_name, email, business_id, user_id, plan_type'),
         supabase.from('products').select('id, business_id'),
         supabase.from('branches').select('id, business_id, name, is_main, address, phone'),
-        supabase.from('plan_requests').select('*').order('created_at', { ascending: false }),
-        supabase.from('business_requests').select('*').order('created_at', { ascending: false }),
       ]);
 
       const allProfiles = profiles.data || [];
       const allProducts = products.data || [];
       const allBranches = branches.data || [];
-      const allPlanRequests = planRequests.data || [];
-      const allBusinessRequests = businessRequests.data || [];
 
       const enriched = (businesses.data || []).map(b => {
         const owner = allProfiles.find(p => p.id === (b.owner_id ?? ''));
@@ -152,18 +139,7 @@ const AdminBusinesses = () => {
         };
       });
 
-      const enrichReqs = (reqs: any[]) => reqs.map((r: any) => {
-        const prof = allProfiles.find(p => (p as any).user_id === r.user_id);
-        return { ...r, user_name: prof?.full_name || 'Desconocido', user_email: prof?.email || '' };
-      });
-
-      return {
-        businesses: enriched,
-        planRequests: enrichReqs(allPlanRequests),
-        pendingRequests: enrichReqs(allPlanRequests).filter((r: any) => r.status === 'pending'),
-        businessRequests: enrichReqs(allBusinessRequests),
-        pendingBizRequests: enrichReqs(allBusinessRequests).filter((r: any) => r.status === 'pending'),
-      };
+      return { businesses: enriched };
     },
   });
 
@@ -214,37 +190,6 @@ const AdminBusinesses = () => {
     },
   });
 
-  const approveMutation = useMutation({
-    mutationFn: async ({ requestId, action, customEndDate }: { requestId: string; action: 'approved' | 'rejected'; customEndDate?: string }) => {
-      const request = data?.planRequests?.find((r: any) => r.id === requestId);
-      if (!request) throw new Error('Solicitud no encontrada');
-      const updates: any = { status: action, approved_at: new Date().toISOString() };
-      if (customEndDate) updates.custom_end_date = customEndDate;
-      const { error: reqError } = await supabase.from('plan_requests').update(updates).eq('id', requestId);
-      if (reqError) throw reqError;
-      if (action === 'approved') {
-        const endDate = customEndDate ? new Date(customEndDate) : new Date(Date.now() + (request as any).months * 30 * 24 * 60 * 60 * 1000);
-        const { error: profError } = await supabase.from('profiles').update({
-          plan_type: (request as any).plan_type, subscription_status: 'active',
-          subscription_ends_at: endDate.toISOString(), trial_ends_at: null,
-        }).eq('user_id', (request as any).user_id);
-        if (profError) throw profError;
-      }
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-businesses-page'] }); toast({ title: 'Solicitud procesada' }); },
-    onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); },
-  });
-
-  const approveBizRequestMutation = useMutation({
-    mutationFn: async ({ requestId, action }: { requestId: string; action: 'approved' | 'rejected' }) => {
-      const { data, error } = await supabase.functions.invoke('approve-business-request', { body: { request_id: requestId, action } });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-businesses-page'] }); toast({ title: 'Solicitud procesada' }); },
-    onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); },
-  });
-
   const openEditBiz = async (biz: any) => {
     setEditBiz(biz);
     setEditName(biz.name);
@@ -281,12 +226,6 @@ const AdminBusinesses = () => {
     return 'Gratuito';
   };
 
-  const statusBadge = (status: string) => (
-    <Badge variant={status === 'approved' ? 'default' : status === 'rejected' ? 'destructive' : 'secondary'} className="text-[11px]">
-      {status === 'approved' ? 'Aprobado' : status === 'rejected' ? 'Rechazado' : 'Pendiente'}
-    </Badge>
-  );
-
   const filteredBiz = useMemo(() => {
     let list = data?.businesses || [];
     const q = bizSearch.toLowerCase().trim();
@@ -295,23 +234,6 @@ const AdminBusinesses = () => {
     if (bizFilterPlan !== 'all') list = list.filter(b => b.owner_plan === bizFilterPlan);
     return sortData(list, bizSort.key, bizSort.dir, ['branch_count', 'product_count'], ['created_at']);
   }, [data?.businesses, bizSearch, bizFilterStatus, bizFilterPlan, bizSort.key, bizSort.dir]);
-
-  const filteredPlanReqs = useMemo(() => {
-    let list = data?.planRequests || [];
-    const q = reqSearch.toLowerCase().trim();
-    if (q) list = list.filter((r: any) => r.user_name.toLowerCase().includes(q) || r.user_email.toLowerCase().includes(q));
-    if (reqFilterStatus !== 'all') list = list.filter((r: any) => r.status === reqFilterStatus);
-    return sortData(list, reqSort.key, reqSort.dir, ['months', 'total_amount'], ['created_at']);
-  }, [data?.planRequests, reqSearch, reqFilterStatus, reqSort.key, reqSort.dir]);
-
-  const filteredBizReqs = useMemo(() => {
-    let list = data?.businessRequests || [];
-    const q = bizReqSearch.toLowerCase().trim();
-    if (q) list = list.filter((r: any) => r.user_name.toLowerCase().includes(q) || r.user_email.toLowerCase().includes(q) || (r.business_name || r.branch_name || '').toLowerCase().includes(q));
-    if (bizReqFilterStatus !== 'all') list = list.filter((r: any) => r.status === bizReqFilterStatus);
-    if (bizReqFilterType !== 'all') list = list.filter((r: any) => r.request_type === bizReqFilterType);
-    return sortData(list, bizReqSort.key, bizReqSort.dir, [], ['created_at']);
-  }, [data?.businessRequests, bizReqSearch, bizReqFilterStatus, bizReqFilterType, bizReqSort.key, bizReqSort.dir]);
 
   // Selection helpers
   const toggleSelect = (id: string) => {
@@ -348,29 +270,10 @@ const AdminBusinesses = () => {
     );
   }
 
-  const pendingPlanCount = data?.pendingRequests?.length || 0;
-  const pendingBizCount = data?.pendingBizRequests?.length || 0;
-
   return (
     <AppLayout title="Negocios">
       <div className="space-y-6 pb-20">
-        <Tabs defaultValue="businesses" className="space-y-6" onValueChange={() => setSelectedIds(new Set())}>
-          <div className="overflow-x-auto">
-            <TabsList className="bg-muted/60">
-              <TabsTrigger value="businesses" className="gap-1.5 text-xs"><Store className="h-3.5 w-3.5" /> Negocios</TabsTrigger>
-              <TabsTrigger value="requests" className="gap-1.5 text-xs">
-                <FileText className="h-3.5 w-3.5" /> Sol. Planes
-                {pendingPlanCount > 0 && <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{pendingPlanCount}</Badge>}
-              </TabsTrigger>
-              <TabsTrigger value="biz-requests" className="gap-1.5 text-xs">
-                <Building2 className="h-3.5 w-3.5" /> Sol. Negocios
-                {pendingBizCount > 0 && <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{pendingBizCount}</Badge>}
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          {/* BUSINESSES */}
-          <TabsContent value="businesses" className="space-y-4 mt-0">
+        <div className="space-y-4">
             <FilterBar>
               <SearchInput value={bizSearch} onChange={setBizSearch} placeholder="Buscar negocio, dueño..." />
               <Select value={bizFilterStatus} onValueChange={setBizFilterStatus}>
@@ -460,144 +363,7 @@ const AdminBusinesses = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* PLAN REQUESTS */}
-          <TabsContent value="requests" className="space-y-4 mt-0">
-            <FilterBar>
-              <SearchInput value={reqSearch} onChange={setReqSearch} placeholder="Buscar usuario..." />
-              <Select value={reqFilterStatus} onValueChange={setReqFilterStatus}>
-                <SelectTrigger className="w-[150px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Estado: Todos</SelectItem>
-                  <SelectItem value="pending">Pendientes</SelectItem>
-                  <SelectItem value="approved">Aprobados</SelectItem>
-                  <SelectItem value="rejected">Rechazados</SelectItem>
-                </SelectContent>
-              </Select>
-              <ResultCount count={filteredPlanReqs.length} label="solicitud" />
-            </FilterBar>
-            <Card className="border-border/60">
-              <CardContent className="p-0">
-                {filteredPlanReqs.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <SortHead label="Usuario" sortKey="user_name" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <SortHead label="Plan" sortKey="plan_type" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <SortHead label="Meses" sortKey="months" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <SortHead label="Total" sortKey="total_amount" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <SortHead label="Estado" sortKey="status" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <SortHead label="Fecha" sortKey="created_at" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredPlanReqs.map((r: any) => (
-                          <TableRow key={r.id}>
-                            <TableCell>
-                              <p className="text-sm font-medium">{r.user_name}</p>
-                              <p className="text-[11px] text-muted-foreground">{r.user_email}</p>
-                            </TableCell>
-                            <TableCell><Badge variant="outline" className="text-[11px]">{getPlanLabel(r.plan_type)}</Badge></TableCell>
-                            <TableCell className="text-sm">{r.months}m</TableCell>
-                            <TableCell className="text-sm font-medium">${Number(r.total_amount).toFixed(2)}</TableCell>
-                            <TableCell>{statusBadge(r.status)}</TableCell>
-                            <TableCell className="text-[11px] text-muted-foreground">{format(new Date(r.created_at), "d MMM yy", { locale: es })}</TableCell>
-                            <TableCell className="text-right">
-                              {r.status === 'pending' && (
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'approved' })}><Check className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'rejected' })}><X className="h-4 w-4" /></Button>
-                                </div>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-sm text-muted-foreground">No hay solicitudes</div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* BUSINESS REQUESTS */}
-          <TabsContent value="biz-requests" className="space-y-4 mt-0">
-            <FilterBar>
-              <SearchInput value={bizReqSearch} onChange={setBizReqSearch} placeholder="Buscar solicitante, nombre..." />
-              <Select value={bizReqFilterStatus} onValueChange={setBizReqFilterStatus}>
-                <SelectTrigger className="w-[150px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Estado: Todos</SelectItem>
-                  <SelectItem value="pending">Pendientes</SelectItem>
-                  <SelectItem value="approved">Aprobados</SelectItem>
-                  <SelectItem value="rejected">Rechazados</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={bizReqFilterType} onValueChange={setBizReqFilterType}>
-                <SelectTrigger className="w-[140px] h-9 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tipo: Todos</SelectItem>
-                  <SelectItem value="business">Negocio</SelectItem>
-                  <SelectItem value="branch">Sucursal</SelectItem>
-                </SelectContent>
-              </Select>
-              <ResultCount count={filteredBizReqs.length} label="solicitud" />
-            </FilterBar>
-            <Card className="border-border/60">
-              <CardContent className="p-0">
-                {filteredBizReqs.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <SortHead label="Solicitante" sortKey="user_name" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
-                          <SortHead label="Tipo" sortKey="request_type" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
-                          <SortHead label="Nombre" sortKey="business_name" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
-                          <SortHead label="Estado" sortKey="status" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
-                          <SortHead label="Fecha" sortKey="created_at" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
-                          <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredBizReqs.map((r: any) => (
-                          <TableRow key={r.id}>
-                            <TableCell>
-                              <p className="text-sm font-medium">{r.user_name}</p>
-                              <p className="text-[11px] text-muted-foreground">{r.user_email}</p>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[11px]">
-                                {r.request_type === 'business' ? '🏪 Negocio' : '📍 Sucursal'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">{r.business_name || r.branch_name}</TableCell>
-                            <TableCell>{statusBadge(r.status)}</TableCell>
-                            <TableCell className="text-[11px] text-muted-foreground">{format(new Date(r.created_at), "d MMM yy", { locale: es })}</TableCell>
-                            <TableCell className="text-right">
-                              {r.status === 'pending' && (
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'approved' })} disabled={approveBizRequestMutation.isPending}><Check className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'rejected' })} disabled={approveBizRequestMutation.isPending}><X className="h-4 w-4" /></Button>
-                                </div>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-sm text-muted-foreground">No hay solicitudes de negocios</div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        </div>
 
         {/* Floating bulk action bar */}
         {selectedIds.size > 0 && (
