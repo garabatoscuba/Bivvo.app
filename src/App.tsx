@@ -29,6 +29,7 @@ const AdminOffers = lazy(() => import("./pages/admin/AdminOffers"));
 const AdminModules = lazy(() => import("./pages/admin/AdminModules"));
 const AdminAssistant = lazy(() => import("./pages/admin/AdminAssistant"));
 const AdminPartners = lazy(() => import("./pages/admin/AdminPartners"));
+const AdminRequests = lazy(() => import("./pages/admin/AdminRequests"));
 const Employees = lazy(() => import("./pages/Employees"));
 const Sales = lazy(() => import("./pages/Sales"));
 const Settings = lazy(() => import("./pages/Settings"));
