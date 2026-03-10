@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback } from 'react';
 import AppLayout from '@/components/layout/AppLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -21,7 +22,7 @@ import {
 } from '@/components/ui/select';
 import {
   Store, Search, Loader2, Building2, Settings, Trash2, FileText, Check, X,
-  Pencil, MapPin, ArrowUp, ArrowDown, ArrowUpDown,
+  Pencil, MapPin, ArrowUp, ArrowDown, ArrowUpDown, Ban, CheckCircle2,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -99,6 +100,11 @@ const AdminBusinesses = () => {
   const [editBranches, setEditBranches] = useState<any[]>([]);
   const [deleteBranchTarget, setDeleteBranchTarget] = useState<{ id: string; name: string } | null>(null);
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<'deactivate' | 'delete' | null>(null);
+  const [bulkConfirmText, setBulkConfirmText] = useState('');
+
   // Business filters
   const [bizSearch, setBizSearch] = useState('');
   const [bizFilterStatus, setBizFilterStatus] = useState('all');
@@ -168,6 +174,44 @@ const AdminBusinesses = () => {
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-businesses-page'] }); toast({ title: 'Negocio eliminado' }); setDeleteTarget(null); },
     onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); setDeleteTarget(null); },
+  });
+
+  // Bulk mutations
+  const bulkMutation = useMutation({
+    mutationFn: async ({ ids, action }: { ids: string[]; action: 'deactivate' | 'delete' }) => {
+      let success = 0;
+      let failed = 0;
+      for (const id of ids) {
+        try {
+          if (action === 'deactivate') {
+            const { error } = await supabase.from('businesses').update({ is_active: false } as any).eq('id', id);
+            if (error) { failed++; continue; }
+          } else {
+            const { error } = await supabase.from('businesses').delete().eq('id', id);
+            if (error) { failed++; continue; }
+          }
+          success++;
+        } catch {
+          failed++;
+        }
+      }
+      return { success, failed, action };
+    },
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-businesses-page'] });
+      const label = result.action === 'deactivate' ? 'desactivados' : 'eliminados';
+      let msg = `${result.success} negocios ${label}`;
+      if (result.failed > 0) msg += `, ${result.failed} fallaron`;
+      toast({ title: 'Acción masiva completada', description: msg });
+      setSelectedIds(new Set());
+      setBulkAction(null);
+      setBulkConfirmText('');
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      setBulkAction(null);
+      setBulkConfirmText('');
+    },
   });
 
   const approveMutation = useMutation({
@@ -269,6 +313,33 @@ const AdminBusinesses = () => {
     return sortData(list, bizReqSort.key, bizReqSort.dir, [], ['created_at']);
   }, [data?.businessRequests, bizReqSearch, bizReqFilterStatus, bizReqFilterType, bizReqSort.key, bizReqSort.dir]);
 
+  // Selection helpers
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const allChecked = filteredBiz.length > 0 && selectedIds.size === filteredBiz.length;
+  const someChecked = selectedIds.size > 0 && selectedIds.size < filteredBiz.length;
+
+  const toggleSelectAll = () => {
+    if (allChecked) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredBiz.map(b => b.id)));
+    }
+  };
+
+  const handleBulkConfirm = () => {
+    const ids = Array.from(selectedIds);
+    if (bulkAction === 'deactivate' || bulkAction === 'delete') {
+      bulkMutation.mutate({ ids, action: bulkAction });
+    }
+  };
+
   if (isLoading) {
     return (
       <AppLayout title="Negocios">
@@ -282,8 +353,8 @@ const AdminBusinesses = () => {
 
   return (
     <AppLayout title="Negocios">
-      <div className="space-y-6">
-        <Tabs defaultValue="businesses" className="space-y-6">
+      <div className="space-y-6 pb-20">
+        <Tabs defaultValue="businesses" className="space-y-6" onValueChange={() => setSelectedIds(new Set())}>
           <div className="overflow-x-auto">
             <TabsList className="bg-muted/60">
               <TabsTrigger value="businesses" className="gap-1.5 text-xs"><Store className="h-3.5 w-3.5" /> Negocios</TabsTrigger>
@@ -328,6 +399,13 @@ const AdminBusinesses = () => {
                     <Table>
                       <TableHeader>
                         <TableRow className="hover:bg-transparent">
+                          <TableHead className="w-10">
+                            <Checkbox
+                              checked={allChecked}
+                              onCheckedChange={toggleSelectAll}
+                              className={someChecked ? 'data-[state=unchecked]:bg-primary/20' : ''}
+                            />
+                          </TableHead>
                           <SortHead label="Negocio" sortKey="name" currentKey={bizSort.key} currentDir={bizSort.dir} onToggle={bizSort.toggle} />
                           <SortHead label="Dueño" sortKey="owner_name" currentKey={bizSort.key} currentDir={bizSort.dir} onToggle={bizSort.toggle} />
                           <SortHead label="Plan" sortKey="owner_plan" currentKey={bizSort.key} currentDir={bizSort.dir} onToggle={bizSort.toggle} />
@@ -340,7 +418,13 @@ const AdminBusinesses = () => {
                       </TableHeader>
                       <TableBody>
                         {filteredBiz.map((b) => (
-                          <TableRow key={b.id}>
+                          <TableRow key={b.id} className={selectedIds.has(b.id) ? 'bg-primary/5' : ''}>
+                            <TableCell className="w-10">
+                              <Checkbox
+                                checked={selectedIds.has(b.id)}
+                                onCheckedChange={() => toggleSelect(b.id)}
+                              />
+                            </TableCell>
                             <TableCell>
                               <div className="flex items-center gap-2">
                                 <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
@@ -515,7 +599,101 @@ const AdminBusinesses = () => {
           </TabsContent>
         </Tabs>
 
-        {/* Delete Confirmation */}
+        {/* Floating bulk action bar */}
+        {selectedIds.size > 0 && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg">
+            <span className="text-sm font-medium">
+              <CheckCircle2 className="inline h-4 w-4 mr-1.5 text-primary" />
+              {selectedIds.size} negocio{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
+            </span>
+            <div className="h-5 w-px bg-border" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setBulkAction('deactivate')}
+              disabled={bulkMutation.isPending}
+            >
+              <Ban className="h-3.5 w-3.5" />
+              Desactivar
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => { setBulkAction('delete'); setBulkConfirmText(''); }}
+              disabled={bulkMutation.isPending}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Eliminar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Cancelar
+            </Button>
+          </div>
+        )}
+
+        {/* Bulk Deactivate Dialog */}
+        <AlertDialog open={bulkAction === 'deactivate'} onOpenChange={() => setBulkAction(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Desactivar {selectedIds.size} negocio{selectedIds.size !== 1 ? 's' : ''}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Los negocios seleccionados quedarán inactivos. Sus datos se conservarán y la acción es reversible desde la edición individual.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBulkConfirm}
+                disabled={bulkMutation.isPending}
+              >
+                {bulkMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Ban className="h-4 w-4 mr-1.5" />}
+                Desactivar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Bulk Delete Dialog */}
+        <Dialog open={bulkAction === 'delete'} onOpenChange={() => { setBulkAction(null); setBulkConfirmText(''); }}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-destructive">¿Eliminar {selectedIds.size} negocio{selectedIds.size !== 1 ? 's' : ''} permanentemente?</DialogTitle>
+              <DialogDescription>
+                Esta acción no se puede deshacer. Se eliminarán todos los datos asociados a estos negocios.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <Label className="text-sm">Escribe <strong>ELIMINAR</strong> para confirmar:</Label>
+              <Input
+                value={bulkConfirmText}
+                onChange={e => setBulkConfirmText(e.target.value)}
+                placeholder="ELIMINAR"
+                className="font-mono"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => { setBulkAction(null); setBulkConfirmText(''); }}>Cancelar</Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkConfirm}
+                disabled={bulkConfirmText !== 'ELIMINAR' || bulkMutation.isPending}
+                className="gap-1.5"
+              >
+                {bulkMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Eliminar permanentemente
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Single Delete Confirmation */}
         <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
