@@ -22,7 +22,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select';
 import {
-  Store, Search, Loader2, Building2, Settings, Trash2, FileText, Check, X,
+  Store, Search, Loader2, Building2, Settings, Trash2, Check, X,
   Pencil, MapPin, ArrowUp, ArrowDown, ArrowUpDown, Ban, CheckCircle2,
 } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
