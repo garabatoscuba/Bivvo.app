@@ -245,7 +245,7 @@ const BusinessDetailSheet = ({ businessId, onClose, onEdit, onDeactivate }: Busi
       // Recent employees
       const recentEmps = [...employees].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).slice(0, 2);
       recentEmps.forEach(e => {
-        timeline.push({ icon: 'employee', text: `Empleado "${(e as any).name}" registrado`, date: e.created_at });
+        timeline.push({ icon: 'employee', text: `Empleado "${e.full_name}" registrado`, date: e.created_at });
       });
 
       // Sort timeline by date desc, take 5
