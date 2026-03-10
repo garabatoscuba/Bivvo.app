@@ -249,6 +249,8 @@ Deno.serve(async (req) => {
 NO inventes funcionalidades, flujos ni opciones que no estén descritas en tus instrucciones. Si no tienes información sobre algo, di: "No tengo información sobre eso. Contacta al soporte de Bivoo."`,
       buildRoleBlock(role || "employee"),
       moduleInstructionsBlock,
+      quickQuestionsBlock,
+      generalQQBlock,
       baseInstructions ? baseInstructions.slice(0, 1500) : "",
       moduleContext,
       trainingBlock,
