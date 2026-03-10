@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useRawMaterials, usePrintServiceTypes, usePrintRecipes, useEmployeesForTransfer, usePrintMaterialTypes, useActiveSheets, useOpenSheet, useCloseSheet } from '@/hooks/usePrintData';
+import { useActivePrinters } from '@/hooks/usePrintPrinters';
 import { useMyMaterialStock } from '@/hooks/useEmployeeMaterialStock';
 import { useRegisterPrintShrinkage } from '@/hooks/usePrintShrinkage';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
@@ -39,6 +40,8 @@ interface JobItem {
   material_consumed: number;
   material_id: string | null;
   nota: string;
+  printer_id: string | null;
+  colores_seleccionados: string[];
 }
 
 type PaymentMethod = 'cash' | 'transfer' | 'card' | 'mixed';
@@ -58,6 +61,7 @@ const SellerPrintView = () => {
   const { data: services = [] } = usePrintServiceTypes();
   const { data: recipes = [] } = usePrintRecipes();
   const { data: materialTypes = [] } = usePrintMaterialTypes();
+  const { data: printers = [] } = useActivePrinters();
 
   const activeServices = useMemo(() => services.filter((s: any) => s.is_active), [services]);
   const { data: activeSheets = [] } = useActiveSheets();
@@ -178,6 +182,8 @@ const SellerPrintView = () => {
         material_consumed: svc.consumo_por_unidad,
         material_id: svc.material_id,
         nota: '',
+        printer_id: printers.length === 1 ? printers[0].id : null,
+        colores_seleccionados: [],
       },
     ]);
   };
@@ -307,6 +313,8 @@ const SellerPrintView = () => {
         costo_insumo: it.costo_insumo,
         material_consumido: it.material_consumed,
         nota: it.nota || null,
+        printer_id: it.printer_id || null,
+        colores_seleccionados: it.colores_seleccionados.length > 0 ? it.colores_seleccionados : null,
       }));
       const { error: itemsErr } = await supabase.from('print_job_items').insert(items);
       if (itemsErr) throw itemsErr;
@@ -622,7 +630,7 @@ const SellerPrintView = () => {
                           </div>
                         </div>
                         {(svc?.admite_doble_cara || svc?.admite_color || svc?.admite_full) && (
-                          <div className="flex items-center gap-4 pl-1">
+                          <div className="flex items-center gap-4 pl-1 flex-wrap">
                             {svc?.admite_doble_cara && (
                               <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
                                 <Switch className="scale-75" checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
@@ -643,6 +651,72 @@ const SellerPrintView = () => {
                             )}
                           </div>
                         )}
+                        {/* Printer selector (only if printers exist) */}
+                        {printers.length > 0 && (
+                          <div className="pl-1">
+                            <Select
+                              value={item.printer_id || ''}
+                              onValueChange={v => updateJobItem(idx, 'printer_id', v || null)}
+                            >
+                              <SelectTrigger className="h-7 text-xs">
+                                <SelectValue placeholder="Seleccionar impresora" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {printers.map((p: any) => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    <div className="flex items-center gap-1.5">
+                                      <Printer className="h-3 w-3" />
+                                      <span>{p.name}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        {/* CMYK color selector (only when Color is active) */}
+                        {item.es_color && (() => {
+                          const selectedPrinter = printers.find((p: any) => p.id === item.printer_id);
+                          const availableColors = selectedPrinter ? (selectedPrinter.colores || ['negro','cian','magenta','amarillo']) : ['negro','cian','magenta','amarillo'];
+                          const colorDefs: { value: string; label: string; emoji: string }[] = [
+                            { value: 'negro', label: 'Negro', emoji: '⬛' },
+                            { value: 'cian', label: 'Cian', emoji: '🔵' },
+                            { value: 'magenta', label: 'Magenta', emoji: '🌸' },
+                            { value: 'amarillo', label: 'Amarillo', emoji: '🟡' },
+                          ];
+                          const filteredColors = colorDefs.filter(c => availableColors.includes(c.value));
+                          return (
+                            <div className="flex flex-wrap gap-1.5 pl-1">
+                              {filteredColors.map(c => {
+                                const isSelected = item.colores_seleccionados.includes(c.value);
+                                return (
+                                  <button
+                                    key={c.value}
+                                    type="button"
+                                    className={cn(
+                                      'flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] transition-all',
+                                      isSelected
+                                        ? 'border-primary bg-primary/10 text-primary font-medium'
+                                        : 'border-border text-muted-foreground hover:bg-muted/50'
+                                    )}
+                                    onClick={() => {
+                                      const newColors = isSelected
+                                        ? item.colores_seleccionados.filter((v: string) => v !== c.value)
+                                        : [...item.colores_seleccionados, c.value];
+                                      updateJobItem(idx, 'colores_seleccionados', newColors);
+                                    }}
+                                  >
+                                    <span>{c.emoji}</span>
+                                    <span>{c.label}</span>
+                                  </button>
+                                );
+                              })}
+                              {item.colores_seleccionados.length === 0 && (
+                                <span className="text-[10px] text-muted-foreground italic">Todos los colores</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                         {/* Quick price buttons */}
                         <div className="flex flex-wrap gap-1.5">
                           {CART_QUICK_AMOUNTS.map(amount => (

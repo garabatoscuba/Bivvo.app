@@ -1350,6 +1350,7 @@ export type Database = {
         Row: {
           business_id: string
           created_at: string
+          full_multiplier: number
           id: string
           mode: number
           updated_at: string
@@ -1357,6 +1358,7 @@ export type Database = {
         Insert: {
           business_id: string
           created_at?: string
+          full_multiplier?: number
           id?: string
           mode?: number
           updated_at?: string
@@ -1364,6 +1366,7 @@ export type Database = {
         Update: {
           business_id?: string
           created_at?: string
+          full_multiplier?: number
           id?: string
           mode?: number
           updated_at?: string
@@ -3272,6 +3275,7 @@ export type Database = {
       print_job_items: {
         Row: {
           cantidad: number
+          colores_seleccionados: string[] | null
           costo_insumo: number
           created_at: string
           es_color: boolean
@@ -3282,10 +3286,12 @@ export type Database = {
           material_consumido: number
           nota: string | null
           precio_cobrado: number
+          printer_id: string | null
           service_type_id: string | null
         }
         Insert: {
           cantidad?: number
+          colores_seleccionados?: string[] | null
           costo_insumo?: number
           created_at?: string
           es_color?: boolean
@@ -3296,10 +3302,12 @@ export type Database = {
           material_consumido?: number
           nota?: string | null
           precio_cobrado?: number
+          printer_id?: string | null
           service_type_id?: string | null
         }
         Update: {
           cantidad?: number
+          colores_seleccionados?: string[] | null
           costo_insumo?: number
           created_at?: string
           es_color?: boolean
@@ -3310,6 +3318,7 @@ export type Database = {
           material_consumido?: number
           nota?: string | null
           precio_cobrado?: number
+          printer_id?: string | null
           service_type_id?: string | null
         }
         Relationships: [
@@ -3318,6 +3327,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "print_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_job_items_printer_id_fkey"
+            columns: ["printer_id"]
+            isOneToOne: false
+            referencedRelation: "print_printers"
             referencedColumns: ["id"]
           },
           {
@@ -3400,6 +3416,54 @@ export type Database = {
           unit?: string
         }
         Relationships: []
+      }
+      print_printers: {
+        Row: {
+          branch_id: string | null
+          business_id: string
+          colores: string[]
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          soporta_full: boolean
+        }
+        Insert: {
+          branch_id?: string | null
+          business_id: string
+          colores?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          soporta_full?: boolean
+        }
+        Update: {
+          branch_id?: string | null
+          business_id?: string
+          colores?: string[]
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          soporta_full?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_printers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_printers_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       print_productions: {
         Row: {
