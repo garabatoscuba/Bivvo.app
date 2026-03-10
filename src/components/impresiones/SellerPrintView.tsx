@@ -61,6 +61,7 @@ const SellerPrintView = () => {
   const { data: services = [] } = usePrintServiceTypes();
   const { data: recipes = [] } = usePrintRecipes();
   const { data: materialTypes = [] } = usePrintMaterialTypes();
+  const { data: printers = [] } = useActivePrinters();
 
   const activeServices = useMemo(() => services.filter((s: any) => s.is_active), [services]);
   const { data: activeSheets = [] } = useActiveSheets();
