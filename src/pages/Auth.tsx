@@ -181,7 +181,14 @@ const Auth = () => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      <button
+        onClick={() => setWhatIsOpen(true)}
+        className="fixed bottom-4 left-4 text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 z-10"
+      >
+        ¿Qué es Bivoo?
+      </button>
+      <WhatIsBivooPanel open={whatIsOpen} onOpenChange={setWhatIsOpen} />
       <Card className="w-full max-w-md overflow-hidden">
         <CardHeader className="text-center space-y-4">
           <div className="flex items-center justify-between">
