@@ -1,0 +1,1 @@
+ALTER TABLE public.assistant_quick_questions ADD COLUMN IF NOT EXISTS answer text DEFAULT '';

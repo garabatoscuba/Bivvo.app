@@ -546,6 +546,7 @@ function ModuleInstructionsTab() {
   const [qDialog, setQDialog] = useState(false);
   const [editingQ, setEditingQ] = useState<any>(null);
   const [qText, setQText] = useState('');
+  const [qAnswer, setQAnswer] = useState('');
   const [qModule, setQModule] = useState('');
   const [deleteQTarget, setDeleteQTarget] = useState<any>(null);
 
@@ -575,7 +576,7 @@ function ModuleInstructionsTab() {
 
   const saveQMutation = useMutation({
     mutationFn: async () => {
-      const payload = { module_key: qModule, question: qText, is_active: true, sort_order: allQuestions.filter(q => q.module_key === qModule).length } as any;
+      const payload = { module_key: qModule, question: qText, answer: qAnswer, is_active: true, sort_order: allQuestions.filter(q => q.module_key === qModule).length } as any;
       if (editingQ) {
         const { error } = await supabase.from('assistant_quick_questions').update(payload).eq('id', editingQ.id);
         if (error) throw error;
@@ -598,9 +599,9 @@ function ModuleInstructionsTab() {
 
   const openNewQ = (moduleKey: string) => {
     const qKey = MODULE_QUESTION_KEYS[moduleKey] || moduleKey;
-    setEditingQ(null); setQText(''); setQModule(qKey); setQDialog(true);
+    setEditingQ(null); setQText(''); setQAnswer(''); setQModule(qKey); setQDialog(true);
   };
-  const openEditQ = (q: any) => { setEditingQ(q); setQText(q.question); setQModule(q.module_key); setQDialog(true); };
+  const openEditQ = (q: any) => { setEditingQ(q); setQText(q.question); setQAnswer(q.answer || ''); setQModule(q.module_key); setQDialog(true); };
 
   if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
@@ -671,6 +672,7 @@ function ModuleInstructionsTab() {
           <DialogHeader><DialogTitle>{editingQ ? 'Editar sugerencia' : 'Nueva sugerencia'}</DialogTitle><DialogDescription>Esta pregunta aparecerá como sugerencia rápida en el chat del asistente.</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <div><Label>Pregunta sugerida</Label><Textarea value={qText} onChange={e => setQText(e.target.value)} rows={2} className="mt-1" placeholder="¿Cómo hago X en este módulo?" /></div>
+            <div><Label>Respuesta</Label><Textarea value={qAnswer} onChange={e => setQAnswer(e.target.value)} rows={3} className="mt-1" placeholder="Respuesta que la IA usará como referencia..." /><p className="text-[11px] text-muted-foreground mt-1">Opcional. Si se llena, la IA usará esta respuesta como referencia al responder.</p></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setQDialog(false)}>Cancelar</Button>
@@ -708,11 +710,12 @@ function GeneralQuestionsTab() {
   const [dialog, setDialog] = useState(false);
   const [editing, setEditing] = useState<any>(null);
   const [qText, setQText] = useState('');
+  const [qAnswer, setQAnswer] = useState('');
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = { module_key: null, question: qText, is_active: true, sort_order: questions.length } as any;
+      const payload = { module_key: null, question: qText, answer: qAnswer, is_active: true, sort_order: questions.length } as any;
       if (editing) {
         const { error } = await supabase.from('assistant_quick_questions').update(payload).eq('id', editing.id);
         if (error) throw error;
@@ -733,8 +736,8 @@ function GeneralQuestionsTab() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-general-questions'] }); qc.invalidateQueries({ queryKey: ['assistant-quick-questions'] }); setDeleteTarget(null); toast({ title: 'Pregunta eliminada' }); },
   });
 
-  const openNew = () => { setEditing(null); setQText(''); setDialog(true); };
-  const openEdit = (q: any) => { setEditing(q); setQText(q.question); setDialog(true); };
+  const openNew = () => { setEditing(null); setQText(''); setQAnswer(''); setDialog(true); };
+  const openEdit = (q: any) => { setEditing(q); setQText(q.question); setQAnswer(q.answer || ''); setDialog(true); };
 
   if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
@@ -768,6 +771,7 @@ function GeneralQuestionsTab() {
           <DialogHeader><DialogTitle>{editing ? 'Editar pregunta' : 'Nueva pregunta general'}</DialogTitle><DialogDescription>Esta pregunta aparece como sugerencia cuando no hay preguntas del módulo activo.</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <div><Label>Pregunta</Label><Textarea value={qText} onChange={e => setQText(e.target.value)} rows={2} className="mt-1" placeholder="¿Por dónde empiezo?" /></div>
+            <div><Label>Respuesta</Label><Textarea value={qAnswer} onChange={e => setQAnswer(e.target.value)} rows={3} className="mt-1" placeholder="Respuesta que la IA usará como referencia..." /><p className="text-[11px] text-muted-foreground mt-1">Opcional. Si se llena, la IA usará esta respuesta como referencia al responder.</p></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog(false)}>Cancelar</Button>
