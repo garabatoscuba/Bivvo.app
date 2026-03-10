@@ -79,7 +79,7 @@ const BusinessDetailSheet = ({ businessId, onClose, onEdit, onDeactivate }: Busi
       ] = await Promise.all([
         supabase.from('businesses').select('*').eq('id', businessId).maybeSingle(),
         supabase.from('branches').select('id, name, is_main, address, slug').eq('business_id', businessId).order('is_main', { ascending: false }),
-        supabase.from('employees').select('id, status, name, created_at').eq('business_id', businessId),
+        supabase.from('employees').select('id, full_name, created_at, business_id').eq('business_id', businessId),
         supabase.from('products').select('id, name, business_id, cost_price, sale_price, min_stock, tipo, category_id').eq('business_id', businessId),
         supabase.from('platform_modules').select('id, name, sidebar_label, is_active'),
         supabase.from('business_type_configs').select('id, key, name, module_ids, is_active'),
