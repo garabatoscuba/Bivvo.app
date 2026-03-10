@@ -546,6 +546,7 @@ function ModuleInstructionsTab() {
   const [qDialog, setQDialog] = useState(false);
   const [editingQ, setEditingQ] = useState<any>(null);
   const [qText, setQText] = useState('');
+  const [qAnswer, setQAnswer] = useState('');
   const [qModule, setQModule] = useState('');
   const [deleteQTarget, setDeleteQTarget] = useState<any>(null);
 
