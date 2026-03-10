@@ -630,7 +630,7 @@ const SellerPrintView = () => {
                           </div>
                         </div>
                         {(svc?.admite_doble_cara || svc?.admite_color || svc?.admite_full) && (
-                          <div className="flex items-center gap-4 pl-1">
+                          <div className="flex items-center gap-4 pl-1 flex-wrap">
                             {svc?.admite_doble_cara && (
                               <label className="flex items-center gap-1.5 text-xs text-muted-foreground cursor-pointer">
                                 <Switch className="scale-75" checked={item.es_doble_cara} onCheckedChange={v => updateJobItem(idx, 'es_doble_cara', v)} />
@@ -651,6 +651,72 @@ const SellerPrintView = () => {
                             )}
                           </div>
                         )}
+                        {/* Printer selector (only if printers exist) */}
+                        {printers.length > 0 && (
+                          <div className="pl-1">
+                            <Select
+                              value={item.printer_id || ''}
+                              onValueChange={v => updateJobItem(idx, 'printer_id', v || null)}
+                            >
+                              <SelectTrigger className="h-7 text-xs">
+                                <SelectValue placeholder="Seleccionar impresora" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {printers.map((p: any) => (
+                                  <SelectItem key={p.id} value={p.id}>
+                                    <div className="flex items-center gap-1.5">
+                                      <Printer className="h-3 w-3" />
+                                      <span>{p.name}</span>
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        )}
+                        {/* CMYK color selector (only when Color is active) */}
+                        {item.es_color && (() => {
+                          const selectedPrinter = printers.find((p: any) => p.id === item.printer_id);
+                          const availableColors = selectedPrinter ? (selectedPrinter.colores || ['negro','cian','magenta','amarillo']) : ['negro','cian','magenta','amarillo'];
+                          const colorDefs: { value: string; label: string; emoji: string }[] = [
+                            { value: 'negro', label: 'Negro', emoji: '⬛' },
+                            { value: 'cian', label: 'Cian', emoji: '🔵' },
+                            { value: 'magenta', label: 'Magenta', emoji: '🌸' },
+                            { value: 'amarillo', label: 'Amarillo', emoji: '🟡' },
+                          ];
+                          const filteredColors = colorDefs.filter(c => availableColors.includes(c.value));
+                          return (
+                            <div className="flex flex-wrap gap-1.5 pl-1">
+                              {filteredColors.map(c => {
+                                const isSelected = item.colores_seleccionados.includes(c.value);
+                                return (
+                                  <button
+                                    key={c.value}
+                                    type="button"
+                                    className={cn(
+                                      'flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] transition-all',
+                                      isSelected
+                                        ? 'border-primary bg-primary/10 text-primary font-medium'
+                                        : 'border-border text-muted-foreground hover:bg-muted/50'
+                                    )}
+                                    onClick={() => {
+                                      const newColors = isSelected
+                                        ? item.colores_seleccionados.filter((v: string) => v !== c.value)
+                                        : [...item.colores_seleccionados, c.value];
+                                      updateJobItem(idx, 'colores_seleccionados', newColors);
+                                    }}
+                                  >
+                                    <span>{c.emoji}</span>
+                                    <span>{c.label}</span>
+                                  </button>
+                                );
+                              })}
+                              {item.colores_seleccionados.length === 0 && (
+                                <span className="text-[10px] text-muted-foreground italic">Todos los colores</span>
+                              )}
+                            </div>
+                          );
+                        })()}
                         {/* Quick price buttons */}
                         <div className="flex flex-wrap gap-1.5">
                           {CART_QUICK_AMOUNTS.map(amount => (
