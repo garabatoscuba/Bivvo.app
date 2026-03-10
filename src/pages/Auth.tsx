@@ -33,6 +33,7 @@ const Auth = () => {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [whatIsOpen, setWhatIsOpen] = useState(false);
 
   useEffect(() => {
     const msg = sessionStorage.getItem("auth_message");
