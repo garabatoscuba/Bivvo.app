@@ -165,6 +165,9 @@ const Employees = () => {
   // Performance chart state
   const [perfEmployee, setPerfEmployee] = useState<Employee | null>(null);
 
+  // QR state
+  const [qrEmployee, setQrEmployee] = useState<Employee | null>(null);
+
   // Jornada gerente state
   const [jornadaCerrarTarget, setJornadaCerrarTarget] = useState<{ jornada: any; name: string } | null>(null);
 
