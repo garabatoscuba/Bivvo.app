@@ -225,11 +225,22 @@ function ConfigGlobalTab() {
   );
 }
 
-// ─── Instructions Per Business Type Tab ───
+// ─── Instructions Per Business Type Tab (dynamic from DB) ───
 function InstructionsTab() {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const { data: items = [], isLoading } = useQuery({
+
+  // Load all business types from the source of truth
+  const { data: businessTypes = [], isLoading: typesLoading } = useQuery({
+    queryKey: ['business-type-configs'],
+    queryFn: async () => {
+      const { data } = await supabase.from('business_type_configs').select('id, key, name, icon, is_active').order('sort_order');
+      return (data || []) as any[];
+    },
+  });
+
+  // Load existing instructions
+  const { data: items = [], isLoading: instrLoading } = useQuery({
     queryKey: ['assistant-bt-instructions'],
     queryFn: async () => {
       const { data } = await supabase.from('assistant_business_type_instructions').select('*').order('business_type');
@@ -239,6 +250,8 @@ function InstructionsTab() {
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
+  const [addDialog, setAddDialog] = useState(false);
+  const [selectedType, setSelectedType] = useState('');
 
   if (!initialized && items.length > 0) {
     const v: Record<string, string> = {};
@@ -249,27 +262,84 @@ function InstructionsTab() {
 
   const saveMutation = useMutation({
     mutationFn: async (bt: string) => {
-      const { error } = await supabase.from('assistant_business_type_instructions').update({ instructions: values[bt] || '' } as any).eq('business_type', bt);
-      if (error) throw error;
+      const existing = items.find(i => i.business_type === bt);
+      if (existing) {
+        const { error } = await supabase.from('assistant_business_type_instructions').update({ instructions: values[bt] || '' } as any).eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('assistant_business_type_instructions').insert({ business_type: bt, instructions: values[bt] || '' } as any);
+        if (error) throw error;
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-bt-instructions'] }); toast({ title: 'Instrucciones guardadas' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 
-  const labels: Record<string, string> = { store: 'Tienda', copy_shop: 'Punto de Copias', gym: 'Gimnasio' };
+  const addMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedType) throw new Error('Selecciona un tipo');
+      const { error } = await supabase.from('assistant_business_type_instructions').insert({ business_type: selectedType, instructions: '' } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-bt-instructions'] }); setAddDialog(false); setSelectedType(''); toast({ title: 'Tipo agregado' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
 
+  const isLoading = typesLoading || instrLoading;
   if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+
+  // Build label map from DB
+  const typeLabels: Record<string, string> = {};
+  businessTypes.forEach(bt => { typeLabels[bt.key] = bt.name; });
+
+  // Types that already have instructions
+  const existingKeys = items.map(i => i.business_type);
+  // Types available to add
+  const availableToAdd = businessTypes.filter(bt => bt.is_active && !existingKeys.includes(bt.key));
 
   return (
     <div className="space-y-4">
-      {items.map(item => (
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">Instrucciones inyectadas según el tipo de negocio del usuario.</p>
+        {availableToAdd.length > 0 && (
+          <Button size="sm" onClick={() => setAddDialog(true)}><Plus className="h-4 w-4 mr-1" /> Agregar instrucción por tipo</Button>
+        )}
+      </div>
+      {items.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No hay instrucciones por tipo de negocio.</CardContent></Card>
+      ) : items.map(item => (
         <Card key={item.id}>
-          <CardHeader><CardTitle className="text-base">{labels[item.business_type] || item.business_type}</CardTitle><CardDescription>Instrucciones inyectadas cuando el usuario pertenece a este tipo de negocio.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="text-base">{typeLabels[item.business_type] || item.business_type}</CardTitle><CardDescription>Instrucciones inyectadas cuando el usuario pertenece a este tipo de negocio.</CardDescription></CardHeader>
           <CardContent className="space-y-3">
             <Textarea value={values[item.business_type] || ''} onChange={e => setValues(p => ({ ...p, [item.business_type]: e.target.value }))} rows={5} placeholder="Instrucciones específicas..." />
             <Button size="sm" onClick={() => saveMutation.mutate(item.business_type)} disabled={saveMutation.isPending}>Guardar</Button>
           </CardContent>
         </Card>
       ))}
+
+      <Dialog open={addDialog} onOpenChange={setAddDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Agregar instrucción por tipo</DialogTitle><DialogDescription>Selecciona el tipo de negocio al que quieres agregar instrucciones.</DialogDescription></DialogHeader>
+          <div>
+            <Label>Tipo de negocio</Label>
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Seleccionar tipo..." /></SelectTrigger>
+              <SelectContent>
+                {availableToAdd.map(bt => (
+                  <SelectItem key={bt.key} value={bt.key}>{bt.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialog(false)}>Cancelar</Button>
+            <Button onClick={() => addMutation.mutate()} disabled={!selectedType || addMutation.isPending}>
+              {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Agregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
