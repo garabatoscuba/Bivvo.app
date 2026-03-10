@@ -112,17 +112,7 @@ const AdminBusinesses = () => {
   const [bizFilterPlan, setBizFilterPlan] = useState('all');
   const bizSort = useSortToggle<string>('created_at');
 
-  // Plan request filters
-  const [reqSearch, setReqSearch] = useState('');
-  const [reqFilterStatus, setReqFilterStatus] = useState('all');
-  const reqSort = useSortToggle<string>('created_at');
-
-  // Business request filters
-  const [bizReqSearch, setBizReqSearch] = useState('');
-  const [bizReqFilterStatus, setBizReqFilterStatus] = useState('all');
-  const [bizReqFilterType, setBizReqFilterType] = useState('all');
-  const bizReqSort = useSortToggle<string>('created_at');
-
+  // (Plan/biz request filters removed — moved to AdminRequests)
   const { data, isLoading } = useQuery({
     queryKey: ['admin-businesses-page'],
     queryFn: async () => {
