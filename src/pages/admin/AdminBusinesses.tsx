@@ -324,7 +324,7 @@ const AdminBusinesses = () => {
                       <TableBody>
                         {filteredBiz.map((b) => (
                           <TableRow key={b.id} className={`cursor-pointer ${selectedIds.has(b.id) ? 'bg-primary/5' : ''}`} onClick={() => setDetailBizId(b.id)}>
-                            <TableCell className="w-10">
+                            <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
                               <Checkbox
                                 checked={selectedIds.has(b.id)}
                                 onCheckedChange={() => toggleSelect(b.id)}
