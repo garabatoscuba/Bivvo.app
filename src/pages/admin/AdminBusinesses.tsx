@@ -349,7 +349,7 @@ const AdminBusinesses = () => {
                             <TableCell className="text-center text-sm">{b.branch_count}</TableCell>
                             <TableCell className="text-center text-sm">{b.product_count}</TableCell>
                             <TableCell className="text-[11px] text-muted-foreground">{format(new Date(b.created_at), "d MMM yy", { locale: es })}</TableCell>
-                            <TableCell className="text-right">
+                            <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                               <div className="flex items-center justify-end gap-1">
                                 <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditBiz(b)}><Pencil className="h-3.5 w-3.5" /></Button>
                                 <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => setDeleteTarget({ id: b.id, name: b.name })}><Trash2 className="h-3.5 w-3.5" /></Button>
