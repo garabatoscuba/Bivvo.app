@@ -39,7 +39,7 @@ const AppHeader = ({ title }: AppHeaderProps) => {
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const elapsed = useElapsedTime(jornada?.apertura_at);
   const [cerrarOpen, setCerrarOpen] = useState(false);
-
+  const [scannerOpen, setScannerOpen] = useState(false);
   return (
     <header className="flex h-11 md:h-14 shrink-0 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-2 md:px-4 overflow-hidden max-w-full">
       <div className="flex items-center gap-2 min-w-0 flex-1">
