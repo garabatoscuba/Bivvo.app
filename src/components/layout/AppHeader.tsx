@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
-import { WifiOff, Loader2, Cloud, MessageCircle } from 'lucide-react';
+import ScannerModal from './ScannerModal';
+import { WifiOff, Loader2, Cloud, MessageCircle, Camera } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 function useElapsedTime(startIso: string | null | undefined) {
