@@ -31,9 +31,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { toast } from "sonner";
-import { Plus, ArrowRight, Droplets, TrendingDown, Calendar, BarChart3 } from "lucide-react";
+import { Plus, ArrowRight, Droplets, TrendingDown, Calendar, BarChart3, Settings } from "lucide-react";
 import { format, differenceInDays, subDays } from "date-fns";
 import { es } from "date-fns/locale";
+import PrinterManager from "./PrinterManager";
 
 const COLORS = ["negro", "cian", "magenta", "amarillo"] as const;
 type InkColor = (typeof COLORS)[number];
