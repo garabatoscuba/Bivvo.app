@@ -12,6 +12,7 @@ import { useTheme } from "next-themes";
 import { z } from "zod";
 import logoLight from "@/assets/logo-light.png";
 import logoDark from "@/assets/logo-dark.png";
+import WhatIsBivooPanel from "@/components/auth/WhatIsBivooPanel";
 
 const emailSchema = z.string().email("Email inválido");
 const passwordSchema = z.string().min(6, "La contraseña debe tener al menos 6 caracteres");
@@ -32,6 +33,7 @@ const Auth = () => {
   const [signupConfirmPassword, setSignupConfirmPassword] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
+  const [whatIsOpen, setWhatIsOpen] = useState(false);
 
   useEffect(() => {
     const msg = sessionStorage.getItem("auth_message");
@@ -179,7 +181,14 @@ const Auth = () => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
+      <button
+        onClick={() => setWhatIsOpen(true)}
+        className="fixed bottom-4 left-4 text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 z-10"
+      >
+        ¿Qué es Bivoo?
+      </button>
+      <WhatIsBivooPanel open={whatIsOpen} onOpenChange={setWhatIsOpen} />
       <Card className="w-full max-w-md overflow-hidden">
         <CardHeader className="text-center space-y-4">
           <div className="flex items-center justify-between">
