@@ -40,6 +40,8 @@ interface JobItem {
   material_consumed: number;
   material_id: string | null;
   nota: string;
+  printer_id: string | null;
+  colores_seleccionados: string[];
 }
 
 type PaymentMethod = 'cash' | 'transfer' | 'card' | 'mixed';
