@@ -561,6 +561,11 @@ const AppSidebar = () => {
                       <Link to={item.url}>
                         <item.icon className="h-4 w-4" />
                         <span className="text-sm">{item.title}</span>
+                        {'badge' in item && (item as any).badge > 0 && (
+                          <Badge variant="destructive" className="ml-auto h-4 min-w-4 px-1 text-[10px] leading-none">
+                            {(item as any).badge}
+                          </Badge>
+                        )}
                       </Link>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
