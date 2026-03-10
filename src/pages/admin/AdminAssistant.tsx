@@ -672,6 +672,7 @@ function ModuleInstructionsTab() {
           <DialogHeader><DialogTitle>{editingQ ? 'Editar sugerencia' : 'Nueva sugerencia'}</DialogTitle><DialogDescription>Esta pregunta aparecerá como sugerencia rápida en el chat del asistente.</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <div><Label>Pregunta sugerida</Label><Textarea value={qText} onChange={e => setQText(e.target.value)} rows={2} className="mt-1" placeholder="¿Cómo hago X en este módulo?" /></div>
+            <div><Label>Respuesta</Label><Textarea value={qAnswer} onChange={e => setQAnswer(e.target.value)} rows={3} className="mt-1" placeholder="Respuesta que la IA usará como referencia..." /><p className="text-[11px] text-muted-foreground mt-1">Opcional. Si se llena, la IA usará esta respuesta como referencia al responder.</p></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setQDialog(false)}>Cancelar</Button>
