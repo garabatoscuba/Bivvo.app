@@ -562,36 +562,21 @@ function QuickActionsTab() {
   );
 }
 
-// ─── Module Instructions Tab (with suggestions management) ───
+// ─── Module Instructions Tab (dynamic from DB) ───
 function ModuleInstructionsTab() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const MODULES = [
-    { key: 'dashboard', label: 'Dashboard' },
-    { key: 'pos', label: 'POS' },
-    { key: 'inventario', label: 'Inventario' },
-    { key: 'servicios', label: 'Servicios' },
-    { key: 'ventas', label: 'Ventas' },
-    { key: 'reportes', label: 'Reportes' },
-    { key: 'empleados', label: 'Empleados' },
-    { key: 'nomina', label: 'Nómina' },
-    { key: 'caja', label: 'Caja' },
-    { key: 'contabilidad', label: 'Contabilidad' },
-    { key: 'pedidos', label: 'Pedidos' },
-    { key: 'portal', label: 'Portal' },
-    { key: 'mi_empleo', label: 'Mi Empleo' },
-    { key: 'mi_red', label: 'Mi Red' },
-    { key: 'impresiones', label: 'Impresiones' },
-  ];
+  // Load modules dynamically from platform_modules
+  const { data: platformModules = [], isLoading: modsLoading } = useQuery({
+    queryKey: ['platform-modules-for-assistant'],
+    queryFn: async () => {
+      const { data } = await supabase.from('platform_modules').select('id, name, sidebar_label, icon, is_active').order('sort_order');
+      return (data || []) as any[];
+    },
+  });
 
-  // Module key mapping for questions (DB uses different keys than instructions)
-  const MODULE_QUESTION_KEYS: Record<string, string> = {
-    inventario: 'inventory', servicios: 'services', ventas: 'sales',
-    empleados: 'employees', reportes: 'reportes',
-  };
-
-  const { data: items = [], isLoading } = useQuery({
+  const { data: items = [], isLoading: instrLoading } = useQuery({
     queryKey: ['assistant-module-instructions'],
     queryFn: async () => {
       const { data } = await supabase.from('assistant_module_instructions').select('*');
@@ -606,6 +591,13 @@ function ModuleInstructionsTab() {
       return (data || []) as any[];
     },
   });
+
+  // Build dynamic module list from platform_modules
+  const modules = platformModules.filter((m: any) => m.is_active).map((m: any) => ({
+    key: m.sidebar_label?.toLowerCase().replace(/\s+/g, '_') || m.name.toLowerCase().replace(/\s+/g, '_'),
+    label: m.sidebar_label || m.name,
+    id: m.id,
+  }));
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
@@ -630,11 +622,19 @@ function ModuleInstructionsTab() {
   const handleSave = async (moduleKey: string) => {
     setSavingKey(moduleKey);
     try {
-      const { error } = await supabase
-        .from('assistant_module_instructions')
-        .update({ instructions: values[moduleKey] || '', updated_at: new Date().toISOString() } as any)
-        .eq('module_key', moduleKey);
-      if (error) throw error;
+      const existing = items.find(i => i.module_key === moduleKey);
+      if (existing) {
+        const { error } = await supabase
+          .from('assistant_module_instructions')
+          .update({ instructions: values[moduleKey] || '', updated_at: new Date().toISOString() } as any)
+          .eq('module_key', moduleKey);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('assistant_module_instructions')
+          .insert({ module_key: moduleKey, instructions: values[moduleKey] || '' } as any);
+        if (error) throw error;
+      }
       qc.invalidateQueries({ queryKey: ['assistant-module-instructions'] });
       toast({ title: 'Instrucciones guardadas' });
     } catch (e: any) {
@@ -668,19 +668,20 @@ function ModuleInstructionsTab() {
   });
 
   const openNewQ = (moduleKey: string) => {
-    const qKey = MODULE_QUESTION_KEYS[moduleKey] || moduleKey;
-    setEditingQ(null); setQText(''); setQAnswer(''); setQModule(qKey); setQDialog(true);
+    setEditingQ(null); setQText(''); setQAnswer(''); setQModule(moduleKey); setQDialog(true);
   };
   const openEditQ = (q: any) => { setEditingQ(q); setQText(q.question); setQAnswer(q.answer || ''); setQModule(q.module_key); setQDialog(true); };
 
+  const isLoading = modsLoading || instrLoading;
   if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">Instrucciones y sugerencias por módulo. Las sugerencias aparecen como preguntas rápidas en el chat del asistente.</p>
-      {MODULES.map(mod => {
-        const qKey = MODULE_QUESTION_KEYS[mod.key] || mod.key;
-        const moduleQuestions = allQuestions.filter(q => q.module_key === qKey);
+      {modules.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No hay módulos activos.</CardContent></Card>
+      ) : modules.map(mod => {
+        const moduleQuestions = allQuestions.filter(q => q.module_key === mod.key);
         const isExpanded = expanded === mod.key;
         return (
           <Card key={mod.key}>
