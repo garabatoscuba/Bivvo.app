@@ -701,6 +701,7 @@ export type Database = {
       }
       assistant_quick_questions: {
         Row: {
+          answer: string | null
           created_at: string
           id: string
           is_active: boolean
@@ -710,6 +711,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          answer?: string | null
           created_at?: string
           id?: string
           is_active?: boolean
@@ -719,6 +721,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          answer?: string | null
           created_at?: string
           id?: string
           is_active?: boolean

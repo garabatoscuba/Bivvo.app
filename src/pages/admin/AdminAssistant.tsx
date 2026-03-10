@@ -771,6 +771,7 @@ function GeneralQuestionsTab() {
           <DialogHeader><DialogTitle>{editing ? 'Editar pregunta' : 'Nueva pregunta general'}</DialogTitle><DialogDescription>Esta pregunta aparece como sugerencia cuando no hay preguntas del módulo activo.</DialogDescription></DialogHeader>
           <div className="space-y-4">
             <div><Label>Pregunta</Label><Textarea value={qText} onChange={e => setQText(e.target.value)} rows={2} className="mt-1" placeholder="¿Por dónde empiezo?" /></div>
+            <div><Label>Respuesta</Label><Textarea value={qAnswer} onChange={e => setQAnswer(e.target.value)} rows={3} className="mt-1" placeholder="Respuesta que la IA usará como referencia..." /><p className="text-[11px] text-muted-foreground mt-1">Opcional. Si se llena, la IA usará esta respuesta como referencia al responder.</p></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialog(false)}>Cancelar</Button>
