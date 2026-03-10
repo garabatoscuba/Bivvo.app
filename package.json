@@ -53,6 +53,7 @@
     "date-fns": "^3.6.0",
     "dexie": "^4.3.0",
     "embla-carousel-react": "^8.6.0",
+    "html5-qrcode": "^2.3.8",
     "idb": "^8.0.1",
     "input-otp": "^1.4.2",
     "lucide-react": "0.462.0",
