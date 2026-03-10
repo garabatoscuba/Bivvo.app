@@ -91,6 +91,14 @@ const AppHeader = ({ title }: AppHeaderProps) => {
             <Cloud className="h-4 w-4 text-success" />
           )}
         </div>
+        {/* Scanner button */}
+        <button
+          onClick={() => setScannerOpen(true)}
+          className="flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          title="Escáner"
+        >
+          <Camera className="h-4 w-4" />
+        </button>
         {/* WhatsApp support */}
         <a
           href="https://wa.me/5352514878?text=Hola%2C%20necesito%20soporte%20con%20Bivoo"
@@ -111,6 +119,7 @@ const AppHeader = ({ title }: AppHeaderProps) => {
           jornada={jornada}
         />
       )}
+      <ScannerModal open={scannerOpen} onOpenChange={setScannerOpen} />
     </header>
   );
 };
