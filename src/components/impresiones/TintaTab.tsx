@@ -77,6 +77,39 @@ export default function TintaTab() {
   const [moveColor, setMoveColor] = useState<InkColor>("negro");
   const [moveCantidad, setMoveCantidad] = useState("");
 
+  // Full multiplier config
+  const { data: copyShopConfig } = useQuery({
+    queryKey: ['copy-shop-config', businessId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('copy_shop_config')
+        .select('*')
+        .eq('business_id', businessId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!businessId,
+  });
+
+  const updateFullMultiplier = useMutation({
+    mutationFn: async (value: number) => {
+      if (!businessId) throw new Error('Sin contexto');
+      const { error } = await supabase
+        .from('copy_shop_config')
+        .update({ full_multiplier: value } as any)
+        .eq('business_id', businessId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['copy-shop-config'] });
+      toast.success("Multiplicador actualizado");
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+
+  const [fullMultInput, setFullMultInput] = useState<string>('');
+
   // ——— Queries ———
 
   const { data: inventory = [] } = useQuery({
