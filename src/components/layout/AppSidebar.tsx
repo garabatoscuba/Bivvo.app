@@ -329,10 +329,36 @@ const AppSidebar = () => {
     setBranchDialogOpen(true);
   };
 
+  // Realtime pending requests count for sidebar badge
+  const [pendingRequestsCount, setPendingRequestsCount] = useState(0);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+
+    const fetchCount = async () => {
+      const [planRes, bizRes] = await Promise.all([
+        supabase.from('plan_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.from('business_requests').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      ]);
+      setPendingRequestsCount((planRes.count || 0) + (bizRes.count || 0));
+    };
+
+    fetchCount();
+
+    const channel = supabase
+      .channel('admin-requests-badge')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'plan_requests' }, () => fetchCount())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_requests' }, () => fetchCount())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [isSuperAdmin]);
+
   const superAdminItems = [
     { title: "Resumen", url: "/admin", icon: Shield },
     { title: "Usuarios", url: "/admin/users", icon: Users },
     { title: "Negocios", url: "/admin/businesses", icon: Store },
+    { title: "Solicitudes", url: "/admin/requests", icon: FileText, badge: pendingRequestsCount },
     { title: "Ofertas", url: "/admin/offers", icon: Tag },
     { title: "Módulos y Plugins", url: "/admin/modules", icon: Settings2 },
     { title: "Partners", url: "/admin/partners", icon: Network },
