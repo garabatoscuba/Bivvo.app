@@ -182,6 +182,8 @@ const SellerPrintView = () => {
         material_consumed: svc.consumo_por_unidad,
         material_id: svc.material_id,
         nota: '',
+        printer_id: printers.length === 1 ? printers[0].id : null,
+        colores_seleccionados: [],
       },
     ]);
   };
