@@ -225,11 +225,22 @@ function ConfigGlobalTab() {
   );
 }
 
-// ─── Instructions Per Business Type Tab ───
+// ─── Instructions Per Business Type Tab (dynamic from DB) ───
 function InstructionsTab() {
   const { toast } = useToast();
   const qc = useQueryClient();
-  const { data: items = [], isLoading } = useQuery({
+
+  // Load all business types from the source of truth
+  const { data: businessTypes = [], isLoading: typesLoading } = useQuery({
+    queryKey: ['business-type-configs'],
+    queryFn: async () => {
+      const { data } = await supabase.from('business_type_configs').select('id, key, name, icon, is_active').order('sort_order');
+      return (data || []) as any[];
+    },
+  });
+
+  // Load existing instructions
+  const { data: items = [], isLoading: instrLoading } = useQuery({
     queryKey: ['assistant-bt-instructions'],
     queryFn: async () => {
       const { data } = await supabase.from('assistant_business_type_instructions').select('*').order('business_type');
@@ -239,6 +250,8 @@ function InstructionsTab() {
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
+  const [addDialog, setAddDialog] = useState(false);
+  const [selectedType, setSelectedType] = useState('');
 
   if (!initialized && items.length > 0) {
     const v: Record<string, string> = {};
@@ -249,27 +262,84 @@ function InstructionsTab() {
 
   const saveMutation = useMutation({
     mutationFn: async (bt: string) => {
-      const { error } = await supabase.from('assistant_business_type_instructions').update({ instructions: values[bt] || '' } as any).eq('business_type', bt);
-      if (error) throw error;
+      const existing = items.find(i => i.business_type === bt);
+      if (existing) {
+        const { error } = await supabase.from('assistant_business_type_instructions').update({ instructions: values[bt] || '' } as any).eq('id', existing.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('assistant_business_type_instructions').insert({ business_type: bt, instructions: values[bt] || '' } as any);
+        if (error) throw error;
+      }
     },
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-bt-instructions'] }); toast({ title: 'Instrucciones guardadas' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 
-  const labels: Record<string, string> = { store: 'Tienda', copy_shop: 'Punto de Copias', gym: 'Gimnasio' };
+  const addMutation = useMutation({
+    mutationFn: async () => {
+      if (!selectedType) throw new Error('Selecciona un tipo');
+      const { error } = await supabase.from('assistant_business_type_instructions').insert({ business_type: selectedType, instructions: '' } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['assistant-bt-instructions'] }); setAddDialog(false); setSelectedType(''); toast({ title: 'Tipo agregado' }); },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
 
+  const isLoading = typesLoading || instrLoading;
   if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
+
+  // Build label map from DB
+  const typeLabels: Record<string, string> = {};
+  businessTypes.forEach(bt => { typeLabels[bt.key] = bt.name; });
+
+  // Types that already have instructions
+  const existingKeys = items.map(i => i.business_type);
+  // Types available to add
+  const availableToAdd = businessTypes.filter(bt => bt.is_active && !existingKeys.includes(bt.key));
 
   return (
     <div className="space-y-4">
-      {items.map(item => (
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-muted-foreground">Instrucciones inyectadas según el tipo de negocio del usuario.</p>
+        {availableToAdd.length > 0 && (
+          <Button size="sm" onClick={() => setAddDialog(true)}><Plus className="h-4 w-4 mr-1" /> Agregar instrucción por tipo</Button>
+        )}
+      </div>
+      {items.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No hay instrucciones por tipo de negocio.</CardContent></Card>
+      ) : items.map(item => (
         <Card key={item.id}>
-          <CardHeader><CardTitle className="text-base">{labels[item.business_type] || item.business_type}</CardTitle><CardDescription>Instrucciones inyectadas cuando el usuario pertenece a este tipo de negocio.</CardDescription></CardHeader>
+          <CardHeader><CardTitle className="text-base">{typeLabels[item.business_type] || item.business_type}</CardTitle><CardDescription>Instrucciones inyectadas cuando el usuario pertenece a este tipo de negocio.</CardDescription></CardHeader>
           <CardContent className="space-y-3">
             <Textarea value={values[item.business_type] || ''} onChange={e => setValues(p => ({ ...p, [item.business_type]: e.target.value }))} rows={5} placeholder="Instrucciones específicas..." />
             <Button size="sm" onClick={() => saveMutation.mutate(item.business_type)} disabled={saveMutation.isPending}>Guardar</Button>
           </CardContent>
         </Card>
       ))}
+
+      <Dialog open={addDialog} onOpenChange={setAddDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Agregar instrucción por tipo</DialogTitle><DialogDescription>Selecciona el tipo de negocio al que quieres agregar instrucciones.</DialogDescription></DialogHeader>
+          <div>
+            <Label>Tipo de negocio</Label>
+            <Select value={selectedType} onValueChange={setSelectedType}>
+              <SelectTrigger className="mt-1"><SelectValue placeholder="Seleccionar tipo..." /></SelectTrigger>
+              <SelectContent>
+                {availableToAdd.map(bt => (
+                  <SelectItem key={bt.key} value={bt.key}>{bt.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAddDialog(false)}>Cancelar</Button>
+            <Button onClick={() => addMutation.mutate()} disabled={!selectedType || addMutation.isPending}>
+              {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Agregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -492,36 +562,21 @@ function QuickActionsTab() {
   );
 }
 
-// ─── Module Instructions Tab (with suggestions management) ───
+// ─── Module Instructions Tab (dynamic from DB) ───
 function ModuleInstructionsTab() {
   const { toast } = useToast();
   const qc = useQueryClient();
 
-  const MODULES = [
-    { key: 'dashboard', label: 'Dashboard' },
-    { key: 'pos', label: 'POS' },
-    { key: 'inventario', label: 'Inventario' },
-    { key: 'servicios', label: 'Servicios' },
-    { key: 'ventas', label: 'Ventas' },
-    { key: 'reportes', label: 'Reportes' },
-    { key: 'empleados', label: 'Empleados' },
-    { key: 'nomina', label: 'Nómina' },
-    { key: 'caja', label: 'Caja' },
-    { key: 'contabilidad', label: 'Contabilidad' },
-    { key: 'pedidos', label: 'Pedidos' },
-    { key: 'portal', label: 'Portal' },
-    { key: 'mi_empleo', label: 'Mi Empleo' },
-    { key: 'mi_red', label: 'Mi Red' },
-    { key: 'impresiones', label: 'Impresiones' },
-  ];
+  // Load modules dynamically from platform_modules
+  const { data: platformModules = [], isLoading: modsLoading } = useQuery({
+    queryKey: ['platform-modules-for-assistant'],
+    queryFn: async () => {
+      const { data } = await supabase.from('platform_modules').select('id, name, sidebar_label, icon, is_active').order('sort_order');
+      return (data || []) as any[];
+    },
+  });
 
-  // Module key mapping for questions (DB uses different keys than instructions)
-  const MODULE_QUESTION_KEYS: Record<string, string> = {
-    inventario: 'inventory', servicios: 'services', ventas: 'sales',
-    empleados: 'employees', reportes: 'reportes',
-  };
-
-  const { data: items = [], isLoading } = useQuery({
+  const { data: items = [], isLoading: instrLoading } = useQuery({
     queryKey: ['assistant-module-instructions'],
     queryFn: async () => {
       const { data } = await supabase.from('assistant_module_instructions').select('*');
@@ -536,6 +591,13 @@ function ModuleInstructionsTab() {
       return (data || []) as any[];
     },
   });
+
+  // Build dynamic module list from platform_modules
+  const modules = platformModules.filter((m: any) => m.is_active).map((m: any) => ({
+    key: m.sidebar_label?.toLowerCase().replace(/\s+/g, '_') || m.name.toLowerCase().replace(/\s+/g, '_'),
+    label: m.sidebar_label || m.name,
+    id: m.id,
+  }));
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
@@ -560,11 +622,19 @@ function ModuleInstructionsTab() {
   const handleSave = async (moduleKey: string) => {
     setSavingKey(moduleKey);
     try {
-      const { error } = await supabase
-        .from('assistant_module_instructions')
-        .update({ instructions: values[moduleKey] || '', updated_at: new Date().toISOString() } as any)
-        .eq('module_key', moduleKey);
-      if (error) throw error;
+      const existing = items.find(i => i.module_key === moduleKey);
+      if (existing) {
+        const { error } = await supabase
+          .from('assistant_module_instructions')
+          .update({ instructions: values[moduleKey] || '', updated_at: new Date().toISOString() } as any)
+          .eq('module_key', moduleKey);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('assistant_module_instructions')
+          .insert({ module_key: moduleKey, instructions: values[moduleKey] || '' } as any);
+        if (error) throw error;
+      }
       qc.invalidateQueries({ queryKey: ['assistant-module-instructions'] });
       toast({ title: 'Instrucciones guardadas' });
     } catch (e: any) {
@@ -598,19 +668,20 @@ function ModuleInstructionsTab() {
   });
 
   const openNewQ = (moduleKey: string) => {
-    const qKey = MODULE_QUESTION_KEYS[moduleKey] || moduleKey;
-    setEditingQ(null); setQText(''); setQAnswer(''); setQModule(qKey); setQDialog(true);
+    setEditingQ(null); setQText(''); setQAnswer(''); setQModule(moduleKey); setQDialog(true);
   };
   const openEditQ = (q: any) => { setEditingQ(q); setQText(q.question); setQAnswer(q.answer || ''); setQModule(q.module_key); setQDialog(true); };
 
+  const isLoading = modsLoading || instrLoading;
   if (isLoading) return <div className="flex justify-center py-10"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
 
   return (
     <div className="space-y-4">
       <p className="text-sm text-muted-foreground">Instrucciones y sugerencias por módulo. Las sugerencias aparecen como preguntas rápidas en el chat del asistente.</p>
-      {MODULES.map(mod => {
-        const qKey = MODULE_QUESTION_KEYS[mod.key] || mod.key;
-        const moduleQuestions = allQuestions.filter(q => q.module_key === qKey);
+      {modules.length === 0 ? (
+        <Card><CardContent className="py-8 text-center text-sm text-muted-foreground">No hay módulos activos.</CardContent></Card>
+      ) : modules.map(mod => {
+        const moduleQuestions = allQuestions.filter(q => q.module_key === mod.key);
         const isExpanded = expanded === mod.key;
         return (
           <Card key={mod.key}>
