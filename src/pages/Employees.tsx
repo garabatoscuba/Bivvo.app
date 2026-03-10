@@ -26,7 +26,7 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
   Loader2, Pencil, Trash2, Activity, Mail, MapPin, StopCircle, Clock,
-  Play, Square, Plus, Save, ChefHat,
+  Play, Square, Plus, Save, ChefHat, QrCode,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import PerformanceChart from '@/components/employees/PerformanceChart';
@@ -34,6 +34,7 @@ import CerrarJornadaGerenteModal from '@/components/employees/CerrarJornadaGeren
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
 import HistorialJornadasTab from '@/components/employees/HistorialJornadasTab';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
+import EmployeeQRCard from '@/components/employees/EmployeeQRCard';
 
 
 type AppRole = Database['public']['Enums']['app_role'];
@@ -163,6 +164,9 @@ const Employees = () => {
 
   // Performance chart state
   const [perfEmployee, setPerfEmployee] = useState<Employee | null>(null);
+
+  // QR state
+  const [qrEmployee, setQrEmployee] = useState<Employee | null>(null);
 
   // Jornada gerente state
   const [jornadaCerrarTarget, setJornadaCerrarTarget] = useState<{ jornada: any; name: string } | null>(null);
@@ -837,6 +841,11 @@ const Employees = () => {
                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPerfEmployee(emp)} title="Evaluación de desempeño">
                                       <Activity className="h-3.5 w-3.5" />
                                     </Button>
+                                    {canManage && (
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setQrEmployee(emp)} title="QR de asistencia">
+                                        <QrCode className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEmployee(emp)}>
                                       <Pencil className="h-3.5 w-3.5" />
                                     </Button>
@@ -929,6 +938,11 @@ const Employees = () => {
                                           <Button variant="ghost" size="icon" onClick={() => setPerfEmployee(emp)} title="Evaluación">
                                             <Activity className="h-4 w-4" />
                                           </Button>
+                                          {canManage && (
+                                            <Button variant="ghost" size="icon" onClick={() => setQrEmployee(emp)} title="QR de asistencia">
+                                              <QrCode className="h-4 w-4" />
+                                            </Button>
+                                          )}
                                           <Button variant="ghost" size="icon" onClick={() => openEditEmployee(emp)}>
                                             <Pencil className="h-4 w-4" />
                                           </Button>
@@ -1477,6 +1491,20 @@ const Employees = () => {
             jornada={jornadaCerrarTarget.jornada}
             employeeName={jornadaCerrarTarget.name}
           />
+        )}
+
+        {/* QR de Asistencia Dialog */}
+        {qrEmployee && businessId && (
+          <Dialog open={!!qrEmployee} onOpenChange={(open) => { if (!open) setQrEmployee(null); }}>
+            <DialogContent className="max-w-sm">
+              <EmployeeQRCard
+                employeeId={qrEmployee.id}
+                businessId={businessId}
+                employeeName={qrEmployee.full_name}
+                position={POSITION_OPTIONS.find(p => p.value === qrEmployee.position)?.label || qrEmployee.position}
+              />
+            </DialogContent>
+          </Dialog>
         )}
       </div>
     </AppLayout>
