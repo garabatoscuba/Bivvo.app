@@ -96,7 +96,7 @@ const BusinessDetailSheet = ({ businessId, onClose, onEdit, onDeactivate }: Busi
         owner: ownerProfile,
         branches: branchesRes.data || [],
         employees,
-        activeEmployees: employees.filter(e => e.is_active !== false).length,
+        activeEmployees: employees.filter(e => (e as any).status !== 'inactive').length,
         totalProducts: productsRes.data?.length || 0,
         outOfStock,
         recentSales: bizSales || [],
