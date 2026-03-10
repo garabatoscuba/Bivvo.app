@@ -1492,6 +1492,20 @@ const Employees = () => {
             employeeName={jornadaCerrarTarget.name}
           />
         )}
+
+        {/* QR de Asistencia Dialog */}
+        {qrEmployee && businessId && (
+          <Dialog open={!!qrEmployee} onOpenChange={(open) => { if (!open) setQrEmployee(null); }}>
+            <DialogContent className="max-w-sm">
+              <EmployeeQRCard
+                employeeId={qrEmployee.id}
+                businessId={businessId}
+                employeeName={qrEmployee.full_name}
+                position={POSITION_OPTIONS.find(p => p.value === qrEmployee.position)?.label || qrEmployee.position}
+              />
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
     </AppLayout>
   );
