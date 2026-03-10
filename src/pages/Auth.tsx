@@ -181,16 +181,10 @@ const Auth = () => {
   const { theme, setTheme } = useTheme();
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative">
-      <button
-        onClick={() => setWhatIsOpen(true)}
-        className="fixed bottom-4 left-4 text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 z-10"
-      >
-        ¿Qué es Bivoo?
-      </button>
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <WhatIsBivooPanel open={whatIsOpen} onOpenChange={setWhatIsOpen} />
       <Card className="w-full max-w-md overflow-hidden">
-        <CardHeader className="text-center space-y-4">
+        <CardHeader className="text-center space-y-3">
           <div className="flex items-center justify-between">
             <div className="w-8" />
             <div className="flex flex-col items-center">
@@ -199,7 +193,13 @@ const Auth = () => {
                 alt="Bivoo"
                 className="h-10 object-contain"
               />
-              <span className="text-[11px] font-semibold text-muted-foreground tracking-wide mt-2.5">Automatización de Empresas</span>
+              <span className="text-xs font-medium text-muted-foreground tracking-wide mt-2">Automatización de Empresas</span>
+              <button
+                onClick={() => setWhatIsOpen(true)}
+                className="text-xs text-primary/70 hover:text-primary transition-colors mt-1 underline underline-offset-2"
+              >
+                ¿Qué es Bivoo?
+              </button>
             </div>
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -209,7 +209,7 @@ const Auth = () => {
               {theme === "dark" ? <Sun className="h-4 w-4 text-foreground" /> : <Moon className="h-4 w-4 text-foreground" />}
             </button>
           </div>
-          <CardDescription>
+          <CardDescription className="text-sm">
             {step === "email" && (isAffiliateFlow ? "Únete como Afiliado" : "Ingresa tu email para continuar")}
             {step === "password" && "Ingresa tu contraseña"}
             {step === "signup" && "Completa tus datos para crear tu cuenta"}
