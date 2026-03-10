@@ -183,39 +183,40 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <WhatIsBivooPanel open={whatIsOpen} onOpenChange={setWhatIsOpen} />
-      <Card className="w-full max-w-md overflow-hidden">
-        <CardHeader className="text-center space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="w-8" />
-            <div className="flex flex-col items-center">
+      <Card className="w-full max-w-md overflow-hidden shadow-lg">
+        <CardHeader className="text-center pt-8 pb-2 px-8">
+          <div className="relative flex justify-center">
+            <div className="flex flex-col items-center gap-2.5">
               <img
                 src={theme === "dark" ? logoLight : logoDark}
                 alt="Bivoo"
-                className="h-10 object-contain"
+                className="h-11 object-contain"
               />
-              <span className="text-xs font-medium text-muted-foreground tracking-wide mt-2">Automatización de Empresas</span>
+              <span className="text-[11px] font-medium text-muted-foreground tracking-widest uppercase">
+                Automatización de Empresas
+              </span>
               <button
                 onClick={() => setWhatIsOpen(true)}
-                className="text-xs text-primary/70 hover:text-primary transition-colors mt-1 underline underline-offset-2"
+                className="text-[11px] text-primary/60 hover:text-primary transition-colors underline underline-offset-4 decoration-primary/30 hover:decoration-primary/60"
               >
                 ¿Qué es Bivoo?
               </button>
             </div>
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-full bg-muted hover:bg-muted/80 transition-colors"
+              className="absolute right-0 top-0 p-2 rounded-full bg-muted/50 hover:bg-muted transition-colors"
               aria-label="Cambiar tema"
             >
-              {theme === "dark" ? <Sun className="h-4 w-4 text-foreground" /> : <Moon className="h-4 w-4 text-foreground" />}
+              {theme === "dark" ? <Sun className="h-4 w-4 text-muted-foreground" /> : <Moon className="h-4 w-4 text-muted-foreground" />}
             </button>
           </div>
-          <CardDescription className="text-sm">
+          <CardDescription className="text-sm pt-4">
             {step === "email" && (isAffiliateFlow ? "Únete como Afiliado" : "Ingresa tu email para continuar")}
             {step === "password" && "Ingresa tu contraseña"}
             {step === "signup" && "Completa tus datos para crear tu cuenta"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
+        <CardContent className="space-y-6 px-8 pb-8">
           {/* Step: Email */}
           {step === "email" && (
             <>
