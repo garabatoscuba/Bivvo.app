@@ -576,7 +576,7 @@ function ModuleInstructionsTab() {
 
   const saveQMutation = useMutation({
     mutationFn: async () => {
-      const payload = { module_key: qModule, question: qText, is_active: true, sort_order: allQuestions.filter(q => q.module_key === qModule).length } as any;
+      const payload = { module_key: qModule, question: qText, answer: qAnswer, is_active: true, sort_order: allQuestions.filter(q => q.module_key === qModule).length } as any;
       if (editingQ) {
         const { error } = await supabase.from('assistant_quick_questions').update(payload).eq('id', editingQ.id);
         if (error) throw error;
