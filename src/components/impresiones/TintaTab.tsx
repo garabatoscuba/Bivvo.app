@@ -561,6 +561,46 @@ export default function TintaTab() {
         )}
       </div>
 
+      {/* ——— SECTION 4: Impresoras ——— */}
+      <PrinterManager />
+
+      {/* ——— SECTION 5: Configuración de consumo ——— */}
+      <div>
+        <h2 className="text-lg font-semibold mb-3 flex items-center gap-2">
+          <Settings className="h-5 w-5" /> Configuración de consumo
+        </h2>
+        <Card>
+          <CardContent className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium">Multiplicador Full</p>
+                <p className="text-xs text-muted-foreground">
+                  Cuántas veces más tinta consume una impresión Full vs color normal
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  min="1"
+                  step="0.1"
+                  className="w-20 h-8 text-sm text-right"
+                  value={fullMultInput || (copyShopConfig as any)?.full_multiplier || '2.0'}
+                  onChange={e => setFullMultInput(e.target.value)}
+                  onBlur={() => {
+                    const val = parseFloat(fullMultInput);
+                    if (val && val >= 1) {
+                      updateFullMultiplier.mutate(val);
+                    }
+                    setFullMultInput('');
+                  }}
+                />
+                <span className="text-xs text-muted-foreground">×</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* ——— MODAL: Nueva compra ——— */}
       <Dialog open={buyOpen} onOpenChange={setBuyOpen}>
         <DialogContent className="max-w-md">
