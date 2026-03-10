@@ -270,29 +270,10 @@ const AdminBusinesses = () => {
     );
   }
 
-  const pendingPlanCount = data?.pendingRequests?.length || 0;
-  const pendingBizCount = data?.pendingBizRequests?.length || 0;
-
   return (
     <AppLayout title="Negocios">
       <div className="space-y-6 pb-20">
-        <Tabs defaultValue="businesses" className="space-y-6" onValueChange={() => setSelectedIds(new Set())}>
-          <div className="overflow-x-auto">
-            <TabsList className="bg-muted/60">
-              <TabsTrigger value="businesses" className="gap-1.5 text-xs"><Store className="h-3.5 w-3.5" /> Negocios</TabsTrigger>
-              <TabsTrigger value="requests" className="gap-1.5 text-xs">
-                <FileText className="h-3.5 w-3.5" /> Sol. Planes
-                {pendingPlanCount > 0 && <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{pendingPlanCount}</Badge>}
-              </TabsTrigger>
-              <TabsTrigger value="biz-requests" className="gap-1.5 text-xs">
-                <Building2 className="h-3.5 w-3.5" /> Sol. Negocios
-                {pendingBizCount > 0 && <Badge variant="destructive" className="ml-1 h-4 min-w-4 px-1 text-[10px]">{pendingBizCount}</Badge>}
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          {/* BUSINESSES */}
-          <TabsContent value="businesses" className="space-y-4 mt-0">
+        <div className="space-y-4">
             <FilterBar>
               <SearchInput value={bizSearch} onChange={setBizSearch} placeholder="Buscar negocio, dueño..." />
               <Select value={bizFilterStatus} onValueChange={setBizFilterStatus}>
@@ -382,144 +363,7 @@ const AdminBusinesses = () => {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {/* PLAN REQUESTS */}
-          <TabsContent value="requests" className="space-y-4 mt-0">
-            <FilterBar>
-              <SearchInput value={reqSearch} onChange={setReqSearch} placeholder="Buscar usuario..." />
-              <Select value={reqFilterStatus} onValueChange={setReqFilterStatus}>
-                <SelectTrigger className="w-[150px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Estado: Todos</SelectItem>
-                  <SelectItem value="pending">Pendientes</SelectItem>
-                  <SelectItem value="approved">Aprobados</SelectItem>
-                  <SelectItem value="rejected">Rechazados</SelectItem>
-                </SelectContent>
-              </Select>
-              <ResultCount count={filteredPlanReqs.length} label="solicitud" />
-            </FilterBar>
-            <Card className="border-border/60">
-              <CardContent className="p-0">
-                {filteredPlanReqs.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <SortHead label="Usuario" sortKey="user_name" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <SortHead label="Plan" sortKey="plan_type" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <SortHead label="Meses" sortKey="months" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <SortHead label="Total" sortKey="total_amount" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <SortHead label="Estado" sortKey="status" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <SortHead label="Fecha" sortKey="created_at" currentKey={reqSort.key} currentDir={reqSort.dir} onToggle={reqSort.toggle} />
-                          <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredPlanReqs.map((r: any) => (
-                          <TableRow key={r.id}>
-                            <TableCell>
-                              <p className="text-sm font-medium">{r.user_name}</p>
-                              <p className="text-[11px] text-muted-foreground">{r.user_email}</p>
-                            </TableCell>
-                            <TableCell><Badge variant="outline" className="text-[11px]">{getPlanLabel(r.plan_type)}</Badge></TableCell>
-                            <TableCell className="text-sm">{r.months}m</TableCell>
-                            <TableCell className="text-sm font-medium">${Number(r.total_amount).toFixed(2)}</TableCell>
-                            <TableCell>{statusBadge(r.status)}</TableCell>
-                            <TableCell className="text-[11px] text-muted-foreground">{format(new Date(r.created_at), "d MMM yy", { locale: es })}</TableCell>
-                            <TableCell className="text-right">
-                              {r.status === 'pending' && (
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'approved' })}><Check className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'rejected' })}><X className="h-4 w-4" /></Button>
-                                </div>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-sm text-muted-foreground">No hay solicitudes</div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* BUSINESS REQUESTS */}
-          <TabsContent value="biz-requests" className="space-y-4 mt-0">
-            <FilterBar>
-              <SearchInput value={bizReqSearch} onChange={setBizReqSearch} placeholder="Buscar solicitante, nombre..." />
-              <Select value={bizReqFilterStatus} onValueChange={setBizReqFilterStatus}>
-                <SelectTrigger className="w-[150px] h-9 text-sm"><SelectValue placeholder="Estado" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Estado: Todos</SelectItem>
-                  <SelectItem value="pending">Pendientes</SelectItem>
-                  <SelectItem value="approved">Aprobados</SelectItem>
-                  <SelectItem value="rejected">Rechazados</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={bizReqFilterType} onValueChange={setBizReqFilterType}>
-                <SelectTrigger className="w-[140px] h-9 text-sm"><SelectValue placeholder="Tipo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tipo: Todos</SelectItem>
-                  <SelectItem value="business">Negocio</SelectItem>
-                  <SelectItem value="branch">Sucursal</SelectItem>
-                </SelectContent>
-              </Select>
-              <ResultCount count={filteredBizReqs.length} label="solicitud" />
-            </FilterBar>
-            <Card className="border-border/60">
-              <CardContent className="p-0">
-                {filteredBizReqs.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <SortHead label="Solicitante" sortKey="user_name" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
-                          <SortHead label="Tipo" sortKey="request_type" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
-                          <SortHead label="Nombre" sortKey="business_name" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
-                          <SortHead label="Estado" sortKey="status" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
-                          <SortHead label="Fecha" sortKey="created_at" currentKey={bizReqSort.key} currentDir={bizReqSort.dir} onToggle={bizReqSort.toggle} />
-                          <TableHead className="text-[11px] uppercase tracking-wide text-right">Acción</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredBizReqs.map((r: any) => (
-                          <TableRow key={r.id}>
-                            <TableCell>
-                              <p className="text-sm font-medium">{r.user_name}</p>
-                              <p className="text-[11px] text-muted-foreground">{r.user_email}</p>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant="outline" className="text-[11px]">
-                                {r.request_type === 'business' ? '🏪 Negocio' : '📍 Sucursal'}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-sm">{r.business_name || r.branch_name}</TableCell>
-                            <TableCell>{statusBadge(r.status)}</TableCell>
-                            <TableCell className="text-[11px] text-muted-foreground">{format(new Date(r.created_at), "d MMM yy", { locale: es })}</TableCell>
-                            <TableCell className="text-right">
-                              {r.status === 'pending' && (
-                                <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'approved' })} disabled={approveBizRequestMutation.isPending}><Check className="h-4 w-4" /></Button>
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'rejected' })} disabled={approveBizRequestMutation.isPending}><X className="h-4 w-4" /></Button>
-                                </div>
-                              )}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </div>
-                ) : (
-                  <div className="py-12 text-center text-sm text-muted-foreground">No hay solicitudes de negocios</div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+        </div>
 
         {/* Floating bulk action bar */}
         {selectedIds.size > 0 && (
