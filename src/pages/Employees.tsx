@@ -26,7 +26,7 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
   Loader2, Pencil, Trash2, Activity, Mail, MapPin, StopCircle, Clock,
-  Play, Square, Plus, Save, ChefHat,
+  Play, Square, Plus, Save, ChefHat, QrCode,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import PerformanceChart from '@/components/employees/PerformanceChart';
@@ -34,6 +34,7 @@ import CerrarJornadaGerenteModal from '@/components/employees/CerrarJornadaGeren
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
 import HistorialJornadasTab from '@/components/employees/HistorialJornadasTab';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
+import EmployeeQRCard from '@/components/employees/EmployeeQRCard';
 
 
 type AppRole = Database['public']['Enums']['app_role'];
