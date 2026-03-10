@@ -190,37 +190,6 @@ const AdminBusinesses = () => {
     },
   });
 
-  const approveMutation = useMutation({
-    mutationFn: async ({ requestId, action, customEndDate }: { requestId: string; action: 'approved' | 'rejected'; customEndDate?: string }) => {
-      const request = data?.planRequests?.find((r: any) => r.id === requestId);
-      if (!request) throw new Error('Solicitud no encontrada');
-      const updates: any = { status: action, approved_at: new Date().toISOString() };
-      if (customEndDate) updates.custom_end_date = customEndDate;
-      const { error: reqError } = await supabase.from('plan_requests').update(updates).eq('id', requestId);
-      if (reqError) throw reqError;
-      if (action === 'approved') {
-        const endDate = customEndDate ? new Date(customEndDate) : new Date(Date.now() + (request as any).months * 30 * 24 * 60 * 60 * 1000);
-        const { error: profError } = await supabase.from('profiles').update({
-          plan_type: (request as any).plan_type, subscription_status: 'active',
-          subscription_ends_at: endDate.toISOString(), trial_ends_at: null,
-        }).eq('user_id', (request as any).user_id);
-        if (profError) throw profError;
-      }
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-businesses-page'] }); toast({ title: 'Solicitud procesada' }); },
-    onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); },
-  });
-
-  const approveBizRequestMutation = useMutation({
-    mutationFn: async ({ requestId, action }: { requestId: string; action: 'approved' | 'rejected' }) => {
-      const { data, error } = await supabase.functions.invoke('approve-business-request', { body: { request_id: requestId, action } });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-    },
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-businesses-page'] }); toast({ title: 'Solicitud procesada' }); },
-    onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); },
-  });
-
   const openEditBiz = async (biz: any) => {
     setEditBiz(biz);
     setEditName(biz.name);
@@ -257,12 +226,6 @@ const AdminBusinesses = () => {
     return 'Gratuito';
   };
 
-  const statusBadge = (status: string) => (
-    <Badge variant={status === 'approved' ? 'default' : status === 'rejected' ? 'destructive' : 'secondary'} className="text-[11px]">
-      {status === 'approved' ? 'Aprobado' : status === 'rejected' ? 'Rechazado' : 'Pendiente'}
-    </Badge>
-  );
-
   const filteredBiz = useMemo(() => {
     let list = data?.businesses || [];
     const q = bizSearch.toLowerCase().trim();
@@ -271,23 +234,6 @@ const AdminBusinesses = () => {
     if (bizFilterPlan !== 'all') list = list.filter(b => b.owner_plan === bizFilterPlan);
     return sortData(list, bizSort.key, bizSort.dir, ['branch_count', 'product_count'], ['created_at']);
   }, [data?.businesses, bizSearch, bizFilterStatus, bizFilterPlan, bizSort.key, bizSort.dir]);
-
-  const filteredPlanReqs = useMemo(() => {
-    let list = data?.planRequests || [];
-    const q = reqSearch.toLowerCase().trim();
-    if (q) list = list.filter((r: any) => r.user_name.toLowerCase().includes(q) || r.user_email.toLowerCase().includes(q));
-    if (reqFilterStatus !== 'all') list = list.filter((r: any) => r.status === reqFilterStatus);
-    return sortData(list, reqSort.key, reqSort.dir, ['months', 'total_amount'], ['created_at']);
-  }, [data?.planRequests, reqSearch, reqFilterStatus, reqSort.key, reqSort.dir]);
-
-  const filteredBizReqs = useMemo(() => {
-    let list = data?.businessRequests || [];
-    const q = bizReqSearch.toLowerCase().trim();
-    if (q) list = list.filter((r: any) => r.user_name.toLowerCase().includes(q) || r.user_email.toLowerCase().includes(q) || (r.business_name || r.branch_name || '').toLowerCase().includes(q));
-    if (bizReqFilterStatus !== 'all') list = list.filter((r: any) => r.status === bizReqFilterStatus);
-    if (bizReqFilterType !== 'all') list = list.filter((r: any) => r.request_type === bizReqFilterType);
-    return sortData(list, bizReqSort.key, bizReqSort.dir, [], ['created_at']);
-  }, [data?.businessRequests, bizReqSearch, bizReqFilterStatus, bizReqFilterType, bizReqSort.key, bizReqSort.dir]);
 
   // Selection helpers
   const toggleSelect = (id: string) => {
