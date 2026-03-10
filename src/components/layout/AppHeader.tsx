@@ -5,7 +5,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useOffline } from '@/contexts/OfflineContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
-import { WifiOff, Loader2, Cloud, MessageCircle } from 'lucide-react';
+import ScannerModal from './ScannerModal';
+import { WifiOff, Loader2, Cloud, MessageCircle, Camera } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 function useElapsedTime(startIso: string | null | undefined) {
@@ -38,7 +39,7 @@ const AppHeader = ({ title }: AppHeaderProps) => {
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const elapsed = useElapsedTime(jornada?.apertura_at);
   const [cerrarOpen, setCerrarOpen] = useState(false);
-
+  const [scannerOpen, setScannerOpen] = useState(false);
   return (
     <header className="flex h-11 md:h-14 shrink-0 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-2 md:px-4 overflow-hidden max-w-full">
       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -90,6 +91,14 @@ const AppHeader = ({ title }: AppHeaderProps) => {
             <Cloud className="h-4 w-4 text-success" />
           )}
         </div>
+        {/* Scanner button */}
+        <button
+          onClick={() => setScannerOpen(true)}
+          className="flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+          title="Escáner"
+        >
+          <Camera className="h-4 w-4" />
+        </button>
         {/* WhatsApp support */}
         <a
           href="https://wa.me/5352514878?text=Hola%2C%20necesito%20soporte%20con%20Bivoo"
@@ -110,6 +119,7 @@ const AppHeader = ({ title }: AppHeaderProps) => {
           jornada={jornada}
         />
       )}
+      <ScannerModal open={scannerOpen} onOpenChange={setScannerOpen} />
     </header>
   );
 };
