@@ -313,6 +313,8 @@ const SellerPrintView = () => {
         costo_insumo: it.costo_insumo,
         material_consumido: it.material_consumed,
         nota: it.nota || null,
+        printer_id: it.printer_id || null,
+        colores_seleccionados: it.colores_seleccionados.length > 0 ? it.colores_seleccionados : null,
       }));
       const { error: itemsErr } = await supabase.from('print_job_items').insert(items);
       if (itemsErr) throw itemsErr;
