@@ -220,7 +220,7 @@ const BusinessDetailSheet = ({ businessId, onClose, onEdit, onDeactivate }: Busi
           ? Object.values(prodsByBiz).reduce((a, b) => a + b, 0) / sameTypeBizIds.length : 0;
 
         const empsByBiz: Record<string, number> = {};
-        (sameEmps.data || []).filter(e => (e as any).status !== 'inactive').forEach(e => {
+        (sameEmps.data || []).forEach(e => {
           empsByBiz[e.business_id] = (empsByBiz[e.business_id] || 0) + 1;
         });
         avgEmployees = Object.values(empsByBiz).length > 0
