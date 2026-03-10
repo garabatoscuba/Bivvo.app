@@ -194,7 +194,7 @@ const BusinessDetailSheet = ({ businessId, onClose, onEdit, onDeactivate }: Busi
       if (sameTypeBizIds.length > 0) {
         const [sameProds, sameEmps, sameBranches2] = await Promise.all([
           supabase.from('products').select('id, business_id').in('business_id', sameTypeBizIds),
-          supabase.from('employees').select('id, business_id, status').in('business_id', sameTypeBizIds),
+          supabase.from('employees').select('id, business_id').in('business_id', sameTypeBizIds),
           supabase.from('branches').select('id, business_id').in('business_id', sameTypeBizIds),
         ]);
         const sameBranchIds = (sameBranches2.data || []).map(b => b.id);
