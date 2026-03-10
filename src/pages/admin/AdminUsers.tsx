@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
@@ -21,10 +22,11 @@ import {
 } from '@/components/ui/select';
 import {
   Users, Search, Loader2, Trash2, Shield, RotateCcw, Clock, UserX, Pencil, Save,
-  ArrowUp, ArrowDown, ArrowUpDown, Building2,
+  ArrowUp, ArrowDown, ArrowUpDown, Building2, Ban, CheckCircle2,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import type { Database } from '@/integrations/supabase/types';
 import { differenceInDays, formatDistanceToNow } from 'date-fns';
@@ -63,6 +65,7 @@ const SortHead = ({ label, sortKey: sk, currentKey, currentDir, onToggle, classN
 
 const AdminUsers = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [filterRole, setFilterRole] = useState('all');
@@ -76,6 +79,12 @@ const AdminUsers = () => {
   const [editCountry, setEditCountry] = useState('');
   const [editSubStatus, setEditSubStatus] = useState('');
   const [editSaving, setEditSaving] = useState(false);
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState<'ban' | 'delete' | null>(null);
+  const [bulkConfirmText, setBulkConfirmText] = useState('');
+  const [activeTab, setActiveTab] = useState('active');
 
   const [sortKey, setSortKey] = useState('created_at');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
@@ -103,60 +112,39 @@ const AdminUsers = () => {
     },
   });
 
-  // Fetch @bivoo.app employees with employer info
   const { data: bivooEmployees, isLoading: bivooLoading } = useQuery({
     queryKey: ['admin-bivoo-employees'],
     queryFn: async () => {
-      // Get all @bivoo.app profiles
       const { data: bivooProfiles, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .like('email', '%@bivoo.app')
-        .order('created_at', { ascending: false });
+        .from('profiles').select('*').like('email', '%@bivoo.app').order('created_at', { ascending: false });
       if (error) throw error;
       if (!bivooProfiles?.length) return [];
-
-      // Get employee records to find employer business
       const userIds = bivooProfiles.map(p => p.user_id);
       const { data: employees } = await supabase
-        .from('employees')
-        .select('auth_user_id, business_id, full_name, position')
-        .in('auth_user_id', userIds);
-
-      // Get all relevant businesses
+        .from('employees').select('auth_user_id, business_id, full_name, position').in('auth_user_id', userIds);
       const empBizIds = [...new Set((employees || []).map(e => e.business_id).filter(Boolean))];
       const { data: businesses } = await supabase
-        .from('businesses')
-        .select('id, name, owner_id')
-        .in('id', empBizIds.length > 0 ? empBizIds : ['none']);
-
-      // Get owner profiles for country
+        .from('businesses').select('id, name, owner_id').in('id', empBizIds.length > 0 ? empBizIds : ['none']);
       const ownerProfileIds = [...new Set((businesses || []).map(b => b.owner_id).filter(Boolean))];
       const { data: ownerProfiles } = await supabase
-        .from('profiles')
-        .select('id, full_name, country')
-        .in('id', ownerProfileIds.length > 0 ? ownerProfileIds : ['none']);
-
+        .from('profiles').select('id, full_name, country').in('id', ownerProfileIds.length > 0 ? ownerProfileIds : ['none']);
       const bizMap = new Map((businesses || []).map(b => [b.id, b]));
       const ownerMap = new Map((ownerProfiles || []).map(o => [o.id, o]));
       const empMap = new Map((employees || []).map(e => [e.auth_user_id, e]));
-
       return bivooProfiles.map(p => {
         const emp = empMap.get(p.user_id);
         const biz = emp ? bizMap.get(emp.business_id) : null;
         const owner = biz?.owner_id ? ownerMap.get(biz.owner_id) : null;
         return {
-          ...p,
-          employer_name: biz?.name || 'Sin empleador',
-          employer_owner: owner?.full_name || '—',
-          employer_country: owner?.country || null,
+          ...p, employer_name: biz?.name || 'Sin empleador',
+          employer_owner: owner?.full_name || '—', employer_country: owner?.country || null,
           position: emp?.position || '—',
         };
       });
     },
   });
 
-  // Mutations
+  // Single mutations
   const deleteMutation = useMutation({
     mutationFn: async ({ userId, action }: { userId: string; action: string }) => {
       const { data, error } = await supabase.functions.invoke('delete-user', { body: { user_id: userId, action } });
@@ -168,11 +156,40 @@ const AdminUsers = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-users'] });
       const msg = data?.action === 'scheduled' ? 'Usuario marcado para baja en 30 días.'
         : data?.action === 'reverted' ? 'Baja revertida correctamente.'
+        : data?.action === 'banned' ? 'Usuario desactivado.'
+        : data?.action === 'unbanned' ? 'Usuario reactivado.'
         : 'Usuario eliminado permanentemente.';
       toast({ title: 'Éxito', description: msg });
       setDeleteTarget(null); setRevertTarget(null);
     },
     onError: (err: any) => { toast({ title: 'Error', description: err.message, variant: 'destructive' }); setDeleteTarget(null); setRevertTarget(null); },
+  });
+
+  // Bulk mutation
+  const bulkMutation = useMutation({
+    mutationFn: async ({ userIds, action }: { userIds: string[]; action: string }) => {
+      const { data, error } = await supabase.functions.invoke('delete-user', { body: { user_ids: userIds, action } });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-bivoo-employees'] });
+      const actionLabel = data?.action === 'bulk_ban' ? 'desactivados' : 'eliminados';
+      let msg = `${data?.count || 0} usuarios ${actionLabel}`;
+      if (data?.failed > 0) msg += `, ${data.failed} fallaron`;
+      if (data?.skipped > 0) msg += ` (${data.skipped} omitidos por ser admin)`;
+      toast({ title: 'Acción masiva completada', description: msg });
+      setSelectedIds(new Set());
+      setBulkAction(null);
+      setBulkConfirmText('');
+    },
+    onError: (err: any) => {
+      toast({ title: 'Error', description: err.message, variant: 'destructive' });
+      setBulkAction(null);
+      setBulkConfirmText('');
+    },
   });
 
   const openEditDialog = (u: any) => {
@@ -251,6 +268,49 @@ const AdminUsers = () => {
     });
   }, [bivooEmployees, search, sortKey, sortDir]);
 
+  // Selection helpers
+  const currentTabUsers = useMemo(() => {
+    if (activeTab === 'active') return filteredActive;
+    if (activeTab === 'pending') return filteredPending;
+    if (activeTab === 'bivoo') return filteredBivoo;
+    return [];
+  }, [activeTab, filteredActive, filteredPending, filteredBivoo]);
+
+  const selectableUsers = useMemo(() =>
+    currentTabUsers.filter(u => !u.roles?.includes('super_admin') && u.user_id !== user?.id),
+    [currentTabUsers, user?.id]
+  );
+
+  const toggleSelect = (userId: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(userId)) next.delete(userId); else next.add(userId);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === selectableUsers.length && selectableUsers.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(selectableUsers.map(u => u.user_id)));
+    }
+  };
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkConfirm = () => {
+    const ids = Array.from(selectedIds);
+    if (bulkAction === 'ban') {
+      bulkMutation.mutate({ userIds: ids, action: 'bulk_ban' });
+    } else if (bulkAction === 'delete') {
+      bulkMutation.mutate({ userIds: ids, action: 'bulk_delete' });
+    }
+  };
+
   const formatLastLogin = (dateStr: string | null) => {
     if (!dateStr) return <span className="text-xs text-muted-foreground">Nunca</span>;
     return <span className="text-xs">{formatDistanceToNow(new Date(dateStr), { addSuffix: true, locale: es })}</span>;
@@ -262,9 +322,19 @@ const AdminUsers = () => {
 
   const renderUserRow = (u: any, isPending: boolean) => {
     const isSuperAdmin = u.roles?.includes('super_admin');
+    const isSelf = u.user_id === user?.id;
+    const isSelectable = !isSuperAdmin && !isSelf;
     const daysLeft = u.deletion_scheduled_at ? differenceInDays(new Date(u.deletion_scheduled_at), new Date()) : null;
     return (
-      <TableRow key={u.id}>
+      <TableRow key={u.id} className={selectedIds.has(u.user_id) ? 'bg-primary/5' : ''}>
+        <TableCell className="w-10">
+          <Checkbox
+            checked={selectedIds.has(u.user_id)}
+            onCheckedChange={() => toggleSelect(u.user_id)}
+            disabled={!isSelectable}
+            className={!isSelectable ? 'opacity-30' : ''}
+          />
+        </TableCell>
         <TableCell><p className="text-sm font-medium">{u.full_name}</p></TableCell>
         <TableCell><p className="text-sm text-muted-foreground">{u.email}</p></TableCell>
         <TableCell className="text-sm">{u.business_name}</TableCell>
@@ -310,22 +380,36 @@ const AdminUsers = () => {
     );
   };
 
-  const renderBivooRow = (u: any) => (
-    <TableRow key={u.id}>
-      <TableCell><p className="text-sm font-medium">{u.full_name}</p></TableCell>
-      <TableCell><p className="text-sm text-muted-foreground">{u.email}</p></TableCell>
-      <TableCell className="text-sm">{u.employer_name}</TableCell>
-      <TableCell className="text-sm">{u.employer_owner}</TableCell>
-      <TableCell className="text-sm">{u.position}</TableCell>
-      <TableCell className="text-sm">
-        {u.employer_country
-          ? <span>{COUNTRY_FLAGS[u.employer_country] || ''} {u.employer_country}</span>
-          : <span className="text-muted-foreground">—</span>
-        }
-      </TableCell>
-      <TableCell>{formatLastLogin((u as any).last_login_at)}</TableCell>
-    </TableRow>
-  );
+  const renderBivooRow = (u: any) => {
+    const isSelf = u.user_id === user?.id;
+    return (
+      <TableRow key={u.id} className={selectedIds.has(u.user_id) ? 'bg-primary/5' : ''}>
+        <TableCell className="w-10">
+          <Checkbox
+            checked={selectedIds.has(u.user_id)}
+            onCheckedChange={() => toggleSelect(u.user_id)}
+            disabled={isSelf}
+            className={isSelf ? 'opacity-30' : ''}
+          />
+        </TableCell>
+        <TableCell><p className="text-sm font-medium">{u.full_name}</p></TableCell>
+        <TableCell><p className="text-sm text-muted-foreground">{u.email}</p></TableCell>
+        <TableCell className="text-sm">{u.employer_name}</TableCell>
+        <TableCell className="text-sm">{u.employer_owner}</TableCell>
+        <TableCell className="text-sm">{u.position}</TableCell>
+        <TableCell className="text-sm">
+          {u.employer_country
+            ? <span>{COUNTRY_FLAGS[u.employer_country] || ''} {u.employer_country}</span>
+            : <span className="text-muted-foreground">—</span>
+          }
+        </TableCell>
+        <TableCell>{formatLastLogin((u as any).last_login_at)}</TableCell>
+      </TableRow>
+    );
+  };
+
+  const allChecked = selectableUsers.length > 0 && selectedIds.size === selectableUsers.length;
+  const someChecked = selectedIds.size > 0 && selectedIds.size < selectableUsers.length;
 
   const UserTable = ({ data: tableData, isPending }: { data: any[]; isPending: boolean }) => (
     <Card className="border-border/60">
@@ -335,6 +419,13 @@ const AdminUsers = () => {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={allChecked}
+                      onCheckedChange={toggleSelectAll}
+                      className={someChecked ? 'data-[state=unchecked]:bg-primary/20' : ''}
+                    />
+                  </TableHead>
                   <SortHead label="Nombre" sortKey="full_name" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                   <SortHead label="Email" sortKey="email" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                   <SortHead label="Negocio" sortKey="business_name" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
@@ -363,6 +454,13 @@ const AdminUsers = () => {
             <Table>
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-10">
+                    <Checkbox
+                      checked={allChecked}
+                      onCheckedChange={toggleSelectAll}
+                      className={someChecked ? 'data-[state=unchecked]:bg-primary/20' : ''}
+                    />
+                  </TableHead>
                   <SortHead label="Nombre" sortKey="full_name" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                   <SortHead label="Email" sortKey="email" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
                   <SortHead label="Empleador" sortKey="employer_name" currentKey={sortKey} currentDir={sortDir} onToggle={toggleSort} />
@@ -386,7 +484,7 @@ const AdminUsers = () => {
 
   return (
     <AppLayout title="Gestión de Usuarios">
-      <div className="space-y-4">
+      <div className="space-y-4 pb-20">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -417,7 +515,7 @@ const AdminUsers = () => {
         {isLoading || bivooLoading ? (
           <div className="flex items-center justify-center py-20"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
         ) : (
-          <Tabs defaultValue="active" className="space-y-4">
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
             <TabsList className="bg-muted/60">
               <TabsTrigger value="active" className="gap-1.5 text-xs"><Users className="h-3.5 w-3.5" /> Activos ({filteredActive.length})</TabsTrigger>
               <TabsTrigger value="bivoo" className="gap-1.5 text-xs"><Building2 className="h-3.5 w-3.5" /> Empleados ({filteredBivoo.length})</TabsTrigger>
@@ -428,6 +526,100 @@ const AdminUsers = () => {
             <TabsContent value="pending" className="mt-0"><UserTable data={filteredPending} isPending={true} /></TabsContent>
           </Tabs>
         )}
+
+        {/* Floating bulk action bar */}
+        {selectedIds.size > 0 && (
+          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-lg border bg-background px-4 py-3 shadow-lg">
+            <span className="text-sm font-medium">
+              <CheckCircle2 className="inline h-4 w-4 mr-1.5 text-primary" />
+              {selectedIds.size} usuario{selectedIds.size !== 1 ? 's' : ''} seleccionado{selectedIds.size !== 1 ? 's' : ''}
+            </span>
+            <div className="h-5 w-px bg-border" />
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => setBulkAction('ban')}
+              disabled={bulkMutation.isPending}
+            >
+              <Ban className="h-3.5 w-3.5" />
+              Desactivar
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="gap-1.5"
+              onClick={() => { setBulkAction('delete'); setBulkConfirmText(''); }}
+              disabled={bulkMutation.isPending}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Eliminar
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSelectedIds(new Set())}
+            >
+              Cancelar
+            </Button>
+          </div>
+        )}
+
+        {/* Bulk Ban Dialog */}
+        <AlertDialog open={bulkAction === 'ban'} onOpenChange={() => setBulkAction(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Desactivar {selectedIds.size} usuario{selectedIds.size !== 1 ? 's' : ''}?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Los usuarios seleccionados no podrán iniciar sesión. Sus datos se conservarán y la acción es reversible.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBulkConfirm}
+                disabled={bulkMutation.isPending}
+              >
+                {bulkMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1.5" /> : <Ban className="h-4 w-4 mr-1.5" />}
+                Desactivar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Bulk Delete Dialog */}
+        <Dialog open={bulkAction === 'delete'} onOpenChange={() => { setBulkAction(null); setBulkConfirmText(''); }}>
+          <DialogContent className="sm:max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="text-destructive">¿Eliminar {selectedIds.size} usuario{selectedIds.size !== 1 ? 's' : ''} permanentemente?</DialogTitle>
+              <DialogDescription>
+                Esta acción no se puede deshacer. Se eliminarán de la autenticación y todos sus datos.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2 py-2">
+              <Label className="text-sm">Escribe <strong>ELIMINAR</strong> para confirmar:</Label>
+              <Input
+                value={bulkConfirmText}
+                onChange={e => setBulkConfirmText(e.target.value)}
+                placeholder="ELIMINAR"
+                className="font-mono"
+              />
+            </div>
+            <DialogFooter>
+              <Button variant="outline" size="sm" onClick={() => { setBulkAction(null); setBulkConfirmText(''); }}>Cancelar</Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleBulkConfirm}
+                disabled={bulkConfirmText !== 'ELIMINAR' || bulkMutation.isPending}
+                className="gap-1.5"
+              >
+                {bulkMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                Eliminar permanentemente
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Schedule/Hard Delete Dialog */}
         <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
