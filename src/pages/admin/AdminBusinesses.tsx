@@ -323,7 +323,7 @@ const AdminBusinesses = () => {
                       </TableHeader>
                       <TableBody>
                         {filteredBiz.map((b) => (
-                          <TableRow key={b.id} className={selectedIds.has(b.id) ? 'bg-primary/5' : ''}>
+                          <TableRow key={b.id} className={`cursor-pointer ${selectedIds.has(b.id) ? 'bg-primary/5' : ''}`} onClick={() => setDetailBizId(b.id)}>
                             <TableCell className="w-10">
                               <Checkbox
                                 checked={selectedIds.has(b.id)}
