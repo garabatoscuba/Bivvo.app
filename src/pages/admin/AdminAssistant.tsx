@@ -715,7 +715,7 @@ function GeneralQuestionsTab() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = { module_key: null, question: qText, is_active: true, sort_order: questions.length } as any;
+      const payload = { module_key: null, question: qText, answer: qAnswer, is_active: true, sort_order: questions.length } as any;
       if (editing) {
         const { error } = await supabase.from('assistant_quick_questions').update(payload).eq('id', editing.id);
         if (error) throw error;
