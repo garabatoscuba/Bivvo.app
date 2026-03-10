@@ -841,6 +841,11 @@ const Employees = () => {
                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPerfEmployee(emp)} title="Evaluación de desempeño">
                                       <Activity className="h-3.5 w-3.5" />
                                     </Button>
+                                    {canManage && (
+                                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setQrEmployee(emp)} title="QR de asistencia">
+                                        <QrCode className="h-3.5 w-3.5" />
+                                      </Button>
+                                    )}
                                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditEmployee(emp)}>
                                       <Pencil className="h-3.5 w-3.5" />
                                     </Button>
