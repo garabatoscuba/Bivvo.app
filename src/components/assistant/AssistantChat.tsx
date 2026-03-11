@@ -73,10 +73,12 @@ const ROUTE_TO_MODULE: Record<string, string> = {
   dashboard: "dashboard", pos: "pos", inventory: "inventory", inventario: "inventory",
   services: "services", servicios: "services", sales: "sales", ventas: "sales",
   employees: "employees", empleados: "employees", nomina: "nomina",
-  tesoreria: "tesoreria", caja: "caja", settings: "settings", configuracion: "settings",
+  tesoreria: "tesoreria", caja: "caja", settings: "configuracion", configuracion: "configuracion",
   contabilidad: "contabilidad", impresiones: "impresiones", orders: "orders", pedidos: "orders",
   "store-settings": "portal", portal: "portal", "my-employment": "mi_empleo",
   "mi-red": "mi_red", "partner-dashboard": "mi_red",
+  plans: "planes", planes: "planes",
+  branches: "mis_negocios", "mis-negocios": "mis_negocios",
 };
 
 export default function AssistantChat({ onStateChange, assistantName, announcements = [], onDismissAnnouncement }: AssistantChatProps) {

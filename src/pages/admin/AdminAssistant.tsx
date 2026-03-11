@@ -593,11 +593,20 @@ function ModuleInstructionsTab() {
   });
 
   // Build dynamic module list from platform_modules
-  const modules = platformModules.filter((m: any) => m.is_active).map((m: any) => ({
+  const dynamicModules = platformModules.filter((m: any) => m.is_active).map((m: any) => ({
     key: m.sidebar_label?.toLowerCase().replace(/\s+/g, '_') || m.name.toLowerCase().replace(/\s+/g, '_'),
     label: m.sidebar_label || m.name,
     id: m.id,
   }));
+
+  // Global navigation sections (always in sidebar)
+  const globalModules = [
+    { key: 'configuracion', label: 'Configuración', id: 'global-config' },
+    { key: 'planes', label: 'Planes', id: 'global-planes' },
+    { key: 'mis_negocios', label: 'Mis Negocios', id: 'global-negocios' },
+  ];
+
+  const modules = dynamicModules;
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
@@ -737,7 +746,71 @@ function ModuleInstructionsTab() {
         );
       })}
 
-      {/* Question dialog */}
+      {/* Navegación global separator */}
+      <div className="flex items-center gap-3 pt-4">
+        <div className="h-px flex-1 bg-border" />
+        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Navegación global</span>
+        <div className="h-px flex-1 bg-border" />
+      </div>
+
+      {globalModules.map(mod => {
+        const moduleQuestions = allQuestions.filter(q => q.module_key === mod.key);
+        const isExpanded = expanded === mod.key;
+        return (
+          <Card key={mod.key}>
+            <CardHeader className="pb-2 cursor-pointer" onClick={() => setExpanded(isExpanded ? null : mod.key)}>
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base flex items-center gap-2">
+                  {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  {mod.label}
+                </CardTitle>
+                <Badge variant="outline" className="text-[10px]">{moduleQuestions.length} sugerencias</Badge>
+              </div>
+            </CardHeader>
+            {isExpanded && (
+              <CardContent className="space-y-4">
+                <div>
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Instrucciones del módulo</Label>
+                  <Textarea
+                    value={values[mod.key] || ''}
+                    onChange={e => setValues(p => ({ ...p, [mod.key]: e.target.value }))}
+                    rows={4}
+                    className="mt-1"
+                    placeholder={`Instrucciones para ${mod.label}...`}
+                  />
+                  <Button size="sm" className="mt-2" onClick={() => handleSave(mod.key)} disabled={savingKey === mod.key}>
+                    {savingKey === mod.key ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+                    Guardar instrucciones
+                  </Button>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Sugerencias rápidas</Label>
+                    <Button size="sm" variant="outline" onClick={() => openNewQ(mod.key)}><Plus className="h-3.5 w-3.5 mr-1" /> Agregar</Button>
+                  </div>
+                  {moduleQuestions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Sin sugerencias para esta sección.</p>
+                  ) : (
+                    <div className="space-y-1.5">
+                      {moduleQuestions.map(q => (
+                        <div key={q.id} className="flex items-center gap-2 p-2 rounded-lg border text-sm">
+                          <MessageSquare className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                          <span className="flex-1 text-xs">{q.question}</span>
+                          <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditQ(q)}><Pencil className="h-3 w-3" /></Button>
+                          <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={() => setDeleteQTarget(q)}><Trash2 className="h-3 w-3" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            )}
+          </Card>
+        );
+      })}
+
+
       <Dialog open={qDialog} onOpenChange={setQDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editingQ ? 'Editar sugerencia' : 'Nueva sugerencia'}</DialogTitle><DialogDescription>Esta pregunta aparecerá como sugerencia rápida en el chat del asistente.</DialogDescription></DialogHeader>

@@ -108,6 +108,22 @@ async function fetchModuleContext(
   }
 }
 
+/** Route-to-module key mapping */
+const ROUTE_TO_KEY: Record<string, string> = {
+  dashboard: "dashboard", pos: "pos", inventory: "inventario", inventario: "inventario",
+  services: "servicios", servicios: "servicios", sales: "ventas", ventas: "ventas",
+  reportes: "reportes", employees: "empleados", empleados: "empleados",
+  nomina: "nomina", caja: "caja", contabilidad: "contabilidad",
+  orders: "pedidos", pedidos: "pedidos", "store-settings": "portal", portal: "portal",
+  "my-employment": "mi_empleo", mi_empleo: "mi_empleo",
+  "mi-red": "mi_red", "partner-dashboard": "mi_red",
+  impresiones: "impresiones", cocina: "cocina",
+  // Global navigation sections
+  settings: "configuracion", configuracion: "configuracion",
+  plans: "planes", planes: "planes",
+  branches: "mis_negocios", "mis-negocios": "mis_negocios", mis_negocios: "mis_negocios",
+};
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -167,21 +183,13 @@ Deno.serve(async (req) => {
           .join("\n");
     }
 
+    /* ── Resolve module key ── */
+    const moduleKey = active_module ? (ROUTE_TO_KEY[active_module] || active_module) : null;
+
     /* ── Read per-module instructions + quick questions ── */
     let moduleInstructionsBlock = "";
     let quickQuestionsBlock = "";
-    if (active_module) {
-      // Map route to module_key (handle route variations)
-      const routeToKey: Record<string, string> = {
-        dashboard: "dashboard", pos: "pos", inventory: "inventario", inventario: "inventario",
-        services: "servicios", servicios: "servicios", sales: "ventas", ventas: "ventas",
-        reportes: "reportes", employees: "empleados", empleados: "empleados",
-        nomina: "nomina", caja: "caja", contabilidad: "contabilidad",
-        orders: "pedidos", pedidos: "pedidos", "store-settings": "portal", portal: "portal",
-        "my-employment": "mi_empleo", mi_empleo: "mi_empleo",
-        "mi-red": "mi_red", "partner-dashboard": "mi_red",
-      };
-      const moduleKey = routeToKey[active_module] || active_module;
+    if (moduleKey) {
       const [modInstrRes, quickQRes] = await Promise.all([
         supabase
           .from("assistant_module_instructions")
@@ -226,6 +234,31 @@ Deno.serve(async (req) => {
         ).join("\n");
     }
 
+    /* ── Read business-type-specific instructions ── */
+    let businessTypeBlock = "";
+    if (business_id) {
+      try {
+        const { data: biz } = await supabase
+          .from("businesses")
+          .select("business_type")
+          .eq("id", business_id)
+          .single();
+        if (biz?.business_type) {
+          const { data: btInstr } = await supabase
+            .from("assistant_business_type_instructions")
+            .select("instructions")
+            .eq("business_type", biz.business_type)
+            .limit(1)
+            .single();
+          if (btInstr?.instructions?.trim()) {
+            businessTypeBlock = `\n\nINSTRUCCIONES POR TIPO DE NEGOCIO (${biz.business_type}):\n${btInstr.instructions.slice(0, 800)}`;
+          }
+        }
+      } catch {
+        // ignore — no business type instructions
+      }
+    }
+
     /* ── Fetch real-time module context ── */
     const contextData = await fetchModuleContext(supabase, business_id, active_module);
 
@@ -238,17 +271,28 @@ Deno.serve(async (req) => {
       ? `\n\nDATOS ACTUALES DEL NEGOCIO:\n${contextData}`
       : "";
 
+    // Determine if we have configured instructions
+    const hasConfiguredInfo = !!(moduleInstructionsBlock || quickQuestionsBlock || businessTypeBlock || baseInstructions?.trim());
+
     const systemPrompt = [
       `Tu nombre es ${assistantName}. Asistente de Bivoo (plataforma de gestión de negocios). Tono: ${tone}.`,
       `REGLA FUNDAMENTAL: Solo puedes responder sobre temas relacionados con Bivoo y la gestión del negocio del usuario. NO respondas preguntas de cultura general, historia, ciencia, matemáticas, programación, recetas, ni ningún tema ajeno a Bivoo. Si el usuario pregunta algo fuera del ámbito de Bivoo, responde: "Solo puedo ayudarte con temas relacionados a tu negocio en Bivoo. ¿En qué puedo ayudarte?"`,
       `RESTRICCIÓN DE CONOCIMIENTO: Tu conocimiento se limita ESTRICTAMENTE a:
 1. Las instrucciones base configuradas por el administrador (abajo).
 2. Las instrucciones específicas del módulo activo (si las hay).
-3. Los ejemplos de entrenamiento proporcionados.
-4. Los datos reales del negocio del usuario.
-NO inventes funcionalidades, flujos ni opciones que no estén descritas en tus instrucciones. Si no tienes información sobre algo, di: "No tengo información sobre eso. Contacta al soporte de Bivoo."`,
+3. Las instrucciones por tipo de negocio (si las hay).
+4. Los ejemplos de entrenamiento proporcionados.
+5. Los datos reales del negocio del usuario.
+NO inventes funcionalidades, flujos, rutas ni opciones que no estén descritas en tus instrucciones. Si no tienes información específica sobre algo, responde EXACTAMENTE: "No tengo información configurada sobre eso. Te recomiendo ir directamente al módulo correspondiente para encontrar lo que necesitas." NUNCA adivines ni inventes pasos o funcionalidades.`,
+      `ORDEN DE PRIORIDAD AL RESPONDER:
+1. Primero consulta las instrucciones del módulo activo (${moduleKey || 'ninguno'}).
+2. Luego las instrucciones del tipo de negocio.
+3. Luego las instrucciones base generales.
+4. Luego los ejemplos de entrenamiento.
+5. Si NINGUNA fuente tiene información relevante, admítelo claramente. No inventes.`,
       buildRoleBlock(role || "employee"),
       moduleInstructionsBlock,
+      businessTypeBlock,
       quickQuestionsBlock,
       generalQQBlock,
       baseInstructions ? baseInstructions.slice(0, 1500) : "",
