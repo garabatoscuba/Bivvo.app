@@ -20,9 +20,7 @@ import type { Preset } from './modality-configs/PresetManager';
 
 const MODALITY_INFO: Record<string, { label: string; description: string }> = {
   fixed_plus_sales_percent: { label: 'Fijo + % de Venta', description: 'Salario fijo que siempre se suma más un porcentaje de sus ventas' },
-  fixed_plus_profit_percent: { label: 'Fijo + % de Ganancia', description: 'Salario fijo que siempre se suma más un porcentaje de la ganancia (venta - costo)' },
   sales_percent_only: { label: 'Solo % sobre su Venta', description: 'Sin salario fijo, solo porcentaje de lo que vende' },
-  profit_percent: { label: '% sobre Ganancia Total', description: 'Porcentaje sobre la ganancia neta del negocio' },
   hourly: { label: 'Por Horas', description: 'Pago según horas trabajadas' },
   custom_mixed: { label: 'Mixto Personalizado', description: 'Cada trabajador gana un % de la venta según cuántos estén activos' },
 };
