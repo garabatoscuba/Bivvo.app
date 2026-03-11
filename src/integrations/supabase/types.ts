@@ -5100,58 +5100,6 @@ export type Database = {
         }
         Relationships: []
       }
-      work_sessions: {
-        Row: {
-          branch_id: string
-          business_id: string
-          created_at: string
-          employee_id: string
-          fin: string | null
-          id: string
-          inicio: string
-        }
-        Insert: {
-          branch_id: string
-          business_id: string
-          created_at?: string
-          employee_id: string
-          fin?: string | null
-          id?: string
-          inicio?: string
-        }
-        Update: {
-          branch_id?: string
-          business_id?: string
-          created_at?: string
-          employee_id?: string
-          fin?: string | null
-          id?: string
-          inicio?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "work_sessions_branch_id_fkey"
-            columns: ["branch_id"]
-            isOneToOne: false
-            referencedRelation: "branches"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_sessions_business_id_fkey"
-            columns: ["business_id"]
-            isOneToOne: false
-            referencedRelation: "businesses"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "work_sessions_employee_id_fkey"
-            columns: ["employee_id"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
     }
     Views: {
       [_ in never]: never
