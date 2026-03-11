@@ -271,12 +271,8 @@ const ModalidadesTab = ({ businessId }: ModalidadesTabProps) => {
     switch (selectedType) {
       case 'fixed_plus_sales_percent':
         return <SalesPercentConfig type="fixed_plus_sales_percent" config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
-      case 'fixed_plus_profit_percent':
-        return <ProfitPercentConfig config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'sales_percent_only':
         return <SalesPercentConfig type="sales_percent_only" config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
-      case 'profit_percent':
-        return <ProfitPercentConfig config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'hourly':
         return <HourlyConfig config={modalityConfig} onConfigChange={setModalityConfig} presets={presets} onPresetsChange={setPresets} />;
       case 'custom_mixed':
