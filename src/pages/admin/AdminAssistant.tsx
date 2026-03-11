@@ -593,11 +593,20 @@ function ModuleInstructionsTab() {
   });
 
   // Build dynamic module list from platform_modules
-  const modules = platformModules.filter((m: any) => m.is_active).map((m: any) => ({
+  const dynamicModules = platformModules.filter((m: any) => m.is_active).map((m: any) => ({
     key: m.sidebar_label?.toLowerCase().replace(/\s+/g, '_') || m.name.toLowerCase().replace(/\s+/g, '_'),
     label: m.sidebar_label || m.name,
     id: m.id,
   }));
+
+  // Global navigation sections (always in sidebar)
+  const globalModules = [
+    { key: 'configuracion', label: 'Configuración', id: 'global-config' },
+    { key: 'planes', label: 'Planes', id: 'global-planes' },
+    { key: 'mis_negocios', label: 'Mis Negocios', id: 'global-negocios' },
+  ];
+
+  const modules = dynamicModules;
 
   const [values, setValues] = useState<Record<string, string>>({});
   const [initialized, setInitialized] = useState(false);
