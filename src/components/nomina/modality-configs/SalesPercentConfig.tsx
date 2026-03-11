@@ -29,7 +29,7 @@ const SalesPercentConfig = ({ type, config, onConfigChange, presets, onPresetsCh
         <Label className="text-sm font-medium">Configuración por defecto</Label>
         {isFixedPlus && (
           <div className="flex items-center gap-2">
-            <Label className="text-xs shrink-0">Salario base:</Label>
+            <Label className="text-xs shrink-0">Fijo:</Label>
             <span className="text-xs text-muted-foreground">$</span>
             <Input
               type="number"
