@@ -29,7 +29,7 @@ const SalesPercentConfig = ({ type, config, onConfigChange, presets, onPresetsCh
         <Label className="text-sm font-medium">Configuración por defecto</Label>
         {isFixedPlus && (
           <div className="flex items-center gap-2">
-            <Label className="text-xs shrink-0">Salario base:</Label>
+            <Label className="text-xs shrink-0">Fijo:</Label>
             <span className="text-xs text-muted-foreground">$</span>
             <Input
               type="number"
@@ -64,7 +64,7 @@ const SalesPercentConfig = ({ type, config, onConfigChange, presets, onPresetsCh
           <div className="space-y-2">
             {isFixedPlus && (
               <div className="flex items-center gap-2">
-                <Label className="text-xs shrink-0">Base:</Label>
+                <Label className="text-xs shrink-0">Fijo:</Label>
                 <span className="text-xs text-muted-foreground">$</span>
                 <Input type="number" min={0} value={preset.config.base_salary ?? 0} onChange={e => update({ ...preset, config: { ...preset.config, base_salary: parseFloat(e.target.value) || 0 } })} className="w-24 h-7 text-xs text-center" />
               </div>
