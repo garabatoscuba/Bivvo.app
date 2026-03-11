@@ -39,10 +39,10 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
 
     setProcessing(true);
     try {
-      // Get employee name
+      // Get employee profile info (empleado_id in jornadas references profiles.id)
       const { data: emp } = await supabase
         .from('employees')
-        .select('full_name, position')
+        .select('id, full_name, position, auth_user_id')
         .eq('id', data.employee_id)
         .eq('business_id', businessId)
         .maybeSingle();
@@ -52,46 +52,56 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
         return;
       }
 
-      // Check for active session today
-      const todayStart = new Date();
-      todayStart.setHours(0, 0, 0, 0);
+      // Resolve profile id for jornadas.empleado_id
+      let empleadoProfileId: string | null = null;
+      if (emp.auth_user_id) {
+        const { data: prof } = await supabase
+          .from('profiles')
+          .select('id')
+          .eq('user_id', emp.auth_user_id)
+          .maybeSingle();
+        empleadoProfileId = prof?.id ?? null;
+      }
 
-      const { data: activeSession } = await supabase
-        .from('work_sessions')
-        .select('id, inicio')
-        .eq('employee_id', data.employee_id)
-        .eq('business_id', businessId)
-        .is('fin', null)
-        .gte('inicio', todayStart.toISOString())
-        .order('inicio', { ascending: false })
+      if (!empleadoProfileId) {
+        setFeedback({ type: 'error', title: 'Sin cuenta', description: `${emp.full_name} no tiene cuenta vinculada para registrar jornada` });
+        return;
+      }
+
+      // Check for active jornada (cierre_at IS NULL)
+      const { data: activeJornada } = await supabase
+        .from('jornadas')
+        .select('id, apertura_at')
+        .eq('empleado_id', empleadoProfileId)
+        .eq('sucursal_id', branchId)
+        .is('cierre_at', null)
+        .order('apertura_at', { ascending: false })
         .limit(1)
         .maybeSingle();
 
       const now = new Date();
       const timeStr = now.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
 
-      if (activeSession) {
-        // Close session
-        await supabase
-          .from('work_sessions')
-          .update({ fin: now.toISOString() })
-          .eq('id', activeSession.id);
-
+      if (activeJornada) {
+        // Already has active shift
+        const aperturaTime = new Date(activeJornada.apertura_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
         setFeedback({
-          type: 'success',
-          title: `Salida registrada — ${timeStr}`,
-          description: `${emp.full_name} (${emp.position})`,
+          type: 'error',
+          title: 'Jornada ya activa',
+          description: `${emp.full_name} tiene una jornada activa desde ${aperturaTime}`,
         });
       } else {
-        // Open session
-        await supabase
-          .from('work_sessions')
+        // Open new jornada
+        const { error: insertError } = await supabase
+          .from('jornadas')
           .insert({
-            business_id: businessId,
-            branch_id: branchId,
-            employee_id: data.employee_id,
-            inicio: now.toISOString(),
+            empleado_id: empleadoProfileId,
+            sucursal_id: branchId,
+            apertura_at: now.toISOString(),
+            metodo_apertura: 'qr',
           });
+
+        if (insertError) throw insertError;
 
         setFeedback({
           type: 'success',
@@ -100,8 +110,8 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
         });
       }
     } catch (err) {
-      console.error('Work session error:', err);
-      setFeedback({ type: 'error', title: 'Error', description: 'No se pudo registrar la asistencia' });
+      console.error('Jornada registration error:', err);
+      setFeedback({ type: 'error', title: 'Error', description: 'No se pudo registrar la jornada' });
     } finally {
       setProcessing(false);
     }
