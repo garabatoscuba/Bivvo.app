@@ -14,7 +14,6 @@ import {
 
 import AppliesToSelector from './modality-configs/AppliesToSelector';
 import SalesPercentConfig from './modality-configs/SalesPercentConfig';
-import ProfitPercentConfig from './modality-configs/ProfitPercentConfig';
 import HourlyConfig from './modality-configs/HourlyConfig';
 import CustomMixedConfig from './modality-configs/CustomMixedConfig';
 import type { Preset } from './modality-configs/PresetManager';
