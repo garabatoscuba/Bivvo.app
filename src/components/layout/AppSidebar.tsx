@@ -693,7 +693,10 @@ const AppSidebar = () => {
         {/* Mis Negocios - owner's businesses (hidden for managers, pure sellers and @bivoo.app) */}
         {showBusinessSection && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
+            <SidebarGroupLabel 
+              className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto cursor-pointer hover:text-foreground/80 transition-colors"
+              onClick={() => setBizModalOpen(true)}
+            >
               <span>{activeBusiness?.name || "Mi Negocio"}</span>
               {activeBusiness?.business_type && (
                 <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
