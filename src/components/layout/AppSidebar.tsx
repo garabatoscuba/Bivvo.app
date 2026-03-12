@@ -472,8 +472,6 @@ const AppSidebar = () => {
       url: moduleUrlMap[m.name] || "/",
       icon: getIconComponent(m.icon),
     })),
-    { title: "Configuración", url: "/settings", icon: Settings },
-    ...(!isManager || isOwner || isSuperAdmin ? [{ title: "Planes", url: "/plans", icon: CreditCard }] : []),
   ];
 
   // Manager-allowed module names
@@ -541,9 +539,19 @@ const AppSidebar = () => {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Link to="/" className="flex items-center">
-          <img src={isDark ? "/logo-dark.png" : "/logo-light.png"} alt="Bivoo" className="h-6 w-auto" />
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/" className="flex items-center">
+            <img src={isDark ? "/logo-dark.png" : "/logo-light.png"} alt="Bivoo" className="h-6 w-auto" />
+          </Link>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate('/settings')}>
+              <Settings className="h-4 w-4 text-muted-foreground" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate('/plans')}>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          </div>
+        </div>
       </SidebarHeader>
 
       <Separator className="mx-4 w-auto" />
@@ -683,7 +691,10 @@ const AppSidebar = () => {
         {/* Mis Negocios - owner's businesses (hidden for managers, pure sellers and @bivoo.app) */}
         {showBusinessSection && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
+            <SidebarGroupLabel 
+              className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto cursor-pointer hover:text-foreground/80 transition-colors"
+              onClick={() => setBizModalOpen(true)}
+            >
               <span>{activeBusiness?.name || "Mi Negocio"}</span>
               {activeBusiness?.business_type && (
                 <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
@@ -713,16 +724,7 @@ const AppSidebar = () => {
                   </SidebarMenuItem>
                 ))}
 
-                {/* Business selector button + modal */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton className="justify-between" onClick={() => setBizModalOpen(true)}>
-                    <div className="flex items-center gap-2">
-                      <Store className="h-4 w-4" />
-                      <span className="text-sm">Mis Negocios</span>
-                    </div>
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {/* Business selector button removed - now accessed via business name header */}
 
                 {/* Mis Negocios immersive modal */}
                 <Dialog open={bizModalOpen} onOpenChange={setBizModalOpen}>
