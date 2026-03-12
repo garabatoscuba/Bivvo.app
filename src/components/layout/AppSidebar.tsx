@@ -472,8 +472,6 @@ const AppSidebar = () => {
       url: moduleUrlMap[m.name] || "/",
       icon: getIconComponent(m.icon),
     })),
-    { title: "Configuración", url: "/settings", icon: Settings },
-    ...(!isManager || isOwner || isSuperAdmin ? [{ title: "Planes", url: "/plans", icon: CreditCard }] : []),
   ];
 
   // Manager-allowed module names
