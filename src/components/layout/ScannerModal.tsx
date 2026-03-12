@@ -251,6 +251,55 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
           <>
             <div className="relative bg-black">
               <div id="bivoo-qr-reader" className="w-full" />
+              <div
+                className="absolute inset-0 z-10"
+                onTouchStart={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const touch = e.touches[0];
+                  const relX = (touch.clientX - rect.left) / rect.width;
+                  const relY = (touch.clientY - rect.top) / rect.height;
+                  const pixelX = touch.clientX - rect.left;
+                  const pixelY = touch.clientY - rect.top;
+                  setFocusPoint({ x: pixelX, y: pixelY });
+                  setTimeout(() => setFocusPoint(null), 800);
+                  try {
+                    const video = document.querySelector('#bivoo-qr-reader video') as HTMLVideoElement | null;
+                    if (video?.srcObject) {
+                      const track = (video.srcObject as MediaStream).getVideoTracks()[0];
+                      track?.applyConstraints({ advanced: [{ focusMode: 'manual', pointsOfInterest: [{ x: relX, y: relY }] } as any] }).catch(() => {});
+                    }
+                  } catch {}
+                }}
+                onClick={(e) => {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const relX = (e.clientX - rect.left) / rect.width;
+                  const relY = (e.clientY - rect.top) / rect.height;
+                  const pixelX = e.clientX - rect.left;
+                  const pixelY = e.clientY - rect.top;
+                  setFocusPoint({ x: pixelX, y: pixelY });
+                  setTimeout(() => setFocusPoint(null), 800);
+                  try {
+                    const video = document.querySelector('#bivoo-qr-reader video') as HTMLVideoElement | null;
+                    if (video?.srcObject) {
+                      const track = (video.srcObject as MediaStream).getVideoTracks()[0];
+                      track?.applyConstraints({ advanced: [{ focusMode: 'manual', pointsOfInterest: [{ x: relX, y: relY }] } as any] }).catch(() => {});
+                    }
+                  } catch {}
+                }}
+              />
+              {focusPoint && (
+                <div
+                  className="absolute z-20 rounded-full border-2 border-green-500 pointer-events-none animate-ping"
+                  style={{
+                    width: 40,
+                    height: 40,
+                    left: focusPoint.x - 20,
+                    top: focusPoint.y - 20,
+                    animationDuration: '0.8s',
+                    animationIterationCount: 1,
+                  }}
+                />
+              )}
             </div>
             <div className="p-4 pt-3 text-center space-y-3">
               <p className="text-sm text-muted-foreground">Apunta al código QR o de barras</p>
