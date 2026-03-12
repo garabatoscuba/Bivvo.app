@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ScanLine, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { BrowserMultiFormatReader } from '@zxing/browser';
+import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -22,11 +22,18 @@ interface ScanFeedback {
 
 const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) => {
   const scannerRef = useRef<BrowserMultiFormatReader | null>(null);
+  const controlsRef = useRef<IScannerControls | null>(null);
   const [processing, setProcessing] = useState(false);
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null);
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const { profile } = useAuth();
   const { businessId, branchId } = useResolvedBusinessId();
+
+  const stopScanner = () => {
+    controlsRef.current?.stop();
+    controlsRef.current = null;
+    scannerRef.current = null;
+  };
 
   const handleEmployeeQR = async (data: { employee_id: string; business_id: string }) => {
     if (!businessId || !branchId) {
@@ -119,12 +126,10 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
   };
 
   const handleScanResult = async (decodedText: string) => {
-    const codeReader = scannerRef.current;
     try {
       const parsed = JSON.parse(decodedText);
       if (parsed.type === 'bivoo_employee' && parsed.employee_id && parsed.business_id) {
-        codeReader?.reset();
-        scannerRef.current = null;
+        stopScanner();
         await handleEmployeeQR(parsed);
         return;
       }
@@ -148,8 +153,9 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
         const codeReader = new BrowserMultiFormatReader();
         scannerRef.current = codeReader;
         const videoEl = document.getElementById('bivoo-qr-reader') as HTMLVideoElement;
-        await codeReader.decodeFromVideoDevice(undefined, videoEl, (result, err) => {
+        await codeReader.decodeFromVideoDevice(undefined, videoEl, (result, err, controls) => {
           if (!mounted || processing || !result) return;
+          controlsRef.current = controls;
           handleScanResult(result.getText());
         });
       } catch (err) {
@@ -163,8 +169,7 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     return () => {
       mounted = false;
       clearTimeout(t);
-      scannerRef.current?.reset();
-      scannerRef.current = null;
+      stopScanner();
     };
   }, [open]);
 
@@ -178,8 +183,9 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     const codeReader = new BrowserMultiFormatReader();
     scannerRef.current = codeReader;
     const videoEl = document.getElementById('bivoo-qr-reader') as HTMLVideoElement;
-    await codeReader.decodeFromVideoDevice(undefined, videoEl, (result, err) => {
+    await codeReader.decodeFromVideoDevice(undefined, videoEl, (result, err, controls) => {
       if (processing || !result) return;
+      controlsRef.current = controls;
       handleScanResult(result.getText());
     });
   };
