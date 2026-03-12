@@ -89,6 +89,7 @@ const AppSidebar = () => {
   const { theme, setTheme } = useTheme();
 
   const [newBizOpen, setNewBizOpen] = useState(false);
+  const [bizModalOpen, setBizModalOpen] = useState(false);
   const [bizName, setBizName] = useState("");
   const [bizType, setBizType] = useState("store");
   const [editBizOpen, setEditBizOpen] = useState(false);
