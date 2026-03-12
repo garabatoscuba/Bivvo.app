@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { X, ScanLine, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { Html5Qrcode } from 'html5-qrcode';
+import { BrowserMultiFormatReader } from '@zxing/browser';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -21,7 +21,7 @@ interface ScanFeedback {
 }
 
 const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) => {
-  const scannerRef = useRef<Html5Qrcode | null>(null);
+  const scannerRef = useRef<BrowserMultiFormatReader | null>(null);
   const [processing, setProcessing] = useState(false);
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null);
   const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
@@ -118,6 +118,22 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     }
   };
 
+  const handleScanResult = async (decodedText: string) => {
+    const codeReader = scannerRef.current;
+    try {
+      const parsed = JSON.parse(decodedText);
+      if (parsed.type === 'bivoo_employee' && parsed.employee_id && parsed.business_id) {
+        codeReader?.reset();
+        scannerRef.current = null;
+        await handleEmployeeQR(parsed);
+        return;
+      }
+    } catch {}
+    onScanResult?.(decodedText);
+    toast.success('Código escaneado', { description: decodedText });
+    onOpenChange(false);
+  };
+
   useEffect(() => {
     if (!open) {
       setFeedback(null);
@@ -126,39 +142,16 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     }
 
     let mounted = true;
-    const scannerId = 'bivoo-qr-reader';
 
     const startScanner = async () => {
       try {
-        const scanner = new Html5Qrcode(scannerId);
-        scannerRef.current = scanner;
-
-        await scanner.start(
-          { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          async (decodedText) => {
-            if (!mounted || processing) return;
-
-            // Try to parse as Bivoo employee QR
-            try {
-              const parsed = JSON.parse(decodedText);
-              if (parsed.type === 'bivoo_employee' && parsed.employee_id && parsed.business_id) {
-                // Stop scanner before processing
-                await scanner.stop().catch(() => {});
-                scannerRef.current = null;
-                await handleEmployeeQR(parsed);
-                return;
-              }
-            } catch {
-              // Not a JSON QR, handle as generic
-            }
-
-            onScanResult?.(decodedText);
-            toast.success('Código escaneado', { description: decodedText });
-            onOpenChange(false);
-          },
-          () => {}
-        );
+        const codeReader = new BrowserMultiFormatReader();
+        scannerRef.current = codeReader;
+        const videoEl = document.getElementById('bivoo-qr-reader') as HTMLVideoElement;
+        await codeReader.decodeFromVideoDevice(undefined, videoEl, (result, err) => {
+          if (!mounted || processing || !result) return;
+          handleScanResult(result.getText());
+        });
       } catch (err) {
         console.error('Scanner error:', err);
         if (mounted) toast.error('No se pudo acceder a la cámara');
@@ -170,7 +163,7 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     return () => {
       mounted = false;
       clearTimeout(t);
-      scannerRef.current?.stop().catch(() => {});
+      scannerRef.current?.reset();
       scannerRef.current = null;
     };
   }, [open]);
@@ -182,33 +175,26 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
 
   const handleScanAnother = async () => {
     setFeedback(null);
-    // Restart scanner
-    const scannerId = 'bivoo-qr-reader';
-    try {
-      const scanner = new Html5Qrcode(scannerId);
-      scannerRef.current = scanner;
-      await scanner.start(
-        { facingMode: 'environment' },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        async (decodedText) => {
-          if (processing) return;
-          try {
-            const parsed = JSON.parse(decodedText);
-            if (parsed.type === 'bivoo_employee' && parsed.employee_id && parsed.business_id) {
-              await scanner.stop().catch(() => {});
-              scannerRef.current = null;
-              await handleEmployeeQR(parsed);
-              return;
-            }
-          } catch {}
-          onScanResult?.(decodedText);
-          toast.success('Código escaneado', { description: decodedText });
-          onOpenChange(false);
-        },
-        () => {}
-      );
-    } catch (err) {
-      console.error('Scanner restart error:', err);
+    const codeReader = new BrowserMultiFormatReader();
+    scannerRef.current = codeReader;
+    const videoEl = document.getElementById('bivoo-qr-reader') as HTMLVideoElement;
+    await codeReader.decodeFromVideoDevice(undefined, videoEl, (result, err) => {
+      if (processing || !result) return;
+      handleScanResult(result.getText());
+    });
+  };
+
+  const applyFocus = async () => {
+    const video = document.querySelector('#bivoo-qr-reader') as HTMLVideoElement;
+    if (video?.srcObject) {
+      const track = (video.srcObject as MediaStream).getVideoTracks()[0];
+      if (track) {
+        try {
+          await track.applyConstraints({ advanced: [{ focusMode: 'manual' }] as any });
+          await new Promise(r => setTimeout(r, 300));
+          await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] as any });
+        } catch {}
+      }
     }
   };
 
@@ -250,7 +236,7 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
         ) : (
           <>
             <div className="relative bg-black">
-              <div id="bivoo-qr-reader" className="w-full" />
+              <video id="bivoo-qr-reader" className="w-full" />
               <div
                 className="absolute inset-0 z-10"
                 onTouchStart={(e) => {
@@ -260,36 +246,6 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
                   const pixelY = touch.clientY - rect.top;
                   setFocusPoint({ x: pixelX, y: pixelY });
                   setTimeout(() => setFocusPoint(null), 800);
-                  
-                  const applyFocus = async () => {
-                    try {
-                      const video = document.querySelector('#bivoo-qr-reader video') as HTMLVideoElement | null;
-                      if (!video) return;
-                      
-                      const stream = video.srcObject as MediaStream | null;
-                      if (!stream) return;
-                      
-                      const track = stream.getVideoTracks()[0];
-                      if (!track) return;
-                      
-                      const capabilities = track.getCapabilities?.();
-                      if (!capabilities || !('focusMode' in capabilities)) return;
-                      
-                      const videoRect = video.getBoundingClientRect();
-                      const x = (touch.clientX - videoRect.left) / videoRect.width;
-                      const y = (touch.clientY - videoRect.top) / videoRect.height;
-                      
-                      await track.applyConstraints({
-                        advanced: [{ focusMode: 'manual', pointsOfInterest: [{ x, y }] } as any]
-                      });
-                      
-                      setTimeout(() => {
-                        track.applyConstraints({
-                          advanced: [{ focusMode: 'continuous' } as any]
-                        }).catch(() => {});
-                      }, 1500);
-                    } catch {}
-                  };
                   applyFocus();
                 }}
                 onClick={(e) => {
@@ -298,36 +254,6 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
                   const pixelY = e.clientY - rect.top;
                   setFocusPoint({ x: pixelX, y: pixelY });
                   setTimeout(() => setFocusPoint(null), 800);
-                  
-                  const applyFocus = async () => {
-                    try {
-                      const video = document.querySelector('#bivoo-qr-reader video') as HTMLVideoElement | null;
-                      if (!video) return;
-                      
-                      const stream = video.srcObject as MediaStream | null;
-                      if (!stream) return;
-                      
-                      const track = stream.getVideoTracks()[0];
-                      if (!track) return;
-                      
-                      const capabilities = track.getCapabilities?.();
-                      if (!capabilities || !('focusMode' in capabilities)) return;
-                      
-                      const videoRect = video.getBoundingClientRect();
-                      const x = (e.clientX - videoRect.left) / videoRect.width;
-                      const y = (e.clientY - videoRect.top) / videoRect.height;
-                      
-                      await track.applyConstraints({
-                        advanced: [{ focusMode: 'manual', pointsOfInterest: [{ x, y }] } as any]
-                      });
-                      
-                      setTimeout(() => {
-                        track.applyConstraints({
-                          advanced: [{ focusMode: 'continuous' } as any]
-                        }).catch(() => {});
-                      }, 1500);
-                    } catch {}
-                  };
                   applyFocus();
                 }}
               />
