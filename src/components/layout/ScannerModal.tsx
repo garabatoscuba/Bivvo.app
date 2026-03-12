@@ -24,6 +24,7 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [processing, setProcessing] = useState(false);
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null);
+  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const { profile } = useAuth();
   const { businessId, branchId } = useResolvedBusinessId();
 
