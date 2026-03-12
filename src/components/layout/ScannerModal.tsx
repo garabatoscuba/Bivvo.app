@@ -254,37 +254,81 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
               <div
                 className="absolute inset-0 z-10"
                 onTouchStart={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
                   const touch = e.touches[0];
-                  const relX = (touch.clientX - rect.left) / rect.width;
-                  const relY = (touch.clientY - rect.top) / rect.height;
+                  const rect = e.currentTarget.getBoundingClientRect();
                   const pixelX = touch.clientX - rect.left;
                   const pixelY = touch.clientY - rect.top;
                   setFocusPoint({ x: pixelX, y: pixelY });
                   setTimeout(() => setFocusPoint(null), 800);
-                  try {
-                    const video = document.querySelector('#bivoo-qr-reader video') as HTMLVideoElement | null;
-                    if (video?.srcObject) {
-                      const track = (video.srcObject as MediaStream).getVideoTracks()[0];
-                      track?.applyConstraints({ advanced: [{ focusMode: 'manual', pointsOfInterest: [{ x: relX, y: relY }] } as any] }).catch(() => {});
-                    }
-                  } catch {}
+                  
+                  const applyFocus = async () => {
+                    try {
+                      const video = document.querySelector('#bivoo-qr-reader video') as HTMLVideoElement | null;
+                      if (!video) return;
+                      
+                      const stream = video.srcObject as MediaStream | null;
+                      if (!stream) return;
+                      
+                      const track = stream.getVideoTracks()[0];
+                      if (!track) return;
+                      
+                      const capabilities = track.getCapabilities?.();
+                      if (!capabilities || !('focusMode' in capabilities)) return;
+                      
+                      const videoRect = video.getBoundingClientRect();
+                      const x = (touch.clientX - videoRect.left) / videoRect.width;
+                      const y = (touch.clientY - videoRect.top) / videoRect.height;
+                      
+                      await track.applyConstraints({
+                        advanced: [{ focusMode: 'manual', pointsOfInterest: [{ x, y }] } as any]
+                      });
+                      
+                      setTimeout(() => {
+                        track.applyConstraints({
+                          advanced: [{ focusMode: 'continuous' } as any]
+                        }).catch(() => {});
+                      }, 1500);
+                    } catch {}
+                  };
+                  applyFocus();
                 }}
                 onClick={(e) => {
                   const rect = e.currentTarget.getBoundingClientRect();
-                  const relX = (e.clientX - rect.left) / rect.width;
-                  const relY = (e.clientY - rect.top) / rect.height;
                   const pixelX = e.clientX - rect.left;
                   const pixelY = e.clientY - rect.top;
                   setFocusPoint({ x: pixelX, y: pixelY });
                   setTimeout(() => setFocusPoint(null), 800);
-                  try {
-                    const video = document.querySelector('#bivoo-qr-reader video') as HTMLVideoElement | null;
-                    if (video?.srcObject) {
-                      const track = (video.srcObject as MediaStream).getVideoTracks()[0];
-                      track?.applyConstraints({ advanced: [{ focusMode: 'manual', pointsOfInterest: [{ x: relX, y: relY }] } as any] }).catch(() => {});
-                    }
-                  } catch {}
+                  
+                  const applyFocus = async () => {
+                    try {
+                      const video = document.querySelector('#bivoo-qr-reader video') as HTMLVideoElement | null;
+                      if (!video) return;
+                      
+                      const stream = video.srcObject as MediaStream | null;
+                      if (!stream) return;
+                      
+                      const track = stream.getVideoTracks()[0];
+                      if (!track) return;
+                      
+                      const capabilities = track.getCapabilities?.();
+                      if (!capabilities || !('focusMode' in capabilities)) return;
+                      
+                      const videoRect = video.getBoundingClientRect();
+                      const x = (e.clientX - videoRect.left) / videoRect.width;
+                      const y = (e.clientY - videoRect.top) / videoRect.height;
+                      
+                      await track.applyConstraints({
+                        advanced: [{ focusMode: 'manual', pointsOfInterest: [{ x, y }] } as any]
+                      });
+                      
+                      setTimeout(() => {
+                        track.applyConstraints({
+                          advanced: [{ focusMode: 'continuous' } as any]
+                        }).catch(() => {});
+                      }, 1500);
+                    } catch {}
+                  };
+                  applyFocus();
                 }}
               />
               {focusPoint && (
