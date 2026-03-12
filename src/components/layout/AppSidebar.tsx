@@ -89,6 +89,7 @@ const AppSidebar = () => {
   const { theme, setTheme } = useTheme();
 
   const [newBizOpen, setNewBizOpen] = useState(false);
+  const [bizModalOpen, setBizModalOpen] = useState(false);
   const [bizName, setBizName] = useState("");
   const [bizType, setBizType] = useState("store");
   const [editBizOpen, setEditBizOpen] = useState(false);
@@ -712,155 +713,162 @@ const AppSidebar = () => {
                   </SidebarMenuItem>
                 ))}
 
-                {/* Business selector dropdown */}
+                {/* Business selector button + modal */}
                 <SidebarMenuItem>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <SidebarMenuButton className="justify-between">
-                        <div className="flex items-center gap-2">
-                          <Store className="h-4 w-4" />
-                          <span className="text-sm">Mis Negocios</span>
-                        </div>
-                        <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                      </SidebarMenuButton>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="start" className="w-72 max-h-[70vh] overflow-y-auto">
+                  <SidebarMenuButton className="justify-between" onClick={() => setBizModalOpen(true)}>
+                    <div className="flex items-center gap-2">
+                      <Store className="h-4 w-4" />
+                      <span className="text-sm">Mis Negocios</span>
+                    </div>
+                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+
+                {/* Mis Negocios immersive modal */}
+                <Dialog open={bizModalOpen} onOpenChange={setBizModalOpen}>
+                  <DialogContent className="sm:max-w-md max-h-[85dvh] overflow-y-auto">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Store className="h-5 w-5" />
+                        Mis Negocios
+                      </DialogTitle>
+                      <DialogDescription>
+                        {activeBusiness?.name || "Selecciona o administra tus negocios"}
+                      </DialogDescription>
+                    </DialogHeader>
+
+                    <div className="flex flex-col gap-3 mt-2">
                       {userBusinesses.length > 0 ? (
-                        userBusinesses.map((biz) => {
+                        userBusinesses.map((biz, idx) => {
                           const isSelectedBiz = profile?.business_id === biz.id;
+                          const bizTypeLabel =
+                            biz.business_type === "store"
+                              ? "Tienda"
+                              : biz.business_type === "copy_shop"
+                                ? "Punto de Copias"
+                                : biz.business_type === "gym"
+                                  ? "Gym"
+                                  : biz.business_type === "estaurente/safetería"
+                                    ? "Restaurante / Cafetería"
+                                    : biz.business_type;
                           return (
                             <div key={biz.id}>
-                              {/* Business header row */}
-                              <DropdownMenuItem
-                                className="gap-2 justify-between"
-                                onSelect={(e) => {
-                                  e.preventDefault();
-                                  if (!isSelectedBiz) switchBusiness(biz.id);
-                                }}
+                              {/* Business card */}
+                              <div
+                                className={`rounded-lg border p-3 cursor-pointer transition-colors ${isSelectedBiz ? "border-primary/50 bg-primary/5" : "hover:bg-muted/50"}`}
+                                onClick={() => { if (!isSelectedBiz) switchBusiness(biz.id); }}
                               >
-                                <div className="flex items-center gap-2 min-w-0">
-                                  {isSelectedBiz ? (
-                                    <Check className="h-3.5 w-3.5 text-primary shrink-0" />
-                                  ) : (
-                                    <Store className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-                                  )}
-                                  <div className="flex flex-col min-w-0">
-                                    <span className={`truncate text-sm ${isSelectedBiz ? "font-semibold" : ""}`}>
-                                      {biz.name}
-                                    </span>
-                                    <span className="text-[9px] text-muted-foreground/60">
-                                      {biz.business_type === "store"
-                                        ? "Tienda"
-                                        : biz.business_type === "copy_shop"
-                                          ? "Punto de Copias"
-                                          : biz.business_type === "gym"
-                                            ? "Gym"
-                                            : biz.business_type === "estaurente/safetería"
-                                              ? "Restaurante / Cafetería"
-                                              : biz.business_type}
-                                    </span>
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    {isSelectedBiz && <Check className="h-4 w-4 text-green-500 shrink-0" />}
+                                    <div className="min-w-0">
+                                      <p className={`text-sm truncate ${isSelectedBiz ? "font-bold" : ""}`}>{biz.name}</p>
+                                      <p className="text-[11px] text-muted-foreground">{bizTypeLabel}</p>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-1 shrink-0">
+                                    <button
+                                      className="p-1.5 rounded-md hover:bg-muted"
+                                      onClick={(e) => { e.stopPropagation(); openCreateBranch(biz.id); }}
+                                      title="Nueva sucursal"
+                                    >
+                                      <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </button>
+                                    <button
+                                      className="p-1.5 rounded-md hover:bg-muted"
+                                      onClick={(e) => { e.stopPropagation(); openEditBiz(biz); }}
+                                      title="Editar negocio"
+                                    >
+                                      <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
+                                    </button>
                                   </div>
                                 </div>
-                                <div className="flex items-center gap-0.5 shrink-0">
-                                  <button
-                                    className="p-1 rounded hover:bg-muted"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openCreateBranch(biz.id);
-                                    }}
-                                    title="Nueva sucursal"
-                                  >
-                                    <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-                                  </button>
-                                  <button
-                                    className="p-1 rounded hover:bg-muted"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      openEditBiz(biz);
-                                    }}
-                                    title="Editar negocio"
-                                  >
-                                    <Settings2 className="h-3.5 w-3.5 text-muted-foreground" />
-                                  </button>
-                                </div>
-                              </DropdownMenuItem>
 
-                              {/* Branches under this business */}
-                              {biz.branches.length > 0 && (
-                                <div className="ml-4 border-l border-border/50 pl-2 my-0.5">
-                                  {biz.branches.map((branch) => {
-                                    const isBranchActive = profile?.branch_id === branch.id && isSelectedBiz;
-                                    return (
-                                      <DropdownMenuItem
-                                        key={branch.id}
-                                        className="gap-2 justify-between py-1.5 text-xs"
-                                        onSelect={(e) => {
-                                          e.preventDefault();
-                                          if (!isSelectedBiz) {
-                                            switchBusiness(biz.id);
-                                          } else if (!isBranchActive) {
-                                            handleSelectBranch(branch.id);
-                                          }
-                                        }}
-                                      >
-                                        <div className="flex items-center gap-2 min-w-0">
-                                          {isBranchActive ? (
-                                            <Check className="h-3 w-3 text-primary shrink-0" />
-                                          ) : (
-                                            <MapPin className="h-3 w-3 text-muted-foreground/60 shrink-0" />
-                                          )}
-                                          <span
-                                            className={`truncate ${isBranchActive ? "font-medium text-foreground" : "text-muted-foreground"}`}
-                                          >
-                                            {branch.name}
-                                          </span>
-                                          {branch.is_main && (
-                                            <span className="text-[9px] text-muted-foreground/50 uppercase tracking-wider shrink-0">
-                                              principal
-                                            </span>
-                                          )}
-                                        </div>
-                                        <button
-                                          className="p-0.5 rounded hover:bg-muted shrink-0"
+                                {/* Branches */}
+                                {biz.branches.length > 0 && (
+                                  <div className="mt-2 flex flex-col gap-1">
+                                    {biz.branches.map((branch) => {
+                                      const isBranchActive = profile?.branch_id === branch.id && isSelectedBiz;
+                                      return (
+                                        <div
+                                          key={branch.id}
+                                          className={`rounded-md bg-muted/40 px-3 py-2 flex items-center justify-between cursor-pointer ${isBranchActive ? "ring-1 ring-primary/30" : "hover:bg-muted/60"}`}
                                           onClick={(e) => {
                                             e.stopPropagation();
-                                            openEditBranch(branch);
+                                            if (!isSelectedBiz) {
+                                              switchBusiness(biz.id);
+                                            } else if (!isBranchActive) {
+                                              handleSelectBranch(branch.id);
+                                            }
                                           }}
-                                          title="Editar sucursal"
                                         >
-                                          <Pencil className="h-3 w-3 text-muted-foreground/60" />
-                                        </button>
-                                      </DropdownMenuItem>
-                                    );
-                                  })}
-                                </div>
-                              )}
+                                          <div className="flex items-center gap-2 min-w-0">
+                                            {isBranchActive ? (
+                                              <Check className="h-3.5 w-3.5 text-green-500 shrink-0" />
+                                            ) : (
+                                              <MapPin className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                                            )}
+                                            <span className={`text-xs truncate ${isBranchActive ? "font-medium" : "text-muted-foreground"}`}>
+                                              {branch.name}
+                                            </span>
+                                            {branch.is_main && (
+                                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4 uppercase tracking-wider">
+                                                Principal
+                                              </Badge>
+                                            )}
+                                          </div>
+                                          <button
+                                            className="p-1 rounded hover:bg-background shrink-0"
+                                            onClick={(e) => { e.stopPropagation(); openEditBranch(branch); }}
+                                            title="Editar sucursal"
+                                          >
+                                            <Pencil className="h-3 w-3 text-muted-foreground/60" />
+                                          </button>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
 
-                              <DropdownMenuSeparator className="my-1" />
+                              {idx < userBusinesses.length - 1 && <Separator className="my-2" />}
                             </div>
                           );
                         })
                       ) : (
-                        <DropdownMenuItem disabled className="text-xs text-muted-foreground">
-                          Sin negocios
-                        </DropdownMenuItem>
+                        <p className="text-xs text-muted-foreground text-center py-4">Sin negocios</p>
                       )}
-                      {availableBusinessTypes.map((bt) => (
-                        <DropdownMenuItem
-                          key={bt.key}
-                          className="gap-2"
-                          onSelect={() => {
-                            setBizType(bt.key);
-                            setNewBizOpen(true);
-                          }}
-                        >
-                          <Store className="h-3.5 w-3.5" />
-                          <span>{bt.name}</span>
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </SidebarMenuItem>
+
+                      {/* Add new business section */}
+                      {availableBusinessTypes.length > 0 && (
+                        <>
+                          <Separator />
+                          <div>
+                            <p className="text-[11px] text-muted-foreground mb-2 uppercase tracking-wider font-medium">Agregar</p>
+                            <div className="flex flex-wrap gap-2">
+                              {availableBusinessTypes.map((bt) => (
+                                <Button
+                                  key={bt.key}
+                                  variant="outline"
+                                  size="sm"
+                                  className="gap-1.5 text-xs"
+                                  onClick={() => {
+                                    setBizType(bt.key);
+                                    setNewBizOpen(true);
+                                    setBizModalOpen(false);
+                                  }}
+                                >
+                                  <Plus className="h-3.5 w-3.5" />
+                                  {bt.name}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
