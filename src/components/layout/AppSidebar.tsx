@@ -541,9 +541,19 @@ const AppSidebar = () => {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <Link to="/" className="flex items-center">
-          <img src={isDark ? "/logo-dark.png" : "/logo-light.png"} alt="Bivoo" className="h-6 w-auto" />
-        </Link>
+        <div className="flex items-center justify-between">
+          <Link to="/" className="flex items-center">
+            <img src={isDark ? "/logo-dark.png" : "/logo-light.png"} alt="Bivoo" className="h-6 w-auto" />
+          </Link>
+          <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate('/settings')}>
+              <Settings className="h-4 w-4 text-muted-foreground" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate('/plans')}>
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            </Button>
+          </div>
+        </div>
       </SidebarHeader>
 
       <Separator className="mx-4 w-auto" />
