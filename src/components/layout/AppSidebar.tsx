@@ -724,16 +724,7 @@ const AppSidebar = () => {
                   </SidebarMenuItem>
                 ))}
 
-                {/* Business selector button + modal */}
-                <SidebarMenuItem>
-                  <SidebarMenuButton className="justify-between" onClick={() => setBizModalOpen(true)}>
-                    <div className="flex items-center gap-2">
-                      <Store className="h-4 w-4" />
-                      <span className="text-sm">Mis Negocios</span>
-                    </div>
-                    <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                {/* Business selector button removed - now accessed via business name header */}
 
                 {/* Mis Negocios immersive modal */}
                 <Dialog open={bizModalOpen} onOpenChange={setBizModalOpen}>
