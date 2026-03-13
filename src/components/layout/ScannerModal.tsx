@@ -1,12 +1,12 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { X, ScanLine, CheckCircle, XCircle, Loader2 } from 'lucide-react';
-import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
-import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
-import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
+import { useEffect, useRef, useState, useCallback } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { X, ScanLine, CheckCircle, XCircle, Loader2 } from "lucide-react";
+import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useResolvedBusinessId } from "@/hooks/useResolvedBusinessId";
 
 interface ScannerModalProps {
   open: boolean;
@@ -15,7 +15,7 @@ interface ScannerModalProps {
 }
 
 interface ScanFeedback {
-  type: 'success' | 'error';
+  type: "success" | "error";
   title: string;
   description: string;
 }
@@ -37,89 +37,89 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
 
   const handleEmployeeQR = async (data: { employee_id: string; business_id: string }) => {
     if (!businessId || !branchId) {
-      setFeedback({ type: 'error', title: 'Error', description: 'No se pudo determinar el negocio activo' });
+      setFeedback({ type: "error", title: "Error", description: "No se pudo determinar el negocio activo" });
       return;
     }
     if (data.business_id !== businessId) {
-      setFeedback({ type: 'error', title: 'QR inválido', description: 'Este empleado no pertenece a tu negocio' });
+      setFeedback({ type: "error", title: "QR inválido", description: "Este empleado no pertenece a tu negocio" });
       return;
     }
 
     setProcessing(true);
     try {
-      // Get employee profile info (empleado_id in jornadas references profiles.id)
       const { data: emp } = await supabase
-        .from('employees')
-        .select('id, full_name, position, auth_user_id')
-        .eq('id', data.employee_id)
-        .eq('business_id', businessId)
+        .from("employees")
+        .select("id, full_name, position, auth_user_id")
+        .eq("id", data.employee_id)
+        .eq("business_id", businessId)
         .maybeSingle();
 
       if (!emp) {
-        setFeedback({ type: 'error', title: 'No encontrado', description: 'Empleado no registrado en este negocio' });
+        setFeedback({ type: "error", title: "No encontrado", description: "Empleado no registrado en este negocio" });
         return;
       }
 
-      // Resolve profile id for jornadas.empleado_id
       let empleadoProfileId: string | null = null;
       if (emp.auth_user_id) {
         const { data: prof } = await supabase
-          .from('profiles')
-          .select('id')
-          .eq('user_id', emp.auth_user_id)
+          .from("profiles")
+          .select("id")
+          .eq("user_id", emp.auth_user_id)
           .maybeSingle();
         empleadoProfileId = prof?.id ?? null;
       }
 
       if (!empleadoProfileId) {
-        setFeedback({ type: 'error', title: 'Sin cuenta', description: `${emp.full_name} no tiene cuenta vinculada para registrar jornada` });
+        setFeedback({
+          type: "error",
+          title: "Sin cuenta",
+          description: `${emp.full_name} no tiene cuenta vinculada para registrar jornada`,
+        });
         return;
       }
 
-      // Check for active jornada (cierre_at IS NULL)
       const { data: activeJornada } = await supabase
-        .from('jornadas')
-        .select('id, apertura_at')
-        .eq('empleado_id', empleadoProfileId)
-        .eq('sucursal_id', branchId)
-        .is('cierre_at', null)
-        .order('apertura_at', { ascending: false })
+        .from("jornadas")
+        .select("id, apertura_at")
+        .eq("empleado_id", empleadoProfileId)
+        .eq("sucursal_id", branchId)
+        .is("cierre_at", null)
+        .order("apertura_at", { ascending: false })
         .limit(1)
         .maybeSingle();
 
       const now = new Date();
-      const timeStr = now.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+      const timeStr = now.toLocaleTimeString("es", { hour: "2-digit", minute: "2-digit" });
 
       if (activeJornada) {
-        // Already has active shift
-        const aperturaTime = new Date(activeJornada.apertura_at).toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+        const aperturaTime = new Date(activeJornada.apertura_at).toLocaleTimeString("es", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
         setFeedback({
-          type: 'error',
-          title: 'Jornada ya activa',
+          type: "error",
+          title: "Jornada ya activa",
           description: `${emp.full_name} tiene una jornada activa desde ${aperturaTime}`,
         });
       } else {
-        // Open new jornada
-        const { error: insertError } = await supabase
-          .from('jornadas')
-          .insert({
-            empleado_id: empleadoProfileId,
-            sucursal_id: branchId,
-            apertura_at: now.toISOString(),
-            metodo_apertura: 'qr',
-          });
+        const { error: insertError } = await supabase.from("jornadas").insert({
+          empleado_id: empleadoProfileId,
+          sucursal_id: branchId,
+          apertura_at: now.toISOString(),
+          metodo_apertura: "qr",
+        });
 
         if (insertError) throw insertError;
 
         setFeedback({
-          type: 'success',
+          type: "success",
           title: `Entrada registrada — ${timeStr}`,
           description: `${emp.full_name} (${emp.position})`,
         });
       }
     } catch (err) {
-      console.error('Jornada registration error:', err);
-      setFeedback({ type: 'error', title: 'Error', description: 'No se pudo registrar la jornada' });
+      console.error("Jornada registration error:", err);
+      setFeedback({ type: "error", title: "Error", description: "No se pudo registrar la jornada" });
     } finally {
       setProcessing(false);
     }
@@ -128,15 +128,33 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
   const handleScanResult = async (decodedText: string) => {
     try {
       const parsed = JSON.parse(decodedText);
-      if (parsed.type === 'bivoo_employee' && parsed.employee_id && parsed.business_id) {
+      if (parsed.type === "bivoo_employee" && parsed.employee_id && parsed.business_id) {
         stopScanner();
         await handleEmployeeQR(parsed);
         return;
       }
     } catch {}
     onScanResult?.(decodedText);
-    toast.success('Código escaneado', { description: decodedText });
+    toast.success("Código escaneado", { description: decodedText });
     onOpenChange(false);
+  };
+
+  // Selecciona la cámara trasera principal (evita el gran angular)
+  const getMainBackCamera = async (): Promise<string | undefined> => {
+    try {
+      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+      const backCameras = devices.filter(
+        (d) =>
+          d.label.toLowerCase().includes("back") ||
+          d.label.toLowerCase().includes("rear") ||
+          d.label.toLowerCase().includes("environment") ||
+          !d.label.toLowerCase().includes("front"),
+      );
+      // La cámara principal suele ser la última en la lista de traseras
+      return backCameras[backCameras.length - 1]?.deviceId ?? undefined;
+    } catch {
+      return undefined;
+    }
   };
 
   useEffect(() => {
@@ -152,15 +170,19 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
       try {
         const codeReader = new BrowserMultiFormatReader();
         scannerRef.current = codeReader;
-        const videoEl = document.getElementById('bivoo-qr-reader') as HTMLVideoElement;
-        await codeReader.decodeFromVideoDevice(undefined, videoEl, (result, err, controls) => {
+        const videoEl = document.getElementById("bivoo-qr-reader") as HTMLVideoElement;
+
+        // Seleccionar cámara principal trasera en lugar de dejar que el navegador elija
+        const selectedCamera = await getMainBackCamera();
+
+        await codeReader.decodeFromVideoDevice(selectedCamera, videoEl, (result, err, controls) => {
           if (!mounted || processing || !result) return;
           controlsRef.current = controls;
           handleScanResult(result.getText());
         });
       } catch (err) {
-        console.error('Scanner error:', err);
-        if (mounted) toast.error('No se pudo acceder a la cámara');
+        console.error("Scanner error:", err);
+        if (mounted) toast.error("No se pudo acceder a la cámara");
       }
     };
 
@@ -182,8 +204,12 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     setFeedback(null);
     const codeReader = new BrowserMultiFormatReader();
     scannerRef.current = codeReader;
-    const videoEl = document.getElementById('bivoo-qr-reader') as HTMLVideoElement;
-    await codeReader.decodeFromVideoDevice(undefined, videoEl, (result, err, controls) => {
+    const videoEl = document.getElementById("bivoo-qr-reader") as HTMLVideoElement;
+
+    // Mismo fix: seleccionar cámara principal trasera
+    const selectedCamera = await getMainBackCamera();
+
+    await codeReader.decodeFromVideoDevice(selectedCamera, videoEl, (result, err, controls) => {
       if (processing || !result) return;
       controlsRef.current = controls;
       handleScanResult(result.getText());
@@ -191,14 +217,14 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
   };
 
   const applyFocus = async () => {
-    const video = document.querySelector('#bivoo-qr-reader') as HTMLVideoElement;
+    const video = document.querySelector("#bivoo-qr-reader") as HTMLVideoElement;
     if (video?.srcObject) {
       const track = (video.srcObject as MediaStream).getVideoTracks()[0];
       if (track) {
         try {
-          await track.applyConstraints({ advanced: [{ focusMode: 'manual' }] as any });
-          await new Promise(r => setTimeout(r, 300));
-          await track.applyConstraints({ advanced: [{ focusMode: 'continuous' }] as any });
+          await track.applyConstraints({ advanced: [{ focusMode: "manual" }] as any });
+          await new Promise((r) => setTimeout(r, 300));
+          await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] as any });
         } catch {}
       }
     }
@@ -216,7 +242,7 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
 
         {feedback ? (
           <div className="p-6 flex flex-col items-center gap-4 text-center">
-            {feedback.type === 'success' ? (
+            {feedback.type === "success" ? (
               <CheckCircle className="h-16 w-16 text-green-500" />
             ) : (
               <XCircle className="h-16 w-16 text-destructive" />
@@ -271,7 +297,7 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
                     height: 40,
                     left: focusPoint.x - 20,
                     top: focusPoint.y - 20,
-                    animationDuration: '0.8s',
+                    animationDuration: "0.8s",
                     animationIterationCount: 1,
                   }}
                 />
