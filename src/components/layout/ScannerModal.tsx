@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, ScanLine, CheckCircle, XCircle, Loader2 } from "lucide-react";
@@ -20,19 +20,104 @@ interface ScanFeedback {
   description: string;
 }
 
+// Beep usando Web Audio API — no requiere archivos externos
+const playBeep = () => {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(1046, ctx.currentTime);
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.15);
+  } catch {}
+};
+
 const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) => {
   const scannerRef = useRef<BrowserMultiFormatReader | null>(null);
   const controlsRef = useRef<IScannerControls | null>(null);
+  const focusIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scanLineRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scanLinePosRef = useRef(0);
+  const scanLineDirRef = useRef(1);
+  const [scanLinePos, setScanLinePos] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null);
-  const [focusPoint, setFocusPoint] = useState<{ x: number; y: number } | null>(null);
   const { profile } = useAuth();
   const { businessId, branchId } = useResolvedBusinessId();
+
+  // Animación de la línea de escaneo
+  const startScanLine = () => {
+    if (scanLineRef.current) clearInterval(scanLineRef.current);
+    scanLineRef.current = setInterval(() => {
+      scanLinePosRef.current += scanLineDirRef.current * 1.8;
+      if (scanLinePosRef.current >= 100) {
+        scanLineDirRef.current = -1;
+        scanLinePosRef.current = 98;
+      }
+      if (scanLinePosRef.current <= 0) {
+        scanLineDirRef.current = 1;
+        scanLinePosRef.current = 2;
+      }
+      setScanLinePos(scanLinePosRef.current);
+    }, 16);
+  };
+
+  const stopScanLine = () => {
+    if (scanLineRef.current) {
+      clearInterval(scanLineRef.current);
+      scanLineRef.current = null;
+    }
+  };
+
+  const applyFocus = async () => {
+    const video = document.querySelector("#bivoo-qr-reader") as HTMLVideoElement;
+    if (video?.srcObject) {
+      const track = (video.srcObject as MediaStream).getVideoTracks()[0];
+      if (track) {
+        try {
+          await track.applyConstraints({ advanced: [{ focusMode: "manual" }] as any });
+          await new Promise((r) => setTimeout(r, 300));
+          await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] as any });
+        } catch {}
+      }
+    }
+  };
+
+  const startAutoFocus = () => {
+    if (focusIntervalRef.current) clearInterval(focusIntervalRef.current);
+    focusIntervalRef.current = setInterval(() => applyFocus(), 2500);
+  };
 
   const stopScanner = () => {
     controlsRef.current?.stop();
     controlsRef.current = null;
     scannerRef.current = null;
+    if (focusIntervalRef.current) {
+      clearInterval(focusIntervalRef.current);
+      focusIntervalRef.current = null;
+    }
+    stopScanLine();
+  };
+
+  const getMainBackCamera = async (): Promise<string | undefined> => {
+    try {
+      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+      const backCameras = devices.filter(
+        (d) =>
+          d.label.toLowerCase().includes("back") ||
+          d.label.toLowerCase().includes("rear") ||
+          d.label.toLowerCase().includes("environment") ||
+          !d.label.toLowerCase().includes("front"),
+      );
+      return backCameras[backCameras.length - 1]?.deviceId ?? undefined;
+    } catch {
+      return undefined;
+    }
   };
 
   const handleEmployeeQR = async (data: { employee_id: string; business_id: string }) => {
@@ -126,6 +211,8 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
   };
 
   const handleScanResult = async (decodedText: string) => {
+    playBeep();
+    stopScanLine();
     try {
       const parsed = JSON.parse(decodedText);
       if (parsed.type === "bivoo_employee" && parsed.employee_id && parsed.business_id) {
@@ -139,28 +226,12 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     onOpenChange(false);
   };
 
-  // Selecciona la cámara trasera principal (evita el gran angular)
-  const getMainBackCamera = async (): Promise<string | undefined> => {
-    try {
-      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-      const backCameras = devices.filter(
-        (d) =>
-          d.label.toLowerCase().includes("back") ||
-          d.label.toLowerCase().includes("rear") ||
-          d.label.toLowerCase().includes("environment") ||
-          !d.label.toLowerCase().includes("front"),
-      );
-      // La cámara principal suele ser la última en la lista de traseras
-      return backCameras[backCameras.length - 1]?.deviceId ?? undefined;
-    } catch {
-      return undefined;
-    }
-  };
-
   useEffect(() => {
     if (!open) {
       setFeedback(null);
       setProcessing(false);
+      setScanLinePos(0);
+      scanLinePosRef.current = 0;
       return;
     }
 
@@ -171,8 +242,6 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
         const codeReader = new BrowserMultiFormatReader();
         scannerRef.current = codeReader;
         const videoEl = document.getElementById("bivoo-qr-reader") as HTMLVideoElement;
-
-        // Seleccionar cámara principal trasera en lugar de dejar que el navegador elija
         const selectedCamera = await getMainBackCamera();
 
         await codeReader.decodeFromVideoDevice(selectedCamera, videoEl, (result, err, controls) => {
@@ -180,6 +249,9 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
           controlsRef.current = controls;
           handleScanResult(result.getText());
         });
+
+        startAutoFocus();
+        startScanLine();
       } catch (err) {
         console.error("Scanner error:", err);
         if (mounted) toast.error("No se pudo acceder a la cámara");
@@ -202,11 +274,11 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
 
   const handleScanAnother = async () => {
     setFeedback(null);
+    setScanLinePos(0);
+    scanLinePosRef.current = 0;
     const codeReader = new BrowserMultiFormatReader();
     scannerRef.current = codeReader;
     const videoEl = document.getElementById("bivoo-qr-reader") as HTMLVideoElement;
-
-    // Mismo fix: seleccionar cámara principal trasera
     const selectedCamera = await getMainBackCamera();
 
     await codeReader.decodeFromVideoDevice(selectedCamera, videoEl, (result, err, controls) => {
@@ -214,21 +286,14 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
       controlsRef.current = controls;
       handleScanResult(result.getText());
     });
+
+    startAutoFocus();
+    startScanLine();
   };
 
-  const applyFocus = async () => {
-    const video = document.querySelector("#bivoo-qr-reader") as HTMLVideoElement;
-    if (video?.srcObject) {
-      const track = (video.srcObject as MediaStream).getVideoTracks()[0];
-      if (track) {
-        try {
-          await track.applyConstraints({ advanced: [{ focusMode: "manual" }] as any });
-          await new Promise((r) => setTimeout(r, 300));
-          await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] as any });
-        } catch {}
-      }
-    }
-  };
+  // Dimensiones del recuadro rectangular horizontal (funciona para QR y códigos de barras)
+  const frameW = 80; // % del ancho
+  const frameH = 50; // % del alto — más ancho que alto para acomodar ambos tipos
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -267,44 +332,87 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
           </div>
         ) : (
           <>
-            <div className="relative bg-black">
-              <video id="bivoo-qr-reader" className="w-full" />
-              <div
-                className="absolute inset-0 z-10"
-                onTouchStart={(e) => {
-                  const touch = e.touches[0];
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const pixelX = touch.clientX - rect.left;
-                  const pixelY = touch.clientY - rect.top;
-                  setFocusPoint({ x: pixelX, y: pixelY });
-                  setTimeout(() => setFocusPoint(null), 800);
-                  applyFocus();
-                }}
-                onClick={(e) => {
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  const pixelX = e.clientX - rect.left;
-                  const pixelY = e.clientY - rect.top;
-                  setFocusPoint({ x: pixelX, y: pixelY });
-                  setTimeout(() => setFocusPoint(null), 800);
-                  applyFocus();
-                }}
-              />
-              {focusPoint && (
+            <div
+              className="relative bg-black"
+              style={{ aspectRatio: "4/3" }}
+              onTouchStart={() => applyFocus()}
+              onClick={() => applyFocus()}
+            >
+              <video id="bivoo-qr-reader" className="w-full h-full object-cover" />
+
+              {/* Overlay con recuadro recortado */}
+              <div className="absolute inset-0 z-10 pointer-events-none">
+                {/* Sombras alrededor del recuadro */}
                 <div
-                  className="absolute z-20 rounded-full border-2 border-green-500 pointer-events-none animate-ping"
+                  className="absolute top-0 left-0 right-0 bg-black/60"
+                  style={{ height: `${(100 - frameH) / 2}%` }}
+                />
+                <div
+                  className="absolute bottom-0 left-0 right-0 bg-black/60"
+                  style={{ height: `${(100 - frameH) / 2}%` }}
+                />
+                <div
+                  className="absolute bg-black/60"
                   style={{
-                    width: 40,
-                    height: 40,
-                    left: focusPoint.x - 20,
-                    top: focusPoint.y - 20,
-                    animationDuration: "0.8s",
-                    animationIterationCount: 1,
+                    top: `${(100 - frameH) / 2}%`,
+                    left: 0,
+                    width: `${(100 - frameW) / 2}%`,
+                    height: `${frameH}%`,
                   }}
                 />
-              )}
+                <div
+                  className="absolute bg-black/60"
+                  style={{
+                    top: `${(100 - frameH) / 2}%`,
+                    right: 0,
+                    width: `${(100 - frameW) / 2}%`,
+                    height: `${frameH}%`,
+                  }}
+                />
+
+                {/* Recuadro con esquinas verdes y línea de escaneo */}
+                <div
+                  className="absolute overflow-hidden"
+                  style={{
+                    top: `${(100 - frameH) / 2}%`,
+                    left: `${(100 - frameW) / 2}%`,
+                    width: `${frameW}%`,
+                    height: `${frameH}%`,
+                  }}
+                >
+                  {/* 4 esquinas — solo las puntas, no el borde completo */}
+                  <div
+                    className="absolute top-0 left-0 w-7 h-7 border-t-[3px] border-l-[3px] border-primary"
+                    style={{ borderRadius: "4px 0 0 0" }}
+                  />
+                  <div
+                    className="absolute top-0 right-0 w-7 h-7 border-t-[3px] border-r-[3px] border-primary"
+                    style={{ borderRadius: "0 4px 0 0" }}
+                  />
+                  <div
+                    className="absolute bottom-0 left-0 w-7 h-7 border-b-[3px] border-l-[3px] border-primary"
+                    style={{ borderRadius: "0 0 0 4px" }}
+                  />
+                  <div
+                    className="absolute bottom-0 right-0 w-7 h-7 border-b-[3px] border-r-[3px] border-primary"
+                    style={{ borderRadius: "0 0 4px 0" }}
+                  />
+
+                  {/* Línea de escaneo animada */}
+                  <div
+                    className="absolute left-2 right-2 h-px"
+                    style={{
+                      top: `${scanLinePos}%`,
+                      background: "linear-gradient(90deg, transparent 0%, #00d282 30%, #00d282 70%, transparent 100%)",
+                      boxShadow: "0 0 8px 2px rgba(0,210,130,0.5)",
+                    }}
+                  />
+                </div>
+              </div>
             </div>
+
             <div className="p-4 pt-3 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">Apunta al código QR o de barras</p>
+              <p className="text-sm text-muted-foreground">Centra el código QR o de barras en el recuadro</p>
               <Button variant="outline" className="w-full" onClick={handleClose}>
                 <X className="h-4 w-4 mr-2" /> Cerrar
               </Button>
