@@ -71,7 +71,24 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [recipeOpen, setRecipeOpen] = useState(false);
+  const [insumoAreaId, setInsumoAreaId] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Insumo areas for ingrediente products
+  const { data: insumoAreas = [] } = useQuery({
+    queryKey: ['insumo-areas', profile?.business_id],
+    queryFn: async () => {
+      if (!profile?.business_id) return [];
+      const { data, error } = await supabase
+        .from('insumo_areas')
+        .select('*')
+        .eq('business_id', profile.business_id)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.business_id,
+  });
 
   // Stock info for editing
   const productStock = product && branchStock
