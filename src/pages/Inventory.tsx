@@ -1242,6 +1242,11 @@ const Inventory = () => {
         }}
         product={editingProduct}
       />
+      <ProductForm
+        open={insumoFormOpen}
+        onOpenChange={(open) => setInsumoFormOpen(open)}
+        defaultTipo="ingrediente"
+      />
       
       <CategoryForm
         open={categoryFormOpen}
