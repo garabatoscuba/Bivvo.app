@@ -65,6 +65,27 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
 
   const isIngrediente = (product as any)?.tipo === 'ingrediente';
   const isGranel = (product as any)?.tipo === 'granel';
+  const insumoAreaId = (product as any)?.insumo_area_id as string | null;
+
+  // Fetch area name for ingredientes
+  const { data: areaName } = useQuery({
+    queryKey: ['insumo-area-name', insumoAreaId],
+    queryFn: async () => {
+      if (!insumoAreaId) return null;
+      const { data } = await supabase
+        .from('insumo_areas')
+        .select('name')
+        .eq('id', insumoAreaId)
+        .single();
+      return data?.name || null;
+    },
+    enabled: !!insumoAreaId && isIngrediente,
+  });
+
+  const saleLabel = isIngrediente
+    ? (areaName ? `Cantidad a ${areaName}` : 'Cantidad a venta')
+    : 'Cantidad a venta';
+
   const totalQty = isGranel ? qtyForSale : qtyForSale + qtyWarehouse;
   const reasonLabel = ENTRY_REASONS.find(r => r.value === reason)?.label || reason;
 
