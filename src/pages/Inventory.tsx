@@ -26,6 +26,7 @@ import { MermasTab } from '@/components/inventory/MermasTab';
 import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
 import { ProductionDialog } from '@/components/inventory/ProductionDialog';
 import { RecipeManager } from '@/components/inventory/RecipeManager';
+import InsumosInventoryTab from '@/components/inventory/InsumosInventoryTab';
 import { useProductionCapacity } from '@/hooks/useProductionCapacity';
 import { useProductionCapacities } from '@/hooks/useProductionCapacities';
 import {
@@ -605,6 +606,10 @@ const Inventory = () => {
               <PackageX className="h-3.5 w-3.5 shrink-0" />
               Mermas
             </TabsTrigger>
+            <TabsTrigger value="insumos" className="flex items-center gap-1 flex-1 text-xs px-2">
+              <Package className="h-3.5 w-3.5 shrink-0" />
+              Insumos
+            </TabsTrigger>
           </TabsList>
 
           {/* ─── Products Tab ─── */}
@@ -832,6 +837,11 @@ const Inventory = () => {
               branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
               onRegisterMerma={() => { if (!guardDowngrade()) setMermaOpen(true); }}
             />
+          </TabsContent>
+
+          {/* ─── Insumos Tab ─── */}
+          <TabsContent value="insumos" className="mt-4">
+            <InsumosInventoryTab />
           </TabsContent>
         </Tabs>
       </div>

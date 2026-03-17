@@ -2121,6 +2121,41 @@ export type Database = {
           },
         ]
       }
+      insumo_areas: {
+        Row: {
+          business_id: string
+          color: string | null
+          created_at: string | null
+          icon: string | null
+          id: string
+          name: string
+        }
+        Insert: {
+          business_id: string
+          color?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+        }
+        Update: {
+          business_id?: string
+          color?: string | null
+          created_at?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "insumo_areas_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_counts: {
         Row: {
           branch_id: string
@@ -4207,8 +4242,10 @@ export type Database = {
       }
       raw_materials: {
         Row: {
+          area_id: string | null
           branch_id: string | null
           business_id: string
+          conversion_factor: number | null
           costo_unitario: number
           created_at: string
           id: string
@@ -4218,10 +4255,15 @@ export type Database = {
           stock_almacen: number
           stock_minimo: number
           stock_vendedor: number
+          unit_purchase: string | null
+          unit_use: string | null
+          updated_at: string | null
         }
         Insert: {
+          area_id?: string | null
           branch_id?: string | null
           business_id: string
+          conversion_factor?: number | null
           costo_unitario?: number
           created_at?: string
           id?: string
@@ -4231,10 +4273,15 @@ export type Database = {
           stock_almacen?: number
           stock_minimo?: number
           stock_vendedor?: number
+          unit_purchase?: string | null
+          unit_use?: string | null
+          updated_at?: string | null
         }
         Update: {
+          area_id?: string | null
           branch_id?: string | null
           business_id?: string
+          conversion_factor?: number | null
           costo_unitario?: number
           created_at?: string
           id?: string
@@ -4244,8 +4291,18 @@ export type Database = {
           stock_almacen?: number
           stock_minimo?: number
           stock_vendedor?: number
+          unit_purchase?: string | null
+          unit_use?: string | null
+          updated_at?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "raw_materials_area_id_fkey"
+            columns: ["area_id"]
+            isOneToOne: false
+            referencedRelation: "insumo_areas"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "raw_materials_branch_id_fkey"
             columns: ["branch_id"]
