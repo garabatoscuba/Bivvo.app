@@ -273,6 +273,7 @@ const InsumosInventoryTab = ({
                 unit_of_measure: mat.unit || 'unidad',
                 brand: mat.brand || null,
                 category: null,
+                _isRawMaterial: true,
               } as unknown as Product & { category: Category | null };
 
               return (
