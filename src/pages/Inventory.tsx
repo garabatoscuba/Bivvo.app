@@ -448,7 +448,7 @@ const Inventory = () => {
           user_id: profile.user_id,
           movement_type: 'transfer_out' as const,
           quantity: transferQty,
-          notes: (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: cocina → almacén' : 'Transferencia: venta → almacén',
+          notes: (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: uso → almacén' : 'Transferencia: venta → almacén',
         },
         {
           branch_id: branchId,
