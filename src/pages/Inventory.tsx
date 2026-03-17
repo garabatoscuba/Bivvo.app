@@ -623,8 +623,8 @@ const Inventory = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* ─── Products Tab ─── */}
-          <TabsContent value="products" className="mt-4 space-y-4">
+          {/* ─── A la Venta Tab ─── */}
+          <TabsContent value="for-sale" className="mt-4 space-y-4">
             {/* Sub-tabs: Reventa / Cocina (only if business has kitchen products) */}
             {hasKitchenProducts && (
               <div className="flex gap-1 rounded-lg bg-muted p-1">
