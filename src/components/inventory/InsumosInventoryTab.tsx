@@ -162,6 +162,7 @@ const InsumosInventoryTab = ({
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 
+  const openNewArea = () => {
     setEditingArea(null);
     setAreaForm({ name: '', icon: 'Package', color: 'blue' });
     setAreaDialogOpen(true);
