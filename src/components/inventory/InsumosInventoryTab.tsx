@@ -83,21 +83,48 @@ const InsumosInventoryTab = ({
     enabled: !!businessId,
   });
 
+  // ─── Raw materials query ───
+  const { data: rawMaterials = [] } = useQuery({
+    queryKey: ['raw-materials', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const { data, error } = await supabase
+        .from('raw_materials')
+        .select('*')
+        .eq('business_id', businessId)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!businessId,
+  });
+
   // Filter products: ingredientes belonging to the selected area
   const areaProducts = selectedArea
     ? products.filter((p: any) => p.tipo === 'ingrediente' && p.insumo_area_id === selectedArea.id)
     : [];
 
-  // Count ingredientes per area for badges
+  // Filter raw_materials belonging to the selected area
+  const areaRawMaterials = selectedArea
+    ? rawMaterials.filter((m: any) => m.area_id === selectedArea.id)
+    : [];
+
+  // Count per area (products + raw_materials)
   const areaCountMap = new Map<string, number>();
   products.forEach((p: any) => {
     if (p.tipo === 'ingrediente' && p.insumo_area_id) {
       areaCountMap.set(p.insumo_area_id, (areaCountMap.get(p.insumo_area_id) || 0) + 1);
     }
   });
+  rawMaterials.forEach((m: any) => {
+    if (m.area_id) {
+      areaCountMap.set(m.area_id, (areaCountMap.get(m.area_id) || 0) + 1);
+    }
+  });
 
   // Unassigned ingredientes (no area)
-  const unassignedCount = products.filter((p: any) => p.tipo === 'ingrediente' && !p.insumo_area_id).length;
+  const unassignedCount = products.filter((p: any) => p.tipo === 'ingrediente' && !p.insumo_area_id).length
+    + rawMaterials.filter((m: any) => !m.area_id).length;
 
   // ─── Area mutations ───
   const saveArea = useMutation({
