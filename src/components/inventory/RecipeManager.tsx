@@ -93,7 +93,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipe', product.id] });
-      toast({ title: 'Receta creada' });
+      toast({ title: 'Ficha de costo creada' });
     },
   });
 
