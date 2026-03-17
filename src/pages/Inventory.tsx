@@ -778,7 +778,52 @@ const Inventory = () => {
             )}
           </TabsContent>
 
-          {/* ─── Categories Tab ─── */}
+          {/* ─── Almacén Tab ─── */}
+          <TabsContent value="warehouse" className="mt-4 space-y-4">
+            {productsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (() => {
+              const warehouseProducts = products.filter((p) => {
+                const tipo = (p as any).tipo || 'reventa';
+                if (tipo === 'ingrediente') return false;
+                if (p.status === 'discontinued') return false;
+                const wStock = warehouseStockMap.get(p.id) || 0;
+                return wStock > 0;
+              });
+              return warehouseProducts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold">Almacén vacío</h3>
+                  <p className="text-sm text-muted-foreground mt-1">No hay productos con stock en almacén</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {warehouseProducts.map((product) => {
+                    const wStock = warehouseStockMap.get(product.id) || 0;
+                    return (
+                      <ProductRow
+                        key={product.id}
+                        product={product}
+                        stock={wStock}
+                        warehouseStock={wStock}
+                        color={product.category?.color || 'blue'}
+                        onClick={() => handleProductTap(product)}
+                        canManage={canManage}
+                        onDelete={() => setDeletingProduct(product)}
+                        onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                        onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                        onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                        onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                      />
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </TabsContent>
+
           <TabsContent value="categories" className="mt-4">
             {categoriesLoading ? (
               <div className="flex items-center justify-center py-12">
