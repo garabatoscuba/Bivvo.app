@@ -130,6 +130,9 @@ const Inventory = () => {
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const [productionProduct, setProductionProduct] = useState<Product | null>(null);
   const [recipeProduct, setRecipeProduct] = useState<Product | null>(null);
+  const [showGranelPriceEdit, setShowGranelPriceEdit] = useState(false);
+  const [granelNewPrice, setGranelNewPrice] = useState('');
+  const [granelPriceUpdating, setGranelPriceUpdating] = useState(false);
   const { isDowngraded } = useIsDowngraded();
 
   const effectiveBranchId = selectedBranch || profile?.branch_id || branches?.[0]?.id;
