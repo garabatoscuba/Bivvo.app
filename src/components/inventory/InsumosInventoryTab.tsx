@@ -478,6 +478,25 @@ const InsumosInventoryTab = ({
   // ─── Level 1: Areas ───
   return (
     <div className="space-y-4">
+      {/* Inline summary */}
+      {(() => {
+        const ingredientProducts = products.filter((p: any) => p.tipo === 'ingrediente');
+        const totalInsumos = ingredientProducts.length + rawMaterials.length;
+        const totalValue = ingredientProducts.reduce((sum, p) => {
+          const s = stockMap.get(p.id) || 0;
+          const w = warehouseStockMap.get(p.id) || 0;
+          return sum + (s + w) * Number(p.cost_price);
+        }, 0) + rawMaterials.reduce((sum: number, m: any) => {
+          return sum + ((Number(m.stock_vendedor) || 0) + (Number(m.stock_almacen) || 0)) * (Number(m.cost_price) || 0);
+        }, 0);
+        return (
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            <span><span className="font-semibold text-foreground">{totalInsumos}</span> insumos</span>
+            <span>·</span>
+            <span>Valor: <span className="font-semibold text-foreground">${totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}</span></span>
+          </div>
+        );
+      })()}
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Áreas de insumos</h2>
         {canManage && (
