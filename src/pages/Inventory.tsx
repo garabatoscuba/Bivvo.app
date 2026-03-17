@@ -1387,9 +1387,10 @@ interface ProductRowProps {
   onTransferToSale: () => void;
   onReturnToWarehouse: () => void;
   onOutflow: () => void;
+  showBadges?: 'both' | 'sale' | 'warehouse';
 }
 
-const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow }: ProductRowProps) => {
+const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow, showBadges = 'both' }: ProductRowProps) => {
   const bgColor = colorMap[color] || colorMap.blue;
   const isLow = stock <= product.min_stock;
 
@@ -1400,15 +1401,19 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
         onClick={onClick}
       >
         <div className="flex gap-1 flex-shrink-0">
-          <span className={cn(
-            'inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold',
-            bgColor
-          )} title="En venta">
-            {stock}
-          </span>
-          <span className="inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground" title="Almacén">
-            {warehouseStock}
-          </span>
+          {(showBadges === 'both' || showBadges === 'sale') && (
+            <span className={cn(
+              'inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold',
+              bgColor
+            )} title="En venta">
+              {stock}
+            </span>
+          )}
+          {(showBadges === 'both' || showBadges === 'warehouse') && (
+            <span className="inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground" title="Almacén">
+              {warehouseStock}
+            </span>
+          )}
         </div>
         <span className="font-medium text-sm truncate flex-1">{product.name}</span>
         {isLow && <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />}
