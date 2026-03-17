@@ -564,8 +564,8 @@ const Inventory = () => {
         {/* Tabs + Action Buttons */}
         <Tabs value={mainTab} onValueChange={setMainTab}>
           <TabsList className="w-full">
-            <TabsTrigger value="for-sale" className="flex items-center gap-1 flex-1 text-xs px-2">
-              A la Venta
+            <TabsTrigger value="products" className="flex items-center gap-1 flex-1 text-xs px-2">
+              Productos
               {canManage && (
                 <button
                   type="button"
@@ -584,6 +584,9 @@ const Inventory = () => {
                   <Plus className="h-3 w-3" />
                 </button>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="for-sale" className="flex items-center gap-1 flex-1 text-xs px-2">
+              A la Venta
             </TabsTrigger>
             <TabsTrigger value="warehouse" className="flex items-center gap-1 flex-1 text-xs px-2">
               Almacén
