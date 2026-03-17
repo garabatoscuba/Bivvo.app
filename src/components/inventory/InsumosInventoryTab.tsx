@@ -231,12 +231,6 @@ const InsumosInventoryTab = ({
             <h2 className="text-lg font-semibold truncate">{selectedArea.name}</h2>
             <Badge variant="secondary" className="text-xs">{areaProducts.length + areaRawMaterials.length}</Badge>
           </div>
-          {canManage && (
-            <Button size="sm" onClick={() => { setInsumoForm({ name: '', description: '', brand: '' }); setNewInsumoOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1" />
-              Nuevo insumo
-            </Button>
-          )}
         </div>
 
         {areaProducts.length === 0 && areaRawMaterials.length === 0 ? (
