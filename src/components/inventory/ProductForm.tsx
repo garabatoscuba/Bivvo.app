@@ -51,6 +51,7 @@ interface ProductFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   product?: Product | null;
+  defaultTipo?: 'reventa' | 'ingrediente' | 'elaborado' | 'granel';
 }
 
 
