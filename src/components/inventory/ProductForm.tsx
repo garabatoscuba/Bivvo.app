@@ -60,7 +60,7 @@ const unitOptions = [
   'Metro', 'Metro cuadrado (m²)', 'Centímetro', 'Caja', 'Paquete', 'Par', 'Docena', 'Rollo',
 ];
 
-export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) => {
+export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: ProductFormProps) => {
   const { profile } = useAuth();
   const { isRestaurant } = useIsRestaurant();
   const { categories } = useCategories();
