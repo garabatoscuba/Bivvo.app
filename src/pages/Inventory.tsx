@@ -601,6 +601,10 @@ const Inventory = () => {
                 </button>
               )}
             </TabsTrigger>
+            <TabsTrigger value="insumos" className="flex items-center gap-1 flex-1 text-xs px-2">
+              <Package className="h-3.5 w-3.5 shrink-0" />
+              Insumos
+            </TabsTrigger>
             <TabsTrigger value="movements" className="flex items-center gap-1 flex-1 text-xs px-2">
               <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
               Movim.
@@ -608,10 +612,6 @@ const Inventory = () => {
             <TabsTrigger value="mermas" className="flex items-center gap-1 flex-1 text-xs px-2">
               <PackageX className="h-3.5 w-3.5 shrink-0" />
               Mermas
-            </TabsTrigger>
-            <TabsTrigger value="insumos" className="flex items-center gap-1 flex-1 text-xs px-2">
-              <Package className="h-3.5 w-3.5 shrink-0" />
-              Insumos
             </TabsTrigger>
           </TabsList>
 
