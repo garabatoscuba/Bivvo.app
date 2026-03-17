@@ -3971,6 +3971,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          insumo_area_id: string | null
           min_stock: number
           name: string
           sale_price: number
@@ -3991,6 +3992,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          insumo_area_id?: string | null
           min_stock?: number
           name: string
           sale_price?: number
@@ -4011,6 +4013,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          insumo_area_id?: string | null
           min_stock?: number
           name?: string
           sale_price?: number
@@ -4033,6 +4036,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_insumo_area_id_fkey"
+            columns: ["insumo_area_id"]
+            isOneToOne: false
+            referencedRelation: "insumo_areas"
             referencedColumns: ["id"]
           },
         ]

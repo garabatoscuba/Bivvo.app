@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -70,7 +71,24 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [recipeOpen, setRecipeOpen] = useState(false);
+  const [insumoAreaId, setInsumoAreaId] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Insumo areas for ingrediente products
+  const { data: insumoAreas = [] } = useQuery({
+    queryKey: ['insumo-areas', profile?.business_id],
+    queryFn: async () => {
+      if (!profile?.business_id) return [];
+      const { data, error } = await supabase
+        .from('insumo_areas')
+        .select('*')
+        .eq('business_id', profile.business_id)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!profile?.business_id,
+  });
 
   // Stock info for editing
   const productStock = product && branchStock
@@ -81,6 +99,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
   useEffect(() => {
     setImagePreview(product?.image_url || null);
     setImageFile(null);
+    setInsumoAreaId((product as any)?.insumo_area_id || '');
   }, [product]);
 
   const form = useForm<ProductFormData>({
@@ -173,7 +192,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       ? parseFloat(data.sale_price)
       : (product?.sale_price ?? 0);
 
-    const payload = {
+    const payload: any = {
       name: data.name,
       description: data.description || null,
       category_id: data.category_id || null,
@@ -186,6 +205,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       unit_of_measure: data.unit_of_measure,
       brand: data.brand || null,
       tipo: data.tipo,
+      insumo_area_id: data.tipo === 'ingrediente' ? (insumoAreaId || null) : null,
     };
 
     if (product) {
@@ -358,6 +378,23 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
                   </FormItem>
                 )}
               />
+
+              {/* Área de insumo (only for ingrediente) */}
+              {form.watch('tipo') === 'ingrediente' && insumoAreas.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Área de insumo</label>
+                  <select
+                    value={insumoAreaId}
+                    onChange={(e) => setInsumoAreaId(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">Sin área</option>
+                    {insumoAreas.map((area: any) => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <FormField
