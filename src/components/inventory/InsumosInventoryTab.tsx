@@ -54,8 +54,8 @@ const InsumosInventoryTab = ({
   onOutflow,
   onTransfer,
   onDeleteProduct,
-  onCreateInsumo,
   canManage,
+}: InsumosInventoryTabProps) => {
 }: InsumosInventoryTabProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
