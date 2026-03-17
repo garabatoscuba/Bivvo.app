@@ -326,7 +326,7 @@ const InsumosInventoryTab = ({
                         variant="outline"
                         size="sm"
                         className="flex-1 text-xs h-8"
-                        onClick={() => {/* TODO: entry for raw material */}}
+                        onClick={(e) => { e.stopPropagation(); onAddStock(asProduct); }}
                       >
                         <PackagePlus className="h-3.5 w-3.5 mr-1" />
                         Nueva Compra
@@ -336,7 +336,7 @@ const InsumosInventoryTab = ({
                           variant="outline"
                           size="sm"
                           className="flex-1 text-xs h-8"
-                          onClick={() => {/* TODO: transfer for raw material */}}
+                          onClick={(e) => { e.stopPropagation(); onTransfer?.(asProduct, wStock > 0 ? 'toSale' : 'toWarehouse'); }}
                         >
                           <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
                           {wStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén'}
