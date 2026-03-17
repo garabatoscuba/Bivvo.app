@@ -271,7 +271,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
               {/* Cost summary */}
               <div className="grid grid-cols-3 gap-2">
                 <Card className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Costo receta</p>
+                  <p className="text-xs text-muted-foreground">Costo ficha</p>
                   <p className="text-lg font-bold">${recipeCost.toFixed(2)}</p>
                 </Card>
                 <Card className="p-3 text-center">
