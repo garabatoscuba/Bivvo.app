@@ -64,7 +64,8 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
   };
 
   const isIngrediente = (product as any)?.tipo === 'ingrediente';
-  const totalQty = qtyForSale + qtyWarehouse;
+  const isGranel = (product as any)?.tipo === 'granel';
+  const totalQty = isGranel ? qtyForSale : qtyForSale + qtyWarehouse;
   const reasonLabel = ENTRY_REASONS.find(r => r.value === reason)?.label || reason;
 
   const handleSubmit = async () => {
@@ -85,7 +86,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           .from('branch_stock')
           .update({
             quantity: existing.quantity + qtyForSale,
-            warehouse_quantity: (existing.warehouse_quantity || 0) + qtyWarehouse,
+            warehouse_quantity: isGranel ? (existing.warehouse_quantity || 0) : (existing.warehouse_quantity || 0) + qtyWarehouse,
           })
           .eq('id', existing.id);
       } else {
@@ -95,51 +96,77 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
             branch_id: branchId,
             product_id: product.id,
             quantity: qtyForSale,
-            warehouse_quantity: qtyWarehouse,
+            warehouse_quantity: isGranel ? 0 : qtyWarehouse,
           });
       }
 
-      const detailParts = [
-        `Entrada: ${reasonLabel}`,
-        isIngrediente
-          ? `${qtyForSale} cocina, ${qtyWarehouse} almacén`
-          : `${qtyForSale} venta, ${qtyWarehouse} almacén`,
-        `Costo: $${parseFloat(unitCost).toFixed(2)}`,
-        ...(!isIngrediente ? [`Venta: $${parseFloat(newSalePrice).toFixed(2)}`] : []),
-        `Origen: ${origin.trim()}`,
-        `Autoriza: ${authorizedBy.trim()}`,
-        notes.trim() ? `Obs: ${notes.trim()}` : null,
-      ].filter(Boolean);
+      if (isGranel) {
+        const detailParts = [
+          `Pasar a venta: ${qtyForSale} unidades`,
+          newSalePrice ? `Precio venta: $${parseFloat(newSalePrice).toFixed(2)}` : null,
+          notes.trim() ? `Obs: ${notes.trim()}` : null,
+        ].filter(Boolean);
 
-      await supabase.from('inventory_movements').insert({
-        branch_id: branchId,
-        product_id: product.id,
-        user_id: profile.user_id,
-        movement_type: 'purchase' as const,
-        quantity: totalQty,
-        notes: detailParts.join(' | '),
-      });
-
-      // Save stock entry for Treasury cost tracking
-      const businessId = profile.business_id || (await supabase.from('branches').select('business_id').eq('id', branchId).single()).data?.business_id;
-      if (businessId) {
-        await supabase.from('product_stock_entries' as any).insert({
-          business_id: businessId,
+        await supabase.from('inventory_movements').insert({
           branch_id: branchId,
           product_id: product.id,
           user_id: profile.user_id,
+          movement_type: 'purchase' as const,
           quantity: totalQty,
-          unit_cost: unitCost ? parseFloat(unitCost) : null,
-          sale_price: !isIngrediente && newSalePrice ? parseFloat(newSalePrice) : null,
-          supplier: supplier.trim() || null,
-          notes: notes.trim() || null,
-          reason: reason || null,
+          notes: detailParts.join(' | '),
+        });
+      } else {
+        const detailParts = [
+          `Entrada: ${reasonLabel}`,
+          isIngrediente
+            ? `${qtyForSale} cocina, ${qtyWarehouse} almacén`
+            : `${qtyForSale} venta, ${qtyWarehouse} almacén`,
+          `Costo: $${parseFloat(unitCost).toFixed(2)}`,
+          ...(!isIngrediente ? [`Venta: $${parseFloat(newSalePrice).toFixed(2)}`] : []),
+          `Origen: ${origin.trim()}`,
+          `Autoriza: ${authorizedBy.trim()}`,
+          notes.trim() ? `Obs: ${notes.trim()}` : null,
+        ].filter(Boolean);
+
+        await supabase.from('inventory_movements').insert({
+          branch_id: branchId,
+          product_id: product.id,
+          user_id: profile.user_id,
+          movement_type: 'purchase' as const,
+          quantity: totalQty,
+          notes: detailParts.join(' | '),
         });
       }
 
+      // Save stock entry for Treasury cost tracking (skip for granel)
+      if (!isGranel) {
+        const businessId = profile.business_id || (await supabase.from('branches').select('business_id').eq('id', branchId).single()).data?.business_id;
+        if (businessId) {
+          await supabase.from('product_stock_entries' as any).insert({
+            business_id: businessId,
+            branch_id: branchId,
+            product_id: product.id,
+            user_id: profile.user_id,
+            quantity: totalQty,
+            unit_cost: unitCost ? parseFloat(unitCost) : null,
+            sale_price: !isIngrediente && newSalePrice ? parseFloat(newSalePrice) : null,
+            supplier: supplier.trim() || null,
+            notes: notes.trim() || null,
+            reason: reason || null,
+          });
+        }
+      }
+
       // Update product prices
-      if (isIngrediente) {
-        // Trigger handles weighted avg cost update automatically
+      if (isGranel) {
+        if (newSalePrice && parseFloat(newSalePrice) > 0) {
+          await supabase
+            .from('products')
+            .update({ sale_price: parseFloat(newSalePrice) })
+            .eq('id', product.id);
+        }
+        queryClient.invalidateQueries({ queryKey: ['products'] });
+      } else if (isIngrediente) {
         queryClient.invalidateQueries({ queryKey: ['products'] });
         queryClient.invalidateQueries({ queryKey: ['recipe-ingredients'] });
         queryClient.invalidateQueries({ queryKey: ['recipe'] });
@@ -154,16 +181,22 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['bp-product-cost'] });
-      toast({ title: `Entrada de ${totalQty} unidades registrada` });
+
+      const toastTitle = isGranel
+        ? `${totalQty} unidades pasadas a venta`
+        : `Entrada de ${totalQty} unidades registrada`;
+      toast({ title: toastTitle });
       auditLog(
         'inventory_entry',
-        `Entrada de ${totalQty} unidades de ${product?.name} a $${parseFloat(unitCost || '0').toFixed(2)} c/u`,
+        isGranel
+          ? `Pasó ${totalQty} unidades de ${product?.name} a venta`
+          : `Entrada de ${totalQty} unidades de ${product?.name} a $${parseFloat(unitCost || '0').toFixed(2)} c/u`,
         product?.id,
         'product'
       );
       handleClose(false);
     } catch (err: any) {
-      toast({ title: 'Error al dar entrada', description: err.message, variant: 'destructive' });
+      toast({ title: isGranel ? 'Error al pasar a venta' : 'Error al dar entrada', description: err.message, variant: 'destructive' });
     } finally {
       setSubmitting(false);
     }
@@ -171,6 +204,71 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
 
   const isValid = totalQty > 0;
 
+  // ── Granel simplified view ──
+  if (isGranel) {
+    return (
+      <Dialog open={open} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <PackagePlus className="h-5 w-5 text-primary" />
+              Pasar a venta
+            </DialogTitle>
+            <DialogDescription>
+              {product?.name}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <div className="space-y-1.5">
+              <Label>Cantidad</Label>
+              <Input
+                type="number"
+                min={0}
+                value={qtyForSale}
+                onChange={(e) => setQtyForSale(Math.max(0, parseInt(e.target.value) || 0))}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label className="flex items-center gap-1.5">
+                <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                Precio de venta
+              </Label>
+              <Input
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="Precio de venta por unidad"
+                value={newSalePrice}
+                onChange={(e) => setNewSalePrice(e.target.value)}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label>Observaciones</Label>
+              <Textarea
+                placeholder="Detalles adicionales..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => handleClose(false)}>Cancelar</Button>
+            <Button onClick={handleSubmit} disabled={submitting || !isValid}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Confirmar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // ── Standard view (reventa / ingrediente / elaborado) ──
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="sm:max-w-md max-h-[90vh] flex flex-col">
