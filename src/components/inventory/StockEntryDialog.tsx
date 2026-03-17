@@ -67,6 +67,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
 
   const isIngrediente = (product as any)?.tipo === 'ingrediente';
   const isGranel = (product as any)?.tipo === 'granel';
+  const isRawMaterial = !!(product as any)?._isRawMaterial;
   const insumoAreaId = (product as any)?.insumo_area_id as string | null;
 
   // Fetch area name for ingredientes
@@ -97,30 +98,61 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
 
     setSubmitting(true);
     try {
-      const { data: existing } = await supabase
-        .from('branch_stock')
-        .select('id, quantity, warehouse_quantity')
-        .eq('branch_id', branchId)
-        .eq('product_id', product.id)
-        .maybeSingle();
+      if (isRawMaterial) {
+        // Raw materials use stock_vendedor / stock_almacen on the raw_materials table
+        const { data: mat } = await supabase
+          .from('raw_materials')
+          .select('id, stock_vendedor, stock_almacen, costo_unitario')
+          .eq('id', product.id)
+          .single();
 
-      if (existing) {
-        await supabase
-          .from('branch_stock')
-          .update({
-            quantity: existing.quantity + qtyForSale,
-            warehouse_quantity: isGranel ? (existing.warehouse_quantity || 0) : (existing.warehouse_quantity || 0) + qtyWarehouse,
-          })
-          .eq('id', existing.id);
+        if (mat) {
+          const newStockVendedor = (mat.stock_vendedor || 0) + qtyForSale;
+          const newStockAlmacen = (mat.stock_almacen || 0) + qtyWarehouse;
+          
+          // Weighted average cost
+          const oldTotal = (mat.stock_vendedor || 0) + (mat.stock_almacen || 0);
+          const oldCost = mat.costo_unitario || 0;
+          const newCost = unitCost ? parseFloat(unitCost) : oldCost;
+          const avgCost = (oldTotal + totalQty) > 0
+            ? ((oldTotal * oldCost) + (totalQty * newCost)) / (oldTotal + totalQty)
+            : newCost;
+
+          await supabase
+            .from('raw_materials')
+            .update({
+              stock_vendedor: newStockVendedor,
+              stock_almacen: newStockAlmacen,
+              costo_unitario: Math.round(avgCost * 10000) / 10000,
+            })
+            .eq('id', product.id);
+        }
       } else {
-        await supabase
+        const { data: existing } = await supabase
           .from('branch_stock')
-          .insert({
-            branch_id: branchId,
-            product_id: product.id,
-            quantity: qtyForSale,
-            warehouse_quantity: isGranel ? 0 : qtyWarehouse,
-          });
+          .select('id, quantity, warehouse_quantity')
+          .eq('branch_id', branchId)
+          .eq('product_id', product.id)
+          .maybeSingle();
+
+        if (existing) {
+          await supabase
+            .from('branch_stock')
+            .update({
+              quantity: existing.quantity + qtyForSale,
+              warehouse_quantity: isGranel ? (existing.warehouse_quantity || 0) : (existing.warehouse_quantity || 0) + qtyWarehouse,
+            })
+            .eq('id', existing.id);
+        } else {
+          await supabase
+            .from('branch_stock')
+            .insert({
+              branch_id: branchId,
+              product_id: product.id,
+              quantity: qtyForSale,
+              warehouse_quantity: isGranel ? 0 : qtyWarehouse,
+            });
+        }
       }
 
       if (isGranel) {
@@ -204,6 +236,10 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['bp-product-cost'] });
+      if (isRawMaterial) {
+        queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+        queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
+      }
 
       const toastTitle = isGranel
         ? `${totalQty} unidades pasadas a venta`
