@@ -45,7 +45,7 @@ const InsumosInventoryTab = () => {
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
   const [matForm, setMatForm] = useState({
-    name: '', unit_purchase: '', unit_use: '', conversion_factor: 1, costo_unitario: 0, stock_almacen: 0,
+    name: '', unit_purchase: '',
   });
 
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
