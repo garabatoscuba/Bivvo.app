@@ -130,10 +130,6 @@ const InsumosInventoryTab = () => {
       const payload = {
         name: form.name,
         unit_purchase: form.unit_purchase || null,
-        unit_use: form.unit_use || null,
-        conversion_factor: form.conversion_factor || 1,
-        costo_unitario: form.costo_unitario || 0,
-        stock_almacen: form.stock_almacen || 0,
       };
       if (form.id) {
         const { error } = await supabase.from('raw_materials').update(payload).eq('id', form.id);
