@@ -386,6 +386,9 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
                 onChange={(e) => setUnitCost(e.target.value)}
                 required
               />
+              {(product as any)?.unit_of_measure || (product as any)?.unit ? (
+                <p className="text-xs text-muted-foreground">Unidad: {(product as any)?.unit_of_measure || (product as any)?.unit}</p>
+              ) : null}
             </div>
             {!isIngrediente && (
               <div className="space-y-1.5">
