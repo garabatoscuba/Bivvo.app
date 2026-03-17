@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Plus, Loader2, Pencil, Trash2, PackagePlus, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2, Pencil, Trash2, PackagePlus, AlertTriangle, ArrowRightLeft, PackageX } from 'lucide-react';
 import { getIconComponent } from '@/components/services/IconSelector';
 import IconSelector from '@/components/services/IconSelector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -37,6 +37,8 @@ interface InsumosInventoryTabProps {
   warehouseStockMap: Map<string, number>;
   onSelectProduct: (product: Product & { category: Category | null }) => void;
   onAddStock: (product: Product) => void;
+  onOutflow?: (product: Product) => void;
+  onTransfer?: (product: Product, direction: 'toSale' | 'toWarehouse') => void;
   canManage: boolean;
 }
 
@@ -46,6 +48,8 @@ const InsumosInventoryTab = ({
   warehouseStockMap,
   onSelectProduct,
   onAddStock,
+  onOutflow,
+  onTransfer,
   canManage,
 }: InsumosInventoryTabProps) => {
   const { profile } = useAuth();
@@ -165,68 +169,112 @@ const InsumosInventoryTab = ({
 
         {areaProducts.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
-            <p className="text-sm">Sin ingredientes asignados a esta área</p>
-            <p className="text-xs mt-1">Asigna ingredientes existentes desde su ficha de edición</p>
+            <p className="text-sm">Sin insumos asignados a esta área</p>
+            <p className="text-xs mt-1">Asigna insumos existentes desde su ficha de edición</p>
           </div>
         ) : (
-          <div className="space-y-1">
+          <div className="space-y-3">
             {areaProducts.map((product) => {
               const stock = stockMap.get(product.id) || 0;
               const wStock = warehouseStockMap.get(product.id) || 0;
               const totalStock = stock + wStock;
-              const margin = Number(product.sale_price) > 0
-                ? ((Number(product.sale_price) - Number(product.cost_price)) / Number(product.sale_price) * 100)
-                : 0;
+              const valorTotal = totalStock * Number(product.cost_price);
               const isLow = stock <= product.min_stock && stock > 0;
               const isOut = stock <= 0;
 
               return (
-                <button
+                <div
                   key={product.id}
-                  type="button"
-                  onClick={() => onSelectProduct(product)}
-                  className="w-full flex items-center gap-3 rounded-lg border p-3 text-left transition-colors hover:bg-accent/50"
+                  className="rounded-lg border bg-card overflow-hidden"
                 >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm truncate">{product.name}</p>
-                      {product.unit_of_measure && (
-                        <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{product.unit_of_measure}</span>
-                      )}
+                  {/* Clickable header */}
+                  <button
+                    type="button"
+                    onClick={() => onSelectProduct(product)}
+                    className="w-full text-left p-3 transition-colors hover:bg-accent/50"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{product.name}</p>
+                          {product.unit_of_measure && (
+                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{product.unit_of_measure}</span>
+                          )}
+                          {(isLow || isOut) && (
+                            <AlertTriangle className={cn("h-3.5 w-3.5 shrink-0", isOut ? "text-destructive" : "text-amber-500")} />
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
-                      <span>Costo: ${Number(product.cost_price).toFixed(2)}</span>
-                      {margin > 0 && <span>Margen: {margin.toFixed(0)}%</span>}
-                      <span>Valor: ${(totalStock * Number(product.cost_price)).toFixed(2)}</span>
+
+                    {/* Metrics grid */}
+                    <div className="grid grid-cols-4 gap-2 mt-2">
+                      <div className="rounded-md bg-muted/60 p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground">En uso</p>
+                        <p className={cn("text-sm font-bold", isOut && "text-destructive", isLow && !isOut && "text-amber-500")}>
+                          {stock}
+                        </p>
+                      </div>
+                      <div className="rounded-md bg-muted/60 p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground">Almacén</p>
+                        <p className="text-sm font-bold">{wStock}</p>
+                      </div>
+                      <div className="rounded-md bg-muted/60 p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground">Costo</p>
+                        <p className="text-sm font-bold">${Number(product.cost_price).toFixed(2)}</p>
+                      </div>
+                      <div className="rounded-md bg-muted/60 p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground">Valor</p>
+                        <p className="text-sm font-bold">${valorTotal.toFixed(2)}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    {(isLow || isOut) && (
-                      <AlertTriangle className={cn("h-4 w-4", isOut ? "text-destructive" : "text-amber-500")} />
-                    )}
-                    <div className="text-right">
-                      <p className={cn("text-sm font-bold", isOut && "text-destructive", isLow && "text-amber-500")}>
-                        {stock}
-                      </p>
-                      {wStock > 0 && (
-                        <p className="text-[10px] text-muted-foreground">+{wStock} almacén</p>
-                      )}
-                    </div>
-                    {canManage && (
+                  </button>
+
+                  {/* Action buttons */}
+                  {canManage && (
+                    <div className="flex items-center gap-1 px-3 pb-3 pt-1">
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0"
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs h-8"
                         onClick={(e) => {
                           e.stopPropagation();
                           onAddStock(product);
                         }}
                       >
-                        <PackagePlus className="h-4 w-4" />
+                        <PackagePlus className="h-3.5 w-3.5 mr-1" />
+                        Nueva Compra
                       </Button>
-                    )}
-                  </div>
-                </button>
+                      {(wStock > 0 || stock > 0) && onTransfer && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs h-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onTransfer(product, wStock > 0 ? 'toSale' : 'toWarehouse');
+                          }}
+                        >
+                          <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
+                          {wStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén'}
+                        </Button>
+                      )}
+                      {wStock > 0 && onOutflow && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="text-xs h-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onOutflow(product);
+                          }}
+                        >
+                          <PackageX className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -249,7 +297,7 @@ const InsumosInventoryTab = ({
 
       {areas.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
-          <p className="text-sm">Crea áreas para organizar tus ingredientes</p>
+          <p className="text-sm">Crea áreas para organizar tus insumos</p>
           {canManage && (
             <Button size="sm" variant="outline" className="mt-3" onClick={openNewArea}>
               <Plus className="h-4 w-4 mr-1" />Crear primera área
@@ -291,7 +339,7 @@ const InsumosInventoryTab = ({
                   )}
                 </div>
                 <p className="font-medium text-sm">{area.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{count} ingrediente{count !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{count} insumo{count !== 1 ? 's' : ''}</p>
               </button>
             );
           })}
@@ -300,7 +348,7 @@ const InsumosInventoryTab = ({
 
       {unassignedCount > 0 && (
         <p className="text-xs text-muted-foreground text-center">
-          {unassignedCount} ingrediente{unassignedCount !== 1 ? 's' : ''} sin área asignada
+          {unassignedCount} insumo{unassignedCount !== 1 ? 's' : ''} sin área asignada
         </p>
       )}
 
@@ -354,7 +402,7 @@ const InsumosInventoryTab = ({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar área?</AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará "{deletingArea?.name}". Los ingredientes asignados quedarán sin área.
+              Se eliminará "{deletingArea?.name}". Los insumos asignados quedarán sin área.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
