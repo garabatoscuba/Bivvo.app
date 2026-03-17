@@ -228,7 +228,7 @@ const Inventory = () => {
       brand: mat.brand || null,
       category: null,
       _isRawMaterial: true,
-    })) as (Product & { category: Category | null })[];
+    })) as unknown as (Product & { category: Category | null })[];
   }, [rawMaterialsForProducts]);
 
   const FREE_PRODUCT_LIMIT = 5;
