@@ -192,7 +192,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       ? parseFloat(data.sale_price)
       : (product?.sale_price ?? 0);
 
-    const payload = {
+    const payload: any = {
       name: data.name,
       description: data.description || null,
       category_id: data.category_id || null,
@@ -205,6 +205,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
       unit_of_measure: data.unit_of_measure,
       brand: data.brand || null,
       tipo: data.tipo,
+      insumo_area_id: data.tipo === 'ingrediente' ? (insumoAreaId || null) : null,
     };
 
     if (product) {
