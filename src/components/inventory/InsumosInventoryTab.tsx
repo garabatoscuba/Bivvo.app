@@ -442,32 +442,6 @@ const InsumosInventoryTab = ({
           </div>
         )}
 
-        {/* Nuevo Insumo Dialog */}
-        <Dialog open={newInsumoOpen} onOpenChange={(o) => { setNewInsumoOpen(o); if (!o) setInsumoForm({ name: '', description: '', brand: '' }); }}>
-          <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
-            <DialogHeader><DialogTitle>Nuevo Insumo</DialogTitle></DialogHeader>
-            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
-              <div>
-                <Label>Nombre</Label>
-                <Input value={insumoForm.name} onChange={e => setInsumoForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Harina de trigo" />
-              </div>
-              <div>
-                <Label>Descripción (opcional)</Label>
-                <Textarea value={insumoForm.description} onChange={e => setInsumoForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Detalles del insumo" />
-              </div>
-              <div>
-                <Label>Marca (opcional)</Label>
-                <Input value={insumoForm.brand} onChange={e => setInsumoForm(f => ({ ...f, brand: e.target.value }))} placeholder="Ej: La Estrella" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setNewInsumoOpen(false)}>Cancelar</Button>
-              <Button onClick={() => saveInsumo.mutate(insumoForm)} disabled={!insumoForm.name.trim() || saveInsumo.isPending}>
-                {saveInsumo.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Guardar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
