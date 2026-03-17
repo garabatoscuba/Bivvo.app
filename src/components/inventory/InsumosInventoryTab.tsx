@@ -203,10 +203,6 @@ const InsumosInventoryTab = () => {
     setMatForm({
       name: mat.name,
       unit_purchase: mat.unit_purchase || '',
-      unit_use: mat.unit_use || '',
-      conversion_factor: mat.conversion_factor || 1,
-      costo_unitario: mat.costo_unitario || 0,
-      stock_almacen: mat.stock_almacen || 0,
     });
     setMaterialDialogOpen(true);
   };
