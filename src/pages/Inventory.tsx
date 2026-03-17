@@ -1443,52 +1443,6 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
   );
 };
 
-interface StatPillProps {
-  icon: React.ElementType;
-  label: string;
-  value: number;
-  alert?: boolean;
-  active?: boolean;
-  expanded?: boolean;
-  onToggle?: () => void;
-  details?: { label: string; value: string }[];
-}
-
-const StatPill = ({ icon: Icon, label, value, alert, active, expanded, onToggle, details }: StatPillProps) => (
-  <div className="flex flex-col min-w-0">
-    <button
-      type="button"
-      onClick={onToggle}
-      className={cn(
-        'flex flex-col items-center rounded-lg border p-2 text-center transition-all w-full gap-0.5',
-        alert && !active && 'border-warning/40 bg-warning/5',
-        alert && active && 'border-warning bg-warning/15',
-        !alert && active && 'border-primary bg-primary/10',
-        !alert && !active && 'border-border hover:border-muted-foreground/30',
-      )}
-    >
-      <Icon className={cn('h-3.5 w-3.5', alert ? 'text-warning' : active ? 'text-primary' : 'text-muted-foreground')} />
-      <span className={cn(
-        'text-lg font-bold leading-none',
-        alert ? 'text-warning' : active ? 'text-primary' : 'text-foreground',
-      )}>{value}</span>
-      <span className={cn(
-        'text-[10px] leading-tight truncate w-full',
-        active ? 'text-foreground/80 font-medium' : 'text-muted-foreground',
-      )}>{label}</span>
-    </button>
-    {expanded && details && details.length > 0 && (
-      <div className="mt-1 rounded-md border bg-muted/40 px-2 py-1.5 space-y-0.5">
-        {details.map((d, i) => (
-          <div key={i} className="flex justify-between items-center gap-1">
-            <span className="text-[10px] text-muted-foreground truncate">{d.label}</span>
-            {d.value && <span className="text-[10px] font-semibold text-foreground shrink-0">{d.value}</span>}
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-);
 
 interface MetricCardProps {
   label: string;
