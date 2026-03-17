@@ -250,7 +250,6 @@ const InsumosInventoryTab = ({
               const isLow = mat.stock_minimo > 0 && totalStock <= mat.stock_minimo && totalStock > 0;
               const isOut = totalStock <= 0;
 
-              // Map raw material to Product-like object for detail sheet
               const asProduct = {
                 id: mat.id,
                 name: mat.name,
@@ -268,8 +267,13 @@ const InsumosInventoryTab = ({
                 updated_at: mat.updated_at || mat.created_at,
                 tipo: 'ingrediente',
                 insumo_area_id: mat.area_id,
+                status: 'active',
+                barcode: null,
+                supplier: null,
+                unit_of_measure: mat.unit || 'unidad',
+                brand: mat.brand || null,
                 category: null,
-              } as Product & { category: Category | null };
+              } as unknown as Product & { category: Category | null };
 
               return (
                 <div key={`rm-${mat.id}`} className="rounded-lg border bg-card overflow-hidden">
