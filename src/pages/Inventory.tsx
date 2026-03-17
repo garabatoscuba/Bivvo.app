@@ -112,6 +112,7 @@ const Inventory = () => {
     localStorage.setItem('last-branch', branchId);
   };
   const [productFormOpen, setProductFormOpen] = useState(false);
+  const [insumoFormOpen, setInsumoFormOpen] = useState(false);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
