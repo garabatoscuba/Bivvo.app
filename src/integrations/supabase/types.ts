@@ -4254,10 +4254,12 @@ export type Database = {
         Row: {
           area_id: string | null
           branch_id: string | null
+          brand: string | null
           business_id: string
           conversion_factor: number | null
           costo_unitario: number
           created_at: string
+          description: string | null
           id: string
           material_type_id: string | null
           name: string
@@ -4272,10 +4274,12 @@ export type Database = {
         Insert: {
           area_id?: string | null
           branch_id?: string | null
+          brand?: string | null
           business_id: string
           conversion_factor?: number | null
           costo_unitario?: number
           created_at?: string
+          description?: string | null
           id?: string
           material_type_id?: string | null
           name: string
@@ -4290,10 +4294,12 @@ export type Database = {
         Update: {
           area_id?: string | null
           branch_id?: string | null
+          brand?: string | null
           business_id?: string
           conversion_factor?: number | null
           costo_unitario?: number
           created_at?: string
+          description?: string | null
           id?: string
           material_type_id?: string | null
           name?: string
