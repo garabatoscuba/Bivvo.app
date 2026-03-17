@@ -657,56 +657,10 @@ const Inventory = () => {
                 </button>
               </div>
             )}
-            {/* Quick stats bar */}
-            <div className="grid grid-cols-4 gap-1.5">
-              <StatPill 
-                icon={Package} 
-                label="En venta" 
-                value={stats.forSale} 
-                active={activeFilter === 'forSale'}
-                expanded={expandedStat === 'forSale'}
-                onToggle={() => handleStatClick('forSale')}
-                details={[
-                  { label: 'Unidades en venta', value: `${stats.totalStock}` },
-                  { label: 'Valor inventario', value: `$${stats.totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
-                ]}
-              />
-              <StatPill 
-                icon={BarChart3} 
-                label="Almacén" 
-                value={stats.warehouse}
-                active={activeFilter === 'warehouse'}
-                expanded={expandedStat === 'warehouse'}
-                onToggle={() => handleStatClick('warehouse')}
-                details={[
-                  { label: 'Unidades en almacén', value: `${stats.totalWarehouseStock}` },
-                  { label: 'Costo total', value: `$${stats.costValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
-                ]}
-              />
-              <StatPill 
-                icon={AlertTriangle} 
-                label="Stock bajo" 
-                value={stats.lowStock} 
-                alert={stats.lowStock > 0}
-                active={activeFilter === 'lowStock'}
-                expanded={expandedStat === 'lowStock'}
-                onToggle={() => handleStatClick('lowStock')}
-                details={[
-                  { label: 'Requieren reabastecimiento pronto', value: '' },
-                ]}
-              />
-              <StatPill 
-                icon={PackageX} 
-                label="Sin stock" 
-                value={stats.outOfStock} 
-                alert={stats.outOfStock > 0}
-                active={activeFilter === 'outOfStock'}
-                expanded={expandedStat === 'outOfStock'}
-                onToggle={() => handleStatClick('outOfStock')}
-                details={[
-                  { label: 'No disponibles para venta', value: '' },
-                ]}
-              />
+            {/* Inline summary */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Package className="h-4 w-4" />
+              <span><span className="font-semibold text-foreground">{filteredProducts.length}</span> productos registrados</span>
             </div>
 
             {productsLoading ? (
