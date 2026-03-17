@@ -864,7 +864,7 @@ const Inventory = () => {
                 setTransferQty(1);
               }}
               onDeleteProduct={(product) => setDeletingProduct(product)}
-              onCreateInsumo={canManage && !guardDowngrade() ? undefined : undefined}
+              
               canManage={canManage}
             />
           </TabsContent>
