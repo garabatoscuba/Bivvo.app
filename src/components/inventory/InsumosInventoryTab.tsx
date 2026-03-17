@@ -313,7 +313,7 @@ const InsumosInventoryTab = ({
                         <p className="text-sm font-bold">${valorTotal.toFixed(2)}</p>
                       </div>
                     </div>
-                  </div>
+                  </button>
 
                   {/* Action buttons */}
                   {canManage && (
