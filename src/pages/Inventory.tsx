@@ -245,19 +245,8 @@ const Inventory = () => {
       if (productTypeTab === 'cocina' && tipo === 'reventa') return false;
     }
     
-    if (!activeFilter) return true;
-    
-    const stock = getDisplayForSaleStock(product as any);
-    const wStock = warehouseStockMap.get(product.id) || 0;
-    
-    switch (activeFilter) {
-      case 'forSale': return product.status === 'for_sale';
-      case 'warehouse': return wStock > 0;
-      case 'lowStock': return stock <= product.min_stock && stock > 0 && product.status === 'for_sale';
-      case 'outOfStock': return stock <= 0 && product.status === 'for_sale';
-      default: return true;
-    }
-  }), [products, search, activeFilter, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
+    return true;
+  }), [products, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
 
   // Group products by category
   const groupedProducts = useMemo(() => {
