@@ -236,6 +236,10 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['bp-product-cost'] });
+      if (isRawMaterial) {
+        queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+        queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
+      }
 
       const toastTitle = isGranel
         ? `${totalQty} unidades pasadas a venta`
