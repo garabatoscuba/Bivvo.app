@@ -65,7 +65,7 @@ const InsumosInventoryTab = ({
   const [areaForm, setAreaForm] = useState({ name: '', icon: 'Package', color: 'blue' });
   const [deletingArea, setDeletingArea] = useState<any>(null);
   const [newInsumoOpen, setNewInsumoOpen] = useState(false);
-  const [insumoForm, setInsumoForm] = useState({ name: '', description: '', brand: '' });
+  const [insumoForm, setInsumoForm] = useState({ name: '', description: '', brand: '', area_id: '' });
 
   // ─── Queries ───
   const { data: areas = [], isLoading: areasLoading } = useQuery({
@@ -182,20 +182,20 @@ const InsumosInventoryTab = ({
 
   const saveInsumo = useMutation({
     mutationFn: async (form: typeof insumoForm) => {
-      if (!businessId || !selectedArea) throw new Error('No business or area');
+      if (!businessId) throw new Error('No business');
       const { error } = await supabase.from('raw_materials').insert({
         business_id: businessId,
         name: form.name,
         description: form.description || null,
         brand: form.brand || null,
-        area_id: selectedArea.id,
+        area_id: form.area_id || null,
       } as any);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
       setNewInsumoOpen(false);
-      setInsumoForm({ name: '', description: '', brand: '' });
+      setInsumoForm({ name: '', description: '', brand: '', area_id: '' });
       toast({ title: 'Insumo creado' });
     },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
@@ -231,12 +231,6 @@ const InsumosInventoryTab = ({
             <h2 className="text-lg font-semibold truncate">{selectedArea.name}</h2>
             <Badge variant="secondary" className="text-xs">{areaProducts.length + areaRawMaterials.length}</Badge>
           </div>
-          {canManage && (
-            <Button size="sm" onClick={() => { setInsumoForm({ name: '', description: '', brand: '' }); setNewInsumoOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1" />
-              Nuevo insumo
-            </Button>
-          )}
         </div>
 
         {areaProducts.length === 0 && areaRawMaterials.length === 0 ? (
@@ -448,32 +442,6 @@ const InsumosInventoryTab = ({
           </div>
         )}
 
-        {/* Nuevo Insumo Dialog */}
-        <Dialog open={newInsumoOpen} onOpenChange={(o) => { setNewInsumoOpen(o); if (!o) setInsumoForm({ name: '', description: '', brand: '' }); }}>
-          <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
-            <DialogHeader><DialogTitle>Nuevo Insumo</DialogTitle></DialogHeader>
-            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
-              <div>
-                <Label>Nombre</Label>
-                <Input value={insumoForm.name} onChange={e => setInsumoForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Harina de trigo" />
-              </div>
-              <div>
-                <Label>Descripción (opcional)</Label>
-                <Textarea value={insumoForm.description} onChange={e => setInsumoForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Detalles del insumo" />
-              </div>
-              <div>
-                <Label>Marca (opcional)</Label>
-                <Input value={insumoForm.brand} onChange={e => setInsumoForm(f => ({ ...f, brand: e.target.value }))} placeholder="Ej: La Estrella" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setNewInsumoOpen(false)}>Cancelar</Button>
-              <Button onClick={() => saveInsumo.mutate(insumoForm)} disabled={!insumoForm.name.trim() || saveInsumo.isPending}>
-                {saveInsumo.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Guardar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
       </div>
     );
   }
@@ -484,9 +452,14 @@ const InsumosInventoryTab = ({
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Áreas de insumos</h2>
         {canManage && (
-          <Button size="sm" onClick={openNewArea}>
-            <Plus className="h-4 w-4 mr-1" />Nueva área
-          </Button>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => { setInsumoForm({ name: '', description: '', brand: '', area_id: '' }); setNewInsumoOpen(true); }}>
+              <Plus className="h-4 w-4 mr-1" />Nuevo insumo
+            </Button>
+            <Button size="sm" onClick={openNewArea}>
+              <Plus className="h-4 w-4 mr-1" />Nueva área
+            </Button>
+          </div>
         )}
       </div>
 
@@ -586,6 +559,44 @@ const InsumosInventoryTab = ({
               disabled={!areaForm.name.trim() || saveArea.isPending}
             >
               {saveArea.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Nuevo Insumo Dialog */}
+      <Dialog open={newInsumoOpen} onOpenChange={(o) => { setNewInsumoOpen(o); if (!o) setInsumoForm({ name: '', description: '', brand: '', area_id: '' }); }}>
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+          <DialogHeader><DialogTitle>Nuevo Insumo</DialogTitle></DialogHeader>
+          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+            <div>
+              <Label>Nombre</Label>
+              <Input value={insumoForm.name} onChange={e => setInsumoForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Harina de trigo" />
+            </div>
+            <div>
+              <Label>Descripción (opcional)</Label>
+              <Textarea value={insumoForm.description} onChange={e => setInsumoForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Detalles del insumo" />
+            </div>
+            <div>
+              <Label>Marca (opcional)</Label>
+              <Input value={insumoForm.brand} onChange={e => setInsumoForm(f => ({ ...f, brand: e.target.value }))} placeholder="Ej: La Estrella" />
+            </div>
+            <div>
+              <Label>Área (opcional)</Label>
+              <Select value={insumoForm.area_id} onValueChange={v => setInsumoForm(f => ({ ...f, area_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Sin área" /></SelectTrigger>
+                <SelectContent>
+                  {areas.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewInsumoOpen(false)}>Cancelar</Button>
+            <Button onClick={() => saveInsumo.mutate(insumoForm)} disabled={!insumoForm.name.trim() || saveInsumo.isPending}>
+              {saveInsumo.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Guardar
             </Button>
           </DialogFooter>
         </DialogContent>
