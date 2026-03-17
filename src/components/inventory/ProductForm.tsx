@@ -368,6 +368,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
                         <option value="reventa">Reventa (comprado para vender)</option>
                         <option value="ingrediente">Insumo (materia prima)</option>
                         <option value="elaborado">Elaborado (producción propia)</option>
+                        <option value="granel">A granel (venta fraccionada)</option>
                       </select>
                     </FormControl>
                     <FormMessage />

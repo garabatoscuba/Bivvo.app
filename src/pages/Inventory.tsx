@@ -976,7 +976,7 @@ const Inventory = () => {
               )}
 
               {/* Production capacity card for elaborado */}
-              {(selectedProduct as any).tipo === 'elaborado' && (
+              {((selectedProduct as any).tipo === 'elaborado' || (selectedProduct as any).tipo === 'granel') && (
                 <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
                   {capacityLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
