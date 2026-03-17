@@ -139,7 +139,7 @@ const Inventory = () => {
 
   // Production capacity for elaborado products (detail sheet)
   const { data: productionCapacity, isLoading: capacityLoading } = useProductionCapacity(
-    (selectedProduct as any)?.tipo === 'elaborado' ? selectedProduct?.id || null : null,
+    ((selectedProduct as any)?.tipo === 'elaborado' || (selectedProduct as any)?.tipo === 'granel') ? selectedProduct?.id || null : null,
     effectiveBranchId
   );
 
