@@ -172,8 +172,8 @@ const InsumosInventoryTab = ({
             <h2 className="text-lg font-semibold truncate">{selectedArea.name}</h2>
             <Badge variant="secondary" className="text-xs">{areaProducts.length}</Badge>
           </div>
-          {canManage && onCreateInsumo && (
-            <Button size="sm" onClick={onCreateInsumo}>
+          {canManage && (
+            <Button size="sm" onClick={() => { setInsumoForm({ name: '', description: '', brand: '' }); setNewInsumoOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" />
               Nuevo insumo
             </Button>
