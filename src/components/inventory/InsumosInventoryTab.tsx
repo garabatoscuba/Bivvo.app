@@ -217,7 +217,7 @@ const InsumosInventoryTab = ({
           <div className="flex items-center gap-2 flex-1 min-w-0">
             {(() => { const Icon = getIconComponent(selectedArea.icon); return <Icon className="h-5 w-5 shrink-0" />; })()}
             <h2 className="text-lg font-semibold truncate">{selectedArea.name}</h2>
-            <Badge variant="secondary" className="text-xs">{areaProducts.length}</Badge>
+            <Badge variant="secondary" className="text-xs">{areaProducts.length + areaRawMaterials.length}</Badge>
           </div>
           {canManage && (
             <Button size="sm" onClick={() => { setInsumoForm({ name: '', description: '', brand: '' }); setNewInsumoOpen(true); }}>
@@ -227,13 +227,43 @@ const InsumosInventoryTab = ({
           )}
         </div>
 
-        {areaProducts.length === 0 ? (
+        {areaProducts.length === 0 && areaRawMaterials.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p className="text-sm">Sin insumos asignados a esta área</p>
-            <p className="text-xs mt-1">Asigna insumos existentes desde su ficha de edición</p>
+            <p className="text-xs mt-1">Crea un nuevo insumo con el botón de arriba</p>
           </div>
         ) : (
           <div className="space-y-3">
+            {/* Raw materials */}
+            {areaRawMaterials.map((mat: any) => (
+              <div key={`rm-${mat.id}`} className="rounded-lg border bg-card overflow-hidden">
+                <div className="w-full text-left p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-sm truncate">{mat.name}</p>
+                      {mat.brand && (
+                        <span className="text-xs text-muted-foreground">{mat.brand}</span>
+                      )}
+                      {mat.description && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{mat.description}</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="rounded-md bg-muted/60 px-2 py-1 text-center">
+                        <p className="text-[10px] text-muted-foreground">Almacén</p>
+                        <p className="text-sm font-bold">{mat.stock_almacen}</p>
+                      </div>
+                      <div className="rounded-md bg-muted/60 px-2 py-1 text-center">
+                        <p className="text-[10px] text-muted-foreground">Costo</p>
+                        <p className="text-sm font-bold">${Number(mat.costo_unitario).toFixed(2)}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+
+            {/* Product-based ingredientes */}
             {areaProducts.map((product) => {
               const stock = stockMap.get(product.id) || 0;
               const wStock = warehouseStockMap.get(product.id) || 0;
@@ -247,7 +277,6 @@ const InsumosInventoryTab = ({
                   key={product.id}
                   className="rounded-lg border bg-card overflow-hidden"
                 >
-                  {/* Clickable header */}
                   <button
                     type="button"
                     onClick={() => onSelectProduct(product)}
@@ -266,8 +295,6 @@ const InsumosInventoryTab = ({
                         </div>
                       </div>
                     </div>
-
-                    {/* Metrics grid */}
                     <div className="grid grid-cols-4 gap-2 mt-2">
                       <div className="rounded-md bg-muted/60 p-2 text-center">
                         <p className="text-[10px] text-muted-foreground">En uso</p>
@@ -289,8 +316,6 @@ const InsumosInventoryTab = ({
                       </div>
                     </div>
                   </button>
-
-                  {/* Action buttons */}
                   {canManage && (
                     <div className="flex items-center gap-1 px-3 pb-3 pt-1">
                       <Button
