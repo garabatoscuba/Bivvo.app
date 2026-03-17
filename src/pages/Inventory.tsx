@@ -272,17 +272,6 @@ const Inventory = () => {
     return { groups, uncategorized };
   }, [filteredProducts]);
 
-  const [expandedStat, setExpandedStat] = useState<string | null>(null);
-
-  const handleStatClick = (key: string) => {
-    if (activeFilter === key) {
-      setActiveFilter(null);
-      setExpandedStat(null);
-    } else {
-      setActiveFilter(key);
-      setExpandedStat(key);
-    }
-  };
 
   // Stats
   const stats = useMemo(() => {
