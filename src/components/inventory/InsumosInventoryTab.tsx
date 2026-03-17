@@ -167,7 +167,19 @@ const InsumosInventoryTab = ({
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 
-  // ─── New Insumo mutation ───
+  // ─── Delete raw material ───
+  const deleteRawMaterial = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('raw_materials').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      toast({ title: 'Insumo eliminado' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
   const saveInsumo = useMutation({
     mutationFn: async (form: typeof insumoForm) => {
       if (!businessId || !selectedArea) throw new Error('No business or area');
@@ -235,33 +247,91 @@ const InsumosInventoryTab = ({
         ) : (
           <div className="space-y-3">
             {/* Raw materials */}
-            {areaRawMaterials.map((mat: any) => (
-              <div key={`rm-${mat.id}`} className="rounded-lg border bg-card overflow-hidden">
-                <div className="w-full text-left p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className="font-medium text-sm truncate">{mat.name}</p>
-                      {mat.brand && (
-                        <span className="text-xs text-muted-foreground">{mat.brand}</span>
-                      )}
-                      {mat.description && (
-                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{mat.description}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="rounded-md bg-muted/60 px-2 py-1 text-center">
-                        <p className="text-[10px] text-muted-foreground">Almacén</p>
-                        <p className="text-sm font-bold">{mat.stock_almacen}</p>
+            {areaRawMaterials.map((mat: any) => {
+              const stock = Number(mat.stock_vendedor) || 0;
+              const wStock = Number(mat.stock_almacen) || 0;
+              const totalStock = stock + wStock;
+              const costoUnit = Number(mat.costo_unitario) || 0;
+              const valorTotal = totalStock * costoUnit;
+              const isLow = mat.stock_minimo > 0 && totalStock <= mat.stock_minimo && totalStock > 0;
+              const isOut = totalStock <= 0;
+
+              return (
+                <div key={`rm-${mat.id}`} className="rounded-lg border bg-card overflow-hidden">
+                  <div className="w-full text-left p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium text-sm truncate">{mat.name}</p>
+                          {mat.brand && (
+                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{mat.brand}</span>
+                          )}
+                          {(isLow || isOut) && (
+                            <AlertTriangle className={cn("h-3.5 w-3.5 shrink-0", isOut ? "text-destructive" : "text-amber-500")} />
+                          )}
+                        </div>
                       </div>
-                      <div className="rounded-md bg-muted/60 px-2 py-1 text-center">
+                    </div>
+
+                    {/* Metrics grid */}
+                    <div className="grid grid-cols-4 gap-2 mt-2">
+                      <div className="rounded-md bg-muted/60 p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground">En uso</p>
+                        <p className={cn("text-sm font-bold", isOut && "text-destructive", isLow && !isOut && "text-amber-500")}>
+                          {stock}
+                        </p>
+                      </div>
+                      <div className="rounded-md bg-muted/60 p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground">Almacén</p>
+                        <p className="text-sm font-bold">{wStock}</p>
+                      </div>
+                      <div className="rounded-md bg-muted/60 p-2 text-center">
                         <p className="text-[10px] text-muted-foreground">Costo</p>
-                        <p className="text-sm font-bold">${Number(mat.costo_unitario).toFixed(2)}</p>
+                        <p className="text-sm font-bold">${costoUnit.toFixed(2)}</p>
+                      </div>
+                      <div className="rounded-md bg-muted/60 p-2 text-center">
+                        <p className="text-[10px] text-muted-foreground">Valor</p>
+                        <p className="text-sm font-bold">${valorTotal.toFixed(2)}</p>
                       </div>
                     </div>
                   </div>
+
+                  {/* Action buttons */}
+                  {canManage && (
+                    <div className="flex items-center gap-1 px-3 pb-3 pt-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1 text-xs h-8"
+                        onClick={() => {/* TODO: entry for raw material */}}
+                      >
+                        <PackagePlus className="h-3.5 w-3.5 mr-1" />
+                        Nueva Compra
+                      </Button>
+                      {(wStock > 0 || stock > 0) && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 text-xs h-8"
+                          onClick={() => {/* TODO: transfer for raw material */}}
+                        >
+                          <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
+                          {wStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén'}
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs h-8 text-destructive hover:text-destructive"
+                        onClick={() => deleteRawMaterial.mutate(mat.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
 
             {/* Product-based ingredientes */}
             {areaProducts.map((product) => {
