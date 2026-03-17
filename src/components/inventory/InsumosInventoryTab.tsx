@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Plus, Loader2, Pencil, Trash2, PackagePlus, AlertTriangle, ArrowRightLeft, PackageX } from 'lucide-react';
 import { getIconComponent } from '@/components/services/IconSelector';
 import IconSelector from '@/components/services/IconSelector';
@@ -40,7 +41,6 @@ interface InsumosInventoryTabProps {
   onOutflow?: (product: Product) => void;
   onTransfer?: (product: Product, direction: 'toSale' | 'toWarehouse') => void;
   onDeleteProduct?: (product: Product) => void;
-  onCreateInsumo?: () => void;
   canManage: boolean;
 }
 
@@ -53,7 +53,6 @@ const InsumosInventoryTab = ({
   onOutflow,
   onTransfer,
   onDeleteProduct,
-  onCreateInsumo,
   canManage,
 }: InsumosInventoryTabProps) => {
   const { profile } = useAuth();
@@ -65,6 +64,8 @@ const InsumosInventoryTab = ({
   const [editingArea, setEditingArea] = useState<any>(null);
   const [areaForm, setAreaForm] = useState({ name: '', icon: 'Package', color: 'blue' });
   const [deletingArea, setDeletingArea] = useState<any>(null);
+  const [newInsumoOpen, setNewInsumoOpen] = useState(false);
+  const [insumoForm, setInsumoForm] = useState({ name: '', description: '', brand: '' });
 
   // ─── Queries ───
   const { data: areas = [], isLoading: areasLoading } = useQuery({
@@ -139,6 +140,28 @@ const InsumosInventoryTab = ({
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 
+  // ─── New Insumo mutation ───
+  const saveInsumo = useMutation({
+    mutationFn: async (form: typeof insumoForm) => {
+      if (!businessId || !selectedArea) throw new Error('No business or area');
+      const { error } = await supabase.from('raw_materials').insert({
+        business_id: businessId,
+        name: form.name,
+        description: form.description || null,
+        brand: form.brand || null,
+        area_id: selectedArea.id,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      setNewInsumoOpen(false);
+      setInsumoForm({ name: '', description: '', brand: '' });
+      toast({ title: 'Insumo creado' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
   const openNewArea = () => {
     setEditingArea(null);
     setAreaForm({ name: '', icon: 'Package', color: 'blue' });
@@ -169,8 +192,8 @@ const InsumosInventoryTab = ({
             <h2 className="text-lg font-semibold truncate">{selectedArea.name}</h2>
             <Badge variant="secondary" className="text-xs">{areaProducts.length}</Badge>
           </div>
-          {canManage && onCreateInsumo && (
-            <Button size="sm" onClick={onCreateInsumo}>
+          {canManage && (
+            <Button size="sm" onClick={() => { setInsumoForm({ name: '', description: '', brand: '' }); setNewInsumoOpen(true); }}>
               <Plus className="h-4 w-4 mr-1" />
               Nuevo insumo
             </Button>
@@ -302,6 +325,33 @@ const InsumosInventoryTab = ({
             })}
           </div>
         )}
+
+        {/* Nuevo Insumo Dialog */}
+        <Dialog open={newInsumoOpen} onOpenChange={(o) => { setNewInsumoOpen(o); if (!o) setInsumoForm({ name: '', description: '', brand: '' }); }}>
+          <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+            <DialogHeader><DialogTitle>Nuevo Insumo</DialogTitle></DialogHeader>
+            <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+              <div>
+                <Label>Nombre</Label>
+                <Input value={insumoForm.name} onChange={e => setInsumoForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Harina de trigo" />
+              </div>
+              <div>
+                <Label>Descripción (opcional)</Label>
+                <Textarea value={insumoForm.description} onChange={e => setInsumoForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Detalles del insumo" />
+              </div>
+              <div>
+                <Label>Marca (opcional)</Label>
+                <Input value={insumoForm.brand} onChange={e => setInsumoForm(f => ({ ...f, brand: e.target.value }))} placeholder="Ej: La Estrella" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setNewInsumoOpen(false)}>Cancelar</Button>
+              <Button onClick={() => saveInsumo.mutate(insumoForm)} disabled={!insumoForm.name.trim() || saveInsumo.isPending}>
+                {saveInsumo.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Guardar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     );
   }
