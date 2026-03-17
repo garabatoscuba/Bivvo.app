@@ -754,6 +754,7 @@ const Inventory = () => {
                           onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
                           onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
                           onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                          showBadges="sale"
                         />
                       ))}
                     </div>
