@@ -140,7 +140,28 @@ const InsumosInventoryTab = ({
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 
-  const openNewArea = () => {
+  // ─── New Insumo mutation ───
+  const saveInsumo = useMutation({
+    mutationFn: async (form: typeof insumoForm) => {
+      if (!businessId || !selectedArea) throw new Error('No business or area');
+      const { error } = await supabase.from('raw_materials').insert({
+        business_id: businessId,
+        name: form.name,
+        description: form.description || null,
+        brand: form.brand || null,
+        area_id: selectedArea.id,
+      } as any);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      setNewInsumoOpen(false);
+      setInsumoForm({ name: '', description: '', brand: '' });
+      toast({ title: 'Insumo creado' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
     setEditingArea(null);
     setAreaForm({ name: '', icon: 'Package', color: 'blue' });
     setAreaDialogOpen(true);
