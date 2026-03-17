@@ -197,7 +197,7 @@ const Inventory = () => {
   });
 
   const getDisplayForSaleStock = (product: Product & { [key: string]: any }) => {
-    if (product?.tipo === 'elaborado') {
+    if (product?.tipo === 'elaborado' || product?.tipo === 'granel') {
       const cap = productionCapacities?.[product.id];
       if (typeof cap === 'number' && Number.isFinite(cap)) return cap;
     }
