@@ -19,7 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, BarChart3, PackagePlus, PackageX, ArrowRightLeft, Star, ChefHat } from 'lucide-react';
+import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, PackagePlus, PackageX, ArrowRightLeft, Star, ChefHat } from 'lucide-react';
 import { MovementsLog } from '@/components/inventory/MovementsLog';
 import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowDialog';
 import { MermaDialog } from '@/components/inventory/MermaDialog';
@@ -127,7 +127,7 @@ const Inventory = () => {
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferDirection, setTransferDirection] = useState<'toSale' | 'toWarehouse'>('toSale');
   const [outflowProduct, setOutflowProduct] = useState<Product | null>(null);
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  
   const [mermaOpen, setMermaOpen] = useState(false);
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const [productionProduct, setProductionProduct] = useState<Product | null>(null);
@@ -245,19 +245,8 @@ const Inventory = () => {
       if (productTypeTab === 'cocina' && tipo === 'reventa') return false;
     }
     
-    if (!activeFilter) return true;
-    
-    const stock = getDisplayForSaleStock(product as any);
-    const wStock = warehouseStockMap.get(product.id) || 0;
-    
-    switch (activeFilter) {
-      case 'forSale': return product.status === 'for_sale';
-      case 'warehouse': return wStock > 0;
-      case 'lowStock': return stock <= product.min_stock && stock > 0 && product.status === 'for_sale';
-      case 'outOfStock': return stock <= 0 && product.status === 'for_sale';
-      default: return true;
-    }
-  }), [products, search, activeFilter, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
+    return true;
+  }), [products, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
 
   // Group products by category
   const groupedProducts = useMemo(() => {
@@ -283,17 +272,6 @@ const Inventory = () => {
     return { groups, uncategorized };
   }, [filteredProducts]);
 
-  const [expandedStat, setExpandedStat] = useState<string | null>(null);
-
-  const handleStatClick = (key: string) => {
-    if (activeFilter === key) {
-      setActiveFilter(null);
-      setExpandedStat(null);
-    } else {
-      setActiveFilter(key);
-      setExpandedStat(key);
-    }
-  };
 
   // Stats
   const stats = useMemo(() => {
@@ -657,56 +635,10 @@ const Inventory = () => {
                 </button>
               </div>
             )}
-            {/* Quick stats bar */}
-            <div className="grid grid-cols-4 gap-1.5">
-              <StatPill 
-                icon={Package} 
-                label="En venta" 
-                value={stats.forSale} 
-                active={activeFilter === 'forSale'}
-                expanded={expandedStat === 'forSale'}
-                onToggle={() => handleStatClick('forSale')}
-                details={[
-                  { label: 'Unidades en venta', value: `${stats.totalStock}` },
-                  { label: 'Valor inventario', value: `$${stats.totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
-                ]}
-              />
-              <StatPill 
-                icon={BarChart3} 
-                label="Almacén" 
-                value={stats.warehouse}
-                active={activeFilter === 'warehouse'}
-                expanded={expandedStat === 'warehouse'}
-                onToggle={() => handleStatClick('warehouse')}
-                details={[
-                  { label: 'Unidades en almacén', value: `${stats.totalWarehouseStock}` },
-                  { label: 'Costo total', value: `$${stats.costValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
-                ]}
-              />
-              <StatPill 
-                icon={AlertTriangle} 
-                label="Stock bajo" 
-                value={stats.lowStock} 
-                alert={stats.lowStock > 0}
-                active={activeFilter === 'lowStock'}
-                expanded={expandedStat === 'lowStock'}
-                onToggle={() => handleStatClick('lowStock')}
-                details={[
-                  { label: 'Requieren reabastecimiento pronto', value: '' },
-                ]}
-              />
-              <StatPill 
-                icon={PackageX} 
-                label="Sin stock" 
-                value={stats.outOfStock} 
-                alert={stats.outOfStock > 0}
-                active={activeFilter === 'outOfStock'}
-                expanded={expandedStat === 'outOfStock'}
-                onToggle={() => handleStatClick('outOfStock')}
-                details={[
-                  { label: 'No disponibles para venta', value: '' },
-                ]}
-              />
+            {/* Inline summary */}
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Package className="h-4 w-4" />
+              <span><span className="font-semibold text-foreground">{filteredProducts.length}</span> productos registrados</span>
             </div>
 
             {productsLoading ? (
@@ -783,11 +715,7 @@ const Inventory = () => {
 
           {/* ─── A la Venta Tab (filtered: stock > 0 or sale types) ─── */}
           <TabsContent value="for-sale" className="mt-4 space-y-4">
-            {productsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (() => {
+            {(() => {
               const forSaleProducts = products.filter((p) => {
                 const tipo = (p as any).tipo || 'reventa';
                 if (tipo === 'ingrediente') return false;
@@ -795,77 +723,103 @@ const Inventory = () => {
                 const saleStock = getDisplayForSaleStock(p as any);
                 return saleStock > 0 || ['reventa', 'elaborado', 'granel'].includes(tipo);
               }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
-              return forSaleProducts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="font-semibold">Sin productos a la venta</h3>
-                  <p className="text-sm text-muted-foreground mt-1">No hay productos con stock disponible para venta</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {forSaleProducts.map((product) => (
-                    <ProductRow
-                      key={product.id}
-                      product={product}
-                      stock={getDisplayForSaleStock(product as any)}
-                      warehouseStock={warehouseStockMap.get(product.id) || 0}
-                      color={product.category?.color || 'blue'}
-                      onClick={() => handleProductTap(product)}
-                      canManage={canManage}
-                      onDelete={() => setDeletingProduct(product)}
-                      onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
-                      onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
-                      onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                      onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
-                    />
-                  ))}
-                </div>
+              const totalUnits = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any), 0);
+              const totalValue = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any) * Number(p.sale_price), 0);
+              return (
+                <>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span><span className="font-semibold text-foreground">{totalUnits}</span> unidades en venta</span>
+                    <span>·</span>
+                    <span>Valor: <span className="font-semibold text-foreground">${totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}</span></span>
+                  </div>
+                  {productsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : forSaleProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="font-semibold">Sin productos a la venta</h3>
+                      <p className="text-sm text-muted-foreground mt-1">No hay productos con stock disponible para venta</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {forSaleProducts.map((product) => (
+                        <ProductRow
+                          key={product.id}
+                          product={product}
+                          stock={getDisplayForSaleStock(product as any)}
+                          warehouseStock={warehouseStockMap.get(product.id) || 0}
+                          color={product.category?.color || 'blue'}
+                          onClick={() => handleProductTap(product)}
+                          canManage={canManage}
+                          onDelete={() => setDeletingProduct(product)}
+                          onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                          onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                          onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                          onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
               );
             })()}
           </TabsContent>
 
           {/* ─── Almacén Tab ─── */}
           <TabsContent value="warehouse" className="mt-4 space-y-4">
-            {productsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (() => {
+            {(() => {
               const warehouseProducts = products.filter((p) => {
                 const tipo = (p as any).tipo || 'reventa';
                 if (tipo === 'ingrediente') return false;
                 if (p.status === 'discontinued') return false;
                 const wStock = warehouseStockMap.get(p.id) || 0;
                 return wStock > 0;
-              });
-              return warehouseProducts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="font-semibold">Almacén vacío</h3>
-                  <p className="text-sm text-muted-foreground mt-1">No hay productos con stock en almacén</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {warehouseProducts.map((product) => {
-                    const wStock = warehouseStockMap.get(product.id) || 0;
-                    return (
-                      <ProductRow
-                        key={product.id}
-                        product={product}
-                        stock={wStock}
-                        warehouseStock={wStock}
-                        color={product.category?.color || 'blue'}
-                        onClick={() => handleProductTap(product)}
-                        canManage={canManage}
-                        onDelete={() => setDeletingProduct(product)}
-                        onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
-                        onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
-                        onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                        onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
-                      />
-                    );
-                  })}
-                </div>
+              }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
+              const totalUnits = warehouseProducts.reduce((sum, p) => sum + (warehouseStockMap.get(p.id) || 0), 0);
+              const totalValue = warehouseProducts.reduce((sum, p) => sum + (warehouseStockMap.get(p.id) || 0) * Number(p.cost_price), 0);
+              return (
+                <>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span><span className="font-semibold text-foreground">{totalUnits}</span> unidades en almacén</span>
+                    <span>·</span>
+                    <span>Valor: <span className="font-semibold text-foreground">${totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}</span></span>
+                  </div>
+                  {productsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : warehouseProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="font-semibold">Almacén vacío</h3>
+                      <p className="text-sm text-muted-foreground mt-1">No hay productos con stock en almacén</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {warehouseProducts.map((product) => {
+                        const wStock = warehouseStockMap.get(product.id) || 0;
+                        return (
+                          <ProductRow
+                            key={product.id}
+                            product={product}
+                            stock={wStock}
+                            warehouseStock={wStock}
+                            color={product.category?.color || 'blue'}
+                            onClick={() => handleProductTap(product)}
+                            canManage={canManage}
+                            onDelete={() => setDeletingProduct(product)}
+                            onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                            onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                            onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                            onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               );
             })()}
           </TabsContent>
@@ -1489,52 +1443,6 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
   );
 };
 
-interface StatPillProps {
-  icon: React.ElementType;
-  label: string;
-  value: number;
-  alert?: boolean;
-  active?: boolean;
-  expanded?: boolean;
-  onToggle?: () => void;
-  details?: { label: string; value: string }[];
-}
-
-const StatPill = ({ icon: Icon, label, value, alert, active, expanded, onToggle, details }: StatPillProps) => (
-  <div className="flex flex-col min-w-0">
-    <button
-      type="button"
-      onClick={onToggle}
-      className={cn(
-        'flex flex-col items-center rounded-lg border p-2 text-center transition-all w-full gap-0.5',
-        alert && !active && 'border-warning/40 bg-warning/5',
-        alert && active && 'border-warning bg-warning/15',
-        !alert && active && 'border-primary bg-primary/10',
-        !alert && !active && 'border-border hover:border-muted-foreground/30',
-      )}
-    >
-      <Icon className={cn('h-3.5 w-3.5', alert ? 'text-warning' : active ? 'text-primary' : 'text-muted-foreground')} />
-      <span className={cn(
-        'text-lg font-bold leading-none',
-        alert ? 'text-warning' : active ? 'text-primary' : 'text-foreground',
-      )}>{value}</span>
-      <span className={cn(
-        'text-[10px] leading-tight truncate w-full',
-        active ? 'text-foreground/80 font-medium' : 'text-muted-foreground',
-      )}>{label}</span>
-    </button>
-    {expanded && details && details.length > 0 && (
-      <div className="mt-1 rounded-md border bg-muted/40 px-2 py-1.5 space-y-0.5">
-        {details.map((d, i) => (
-          <div key={i} className="flex justify-between items-center gap-1">
-            <span className="text-[10px] text-muted-foreground truncate">{d.label}</span>
-            {d.value && <span className="text-[10px] font-semibold text-foreground shrink-0">{d.value}</span>}
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-);
 
 interface MetricCardProps {
   label: string;
