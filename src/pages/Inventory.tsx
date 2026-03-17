@@ -1041,10 +1041,10 @@ const Inventory = () => {
               {/* Transfer warehouse → sale */}
               {canManage && (
                 <div className="space-y-2">
-                  {!showTransfer ? (
+                {!showTransfer && !showGranelPriceEdit ? (
                     <div className="flex flex-col gap-2">
-                      {/* Nueva Compra - only for reventa and ingrediente */}
-                      {(selectedProduct as any).tipo !== 'elaborado' && (
+                      {/* Nueva Compra - only for reventa and ingrediente (not elaborado, not granel) */}
+                      {(selectedProduct as any).tipo !== 'elaborado' && (selectedProduct as any).tipo !== 'granel' && (
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
@@ -1059,7 +1059,21 @@ const Inventory = () => {
                           Nueva Compra
                         </Button>
                       )}
-                      {(selectedProduct as any).tipo !== 'elaborado' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
+                      {/* Granel: update sale price */}
+                      {(selectedProduct as any).tipo === 'granel' && (
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-start"
+                          onClick={() => {
+                            setGranelNewPrice(String(selectedProduct.sale_price || ''));
+                            setShowGranelPriceEdit(true);
+                          }}
+                        >
+                          <DollarSign className="mr-2 h-4 w-4" />
+                          Actualizar precio de venta
+                        </Button>
+                      )}
+                      {(selectedProduct as any).tipo !== 'elaborado' && (selectedProduct as any).tipo !== 'granel' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
@@ -1077,7 +1091,7 @@ const Inventory = () => {
                             : (selectedWarehouseStock > 0 ? 'Almacén → Venta' : 'Venta → Almacén')}
                         </Button>
                       )}
-                      {selectedWarehouseStock > 0 && (
+                      {(selectedProduct as any).tipo !== 'granel' && selectedWarehouseStock > 0 && (
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
@@ -1092,6 +1106,54 @@ const Inventory = () => {
                          </Button>
                        )}
                      </div>
+                  ) : showGranelPriceEdit ? (
+                    <div className="rounded-lg border p-3 space-y-3">
+                      <p className="text-sm font-medium">Actualizar precio de venta</p>
+                      <div className="space-y-1.5">
+                        <Label className="flex items-center gap-1.5 text-xs">
+                          <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
+                          Nuevo precio
+                        </Label>
+                        <Input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          value={granelNewPrice}
+                          onChange={(e) => setGranelNewPrice(e.target.value)}
+                          placeholder="Precio de venta"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" className="flex-1" onClick={() => setShowGranelPriceEdit(false)}>
+                          Cancelar
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="flex-1"
+                          disabled={!granelNewPrice || parseFloat(granelNewPrice) <= 0 || granelPriceUpdating}
+                          onClick={async () => {
+                            if (!selectedProduct) return;
+                            setGranelPriceUpdating(true);
+                            try {
+                              await supabase
+                                .from('products')
+                                .update({ sale_price: parseFloat(granelNewPrice) })
+                                .eq('id', selectedProduct.id);
+                              queryClient.invalidateQueries({ queryKey: ['products'] });
+                              toast({ title: 'Precio actualizado' });
+                              setShowGranelPriceEdit(false);
+                            } catch (err: any) {
+                              toast({ title: 'Error', description: err.message, variant: 'destructive' });
+                            } finally {
+                              setGranelPriceUpdating(false);
+                            }
+                          }}
+                        >
+                          {granelPriceUpdating && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
+                          Guardar
+                        </Button>
+                      </div>
+                    </div>
                   ) : (
                      (() => {
                        const isToSale = transferDirection === 'toSale';
