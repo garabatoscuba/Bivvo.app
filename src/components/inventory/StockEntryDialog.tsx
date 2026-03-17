@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, PackagePlus, MapPin, User, FileText, DollarSign, Tag } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import type { Product } from '@/types/database';
 
@@ -65,6 +65,27 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
 
   const isIngrediente = (product as any)?.tipo === 'ingrediente';
   const isGranel = (product as any)?.tipo === 'granel';
+  const insumoAreaId = (product as any)?.insumo_area_id as string | null;
+
+  // Fetch area name for ingredientes
+  const { data: areaName } = useQuery({
+    queryKey: ['insumo-area-name', insumoAreaId],
+    queryFn: async () => {
+      if (!insumoAreaId) return null;
+      const { data } = await supabase
+        .from('insumo_areas')
+        .select('name')
+        .eq('id', insumoAreaId)
+        .single();
+      return data?.name || null;
+    },
+    enabled: !!insumoAreaId && isIngrediente,
+  });
+
+  const saleLabel = isIngrediente
+    ? (areaName ? `Cantidad a ${areaName}` : 'Cantidad a venta')
+    : 'Cantidad a venta';
+
   const totalQty = isGranel ? qtyForSale : qtyForSale + qtyWarehouse;
   const reasonLabel = ENTRY_REASONS.find(r => r.value === reason)?.label || reason;
 
@@ -119,7 +140,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
         const detailParts = [
           `Entrada: ${reasonLabel}`,
           isIngrediente
-            ? `${qtyForSale} cocina, ${qtyWarehouse} almacén`
+            ? `${qtyForSale} ${areaName || 'uso'}, ${qtyWarehouse} almacén`
             : `${qtyForSale} venta, ${qtyWarehouse} almacén`,
           `Costo: $${parseFloat(unitCost).toFixed(2)}`,
           ...(!isIngrediente ? [`Venta: $${parseFloat(newSalePrice).toFixed(2)}`] : []),
@@ -286,7 +307,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           {/* Quantities */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <Label>{isIngrediente ? 'Cantidad a cocina' : 'Cantidad a venta'}</Label>
+              <Label>{saleLabel}</Label>
               <Input
                 type="number"
                 min={0}
