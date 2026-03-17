@@ -42,7 +42,6 @@ interface InsumosInventoryTabProps {
   onTransfer?: (product: Product, direction: 'toSale' | 'toWarehouse') => void;
   onDeleteProduct?: (product: Product) => void;
   canManage: boolean;
-  canManage: boolean;
 }
 
 const InsumosInventoryTab = ({
