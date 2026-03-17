@@ -1073,7 +1073,7 @@ const Inventory = () => {
                         >
                           <ArrowRightLeft className="mr-2 h-4 w-4" />
                           {(selectedProduct as any).tipo === 'ingrediente'
-                            ? (selectedWarehouseStock > 0 ? 'Almacén → Cocina' : 'Cocina → Almacén')
+                            ? (selectedWarehouseStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén')
                             : (selectedWarehouseStock > 0 ? 'Almacén → Venta' : 'Venta → Almacén')}
                         </Button>
                       )}
