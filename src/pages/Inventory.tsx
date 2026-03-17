@@ -475,7 +475,7 @@ const Inventory = () => {
   const selectedStock = selectedProduct ? (stockMap.get(selectedProduct.id) || 0) : 0;
   const selectedWarehouseStock = selectedProduct ? (warehouseStockMap.get(selectedProduct.id) || 0) : 0;
 
-  const selectedDisplayStock = selectedProduct && (selectedProduct as any)?.tipo === 'elaborado'
+  const selectedDisplayStock = selectedProduct && ((selectedProduct as any)?.tipo === 'elaborado' || (selectedProduct as any)?.tipo === 'granel')
     ? (productionCapacity && !capacityLoading && Number.isFinite(productionCapacity.maxUnits)
         ? productionCapacity.maxUnits
         : selectedStock)
