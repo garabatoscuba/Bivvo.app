@@ -99,6 +99,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
   useEffect(() => {
     setImagePreview(product?.image_url || null);
     setImageFile(null);
+    setInsumoAreaId((product as any)?.insumo_area_id || '');
   }, [product]);
 
   const form = useForm<ProductFormData>({
