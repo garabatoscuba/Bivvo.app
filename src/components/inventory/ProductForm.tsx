@@ -366,7 +366,6 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
                         <option value="reventa">Reventa (comprado para vender)</option>
-                        <option value="ingrediente">Insumo (materia prima)</option>
                         <option value="elaborado">Elaborado (producción propia)</option>
                         <option value="granel">A granel (venta fraccionada)</option>
                       </select>
