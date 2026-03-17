@@ -39,6 +39,7 @@ interface InsumosInventoryTabProps {
   onAddStock: (product: Product) => void;
   onOutflow?: (product: Product) => void;
   onTransfer?: (product: Product, direction: 'toSale' | 'toWarehouse') => void;
+  onDeleteProduct?: (product: Product) => void;
   canManage: boolean;
 }
 
@@ -50,6 +51,7 @@ const InsumosInventoryTab = ({
   onAddStock,
   onOutflow,
   onTransfer,
+  onDeleteProduct,
   canManage,
 }: InsumosInventoryTabProps) => {
   const { profile } = useAuth();
@@ -270,6 +272,19 @@ const InsumosInventoryTab = ({
                           }}
                         >
                           <PackageX className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
+                      {onDeleteProduct && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs h-8 text-destructive hover:text-destructive"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onDeleteProduct(product);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </div>

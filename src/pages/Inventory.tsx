@@ -862,6 +862,7 @@ const Inventory = () => {
                 setTransferDirection(direction);
                 setTransferQty(1);
               }}
+              onDeleteProduct={(product) => setDeletingProduct(product)}
               canManage={canManage}
             />
           </TabsContent>
