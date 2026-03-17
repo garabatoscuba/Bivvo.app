@@ -118,7 +118,7 @@ const Inventory = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<(Product & { category: Category | null }) | null>(null);
-  const [mainTab, setMainTab] = useState<string>('for-sale');
+  const [mainTab, setMainTab] = useState<string>('products');
   const [productTypeTab, setProductTypeTab] = useState<'reventa' | 'cocina'>('reventa');
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [stockEntryProduct, setStockEntryProduct] = useState<Product | null>(null);
@@ -564,8 +564,8 @@ const Inventory = () => {
         {/* Tabs + Action Buttons */}
         <Tabs value={mainTab} onValueChange={setMainTab}>
           <TabsList className="w-full">
-            <TabsTrigger value="for-sale" className="flex items-center gap-1 flex-1 text-xs px-2">
-              A la Venta
+            <TabsTrigger value="products" className="flex items-center gap-1 flex-1 text-xs px-2">
+              Productos
               {canManage && (
                 <button
                   type="button"
@@ -584,6 +584,9 @@ const Inventory = () => {
                   <Plus className="h-3 w-3" />
                 </button>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="for-sale" className="flex items-center gap-1 flex-1 text-xs px-2">
+              A la Venta
             </TabsTrigger>
             <TabsTrigger value="warehouse" className="flex items-center gap-1 flex-1 text-xs px-2">
               Almacén
@@ -623,8 +626,8 @@ const Inventory = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* ─── A la Venta Tab ─── */}
-          <TabsContent value="for-sale" className="mt-4 space-y-4">
+          {/* ─── Productos Tab (master view, all products) ─── */}
+          <TabsContent value="products" className="mt-4 space-y-4">
             {/* Sub-tabs: Reventa / Cocina (only if business has kitchen products) */}
             {hasKitchenProducts && (
               <div className="flex gap-1 rounded-lg bg-muted p-1">
@@ -776,6 +779,49 @@ const Inventory = () => {
                 )}
               </div>
             )}
+          </TabsContent>
+
+          {/* ─── A la Venta Tab (filtered: stock > 0 or sale types) ─── */}
+          <TabsContent value="for-sale" className="mt-4 space-y-4">
+            {productsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (() => {
+              const forSaleProducts = products.filter((p) => {
+                const tipo = (p as any).tipo || 'reventa';
+                if (tipo === 'ingrediente') return false;
+                if (p.status === 'discontinued') return false;
+                const saleStock = getDisplayForSaleStock(p as any);
+                return saleStock > 0 || ['reventa', 'elaborado', 'granel'].includes(tipo);
+              }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
+              return forSaleProducts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                  <h3 className="font-semibold">Sin productos a la venta</h3>
+                  <p className="text-sm text-muted-foreground mt-1">No hay productos con stock disponible para venta</p>
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {forSaleProducts.map((product) => (
+                    <ProductRow
+                      key={product.id}
+                      product={product}
+                      stock={getDisplayForSaleStock(product as any)}
+                      warehouseStock={warehouseStockMap.get(product.id) || 0}
+                      color={product.category?.color || 'blue'}
+                      onClick={() => handleProductTap(product)}
+                      canManage={canManage}
+                      onDelete={() => setDeletingProduct(product)}
+                      onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                      onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                      onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                      onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                    />
+                  ))}
+                </div>
+              );
+            })()}
           </TabsContent>
 
           {/* ─── Almacén Tab ─── */}
