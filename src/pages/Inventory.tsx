@@ -978,7 +978,7 @@ const Inventory = () => {
                   ) : !productionCapacity || productionCapacity.maxUnits === 0 && productionCapacity.bottleneck === null ? (
                     <div className="space-y-1.5">
                       <p className="text-sm font-medium text-muted-foreground">
-                        Configura una receta para ver la producción posible
+                        Configura una ficha de costo para ver la producción posible
                       </p>
                       <Button 
                         variant="outline" 
