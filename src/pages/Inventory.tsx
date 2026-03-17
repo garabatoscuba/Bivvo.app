@@ -725,10 +725,8 @@ const Inventory = () => {
               const totalValue = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any) * Number(p.sale_price), 0);
               return (
                 <>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span><span className="font-semibold text-foreground">{totalUnits}</span> unidades en venta</span>
-                    <span>·</span>
-                    <span>Valor: <span className="font-semibold text-foreground">${totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}</span></span>
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-semibold text-foreground">{totalUnits}</span> unidades en venta
                   </div>
                   {productsLoading ? (
                     <div className="flex items-center justify-center py-12">
@@ -779,10 +777,8 @@ const Inventory = () => {
               const totalValue = warehouseProducts.reduce((sum, p) => sum + (warehouseStockMap.get(p.id) || 0) * Number(p.cost_price), 0);
               return (
                 <>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span><span className="font-semibold text-foreground">{totalUnits}</span> unidades en almacén</span>
-                    <span>·</span>
-                    <span>Valor: <span className="font-semibold text-foreground">${totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}</span></span>
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-semibold text-foreground">{totalUnits}</span> unidades en almacén
                   </div>
                   {productsLoading ? (
                     <div className="flex items-center justify-center py-12">
