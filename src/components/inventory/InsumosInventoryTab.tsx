@@ -56,7 +56,6 @@ const InsumosInventoryTab = ({
   onDeleteProduct,
   canManage,
 }: InsumosInventoryTabProps) => {
-}: InsumosInventoryTabProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
   const businessId = profile?.business_id;
