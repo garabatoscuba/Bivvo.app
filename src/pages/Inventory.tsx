@@ -112,6 +112,7 @@ const Inventory = () => {
     localStorage.setItem('last-branch', branchId);
   };
   const [productFormOpen, setProductFormOpen] = useState(false);
+  const [insumoFormOpen, setInsumoFormOpen] = useState(false);
   const [categoryFormOpen, setCategoryFormOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -863,6 +864,7 @@ const Inventory = () => {
                 setTransferQty(1);
               }}
               onDeleteProduct={(product) => setDeletingProduct(product)}
+              onCreateInsumo={() => { if (!guardDowngrade()) setInsumoFormOpen(true); }}
               canManage={canManage}
             />
           </TabsContent>
@@ -1239,6 +1241,11 @@ const Inventory = () => {
           if (!open) setEditingProduct(null);
         }}
         product={editingProduct}
+      />
+      <ProductForm
+        open={insumoFormOpen}
+        onOpenChange={(open) => setInsumoFormOpen(open)}
+        defaultTipo="ingrediente"
       />
       
       <CategoryForm

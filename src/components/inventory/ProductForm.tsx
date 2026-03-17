@@ -51,6 +51,7 @@ interface ProductFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   product?: Product | null;
+  defaultTipo?: 'reventa' | 'ingrediente' | 'elaborado' | 'granel';
 }
 
 
@@ -59,7 +60,7 @@ const unitOptions = [
   'Metro', 'Metro cuadrado (m²)', 'Centímetro', 'Caja', 'Paquete', 'Par', 'Docena', 'Rollo',
 ];
 
-export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) => {
+export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: ProductFormProps) => {
   const { profile } = useAuth();
   const { isRestaurant } = useIsRestaurant();
   const { categories } = useCategories();
@@ -125,7 +126,7 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
     } else {
       form.reset({
         name: '', description: '', category_id: undefined,
-        barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: 'reventa', sale_price: '',
+        barcode: '', unit_of_measure: 'Pieza', brand: '', tipo: defaultTipo || 'reventa', sale_price: '',
       });
     }
   }, [product, form]);
@@ -365,6 +366,9 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
                         onChange={(e) => field.onChange(e.target.value)}
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       >
+                        {(defaultTipo === 'ingrediente' || (product as any)?.tipo === 'ingrediente') && (
+                          <option value="ingrediente">Insumo (materia prima)</option>
+                        )}
                         <option value="reventa">Reventa (comprado para vender)</option>
                         <option value="elaborado">Elaborado (producción propia)</option>
                         <option value="granel">A granel (venta fraccionada)</option>
