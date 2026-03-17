@@ -167,7 +167,19 @@ const InsumosInventoryTab = ({
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
   });
 
-  // ─── New Insumo mutation ───
+  // ─── Delete raw material ───
+  const deleteRawMaterial = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from('raw_materials').delete().eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      toast({ title: 'Insumo eliminado' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
   const saveInsumo = useMutation({
     mutationFn: async (form: typeof insumoForm) => {
       if (!businessId || !selectedArea) throw new Error('No business or area');
