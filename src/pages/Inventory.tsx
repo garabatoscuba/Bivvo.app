@@ -626,10 +626,163 @@ const Inventory = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* ─── A la Venta Tab ─── */}
-          <TabsContent value="for-sale" className="mt-4 space-y-4">
+          {/* ─── Productos Tab (master view, all products) ─── */}
+          <TabsContent value="products" className="mt-4 space-y-4">
             {/* Sub-tabs: Reventa / Cocina (only if business has kitchen products) */}
             {hasKitchenProducts && (
+              <div className="flex gap-1 rounded-lg bg-muted p-1">
+                <button
+                  type="button"
+                  onClick={() => setProductTypeTab('reventa')}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    productTypeTab === 'reventa'
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Reventa
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setProductTypeTab('cocina')}
+                  className={cn(
+                    "flex-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+                    productTypeTab === 'cocina'
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  Cocina
+                </button>
+              </div>
+            )}
+            {/* Quick stats bar */}
+            <div className="grid grid-cols-4 gap-1.5">
+              <StatPill 
+                icon={Package} 
+                label="En venta" 
+                value={stats.forSale} 
+                active={activeFilter === 'forSale'}
+                expanded={expandedStat === 'forSale'}
+                onToggle={() => handleStatClick('forSale')}
+                details={[
+                  { label: 'Unidades en venta', value: `${stats.totalStock}` },
+                  { label: 'Valor inventario', value: `$${stats.totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
+                ]}
+              />
+              <StatPill 
+                icon={BarChart3} 
+                label="Almacén" 
+                value={stats.warehouse}
+                active={activeFilter === 'warehouse'}
+                expanded={expandedStat === 'warehouse'}
+                onToggle={() => handleStatClick('warehouse')}
+                details={[
+                  { label: 'Unidades en almacén', value: `${stats.totalWarehouseStock}` },
+                  { label: 'Costo total', value: `$${stats.costValue.toLocaleString('en', { minimumFractionDigits: 2 })}` },
+                ]}
+              />
+              <StatPill 
+                icon={AlertTriangle} 
+                label="Stock bajo" 
+                value={stats.lowStock} 
+                alert={stats.lowStock > 0}
+                active={activeFilter === 'lowStock'}
+                expanded={expandedStat === 'lowStock'}
+                onToggle={() => handleStatClick('lowStock')}
+                details={[
+                  { label: 'Requieren reabastecimiento pronto', value: '' },
+                ]}
+              />
+              <StatPill 
+                icon={PackageX} 
+                label="Sin stock" 
+                value={stats.outOfStock} 
+                alert={stats.outOfStock > 0}
+                active={activeFilter === 'outOfStock'}
+                expanded={expandedStat === 'outOfStock'}
+                onToggle={() => handleStatClick('outOfStock')}
+                details={[
+                  { label: 'No disponibles para venta', value: '' },
+                ]}
+              />
+            </div>
+
+            {productsLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : filteredProducts.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="font-semibold">No hay productos</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {search ? 'No se encontraron resultados' : 'Comienza agregando tu primer producto'}
+                </p>
+                {canManage && !search && (
+                  <Button className="mt-4" onClick={() => {
+                    if (guardDowngrade()) return;
+                    if (!canCreateProduct) {
+                      toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos.`, variant: 'destructive' });
+                      return;
+                    }
+                    setProductFormOpen(true);
+                  }}>
+                    <Plus className="mr-2 h-4 w-4" />
+                    Agregar Producto
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {Array.from(groupedProducts.groups.values()).map(({ category, products: groupProducts }) => (
+                  <div key={category?.id || 'none'}>
+                    {groupProducts.map((product) => (
+                      <ProductRow
+                        key={product.id}
+                        product={product}
+                        stock={getDisplayForSaleStock(product as any)}
+                        warehouseStock={warehouseStockMap.get(product.id) || 0}
+                        color={product.category?.color || 'blue'}
+                        onClick={() => handleProductTap(product)}
+                        canManage={canManage}
+                        onDelete={() => setDeletingProduct(product)}
+                        onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                        onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                        onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                        onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                      />
+                    ))}
+                    <Separator className="my-2" />
+                  </div>
+                ))}
+                {groupedProducts.uncategorized.length > 0 && (
+                  <div>
+                    {groupedProducts.uncategorized.map((product) => (
+                      <ProductRow
+                        key={product.id}
+                        product={product}
+                        stock={getDisplayForSaleStock(product as any)}
+                        warehouseStock={warehouseStockMap.get(product.id) || 0}
+                        color="blue"
+                        onClick={() => handleProductTap(product)}
+                        canManage={canManage}
+                        onDelete={() => setDeletingProduct(product)}
+                        onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                        onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                        onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                        onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* ─── A la Venta Tab (filtered: stock > 0 or sale types) ─── */}
+          <TabsContent value="for-sale" className="mt-4 space-y-4">
               <div className="flex gap-1 rounded-lg bg-muted p-1">
                 <button
                   type="button"
