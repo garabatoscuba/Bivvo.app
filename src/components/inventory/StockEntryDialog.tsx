@@ -140,7 +140,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
         const detailParts = [
           `Entrada: ${reasonLabel}`,
           isIngrediente
-            ? `${qtyForSale} cocina, ${qtyWarehouse} almacén`
+            ? `${qtyForSale} ${areaName || 'uso'}, ${qtyWarehouse} almacén`
             : `${qtyForSale} venta, ${qtyWarehouse} almacén`,
           `Costo: $${parseFloat(unitCost).toFixed(2)}`,
           ...(!isIngrediente ? [`Venta: $${parseFloat(newSalePrice).toFixed(2)}`] : []),
