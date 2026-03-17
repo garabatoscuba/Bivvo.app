@@ -230,9 +230,12 @@ const Inventory = () => {
       product.code.toLowerCase().includes(search.toLowerCase());
     if (!matchesSearch || product.status === 'discontinued') return false;
 
+    // Exclude ingrediente products – they are managed in the Insumos tab
+    const tipo = (product as any).tipo || 'reventa';
+    if (tipo === 'ingrediente') return false;
+
     // Type filter: only apply if business has kitchen products
     if (hasKitchenProducts) {
-      const tipo = (product as any).tipo || 'reventa';
       if (productTypeTab === 'reventa' && tipo !== 'reventa') return false;
       if (productTypeTab === 'cocina' && tipo === 'reventa') return false;
     }
