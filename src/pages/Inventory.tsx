@@ -850,6 +850,14 @@ const Inventory = () => {
               warehouseStockMap={warehouseStockMap}
               onSelectProduct={handleProductTap}
               onAddStock={(product) => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+              onOutflow={(product) => { if (!guardDowngrade()) setOutflowProduct(product); }}
+              onTransfer={(product, direction) => {
+                if (guardDowngrade()) return;
+                setSelectedProduct(product as Product & { category: Category | null });
+                setShowTransfer(true);
+                setTransferDirection(direction);
+                setTransferQty(1);
+              }}
               canManage={canManage}
             />
           </TabsContent>
