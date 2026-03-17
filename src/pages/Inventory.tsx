@@ -139,13 +139,13 @@ const Inventory = () => {
 
   // Production capacity for elaborado products (detail sheet)
   const { data: productionCapacity, isLoading: capacityLoading } = useProductionCapacity(
-    (selectedProduct as any)?.tipo === 'elaborado' ? selectedProduct?.id || null : null,
+    ((selectedProduct as any)?.tipo === 'elaborado' || (selectedProduct as any)?.tipo === 'granel') ? selectedProduct?.id || null : null,
     effectiveBranchId
   );
 
   // Batch capacity map for list badges (finite values only)
   const elaboradoIds = useMemo(
-    () => products.filter((p: any) => p.tipo === 'elaborado').map(p => p.id),
+    () => products.filter((p: any) => p.tipo === 'elaborado' || p.tipo === 'granel').map(p => p.id),
     [products]
   );
   const { data: productionCapacities } = useProductionCapacities(elaboradoIds, effectiveBranchId);
@@ -197,7 +197,7 @@ const Inventory = () => {
   });
 
   const getDisplayForSaleStock = (product: Product & { [key: string]: any }) => {
-    if (product?.tipo === 'elaborado') {
+    if (product?.tipo === 'elaborado' || product?.tipo === 'granel') {
       const cap = productionCapacities?.[product.id];
       if (typeof cap === 'number' && Number.isFinite(cap)) return cap;
     }
@@ -475,7 +475,7 @@ const Inventory = () => {
   const selectedStock = selectedProduct ? (stockMap.get(selectedProduct.id) || 0) : 0;
   const selectedWarehouseStock = selectedProduct ? (warehouseStockMap.get(selectedProduct.id) || 0) : 0;
 
-  const selectedDisplayStock = selectedProduct && (selectedProduct as any)?.tipo === 'elaborado'
+  const selectedDisplayStock = selectedProduct && ((selectedProduct as any)?.tipo === 'elaborado' || (selectedProduct as any)?.tipo === 'granel')
     ? (productionCapacity && !capacityLoading && Number.isFinite(productionCapacity.maxUnits)
         ? productionCapacity.maxUnits
         : selectedStock)
@@ -976,7 +976,7 @@ const Inventory = () => {
               )}
 
               {/* Production capacity card for elaborado */}
-              {(selectedProduct as any).tipo === 'elaborado' && (
+              {((selectedProduct as any).tipo === 'elaborado' || (selectedProduct as any).tipo === 'granel') && (
                 <div className="rounded-lg border bg-muted/50 p-4 space-y-3">
                   {capacityLoading ? (
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
