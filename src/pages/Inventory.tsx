@@ -398,7 +398,7 @@ const Inventory = () => {
       ]);
 
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
-      toast({ title: (selectedProduct as any).tipo === 'ingrediente' ? `${transferQty} unidades pasadas a cocina` : `${transferQty} unidades pasadas a venta` });
+      toast({ title: (selectedProduct as any).tipo === 'ingrediente' ? `${transferQty} unidades pasadas a uso` : `${transferQty} unidades pasadas a venta` });
       auditLog(
         'stock_transfer',
         `Transferencia de ${transferQty} unidades de ${selectedProduct?.name} de almacén a venta`,
