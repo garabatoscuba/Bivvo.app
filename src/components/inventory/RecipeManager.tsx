@@ -241,10 +241,10 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
             </div>
           ) : !recipe ? (
             <div className="text-center py-8 space-y-3">
-              <p className="text-sm text-muted-foreground">Este producto aún no tiene receta.</p>
+              <p className="text-sm text-muted-foreground">Este producto aún no tiene ficha de costo.</p>
               <Button onClick={() => createRecipe.mutate()} disabled={createRecipe.isPending}>
                 {createRecipe.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Crear receta
+                Crear ficha de costo
               </Button>
             </div>
           ) : (
