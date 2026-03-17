@@ -51,6 +51,7 @@ const InsumosInventoryTab = ({
   onAddStock,
   onOutflow,
   onTransfer,
+  onDeleteProduct,
   canManage,
 }: InsumosInventoryTabProps) => {
   const { profile } = useAuth();
