@@ -85,7 +85,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
       if (!businessId) throw new Error('No business');
       const { data, error } = await supabase
         .from('recipes')
-        .insert({ business_id: businessId, product_id: product.id, name: `Receta de ${product.name}` })
+        .insert({ business_id: businessId, product_id: product.id, name: `Ficha de costo: ${product.name}` })
         .select()
         .single();
       if (error) throw error;
