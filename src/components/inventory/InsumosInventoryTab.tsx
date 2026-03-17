@@ -65,7 +65,7 @@ const InsumosInventoryTab = ({
   const [areaForm, setAreaForm] = useState({ name: '', icon: 'Package', color: 'blue' });
   const [deletingArea, setDeletingArea] = useState<any>(null);
   const [newInsumoOpen, setNewInsumoOpen] = useState(false);
-  const [insumoForm, setInsumoForm] = useState({ name: '', description: '', brand: '' });
+  const [insumoForm, setInsumoForm] = useState({ name: '', description: '', brand: '', area_id: '' });
 
   // ─── Queries ───
   const { data: areas = [], isLoading: areasLoading } = useQuery({
