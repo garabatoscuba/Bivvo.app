@@ -747,90 +747,101 @@ const Inventory = () => {
               }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
               const totalUnits = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any), 0);
               const totalValue = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any) * Number(p.sale_price), 0);
-              return <>
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span><span className="font-semibold text-foreground">{totalUnits}</span> unidades en venta</span>
-                  <span>·</span>
-                  <span>Valor: <span className="font-semibold text-foreground">${totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}</span></span>
-                </div>
-                {productsLoading ? (
-                const tipo = (p as any).tipo || 'reventa';
-                if (tipo === 'ingrediente') return false;
-                if (p.status === 'discontinued') return false;
-                const saleStock = getDisplayForSaleStock(p as any);
-                return saleStock > 0 || ['reventa', 'elaborado', 'granel'].includes(tipo);
-              }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
-              return forSaleProducts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="font-semibold">Sin productos a la venta</h3>
-                  <p className="text-sm text-muted-foreground mt-1">No hay productos con stock disponible para venta</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {forSaleProducts.map((product) => (
-                    <ProductRow
-                      key={product.id}
-                      product={product}
-                      stock={getDisplayForSaleStock(product as any)}
-                      warehouseStock={warehouseStockMap.get(product.id) || 0}
-                      color={product.category?.color || 'blue'}
-                      onClick={() => handleProductTap(product)}
-                      canManage={canManage}
-                      onDelete={() => setDeletingProduct(product)}
-                      onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
-                      onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
-                      onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                      onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
-                    />
-                  ))}
-                </div>
+              return (
+                <>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span><span className="font-semibold text-foreground">{totalUnits}</span> unidades en venta</span>
+                    <span>·</span>
+                    <span>Valor: <span className="font-semibold text-foreground">${totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}</span></span>
+                  </div>
+                  {productsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : forSaleProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="font-semibold">Sin productos a la venta</h3>
+                      <p className="text-sm text-muted-foreground mt-1">No hay productos con stock disponible para venta</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {forSaleProducts.map((product) => (
+                        <ProductRow
+                          key={product.id}
+                          product={product}
+                          stock={getDisplayForSaleStock(product as any)}
+                          warehouseStock={warehouseStockMap.get(product.id) || 0}
+                          color={product.category?.color || 'blue'}
+                          onClick={() => handleProductTap(product)}
+                          canManage={canManage}
+                          onDelete={() => setDeletingProduct(product)}
+                          onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                          onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                          onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                          onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
               );
             })()}
           </TabsContent>
 
           {/* ─── Almacén Tab ─── */}
           <TabsContent value="warehouse" className="mt-4 space-y-4">
-            {productsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (() => {
+            {(() => {
               const warehouseProducts = products.filter((p) => {
                 const tipo = (p as any).tipo || 'reventa';
                 if (tipo === 'ingrediente') return false;
                 if (p.status === 'discontinued') return false;
                 const wStock = warehouseStockMap.get(p.id) || 0;
                 return wStock > 0;
-              });
-              return warehouseProducts.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Package className="h-12 w-12 text-muted-foreground mb-4" />
-                  <h3 className="font-semibold">Almacén vacío</h3>
-                  <p className="text-sm text-muted-foreground mt-1">No hay productos con stock en almacén</p>
-                </div>
-              ) : (
-                <div className="space-y-1">
-                  {warehouseProducts.map((product) => {
-                    const wStock = warehouseStockMap.get(product.id) || 0;
-                    return (
-                      <ProductRow
-                        key={product.id}
-                        product={product}
-                        stock={wStock}
-                        warehouseStock={wStock}
-                        color={product.category?.color || 'blue'}
-                        onClick={() => handleProductTap(product)}
-                        canManage={canManage}
-                        onDelete={() => setDeletingProduct(product)}
-                        onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
-                        onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
-                        onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                        onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
-                      />
-                    );
-                  })}
-                </div>
+              }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
+              const totalUnits = warehouseProducts.reduce((sum, p) => sum + (warehouseStockMap.get(p.id) || 0), 0);
+              const totalValue = warehouseProducts.reduce((sum, p) => sum + (warehouseStockMap.get(p.id) || 0) * Number(p.cost_price), 0);
+              return (
+                <>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <span><span className="font-semibold text-foreground">{totalUnits}</span> unidades en almacén</span>
+                    <span>·</span>
+                    <span>Valor: <span className="font-semibold text-foreground">${totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}</span></span>
+                  </div>
+                  {productsLoading ? (
+                    <div className="flex items-center justify-center py-12">
+                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                    </div>
+                  ) : warehouseProducts.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <Package className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="font-semibold">Almacén vacío</h3>
+                      <p className="text-sm text-muted-foreground mt-1">No hay productos con stock en almacén</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-1">
+                      {warehouseProducts.map((product) => {
+                        const wStock = warehouseStockMap.get(product.id) || 0;
+                        return (
+                          <ProductRow
+                            key={product.id}
+                            product={product}
+                            stock={wStock}
+                            warehouseStock={wStock}
+                            color={product.category?.color || 'blue'}
+                            onClick={() => handleProductTap(product)}
+                            canManage={canManage}
+                            onDelete={() => setDeletingProduct(product)}
+                            onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                            onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                            onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                            onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                          />
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               );
             })()}
           </TabsContent>
