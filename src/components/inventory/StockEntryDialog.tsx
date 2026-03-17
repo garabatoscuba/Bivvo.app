@@ -57,6 +57,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     setUnitCost('');
     setNewSalePrice('');
     setSupplier('');
+    setPurchaseUnit((product as any)?.unit_of_measure || (product as any)?.unit || 'Pieza');
   };
 
   const handleClose = (value: boolean) => {
