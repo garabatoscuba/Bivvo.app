@@ -737,12 +737,23 @@ const Inventory = () => {
 
           {/* ─── A la Venta Tab (filtered: stock > 0 or sale types) ─── */}
           <TabsContent value="for-sale" className="mt-4 space-y-4">
-            {productsLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : (() => {
+            {(() => {
               const forSaleProducts = products.filter((p) => {
+                const tipo = (p as any).tipo || 'reventa';
+                if (tipo === 'ingrediente') return false;
+                if (p.status === 'discontinued') return false;
+                const saleStock = getDisplayForSaleStock(p as any);
+                return saleStock > 0 || ['reventa', 'elaborado', 'granel'].includes(tipo);
+              }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
+              const totalUnits = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any), 0);
+              const totalValue = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any) * Number(p.sale_price), 0);
+              return <>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span><span className="font-semibold text-foreground">{totalUnits}</span> unidades en venta</span>
+                  <span>·</span>
+                  <span>Valor: <span className="font-semibold text-foreground">${totalValue.toLocaleString('en', { minimumFractionDigits: 2 })}</span></span>
+                </div>
+                {productsLoading ? (
                 const tipo = (p as any).tipo || 'reventa';
                 if (tipo === 'ingrediente') return false;
                 if (p.status === 'discontinued') return false;
