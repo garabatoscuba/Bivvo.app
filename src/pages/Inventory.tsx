@@ -186,7 +186,51 @@ const Inventory = () => {
     enabled: !!businessId && (isOwner || isSuperAdmin),
   });
 
-  // Plan limits
+  // Raw materials query (to include in Productos tab)
+  const { data: rawMaterialsForProducts = [] } = useQuery({
+    queryKey: ['raw-materials-for-products', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const { data, error } = await supabase
+        .from('raw_materials')
+        .select('*')
+        .eq('business_id', businessId)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!businessId,
+  });
+
+  // Convert raw materials to Product-like objects for the products tab
+  const rawMaterialsAsProducts = useMemo(() => {
+    return rawMaterialsForProducts.map((mat: any) => ({
+      id: mat.id,
+      name: mat.name,
+      code: mat.code || '',
+      description: mat.description || '',
+      sale_price: 0,
+      cost_price: mat.costo_unitario || 0,
+      min_stock: mat.stock_minimo || 0,
+      unit: mat.unit || 'unidad',
+      image_url: null,
+      is_active: true,
+      business_id: mat.business_id,
+      category_id: null,
+      created_at: mat.created_at,
+      updated_at: mat.updated_at || mat.created_at,
+      tipo: 'ingrediente',
+      insumo_area_id: mat.area_id,
+      status: 'active',
+      barcode: null,
+      supplier: null,
+      unit_of_measure: mat.unit || 'unidad',
+      brand: mat.brand || null,
+      category: null,
+      _isRawMaterial: true,
+    })) as unknown as (Product & { category: Category | null })[];
+  }, [rawMaterialsForProducts]);
+
   const FREE_PRODUCT_LIMIT = 5;
   const FREE_CATEGORY_LIMIT = 2;
   const isFree = planType === 'free';
@@ -228,23 +272,36 @@ const Inventory = () => {
     [products, isRestaurantBiz]
   );
 
-  // Filter products (all statuses except discontinued)
-  const filteredProducts = useMemo(() => products.filter((product) => {
-    const matchesSearch = !search || 
-      product.name.toLowerCase().includes(search.toLowerCase()) ||
-      product.code.toLowerCase().includes(search.toLowerCase());
-    if (!matchesSearch || product.status === 'discontinued') return false;
+  // Filter products (all statuses except discontinued) + include raw materials
+  const filteredProducts = useMemo(() => {
+    // Filter regular products
+    const filtered = products.filter((product) => {
+      const matchesSearch = !search || 
+        product.name.toLowerCase().includes(search.toLowerCase()) ||
+        product.code.toLowerCase().includes(search.toLowerCase());
+      if (!matchesSearch || product.status === 'discontinued') return false;
 
-    const tipo = (product as any).tipo || 'reventa';
+      const tipo = (product as any).tipo || 'reventa';
 
-    // Type filter: only apply if business has kitchen products (ingredients always pass)
-    if (hasKitchenProducts && tipo !== 'ingrediente') {
-      if (productTypeTab === 'reventa' && tipo !== 'reventa') return false;
-      if (productTypeTab === 'cocina' && tipo === 'reventa') return false;
-    }
-    
-    return true;
-  }), [products, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
+      // Type filter: only apply if business has kitchen products (ingredients always pass)
+      if (hasKitchenProducts && tipo !== 'ingrediente') {
+        if (productTypeTab === 'reventa' && tipo !== 'reventa') return false;
+        if (productTypeTab === 'cocina' && tipo === 'reventa') return false;
+      }
+      
+      return true;
+    });
+
+    // Add raw materials (avoid duplicates by checking existing product IDs)
+    const existingIds = new Set(filtered.map(p => p.id));
+    const rawToAdd = rawMaterialsAsProducts.filter(rm => {
+      if (existingIds.has(rm.id)) return false;
+      if (!search) return true;
+      return rm.name.toLowerCase().includes(search.toLowerCase());
+    });
+
+    return [...filtered, ...rawToAdd];
+  }, [products, rawMaterialsAsProducts, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
 
   // Group products by category
   const groupedProducts = useMemo(() => {
