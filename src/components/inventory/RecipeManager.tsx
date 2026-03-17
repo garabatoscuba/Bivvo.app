@@ -230,7 +230,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <ChefHat className="h-5 w-5" />
-            Receta: {product.name}
+            Ficha de costo: {product.name}
           </DialogTitle>
         </DialogHeader>
 
