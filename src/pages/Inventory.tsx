@@ -237,8 +237,8 @@ const Inventory = () => {
 
     const tipo = (product as any).tipo || 'reventa';
 
-    // Type filter: only apply if business has kitchen products
-    if (hasKitchenProducts) {
+    // Type filter: only apply if business has kitchen products (ingredients always pass)
+    if (hasKitchenProducts && tipo !== 'ingrediente') {
       if (productTypeTab === 'reventa' && tipo !== 'reventa') return false;
       if (productTypeTab === 'cocina' && tipo === 'reventa') return false;
     }
