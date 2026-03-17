@@ -85,7 +85,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
       if (!businessId) throw new Error('No business');
       const { data, error } = await supabase
         .from('recipes')
-        .insert({ business_id: businessId, product_id: product.id, name: `Receta de ${product.name}` })
+        .insert({ business_id: businessId, product_id: product.id, name: `Ficha de costo: ${product.name}` })
         .select()
         .single();
       if (error) throw error;
@@ -93,7 +93,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recipe', product.id] });
-      toast({ title: 'Receta creada' });
+      toast({ title: 'Ficha de costo creada' });
     },
   });
 
@@ -230,7 +230,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
         <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <ChefHat className="h-5 w-5" />
-            Receta: {product.name}
+            Ficha de costo: {product.name}
           </DialogTitle>
         </DialogHeader>
 
@@ -241,10 +241,10 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
             </div>
           ) : !recipe ? (
             <div className="text-center py-8 space-y-3">
-              <p className="text-sm text-muted-foreground">Este producto aún no tiene receta.</p>
+              <p className="text-sm text-muted-foreground">Este producto aún no tiene ficha de costo.</p>
               <Button onClick={() => createRecipe.mutate()} disabled={createRecipe.isPending}>
                 {createRecipe.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Crear receta
+                Crear ficha de costo
               </Button>
             </div>
           ) : (
@@ -271,7 +271,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
               {/* Cost summary */}
               <div className="grid grid-cols-3 gap-2">
                 <Card className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Costo receta</p>
+                  <p className="text-xs text-muted-foreground">Costo ficha</p>
                   <p className="text-lg font-bold">${recipeCost.toFixed(2)}</p>
                 </Card>
                 <Card className="p-3 text-center">

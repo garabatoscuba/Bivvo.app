@@ -978,7 +978,7 @@ const Inventory = () => {
                   ) : !productionCapacity || productionCapacity.maxUnits === 0 && productionCapacity.bottleneck === null ? (
                     <div className="space-y-1.5">
                       <p className="text-sm font-medium text-muted-foreground">
-                        Configura una receta para ver la producción posible
+                        Configura una ficha de costo para ver la producción posible
                       </p>
                       <Button 
                         variant="outline" 
@@ -990,7 +990,7 @@ const Inventory = () => {
                         }}
                       >
                         <ChefHat className="mr-2 h-4 w-4" />
-                        Gestionar receta
+                        Gestionar ficha de costo
                       </Button>
                     </div>
                   ) : (
@@ -1023,7 +1023,7 @@ const Inventory = () => {
                         }}
                       >
                         <ChefHat className="mr-2 h-4 w-4" />
-                        Gestionar receta
+                        Gestionar ficha de costo
                       </Button>
                     </div>
                   )}
