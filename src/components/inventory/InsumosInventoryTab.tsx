@@ -45,7 +45,7 @@ const InsumosInventoryTab = () => {
   const [materialDialogOpen, setMaterialDialogOpen] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<any>(null);
   const [matForm, setMatForm] = useState({
-    name: '', unit_purchase: '', unit_use: '', conversion_factor: 1, costo_unitario: 0, stock_almacen: 0,
+    name: '', unit_purchase: '',
   });
 
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
@@ -130,10 +130,6 @@ const InsumosInventoryTab = () => {
       const payload = {
         name: form.name,
         unit_purchase: form.unit_purchase || null,
-        unit_use: form.unit_use || null,
-        conversion_factor: form.conversion_factor || 1,
-        costo_unitario: form.costo_unitario || 0,
-        stock_almacen: form.stock_almacen || 0,
       };
       if (form.id) {
         const { error } = await supabase.from('raw_materials').update(payload).eq('id', form.id);
@@ -198,7 +194,7 @@ const InsumosInventoryTab = () => {
 
   const openNewMaterial = () => {
     setEditingMaterial(null);
-    setMatForm({ name: '', unit_purchase: '', unit_use: '', conversion_factor: 1, costo_unitario: 0, stock_almacen: 0 });
+    setMatForm({ name: '', unit_purchase: '' });
     setMaterialDialogOpen(true);
   };
 
@@ -207,10 +203,6 @@ const InsumosInventoryTab = () => {
     setMatForm({
       name: mat.name,
       unit_purchase: mat.unit_purchase || '',
-      unit_use: mat.unit_use || '',
-      conversion_factor: mat.conversion_factor || 1,
-      costo_unitario: mat.costo_unitario || 0,
-      stock_almacen: mat.stock_almacen || 0,
     });
     setMaterialDialogOpen(true);
   };
@@ -296,44 +288,16 @@ const InsumosInventoryTab = () => {
                 <Label>Nombre</Label>
                 <Input value={matForm.name} onChange={e => setMatForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Harina de trigo" />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <Label>Unidad de compra</Label>
-                  <Select value={matForm.unit_purchase} onValueChange={v => setMatForm(f => ({ ...f, unit_purchase: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {allUnits.map(u => (
-                        <SelectItem key={u.value} value={u.value}>{u.label} ({u.category})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Unidad de uso</Label>
-                  <Select value={matForm.unit_use} onValueChange={v => setMatForm(f => ({ ...f, unit_use: v }))}>
-                    <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
-                    <SelectContent>
-                      {allUnits.map(u => (
-                        <SelectItem key={u.value} value={u.value}>{u.label} ({u.category})</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <Label>Factor conversión</Label>
-                  <Input type="number" min={0} step="0.01" value={matForm.conversion_factor || ''} onChange={e => setMatForm(f => ({ ...f, conversion_factor: parseFloat(e.target.value) || 1 }))} />
-                  <p className="text-[10px] text-muted-foreground mt-0.5">1 compra = X uso</p>
-                </div>
-                <div>
-                  <Label>Costo unitario</Label>
-                  <Input type="number" min={0} step="0.01" value={matForm.costo_unitario || ''} onChange={e => setMatForm(f => ({ ...f, costo_unitario: parseFloat(e.target.value) || 0 }))} />
-                </div>
-                <div>
-                  <Label>Stock inicial</Label>
-                  <Input type="number" min={0} value={matForm.stock_almacen || ''} onChange={e => setMatForm(f => ({ ...f, stock_almacen: parseFloat(e.target.value) || 0 }))} />
-                </div>
+              <div>
+                <Label>Unidad de compra</Label>
+                <Select value={matForm.unit_purchase} onValueChange={v => setMatForm(f => ({ ...f, unit_purchase: v }))}>
+                  <SelectTrigger><SelectValue placeholder="Ej: kg, litro, caja" /></SelectTrigger>
+                  <SelectContent>
+                    {allUnits.map(u => (
+                      <SelectItem key={u.value} value={u.value}>{u.label} ({u.category})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <DialogFooter>
