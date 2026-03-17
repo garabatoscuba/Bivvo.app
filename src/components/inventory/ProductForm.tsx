@@ -55,7 +55,7 @@ interface ProductFormProps {
 
 
 const unitOptions = [
-  'Pieza', 'Kilogramo', 'Gramo', 'Litro', 'Mililitro',
+  'Pieza', 'Kilogramo', 'Gramo', 'Libra', 'Litro', 'Mililitro',
   'Metro', 'Metro cuadrado (m²)', 'Centímetro', 'Caja', 'Paquete', 'Par', 'Docena', 'Rollo',
 ];
 
