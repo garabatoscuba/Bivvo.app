@@ -841,7 +841,14 @@ const Inventory = () => {
 
           {/* ─── Insumos Tab ─── */}
           <TabsContent value="insumos" className="mt-4">
-            <InsumosInventoryTab />
+            <InsumosInventoryTab
+              products={products as (Product & { category: Category | null })[]}
+              stockMap={stockMap}
+              warehouseStockMap={warehouseStockMap}
+              onSelectProduct={handleProductTap}
+              onAddStock={(product) => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+              canManage={canManage}
+            />
           </TabsContent>
         </Tabs>
       </div>
