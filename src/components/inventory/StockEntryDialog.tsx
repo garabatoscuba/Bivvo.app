@@ -408,7 +408,24 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
             )}
           </div>
 
-          {/* Notes */}
+          {/* Purchase unit */}
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              <Ruler className="h-3.5 w-3.5 text-muted-foreground" />
+              Unidad de medida
+            </Label>
+            <Select value={purchaseUnit} onValueChange={setPurchaseUnit}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona unidad" />
+              </SelectTrigger>
+              <SelectContent>
+                {['Pieza','Kilogramo','Gramo','Libra','Litro','Mililitro','Metro','Metro cuadrado (m²)','Centímetro','Caja','Paquete','Par','Docena','Rollo'].map(u => (
+                  <SelectItem key={u} value={u}>{u}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="space-y-1.5">
             <Label>Observaciones</Label>
             <Textarea
