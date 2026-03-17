@@ -145,7 +145,7 @@ const Inventory = () => {
 
   // Batch capacity map for list badges (finite values only)
   const elaboradoIds = useMemo(
-    () => products.filter((p: any) => p.tipo === 'elaborado').map(p => p.id),
+    () => products.filter((p: any) => p.tipo === 'elaborado' || p.tipo === 'granel').map(p => p.id),
     [products]
   );
   const { data: productionCapacities } = useProductionCapacities(elaboradoIds, effectiveBranchId);
