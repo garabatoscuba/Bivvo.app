@@ -837,6 +837,11 @@ const Inventory = () => {
               onRegisterMerma={() => { if (!guardDowngrade()) setMermaOpen(true); }}
             />
           </TabsContent>
+
+          {/* ─── Insumos Tab ─── */}
+          <TabsContent value="insumos" className="mt-4">
+            <InsumosInventoryTab />
+          </TabsContent>
         </Tabs>
       </div>
 
