@@ -775,7 +775,6 @@ const Inventory = () => {
                 return wStock > 0;
               }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
               const totalUnits = warehouseProducts.reduce((sum, p) => sum + (warehouseStockMap.get(p.id) || 0), 0);
-              const totalValue = warehouseProducts.reduce((sum, p) => sum + (warehouseStockMap.get(p.id) || 0) * Number(p.cost_price), 0);
               return (
                 <>
                   <div className="text-sm text-muted-foreground">
@@ -795,22 +794,43 @@ const Inventory = () => {
                     <div className="space-y-1">
                       {warehouseProducts.map((product) => {
                         const wStock = warehouseStockMap.get(product.id) || 0;
+                        const isLow = wStock <= product.min_stock;
+
                         return (
-                          <ProductRow
-                            key={product.id}
-                            product={product}
-                            stock={wStock}
-                            warehouseStock={wStock}
-                            color={product.category?.color || 'blue'}
-                            onClick={() => handleProductTap(product)}
-                            canManage={canManage}
-                            onDelete={() => setDeletingProduct(product)}
-                            onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
-                            onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
-                            onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                            onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
-                            showBadges="warehouse"
-                          />
+                          <div key={product.id} className="flex items-center gap-2 py-1.5 px-1 rounded-lg hover:bg-muted/50 transition-colors group">
+                            <button
+                              className="flex items-center gap-2 flex-1 text-left min-w-0"
+                              onClick={() => handleProductTap(product)}
+                            >
+                              <div className="flex gap-1 flex-shrink-0">
+                                <span className="inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground" title="Almacén">
+                                  {wStock}
+                                </span>
+                              </div>
+                              <span className="font-medium text-sm truncate flex-1">{product.name}</span>
+                              {isLow && <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />}
+                            </button>
+                            {canManage && (
+                              <div className="flex gap-0.5 flex-shrink-0">
+                                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { if (!guardDowngrade()) setStockEntryProduct(product); }} title="Dar entrada">
+                                  <PackagePlus className="h-3.5 w-3.5" />
+                                </Button>
+                                {wStock > 0 && (
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }} title="Transferir stock">
+                                    <ArrowRightLeft className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                                {wStock > 0 && (
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { if (!guardDowngrade()) setOutflowProduct(product); }} title="Salida almacén">
+                                    <PackageX className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => setDeletingProduct(product)} title="Eliminar">
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
