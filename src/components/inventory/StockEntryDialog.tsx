@@ -67,6 +67,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
 
   const isIngrediente = (product as any)?.tipo === 'ingrediente';
   const isGranel = (product as any)?.tipo === 'granel';
+  const isRawMaterial = !!(product as any)?._isRawMaterial;
   const insumoAreaId = (product as any)?.insumo_area_id as string | null;
 
   // Fetch area name for ingredientes
