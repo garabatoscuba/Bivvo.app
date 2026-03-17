@@ -45,6 +45,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
   const [newSalePrice, setNewSalePrice] = useState('');
   const [supplier, setSupplier] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [purchaseUnit, setPurchaseUnit] = useState((product as any)?.unit_of_measure || (product as any)?.unit || 'Pieza');
 
   const resetForm = () => {
     setQtyForSale(0);
