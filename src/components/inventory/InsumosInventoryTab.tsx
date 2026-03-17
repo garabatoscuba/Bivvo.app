@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { ArrowLeft, Plus, Loader2, Pencil, Trash2, PackagePlus, AlertTriangle, ArrowRightLeft, PackageX } from 'lucide-react';
 import { getIconComponent } from '@/components/services/IconSelector';
 import IconSelector from '@/components/services/IconSelector';
