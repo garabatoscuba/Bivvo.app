@@ -166,12 +166,13 @@ const InsumosInventoryTab = () => {
         user_id: profile.user_id,
       });
       if (error) throw error;
-      // Update stock
-      const { error: err2 } = await supabase.rpc('raw_materials' as any) // fallback: direct update
-      if (err2) { /* ignore rpc error, use direct update */ }
-      await supabase.from('raw_materials')
-        .update({ stock_almacen: materials.find(m => m.id === form.material_id)!.stock_almacen + form.cantidad })
-        .eq('id', form.material_id);
+      // Update stock directly
+      const mat = materials.find(m => m.id === form.material_id);
+      if (mat) {
+        await supabase.from('raw_materials')
+          .update({ stock_almacen: mat.stock_almacen + form.cantidad })
+          .eq('id', form.material_id);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['insumo-materials'] });
