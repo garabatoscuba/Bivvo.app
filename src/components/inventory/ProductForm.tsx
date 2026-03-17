@@ -379,6 +379,23 @@ export const ProductForm = ({ open, onOpenChange, product }: ProductFormProps) =
                 )}
               />
 
+              {/* Área de insumo (only for ingrediente) */}
+              {form.watch('tipo') === 'ingrediente' && insumoAreas.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium">Área de insumo</label>
+                  <select
+                    value={insumoAreaId}
+                    onChange={(e) => setInsumoAreaId(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    <option value="">Sin área</option>
+                    {insumoAreas.map((area: any) => (
+                      <option key={area.id} value={area.id}>{area.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3">
                 <FormField
                   control={form.control}
