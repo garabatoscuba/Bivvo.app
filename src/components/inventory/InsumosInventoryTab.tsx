@@ -250,9 +250,38 @@ const InsumosInventoryTab = ({
               const isLow = mat.stock_minimo > 0 && totalStock <= mat.stock_minimo && totalStock > 0;
               const isOut = totalStock <= 0;
 
+              const asProduct = {
+                id: mat.id,
+                name: mat.name,
+                code: mat.code || '',
+                description: mat.description || '',
+                sale_price: 0,
+                cost_price: costoUnit,
+                min_stock: mat.stock_minimo || 0,
+                unit: mat.unit || 'unidad',
+                image_url: null,
+                is_active: true,
+                business_id: mat.business_id,
+                category_id: null,
+                created_at: mat.created_at,
+                updated_at: mat.updated_at || mat.created_at,
+                tipo: 'ingrediente',
+                insumo_area_id: mat.area_id,
+                status: 'active',
+                barcode: null,
+                supplier: null,
+                unit_of_measure: mat.unit || 'unidad',
+                brand: mat.brand || null,
+                category: null,
+              } as unknown as Product & { category: Category | null };
+
               return (
                 <div key={`rm-${mat.id}`} className="rounded-lg border bg-card overflow-hidden">
-                  <div className="w-full text-left p-3">
+                  <button
+                    type="button"
+                    onClick={() => onSelectProduct(asProduct)}
+                    className="w-full text-left p-3 transition-colors hover:bg-accent/50"
+                  >
                     <div className="flex items-center justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
@@ -288,7 +317,7 @@ const InsumosInventoryTab = ({
                         <p className="text-sm font-bold">${valorTotal.toFixed(2)}</p>
                       </div>
                     </div>
-                  </div>
+                  </button>
 
                   {/* Action buttons */}
                   {canManage && (
