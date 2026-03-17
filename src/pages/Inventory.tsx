@@ -127,7 +127,7 @@ const Inventory = () => {
   const [showTransfer, setShowTransfer] = useState(false);
   const [transferDirection, setTransferDirection] = useState<'toSale' | 'toWarehouse'>('toSale');
   const [outflowProduct, setOutflowProduct] = useState<Product | null>(null);
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
+  
   const [mermaOpen, setMermaOpen] = useState(false);
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
   const [productionProduct, setProductionProduct] = useState<Product | null>(null);
