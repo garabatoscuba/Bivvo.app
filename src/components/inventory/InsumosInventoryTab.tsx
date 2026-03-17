@@ -41,7 +41,7 @@ interface InsumosInventoryTabProps {
   onOutflow?: (product: Product) => void;
   onTransfer?: (product: Product, direction: 'toSale' | 'toWarehouse') => void;
   onDeleteProduct?: (product: Product) => void;
-  onCreateInsumo?: () => void;
+  canManage: boolean;
   canManage: boolean;
 }
 
