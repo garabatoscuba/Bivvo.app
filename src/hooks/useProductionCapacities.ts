@@ -47,13 +47,47 @@ export const useProductionCapacities = (productIds: string[], branchId: string |
       // Base ingredients for all recipes
       const { data: ingredients, error: ingredientsError } = await supabase
         .from('recipe_ingredients')
-        .select('recipe_id, ingredient_id, quantity, unit, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, unit_of_measure)')
+        .select('recipe_id, ingredient_id, quantity, unit, is_raw_material')
         .in('recipe_id', recipeIds)
         .eq('ingredient_type', 'base');
 
       if (ingredientsError) throw ingredientsError;
 
-      const typedIngredients = (ingredients || []) as IngredientRow[];
+      // Separate product IDs and raw_material IDs
+      const productIngredientIds = new Set<string>();
+      const rawMaterialIds = new Set<string>();
+      for (const ri of (ingredients || [])) {
+        if ((ri as any).is_raw_material) {
+          rawMaterialIds.add(ri.ingredient_id);
+        } else {
+          productIngredientIds.add(ri.ingredient_id);
+        }
+      }
+
+      // Fetch unit_of_measure from both tables
+      const unitMap = new Map<string, string>();
+      if (productIngredientIds.size > 0) {
+        const { data: prods } = await supabase
+          .from('products')
+          .select('id, unit_of_measure')
+          .in('id', Array.from(productIngredientIds));
+        for (const p of (prods || [])) unitMap.set(p.id, p.unit_of_measure || 'pieza');
+      }
+      if (rawMaterialIds.size > 0) {
+        const { data: mats } = await supabase
+          .from('raw_materials')
+          .select('id, unit_purchase')
+          .in('id', Array.from(rawMaterialIds));
+        for (const m of (mats || [])) unitMap.set(m.id, (m as any).unit_purchase || 'pieza');
+      }
+
+      const typedIngredients: IngredientRow[] = (ingredients || []).map((ri: any) => ({
+        recipe_id: ri.recipe_id,
+        ingredient_id: ri.ingredient_id,
+        quantity: ri.quantity,
+        unit: ri.unit,
+        ingredient: { id: ri.ingredient_id, unit_of_measure: unitMap.get(ri.ingredient_id) || 'pieza' },
+      }));
 
       // Group ingredients by recipe
       const byRecipe = new Map<string, IngredientRow[]>();
