@@ -1659,18 +1659,27 @@ const Inventory = () => {
           });
           return allProds;
         })()}
-        stockMap={(() => {
-          const totalMap = new Map<string, number>();
+        stockBreakdownMap={(() => {
+          const map = new Map<string, { sale: number; warehouse: number; area: number }>();
           branchStock?.forEach((bs: any) => {
-            totalMap.set(bs.product_id, (bs.quantity || 0) + (bs.warehouse_quantity || 0));
+            map.set(bs.product_id, {
+              sale: bs.quantity || 0,
+              warehouse: bs.warehouse_quantity || 0,
+              area: 0,
+            });
           });
           rawMaterialsAsProducts.forEach((rm: any) => {
-            if (!totalMap.has(rm.id)) {
-              totalMap.set(rm.id, (rm._stockVendedor || 0) + (rm._stockAlmacen || 0));
+            if (!map.has(rm.id)) {
+              map.set(rm.id, {
+                sale: 0,
+                warehouse: rm._stockAlmacen || 0,
+                area: rm._stockVendedor || 0,
+              });
             }
           });
-          return totalMap;
+          return map;
         })()}
+        sellerOnly={!canManage}
       />
       {/* Production Dialog */}
       <ProductionDialog
