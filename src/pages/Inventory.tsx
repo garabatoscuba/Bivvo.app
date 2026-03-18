@@ -994,11 +994,6 @@ const Inventory = () => {
                     <div className="space-y-4">
                       {Array.from(catGroups.values()).map(({ category, products: catProducts }) => (
                         <div key={category?.id || 'none'}>
-                          <div className="flex items-center gap-2 mb-2">
-                            <div className={cn('h-3 w-3 rounded-full flex-shrink-0', colorDotMap[category?.color || 'blue'] || colorDotMap.blue)} />
-                            <p className="text-sm font-semibold">{category?.name}</p>
-                            <span className="text-xs text-muted-foreground">({catProducts.length})</span>
-                          </div>
                           <div className="space-y-1">
                             {catProducts.map((product) => (
                               <ProductRow
@@ -1018,7 +1013,7 @@ const Inventory = () => {
                               />
                             ))}
                           </div>
-                          <Separator className="mt-3" />
+                          <Separator className="mt-2" />
                         </div>
                       ))}
                       {uncategorized.length > 0 && (
