@@ -205,9 +205,6 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
       const baseUnit = ing.unit_of_measure || 'pieza';
       const normalized = normalizeUnitKey(baseUnit);
       setNewUnit(normalized);
-      setCompatibleUnits(getCompatibleUnits(baseUnit));
-    } else {
-      setCompatibleUnits([]);
     }
   };
 
