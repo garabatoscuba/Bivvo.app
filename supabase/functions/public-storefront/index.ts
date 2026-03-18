@@ -273,7 +273,7 @@ serve(async (req) => {
         .maybeSingle(),
       supabase
         .from("branch_stock")
-        .select("quantity, product:products(id, name, description, sale_price, image_url, code, status, category:categories(name, color))")
+        .select("quantity, product:products(id, name, description, sale_price, image_url, code, status, tipo, category:categories(name, color))")
         .eq("branch_id", resolvedBranch.id)
         .gt("quantity", 0),
       supabase
@@ -312,8 +312,9 @@ serve(async (req) => {
       });
     }
 
+    const allowedTipos = ['reventa', 'elaborado', 'granel'];
     const products = (stockResult.data || [])
-      .filter((s: any) => s.product && s.product.status !== "discontinued" && s.product.status !== "warehouse")
+      .filter((s: any) => s.product && s.product.status !== "discontinued" && s.product.status !== "warehouse" && allowedTipos.includes(s.product.tipo || 'reventa'))
       .map((s: any) => ({
         id: s.product.id, name: s.product.name, description: s.product.description,
         price: s.product.sale_price, image_url: s.product.image_url, code: s.product.code,
