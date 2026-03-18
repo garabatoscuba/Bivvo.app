@@ -226,6 +226,13 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
         }
         queryClient.invalidateQueries({ queryKey: ['products'] });
       } else if (isIngrediente) {
+        // Update unit_of_measure on product to match purchase unit
+        if (!isRawMaterial) {
+          await supabase
+            .from('products')
+            .update({ unit_of_measure: purchaseUnit })
+            .eq('id', product.id);
+        }
         queryClient.invalidateQueries({ queryKey: ['products'] });
         queryClient.invalidateQueries({ queryKey: ['recipe-ingredients'] });
         queryClient.invalidateQueries({ queryKey: ['recipe'] });
