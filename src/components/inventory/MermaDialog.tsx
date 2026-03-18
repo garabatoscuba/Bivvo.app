@@ -40,6 +40,7 @@ interface MermaProduct {
   name: string;
   code: string;
   cost_price: number;
+  unit_of_measure?: string;
   _isRawMaterial?: boolean;
 }
 
