@@ -39,7 +39,7 @@ const productSchema = z.object({
   description: z.string().max(500).optional(),
   category_id: z.string().optional(),
   barcode: z.string().max(50).optional(),
-  unit_of_measure: z.string().min(1),
+  unit_of_measure: z.string().optional().default('Pieza'),
   brand: z.string().max(100).optional(),
   tipo: z.enum(['reventa', 'ingrediente', 'elaborado', 'granel']).default('reventa'),
   sale_price: z.string().optional(),
@@ -450,6 +450,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
                   )}
                 />
 
+                {form.watch('tipo') !== 'ingrediente' && form.watch('tipo') !== 'granel' && (
                 <FormField
                   control={form.control}
                   name="unit_of_measure"
@@ -471,6 +472,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
                     </FormItem>
                   )}
                 />
+                )}
               </div>
             </div>
 
