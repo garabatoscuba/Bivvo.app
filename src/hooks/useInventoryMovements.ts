@@ -49,7 +49,7 @@ export const useInventoryMovements = (branchId?: string) => {
       // Merge raw materials into product map (for items not found in products)
       rawMaterialsRes.data?.forEach(rm => {
         if (!productMap.has(rm.id)) {
-          productMap.set(rm.id, { id: rm.id, name: rm.name, code: '' });
+          productMap.set(rm.id, { id: rm.id, name: rm.name, code: '', unit_of_measure: rm.unit_use || null });
         }
       });
       const profileMap = new Map(profilesRes.data?.map(p => [p.user_id, p]) || []);
