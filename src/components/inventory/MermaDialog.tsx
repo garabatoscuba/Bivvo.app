@@ -87,6 +87,7 @@ export const MermaDialog = ({
 
   const selectedProduct = products.find(p => p.id === productId);
   const breakdown = stockBreakdownMap.get(productId) || { sale: 0, warehouse: 0, area: 0 };
+  const unitLabel = selectedProduct?.unit_of_measure || 'uds';
 
   // Determine available sources for the selected product
   const availableSources = useMemo(() => {
