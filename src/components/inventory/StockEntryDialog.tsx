@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Loader2, PackagePlus, MapPin, User, FileText, DollarSign, Tag, Ruler } from 'lucide-react';
+import { Loader2, PackagePlus, MapPin, User, FileText, DollarSign, Tag, Ruler, Truck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
@@ -44,6 +44,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
   const [unitCost, setUnitCost] = useState('');
   const [newSalePrice, setNewSalePrice] = useState('');
   const [supplier, setSupplier] = useState('');
+  const [freightCost, setFreightCost] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [purchaseUnit, setPurchaseUnit] = useState((product as any)?.unit_of_measure || (product as any)?.unit || 'Pieza');
 
@@ -57,6 +58,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     setUnitCost('');
     setNewSalePrice('');
     setSupplier('');
+    setFreightCost('');
     setPurchaseUnit((product as any)?.unit_of_measure || (product as any)?.unit || 'Pieza');
   };
 
@@ -90,6 +92,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     : 'Cantidad a venta';
 
   const totalQty = isGranel ? qtyForSale : qtyForSale + qtyWarehouse;
+  const effectiveCostPerUnit = unitCost ? parseFloat(unitCost) + (parseFloat(freightCost || '0') / (totalQty || 1)) : 0;
   const reasonLabel = ENTRY_REASONS.find(r => r.value === reason)?.label || reason;
 
   const handleSubmit = async () => {
@@ -113,7 +116,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           // Weighted average cost
           const oldTotal = (mat.stock_vendedor || 0) + (mat.stock_almacen || 0);
           const oldCost = mat.costo_unitario || 0;
-          const newCost = unitCost ? parseFloat(unitCost) : oldCost;
+          const newCost = effectiveCostPerUnit > 0 ? effectiveCostPerUnit : oldCost;
           const avgCost = (oldTotal + totalQty) > 0
             ? ((oldTotal * oldCost) + (totalQty * newCost)) / (oldTotal + totalQty)
             : newCost;
@@ -203,7 +206,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
             product_id: product.id,
             user_id: profile.user_id,
             quantity: totalQty,
-            unit_cost: unitCost ? parseFloat(unitCost) : null,
+            unit_cost: effectiveCostPerUnit > 0 ? effectiveCostPerUnit : (unitCost ? parseFloat(unitCost) : null),
             sale_price: !isIngrediente && newSalePrice ? parseFloat(newSalePrice) : null,
             supplier: supplier.trim() || null,
             notes: notes.trim() || null,
@@ -444,7 +447,27 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
             )}
           </div>
 
-          {/* Purchase unit */}
+          {/* Freight / transport cost */}
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5 text-xs">
+              <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+              Costo de transporte/flete (opcional)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Ej: 50.00"
+              value={freightCost}
+              onChange={(e) => setFreightCost(e.target.value)}
+            />
+            {parseFloat(freightCost || '0') > 0 && totalQty > 0 && unitCost && (
+              <p className="text-xs text-muted-foreground">
+                Costo unitario real: ${effectiveCostPerUnit.toFixed(2)} (${unitCost} + ${(parseFloat(freightCost) / totalQty).toFixed(2)} flete)
+              </p>
+            )}
+          </div>
+
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <Ruler className="h-3.5 w-3.5 text-muted-foreground" />
