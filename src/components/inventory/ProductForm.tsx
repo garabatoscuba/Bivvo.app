@@ -450,6 +450,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
                   )}
                 />
 
+                {form.watch('tipo') !== 'ingrediente' && form.watch('tipo') !== 'granel' && (
                 <FormField
                   control={form.control}
                   name="unit_of_measure"
@@ -471,6 +472,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
                     </FormItem>
                   )}
                 />
+                )}
               </div>
             </div>
 
