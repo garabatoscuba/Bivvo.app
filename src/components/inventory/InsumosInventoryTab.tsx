@@ -32,6 +32,17 @@ const getAreaColorClass = (color: string | null) => {
   return AREA_COLORS.find(c => c.value === color)?.class || 'bg-muted-foreground';
 };
 
+const AREA_COLOR_BADGE: Record<string, string> = {
+  blue: 'bg-blue-500 text-white',
+  green: 'bg-green-500 text-white',
+  orange: 'bg-orange-500 text-white',
+  purple: 'bg-purple-500 text-white',
+  pink: 'bg-pink-500 text-white',
+  red: 'bg-red-500 text-white',
+  yellow: 'bg-yellow-500 text-black',
+  teal: 'bg-teal-500 text-white',
+};
+
 interface InsumosInventoryTabProps {
   products: (Product & { category: Category | null })[];
   stockMap: Map<string, number>;
