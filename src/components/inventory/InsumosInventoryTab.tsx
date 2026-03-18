@@ -400,7 +400,7 @@ const InsumosInventoryTab = ({
                 sale_price: 0,
                 image_url: null,
                 min_stock: mat.stock_minimo || 0,
-                category_id: null,
+                category_id: mat.category_id || null,
                 created_at: mat.created_at,
                 updated_at: mat.updated_at || mat.created_at,
                 tipo: 'ingrediente',
