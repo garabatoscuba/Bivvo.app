@@ -206,7 +206,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
             product_id: product.id,
             user_id: profile.user_id,
             quantity: totalQty,
-            unit_cost: unitCost ? parseFloat(unitCost) : null,
+            unit_cost: effectiveCostPerUnit > 0 ? effectiveCostPerUnit : (unitCost ? parseFloat(unitCost) : null),
             sale_price: !isIngrediente && newSalePrice ? parseFloat(newSalePrice) : null,
             supplier: supplier.trim() || null,
             notes: notes.trim() || null,
