@@ -3,7 +3,6 @@ import {
   calcIngredientCost,
   convertUnits,
   getAllUnits,
-  getCompatibleUnits,
   getUnitCategory,
   normalizeUnitKey,
 } from '@/lib/unitConversion';
