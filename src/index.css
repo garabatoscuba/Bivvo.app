@@ -205,12 +205,12 @@
   }
 }
 
-/* Global: prevent focus rings from being clipped by overflow containers */
+/* Global: use outline for focus rings so they are NOT clipped by overflow:hidden */
 @layer base {
-  /* Use outline instead of box-shadow for focus rings — outlines are NOT clipped by overflow */
   *:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
+    --tw-ring-shadow: 0 0 0 0 transparent !important;
   }
 }
 
