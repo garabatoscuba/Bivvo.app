@@ -8,9 +8,10 @@ interface BottleneckInfo {
   breakdown: { name: string; maxUnits: number; available: number; needed: number; unit: string }[];
 }
 
-export const useProductionCapacity = (productId: string | null, branchId: string | undefined) => {
+export const useProductionCapacity = (productId: string | null, branchId: string | undefined, options?: { onlySellerStock?: boolean }) => {
+  const onlySellerStock = options?.onlySellerStock ?? false;
   return useQuery({
-    queryKey: ['production-capacity', productId, branchId],
+    queryKey: ['production-capacity', productId, branchId, onlySellerStock],
     queryFn: async (): Promise<BottleneckInfo> => {
       if (!productId || !branchId) return { maxUnits: 0, bottleneck: null, breakdown: [] };
 
