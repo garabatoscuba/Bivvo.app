@@ -451,10 +451,49 @@ const Inventory = () => {
   };
 
   const handleDeleteProduct = async () => {
-    if (deletingProduct) {
+    if (!deletingProduct) return;
+
+    const isRawMaterialToDelete = !!(deletingProduct as any)._isRawMaterial;
+
+    if (isRawMaterialToDelete) {
+      const { error: recipeIngredientError } = await supabase
+        .from('recipe_ingredients')
+        .delete()
+        .eq('ingredient_id', deletingProduct.id)
+        .eq('is_raw_material', true);
+
+      if (recipeIngredientError) {
+        toast({ title: 'Error', description: recipeIngredientError.message, variant: 'destructive' });
+        return;
+      }
+
+      const { error: rawMaterialError } = await supabase
+        .from('raw_materials')
+        .delete()
+        .eq('id', deletingProduct.id);
+
+      if (rawMaterialError) {
+        toast({ title: 'Error', description: rawMaterialError.message, variant: 'destructive' });
+        return;
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['raw-materials'] }),
+        queryClient.invalidateQueries({ queryKey: ['raw-materials-for-recipe'] }),
+        queryClient.invalidateQueries({ queryKey: ['recipe'] }),
+        queryClient.invalidateQueries({ queryKey: ['recipe-ingredients'] }),
+      ]);
+
+      if (selectedProduct?.id === deletingProduct.id) {
+        setSelectedProduct(null);
+      }
+
+      toast({ title: 'Insumo eliminado' });
+    } else {
       await deleteProduct.mutateAsync(deletingProduct.id);
-      setDeletingProduct(null);
     }
+
+    setDeletingProduct(null);
   };
 
   // handleAddStock removed — now handled by StockEntryDialog component
