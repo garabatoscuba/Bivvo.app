@@ -1520,8 +1520,8 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
           {(showBadges === 'both' || showBadges === 'sale') && (
             <span className={cn(
               'inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold',
-              bgColor
-            )} title="En venta">
+              badgeColorClass || bgColor
+            )} title="En uso">
               {stock}
             </span>
           )}
