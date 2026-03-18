@@ -124,7 +124,15 @@ export const useProductionCapacities = (productIds: string[], branchId: string |
           .from('raw_materials')
           .select('id, stock_vendedor, stock_almacen')
           .in('id', matIds);
-        for (const m of (mats || [])) stockMap.set(m.id, (Number((m as any).stock_vendedor) || 0) + (Number((m as any).stock_almacen) || 0));
+        for (const m of (mats || [])) {
+          // For granel products we'll handle per-recipe below; store both values
+          stockMap.set(m.id, (Number((m as any).stock_vendedor) || 0) + (Number((m as any).stock_almacen) || 0));
+        }
+        // Also store seller-only stock for granel lookups
+        const sellerStockMap = new Map<string, number>();
+        for (const m of (mats || [])) {
+          sellerStockMap.set(m.id, Number((m as any).stock_vendedor) || 0);
+        }
       }
 
       const capacities: CapacityMap = {};
