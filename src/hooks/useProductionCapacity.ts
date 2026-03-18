@@ -65,7 +65,7 @@ export const useProductionCapacity = (productId: string | null, branchId: string
           .from('raw_materials')
           .select('id, stock_vendedor, stock_almacen')
           .in('id', matIds);
-        for (const m of (mats || [])) stockMap.set(m.id, ((m as any).stock_vendedor || 0) + ((m as any).stock_almacen || 0));
+        for (const m of (mats || [])) stockMap.set(m.id, onlySellerStock ? ((m as any).stock_vendedor || 0) : ((m as any).stock_vendedor || 0) + ((m as any).stock_almacen || 0));
       }
       const yieldQty = recipe.yield_quantity || 1;
 

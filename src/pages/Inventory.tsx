@@ -1198,7 +1198,7 @@ const Inventory = () => {
                       <div className="flex items-baseline gap-2">
                         <ChefHat className="h-5 w-5 text-primary" />
                         <div>
-                          <p className="text-sm font-medium">Producción posible:</p>
+                          <p className="text-sm font-medium">{isGranelSelected ? 'Disponibilidad:' : 'Producción posible:'}</p>
                           <p className="text-2xl font-bold text-primary">
                             {productionCapacity.maxUnits === Infinity ? '∞' : productionCapacity.maxUnits} unidades
                           </p>
