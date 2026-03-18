@@ -651,6 +651,29 @@ const Inventory = () => {
         queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       }
 
+      const label = (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: uso → almacén' : 'Transferencia: venta → almacén';
+
+      // Register inventory movements
+      await supabase.from('inventory_movements').insert([
+        {
+          branch_id: branchId,
+          product_id: selectedProduct.id,
+          user_id: profile.user_id,
+          movement_type: 'transfer_out' as const,
+          quantity: transferQty,
+          notes: label,
+        },
+        {
+          branch_id: branchId,
+          product_id: selectedProduct.id,
+          user_id: profile.user_id,
+          movement_type: 'transfer_in' as const,
+          quantity: transferQty,
+          notes: label,
+        },
+      ]);
+
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       toast({ title: `${transferQty} unidades devueltas a almacén` });
       auditLog(
         'stock_transfer',
