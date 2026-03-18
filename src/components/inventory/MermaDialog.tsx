@@ -40,6 +40,7 @@ interface MermaProduct {
   name: string;
   code: string;
   cost_price: number;
+  unit_of_measure?: string;
   _isRawMaterial?: boolean;
 }
 
@@ -86,6 +87,7 @@ export const MermaDialog = ({
 
   const selectedProduct = products.find(p => p.id === productId);
   const breakdown = stockBreakdownMap.get(productId) || { sale: 0, warehouse: 0, area: 0 };
+  const unitLabel = selectedProduct?.unit_of_measure || 'uds';
 
   // Determine available sources for the selected product
   const availableSources = useMemo(() => {
@@ -95,12 +97,11 @@ export const MermaDialog = ({
 
     if (isRaw) {
       // Raw materials: "Área" (stock_vendedor) and "Almacén" (stock_almacen)
-      sources.push({ value: 'area', label: 'Área (uso)', stock: breakdown.area });
+      sources.push({ value: 'area', label: `Área (uso)`, stock: breakdown.area });
       if (!sellerOnly) {
         sources.push({ value: 'warehouse', label: 'Almacén', stock: breakdown.warehouse });
       }
     } else {
-      // Regular products: "A la Venta" and "Almacén"
       sources.push({ value: 'sale', label: 'A la Venta', stock: breakdown.sale });
       if (!sellerOnly) {
         sources.push({ value: 'warehouse', label: 'Almacén', stock: breakdown.warehouse });
@@ -211,7 +212,8 @@ export const MermaDialog = ({
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
       queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
-      toast({ title: 'Merma registrada', description: `${quantity} unidad(es) de ${selectedProduct?.name} descontadas` });
+      const unit = selectedProduct?.unit_of_measure || 'uds';
+      toast({ title: 'Merma registrada', description: `${quantity} ${unit} de ${selectedProduct?.name} descontadas` });
       const reasonLabel = MERMA_REASONS.find(r => r.value === reason)?.label || reason;
       auditLog(
         'shrinkage_registered',
@@ -263,6 +265,7 @@ export const MermaDialog = ({
                 filteredProducts.map(p => {
                   const bd = stockBreakdownMap.get(p.id) || { sale: 0, warehouse: 0, area: 0 };
                   const total = bd.sale + bd.warehouse + bd.area;
+                  const pUnit = p.unit_of_measure || 'uds';
                   return (
                     <button
                       key={p.id}
@@ -274,7 +277,7 @@ export const MermaDialog = ({
                       )}
                     >
                       <span className="truncate">{p.name} {p.code && <span className="text-muted-foreground">({p.code})</span>}</span>
-                      <span className="text-xs text-muted-foreground ml-2 shrink-0">{total} uds</span>
+                      <span className="text-xs text-muted-foreground ml-2 shrink-0">{total} {pUnit}</span>
                     </button>
                   );
                 })
@@ -282,7 +285,7 @@ export const MermaDialog = ({
             </div>
             {selectedProduct && (
               <p className="text-sm text-muted-foreground">
-                Seleccionado: <strong>{selectedProduct.name}</strong> — Total: {totalStock} uds
+                Seleccionado: <strong>{selectedProduct.name}</strong> — Total: {totalStock} {unitLabel}
               </p>
             )}
           </div>
@@ -298,7 +301,7 @@ export const MermaDialog = ({
                 <SelectContent>
                   {availableSources.map(s => (
                     <SelectItem key={s.value} value={s.value}>
-                      {s.label} ({s.stock} uds)
+                      {s.label} ({s.stock} {unitLabel})
                     </SelectItem>
                   ))}
                 </SelectContent>

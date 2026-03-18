@@ -1647,12 +1647,14 @@ const Inventory = () => {
           const existingIds = new Set(products.map(p => p.id));
           const allProds = products.map(p => ({
             id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price),
+            unit_of_measure: p.unit_of_measure || undefined,
             _isRawMaterial: false,
           }));
           rawMaterialsAsProducts.forEach(rm => {
             if (!existingIds.has(rm.id)) {
               allProds.push({
                 id: rm.id, name: rm.name, code: (rm as any).code || '', cost_price: Number(rm.cost_price),
+                unit_of_measure: rm.unit_of_measure || undefined,
                 _isRawMaterial: true,
               });
             }
