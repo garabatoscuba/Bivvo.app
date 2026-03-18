@@ -312,8 +312,9 @@ serve(async (req) => {
       });
     }
 
+    const allowedTipos = ['reventa', 'elaborado', 'granel'];
     const products = (stockResult.data || [])
-      .filter((s: any) => s.product && s.product.status !== "discontinued" && s.product.status !== "warehouse")
+      .filter((s: any) => s.product && s.product.status !== "discontinued" && s.product.status !== "warehouse" && allowedTipos.includes(s.product.tipo || 'reventa'))
       .map((s: any) => ({
         id: s.product.id, name: s.product.name, description: s.product.description,
         price: s.product.sale_price, image_url: s.product.image_url, code: s.product.code,
