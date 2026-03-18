@@ -40,7 +40,7 @@ export const useInventoryMovements = (branchId?: string) => {
 
       const [productsRes, rawMaterialsRes, profilesRes, branchRes] = await Promise.all([
         supabase.from('products').select('id, name, code, unit_of_measure').in('id', productIds),
-        supabase.from('raw_materials').select('id, name').in('id', productIds),
+        supabase.from('raw_materials').select('id, name, unit_of_measure').in('id', productIds),
         supabase.from('profiles').select('user_id, full_name').in('user_id', userIds),
         supabase.from('branches').select('id, name').eq('id', branchId).single(),
       ]);
