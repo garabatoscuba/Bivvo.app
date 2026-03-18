@@ -41,6 +41,7 @@ export default function ProductEntryModal({ open, onOpenChange, businessId, bran
     setQuantity("");
     setCostPerUnit("");
     setSalePricePerUnit("");
+    setFreightCost("");
     setEntryDate(new Date().toISOString().split("T")[0]);
   };
 
