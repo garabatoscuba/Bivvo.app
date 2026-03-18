@@ -45,12 +45,16 @@ const POS = () => {
   const currentBranch = resolvedBranchId || jornada?.sucursal_id || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(currentBranch);
 
-  // Get elaborado product IDs for production capacity calculation
+  // Get elaborado + granel product IDs for production capacity calculation
   const elaboradoIds = products
-    .filter(p => (p as any).tipo === 'elaborado')
+    .filter(p => (p as any).tipo === 'elaborado' || (p as any).tipo === 'granel')
     .map(p => p.id);
   
-  const { data: productionCapacities } = useProductionCapacities(elaboradoIds, currentBranch);
+  const granelIdSet = new Set(
+    products.filter(p => (p as any).tipo === 'granel').map(p => p.id)
+  );
+
+  const { data: productionCapacities } = useProductionCapacities(elaboradoIds, currentBranch, { granelIds: granelIdSet });
 
   // Check if the user has an open cash register
   const { data: openCashRegister } = useQuery({
