@@ -4256,6 +4256,7 @@ export type Database = {
           branch_id: string | null
           brand: string | null
           business_id: string
+          category_id: string | null
           conversion_factor: number | null
           costo_unitario: number
           created_at: string
@@ -4276,6 +4277,7 @@ export type Database = {
           branch_id?: string | null
           brand?: string | null
           business_id: string
+          category_id?: string | null
           conversion_factor?: number | null
           costo_unitario?: number
           created_at?: string
@@ -4296,6 +4298,7 @@ export type Database = {
           branch_id?: string | null
           brand?: string | null
           business_id?: string
+          category_id?: string | null
           conversion_factor?: number | null
           costo_unitario?: number
           created_at?: string
@@ -4331,6 +4334,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "raw_materials_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
             referencedColumns: ["id"]
           },
           {
