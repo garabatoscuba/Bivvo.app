@@ -45,8 +45,16 @@ export function normalizeUnitKey(unit: string): string {
   if (u === 'litro' || u === 'litros') return 'l';
   if (u === 'galon' || u === 'galones' || u === 'galón') return 'galón';
   if (u === 'fl oz' || u === 'floz') return 'fl oz';
+  if (u === 'metro' || u === 'metros') return 'metro';
+  if (u === 'metro cuadrado (m²)') return 'metro'; // approximate fallback
+  if (u === 'centímetro' || u === 'centimetro' || u === 'centímetros' || u === 'centimetros') return 'centímetro';
   if (u === 'pieza' || u === 'piezas' || u === 'pza') return 'pieza';
   if (u === 'unidad' || u === 'unidades' || u === 'ud' || u === 'u') return 'unidad';
+  if (u === 'caja' || u === 'cajas') return 'caja';
+  if (u === 'paquete' || u === 'paquetes') return 'paquete';
+  if (u === 'par' || u === 'pares') return 'par';
+  if (u === 'docena' || u === 'docenas') return 'docena';
+  if (u === 'rollo' || u === 'rollos') return 'rollo';
   return u;
 }
 
