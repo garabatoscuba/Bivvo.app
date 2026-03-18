@@ -1128,7 +1128,7 @@ const Inventory = () => {
               {(selectedProduct.brand || selectedProduct.supplier || selectedProduct.unit_of_measure) && (
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                   {selectedProduct.brand && <span className="bg-muted px-2 py-1 rounded">{selectedProduct.brand}</span>}
-                  {selectedProduct.unit_of_measure && !(selectedProduct.tipo === 'ingrediente' && selectedProduct.unit_of_measure === 'Pieza') && <span className="bg-muted px-2 py-1 rounded">{selectedProduct.unit_of_measure}</span>}
+                  {selectedProduct.unit_of_measure && !((selectedProduct as any).tipo === 'ingrediente' && selectedProduct.unit_of_measure === 'Pieza') && <span className="bg-muted px-2 py-1 rounded">{selectedProduct.unit_of_measure}</span>}
                   {selectedProduct.supplier && <span className="bg-muted px-2 py-1 rounded">Prov: {selectedProduct.supplier}</span>}
                 </div>
               )}
