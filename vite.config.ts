@@ -61,11 +61,15 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     commonjsOptions: {
-      include: [/react/, /react-dom/, /node_modules/],
+      include: [/node_modules/],
       transformMixedEsModules: true,
     },
   },
   optimizeDeps: {
-    include: ['react', 'react-dom', 'lucide-react'],
+    include: [
+      'react', 'react-dom', 'lucide-react',
+      'use-sync-external-store/shim',
+      'use-sync-external-store/shim/with-selector',
+    ],
   },
 }));
