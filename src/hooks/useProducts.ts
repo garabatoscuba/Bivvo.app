@@ -70,12 +70,14 @@ export const useProducts = (overrideBusinessId?: string) => {
 
   const updateProduct = useMutation({
     mutationFn: async ({ id, ...product }: Partial<Product> & { id: string }) => {
+      // Strip relation objects that aren't real columns
+      const { category, ...cleanProduct } = product as any;
       const { data, error } = await supabase
         .from('products')
-        .update(product)
+        .update(cleanProduct)
         .eq('id', id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
       return data;
