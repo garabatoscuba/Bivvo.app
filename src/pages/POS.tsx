@@ -317,7 +317,7 @@ const POS = () => {
               </Button>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex gap-2 overflow-x-auto py-1 px-0.5 scrollbar-none">
               <button
                 onClick={() => setSelectedCategory(null)}
                 className={cn(
