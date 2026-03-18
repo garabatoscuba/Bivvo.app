@@ -1643,8 +1643,34 @@ const Inventory = () => {
         open={mermaOpen}
         onOpenChange={setMermaOpen}
         branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
-        products={products.map(p => ({ id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price) }))}
-        stockMap={stockMap}
+        products={(() => {
+          const existingIds = new Set(products.map(p => p.id));
+          const allProds = products.map(p => ({
+            id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price),
+            _isRawMaterial: false,
+          }));
+          rawMaterialsAsProducts.forEach(rm => {
+            if (!existingIds.has(rm.id)) {
+              allProds.push({
+                id: rm.id, name: rm.name, code: (rm as any).code || '', cost_price: Number(rm.cost_price),
+                _isRawMaterial: true,
+              });
+            }
+          });
+          return allProds;
+        })()}
+        stockMap={(() => {
+          const totalMap = new Map<string, number>();
+          branchStock?.forEach((bs: any) => {
+            totalMap.set(bs.product_id, (bs.quantity || 0) + (bs.warehouse_quantity || 0));
+          });
+          rawMaterialsAsProducts.forEach((rm: any) => {
+            if (!totalMap.has(rm.id)) {
+              totalMap.set(rm.id, (rm._stockVendedor || 0) + (rm._stockAlmacen || 0));
+            }
+          });
+          return totalMap;
+        })()}
       />
       {/* Production Dialog */}
       <ProductionDialog
