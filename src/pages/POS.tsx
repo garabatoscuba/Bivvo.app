@@ -94,7 +94,7 @@ const POS = () => {
   // Helper to get the real available stock (considering production capacity for elaborados)
   const getDisplayStock = useCallback((productId: string) => {
     const product = products.find(p => p.id === productId);
-    if (product && (product as any).tipo === 'elaborado') {
+    if (product && ((product as any).tipo === 'elaborado' || (product as any).tipo === 'granel')) {
       const capacity = productionCapacities?.[productId];
       if (typeof capacity === 'number' && Number.isFinite(capacity)) {
         return capacity;
