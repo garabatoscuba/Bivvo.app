@@ -154,9 +154,11 @@ const Inventory = () => {
   const canManage = isOwner || isManager;
 
   // Production capacity for elaborado products (detail sheet)
+  const isGranelSelected = (selectedProduct as any)?.tipo === 'granel';
   const { data: productionCapacity, isLoading: capacityLoading } = useProductionCapacity(
-    ((selectedProduct as any)?.tipo === 'elaborado' || (selectedProduct as any)?.tipo === 'granel') ? selectedProduct?.id || null : null,
-    effectiveBranchId
+    ((selectedProduct as any)?.tipo === 'elaborado' || isGranelSelected) ? selectedProduct?.id || null : null,
+    effectiveBranchId,
+    { onlySellerStock: isGranelSelected }
   );
 
   // Batch capacity map for list badges (finite values only)
@@ -164,7 +166,11 @@ const Inventory = () => {
     () => products.filter((p: any) => p.tipo === 'elaborado' || p.tipo === 'granel').map(p => p.id),
     [products]
   );
-  const { data: productionCapacities } = useProductionCapacities(elaboradoIds, effectiveBranchId);
+  const granelIdSet = useMemo(
+    () => new Set(products.filter((p: any) => p.tipo === 'granel').map(p => p.id)),
+    [products]
+  );
+  const { data: productionCapacities } = useProductionCapacities(elaboradoIds, effectiveBranchId, { granelIds: granelIdSet });
 
   // Product review stats from portal
   const businessId = profile?.business_id;
@@ -1176,7 +1182,7 @@ const Inventory = () => {
                   ) : !productionCapacity || productionCapacity.maxUnits === 0 && productionCapacity.bottleneck === null ? (
                     <div className="space-y-1.5">
                       <p className="text-sm font-medium text-muted-foreground">
-                        Configura una ficha de costo para ver la producción posible
+                        Configura una ficha de costo para ver {isGranelSelected ? 'la disponibilidad' : 'la producción posible'}
                       </p>
                       <Button 
                         variant="outline" 
@@ -1196,7 +1202,7 @@ const Inventory = () => {
                       <div className="flex items-baseline gap-2">
                         <ChefHat className="h-5 w-5 text-primary" />
                         <div>
-                          <p className="text-sm font-medium">Producción posible:</p>
+                          <p className="text-sm font-medium">{isGranelSelected ? 'Disponibilidad:' : 'Producción posible:'}</p>
                           <p className="text-2xl font-bold text-primary">
                             {productionCapacity.maxUnits === Infinity ? '∞' : productionCapacity.maxUnits} unidades
                           </p>

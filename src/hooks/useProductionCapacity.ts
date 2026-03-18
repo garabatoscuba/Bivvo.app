@@ -8,9 +8,10 @@ interface BottleneckInfo {
   breakdown: { name: string; maxUnits: number; available: number; needed: number; unit: string }[];
 }
 
-export const useProductionCapacity = (productId: string | null, branchId: string | undefined) => {
+export const useProductionCapacity = (productId: string | null, branchId: string | undefined, options?: { onlySellerStock?: boolean }) => {
+  const onlySellerStock = options?.onlySellerStock ?? false;
   return useQuery({
-    queryKey: ['production-capacity', productId, branchId],
+    queryKey: ['production-capacity', productId, branchId, onlySellerStock],
     queryFn: async (): Promise<BottleneckInfo> => {
       if (!productId || !branchId) return { maxUnits: 0, bottleneck: null, breakdown: [] };
 
@@ -64,7 +65,7 @@ export const useProductionCapacity = (productId: string | null, branchId: string
           .from('raw_materials')
           .select('id, stock_vendedor, stock_almacen')
           .in('id', matIds);
-        for (const m of (mats || [])) stockMap.set(m.id, ((m as any).stock_vendedor || 0) + ((m as any).stock_almacen || 0));
+        for (const m of (mats || [])) stockMap.set(m.id, onlySellerStock ? ((m as any).stock_vendedor || 0) : ((m as any).stock_vendedor || 0) + ((m as any).stock_almacen || 0));
       }
       const yieldQty = recipe.yield_quantity || 1;
 

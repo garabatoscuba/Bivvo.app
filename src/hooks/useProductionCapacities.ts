@@ -25,9 +25,11 @@ interface IngredientRow {
  * Calcula en batch la producción posible (solo ingredientes base) para múltiples productos elaborados.
  * Devuelve SOLO valores finitos; si no hay receta o la capacidad es infinita, no incluye el producto en el map.
  */
-export const useProductionCapacities = (productIds: string[], branchId: string | undefined) => {
+export const useProductionCapacities = (productIds: string[], branchId: string | undefined, options?: { granelIds?: Set<string> }) => {
+  const granelIds = options?.granelIds;
+  const granelKey = granelIds ? Array.from(granelIds).sort().join(',') : '';
   return useQuery({
-    queryKey: ['production-capacities', branchId, productIds.slice().sort().join(',')],
+    queryKey: ['production-capacities', branchId, productIds.slice().sort().join(','), granelKey],
     queryFn: async (): Promise<CapacityMap> => {
       if (!branchId || productIds.length === 0) return {};
 
@@ -117,12 +119,17 @@ export const useProductionCapacities = (productIds: string[], branchId: string |
         for (const s of (stocks || [])) stockMap.set(s.product_id, Number(s.quantity) || 0);
       }
 
+      const sellerOnlyStockMap = new Map<string, number>();
+
       if (matIds.length > 0) {
         const { data: mats } = await supabase
           .from('raw_materials')
           .select('id, stock_vendedor, stock_almacen')
           .in('id', matIds);
-        for (const m of (mats || [])) stockMap.set(m.id, (Number((m as any).stock_vendedor) || 0) + (Number((m as any).stock_almacen) || 0));
+        for (const m of (mats || [])) {
+          stockMap.set(m.id, (Number((m as any).stock_vendedor) || 0) + (Number((m as any).stock_almacen) || 0));
+          sellerOnlyStockMap.set(m.id, Number((m as any).stock_vendedor) || 0);
+        }
       }
 
       const capacities: CapacityMap = {};
@@ -134,10 +141,13 @@ export const useProductionCapacities = (productIds: string[], branchId: string |
         // Sin ingredientes base (o receta vacía): capacidad indefinida → no sobreescribimos "En venta"
         if (recipeIngredients.length === 0) continue;
 
+        const isGranel = granelIds?.has(recipe.product_id);
         let minUnits = Infinity;
 
         for (const ri of recipeIngredients) {
-          const available = stockMap.get(ri.ingredient_id) || 0;
+          const available = isGranel && sellerOnlyStockMap.has(ri.ingredient_id)
+            ? sellerOnlyStockMap.get(ri.ingredient_id)!
+            : (stockMap.get(ri.ingredient_id) || 0);
           const purchaseUnit = ri.ingredient?.unit_of_measure || ri.unit || 'pieza';
 
           let neededInStockUnit = Number(ri.quantity) || 0;
