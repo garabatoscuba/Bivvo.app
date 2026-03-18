@@ -246,6 +246,8 @@ const Inventory = () => {
     return rawMaterialsForProducts.map((mat: any) => {
       const materialUnit = mat.unit_purchase || mat.unit_use || 'Pieza';
 
+      const category = categories.find((cat) => cat.id === mat.category_id) || null;
+
       return {
         id: mat.id,
         name: mat.name,
@@ -258,7 +260,7 @@ const Inventory = () => {
         image_url: null,
         is_active: true,
         business_id: mat.business_id,
-        category_id: null,
+        category_id: mat.category_id || null,
         created_at: mat.created_at,
         updated_at: mat.updated_at || mat.created_at,
         tipo: 'ingrediente',
@@ -268,7 +270,7 @@ const Inventory = () => {
         supplier: null,
         unit_of_measure: materialUnit,
         brand: mat.brand || null,
-        category: null,
+        category,
         _isRawMaterial: true,
         _stockVendedor: mat.stock_vendedor || 0,
         _stockAlmacen: mat.stock_almacen || 0,

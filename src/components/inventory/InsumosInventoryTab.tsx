@@ -390,6 +390,8 @@ const InsumosInventoryTab = ({
               const costoUnit = Number(mat.costo_unitario) || 0;
               const materialUnit = mat.unit_purchase || mat.unit_use || 'Pieza';
 
+              const category = categories.find((cat) => cat.id === mat.category_id) || null;
+
               const asProduct = {
                 id: mat.id,
                 business_id: mat.business_id,
@@ -400,7 +402,7 @@ const InsumosInventoryTab = ({
                 sale_price: 0,
                 image_url: null,
                 min_stock: mat.stock_minimo || 0,
-                category_id: null,
+                category_id: mat.category_id || null,
                 created_at: mat.created_at,
                 updated_at: mat.updated_at || mat.created_at,
                 tipo: 'ingrediente',
@@ -410,7 +412,7 @@ const InsumosInventoryTab = ({
                 supplier: null,
                 unit_of_measure: materialUnit,
                 brand: mat.brand || null,
-                category: null,
+                category,
                 _isRawMaterial: true,
                 stock_vendedor: stock,
                 stock_almacen: wStock,
