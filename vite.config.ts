@@ -57,6 +57,9 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react": path.resolve(__dirname, "node_modules/react"),
+      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
+      "use-sync-external-store": path.resolve(__dirname, "node_modules/use-sync-external-store"),
     },
   },
   build: {
