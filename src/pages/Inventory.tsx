@@ -328,9 +328,12 @@ const Inventory = () => {
   const filteredProducts = useMemo(() => {
     // Filter regular products
     const filtered = products.filter((product) => {
+      const s = search.toLowerCase();
       const matchesSearch = !search || 
-        product.name.toLowerCase().includes(search.toLowerCase()) ||
-        product.code.toLowerCase().includes(search.toLowerCase());
+        product.name.toLowerCase().includes(s) ||
+        product.code.toLowerCase().includes(s) ||
+        (product.brand || '').toLowerCase().includes(s) ||
+        (product.description || '').toLowerCase().includes(s);
       if (!matchesSearch || product.status === 'discontinued') return false;
 
       const tipo = (product as any).tipo || 'reventa';
