@@ -212,7 +212,8 @@ export const MermaDialog = ({
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
       queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
-      toast({ title: 'Merma registrada', description: `${quantity} unidad(es) de ${selectedProduct?.name} descontadas` });
+      const unit = selectedProduct?.unit_of_measure || 'uds';
+      toast({ title: 'Merma registrada', description: `${quantity} ${unit} de ${selectedProduct?.name} descontadas` });
       const reasonLabel = MERMA_REASONS.find(r => r.value === reason)?.label || reason;
       auditLog(
         'shrinkage_registered',
