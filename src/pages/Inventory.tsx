@@ -281,6 +281,14 @@ const Inventory = () => {
     warehouseStockMap.set(bs.product_id, bs.warehouse_quantity || 0);
   });
 
+  const getDisplayForSaleStock = (product: Product & { [key: string]: any }) => {
+    if (product?.tipo === 'elaborado' || product?.tipo === 'granel') {
+      const cap = productionCapacities?.[product.id];
+      if (typeof cap === 'number' && Number.isFinite(cap)) return cap;
+    }
+    return stockMap.get(product.id) || 0;
+  };
+
   // Helpers for raw material stock & badge color
   const getProductStock = (product: any) => {
     if (product._isRawMaterial) return product._stockVendedor || 0;
@@ -296,13 +304,6 @@ const Inventory = () => {
     }
     return undefined;
   };
-
-  const getDisplayForSaleStock = (product: Product & { [key: string]: any }) => {
-    if (product?.tipo === 'elaborado' || product?.tipo === 'granel') {
-      const cap = productionCapacities?.[product.id];
-      if (typeof cap === 'number' && Number.isFinite(cap)) return cap;
-    }
-    return stockMap.get(product.id) || 0;
   };
 
   // Check if business is restaurant type (for kitchen features)
