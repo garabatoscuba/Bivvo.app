@@ -304,7 +304,6 @@ const Inventory = () => {
     }
     return undefined;
   };
-  };
 
   // Check if business is restaurant type (for kitchen features)
   const { data: inventoryBusinessData } = useQuery({
