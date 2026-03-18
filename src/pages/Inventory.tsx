@@ -312,6 +312,11 @@ const Inventory = () => {
     if (product._isRawMaterial && product._areaColor) {
       return AREA_COLOR_BADGE_MAP[product._areaColor] || undefined;
     }
+    // Non-raw-material products with tipo='ingrediente' also get area color
+    if (product.tipo === 'ingrediente' && product.insumo_area_id) {
+      const color = areaColorMap.get(product.insumo_area_id);
+      if (color) return AREA_COLOR_BADGE_MAP[color] || undefined;
+    }
     return undefined;
   };
 
@@ -1123,7 +1128,7 @@ const Inventory = () => {
               {(selectedProduct.brand || selectedProduct.supplier || selectedProduct.unit_of_measure) && (
                 <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                   {selectedProduct.brand && <span className="bg-muted px-2 py-1 rounded">{selectedProduct.brand}</span>}
-                  {selectedProduct.unit_of_measure && <span className="bg-muted px-2 py-1 rounded">{selectedProduct.unit_of_measure}</span>}
+                  {selectedProduct.unit_of_measure && !((selectedProduct as any).tipo === 'ingrediente' && selectedProduct.unit_of_measure === 'Pieza') && <span className="bg-muted px-2 py-1 rounded">{selectedProduct.unit_of_measure}</span>}
                   {selectedProduct.supplier && <span className="bg-muted px-2 py-1 rounded">Prov: {selectedProduct.supplier}</span>}
                 </div>
               )}
