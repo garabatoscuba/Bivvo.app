@@ -460,7 +460,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
             </div>
 
             {/* ─── Sección 4: Precio de venta (solo elaborado) ─── */}
-            {form.watch('tipo') === 'elaborado' && (
+            {(form.watch('tipo') === 'elaborado' || form.watch('tipo') === 'granel') && (
               <>
                 <Separator />
                 <div className="space-y-3">
