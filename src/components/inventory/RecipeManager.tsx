@@ -495,6 +495,25 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
+                    {/* Conversion hint */}
+                    {(() => {
+                      const ing = ingredients.find(i => i.id === newIngredientId);
+                      if (!ing) return null;
+                      const purchaseUnit = normalizeUnitKey(ing.unit_of_measure || 'pieza');
+                      const selectedUnit = normalizeUnitKey(newUnit || purchaseUnit);
+                      if (selectedUnit === purchaseUnit) return null;
+                      const rawQty = newType === 'agrego' ? Number(newGramaje) : Number(newQuantity);
+                      if (!rawQty || rawQty <= 0) return null;
+                      const converted = convertUnits(rawQty, selectedUnit, purchaseUnit);
+                      if (converted === null) return (
+                        <p className="text-xs text-destructive">⚠ Unidades incompatibles: no se puede convertir de {selectedUnit} a {purchaseUnit}</p>
+                      );
+                      return (
+                        <p className="text-xs text-muted-foreground">
+                          ≈ {converted.toFixed(4)} {purchaseUnit} (unidad de compra)
+                        </p>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
