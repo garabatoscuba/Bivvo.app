@@ -58,7 +58,7 @@
     "fdir": "6.4.4",
     "idb": "^8.0.1",
     "input-otp": "^1.4.2",
-    "lucide-react": "0.462.0",
+    "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "picomatch": "4.0.2",
     "qrcode.react": "^4.2.0",
@@ -72,6 +72,7 @@
     "sonner": "^1.7.4",
     "tailwind-merge": "^2.6.0",
     "tailwindcss-animate": "^1.0.7",
+    "use-sync-external-store": "1.4.0",
     "vaul": "^0.9.9",
     "vite-plugin-pwa": "^1.2.0",
     "zod": "^3.25.76"

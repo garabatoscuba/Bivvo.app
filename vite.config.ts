@@ -57,6 +57,22 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      "react": path.resolve(__dirname, "node_modules/react"),
+      "react-dom": path.resolve(__dirname, "node_modules/react-dom"),
+      "use-sync-external-store": path.resolve(__dirname, "node_modules/use-sync-external-store"),
     },
+  },
+  build: {
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+    },
+  },
+  optimizeDeps: {
+    include: [
+      'react', 'react-dom', 'lucide-react',
+      'use-sync-external-store/shim',
+      'use-sync-external-store/shim/with-selector',
+    ],
   },
 }));
