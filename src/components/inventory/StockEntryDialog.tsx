@@ -92,6 +92,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     : 'Cantidad a venta';
 
   const totalQty = isGranel ? qtyForSale : qtyForSale + qtyWarehouse;
+  const effectiveCostPerUnit = unitCost ? parseFloat(unitCost) + (parseFloat(freightCost || '0') / (totalQty || 1)) : 0;
   const reasonLabel = ENTRY_REASONS.find(r => r.value === reason)?.label || reason;
 
   const handleSubmit = async () => {
