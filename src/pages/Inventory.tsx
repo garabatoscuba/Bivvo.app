@@ -782,27 +782,6 @@ const Inventory = () => {
             <TabsTrigger value="insumos" className="flex items-center gap-1 flex-1 text-xs px-2">
               Insumos
             </TabsTrigger>
-            <TabsTrigger value="categories" className="flex items-center gap-1 flex-1 text-xs px-2">
-              Categorías
-              {canManage && (
-                <button
-                  type="button"
-                  className="inline-flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (guardDowngrade()) return;
-                    if (!canCreateCategory) {
-                      toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_CATEGORY_LIMIT} categorías. Mejora tu plan para agregar más.`, variant: 'destructive' });
-                      return;
-                    }
-                    setEditingCategory(null);
-                    setCategoryFormOpen(true);
-                  }}
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-              )}
-            </TabsTrigger>
             <TabsTrigger value="movements" className="flex items-center gap-1 flex-1 text-xs px-2">
               <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
               Movim.
