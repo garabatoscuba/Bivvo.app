@@ -32,6 +32,17 @@ const getAreaColorClass = (color: string | null) => {
   return AREA_COLORS.find(c => c.value === color)?.class || 'bg-muted-foreground';
 };
 
+const AREA_COLOR_BADGE: Record<string, string> = {
+  blue: 'bg-blue-500 text-white',
+  green: 'bg-green-500 text-white',
+  orange: 'bg-orange-500 text-white',
+  purple: 'bg-purple-500 text-white',
+  pink: 'bg-pink-500 text-white',
+  red: 'bg-red-500 text-white',
+  yellow: 'bg-yellow-500 text-black',
+  teal: 'bg-teal-500 text-white',
+};
+
 interface InsumosInventoryTabProps {
   products: (Product & { category: Category | null })[];
   stockMap: Map<string, number>;
@@ -254,27 +265,15 @@ const InsumosInventoryTab = ({
             <p className="text-xs mt-1">Crea un nuevo insumo con el botón de arriba</p>
           </div>
         ) : (
-          <div className="space-y-0">
-            {/* Table header */}
-            <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_80px_80px_80px_100px_100px_auto] gap-2 px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider border-b">
-              <span>Nombre</span>
-              <span className="text-center">Unidad</span>
-              <span className="text-center">En uso</span>
-              <span className="text-center">Almacén</span>
-              <span className="text-right">Costo</span>
-              <span className="text-right">Valor</span>
-              <span></span>
-            </div>
-
+          <div className="space-y-1">
             {/* Raw materials rows */}
             {areaRawMaterials.map((mat: any) => {
               const stock = Number(mat.stock_vendedor) || 0;
               const wStock = Number(mat.stock_almacen) || 0;
               const totalStock = stock + wStock;
-              const costoUnit = Number(mat.costo_unitario) || 0;
-              const valorTotal = totalStock * costoUnit;
               const isLow = mat.stock_minimo > 0 && totalStock <= mat.stock_minimo && totalStock > 0;
               const isOut = totalStock <= 0;
+              const costoUnit = Number(mat.costo_unitario) || 0;
               const materialUnit = mat.unit_purchase || mat.unit_use || 'Pieza';
 
               const asProduct = {
@@ -303,35 +302,28 @@ const InsumosInventoryTab = ({
                 stock_almacen: wStock,
               } as unknown as Product & { category: Category | null };
 
+              const areaColor = selectedArea?.color || 'blue';
+              const badgeBg = AREA_COLOR_BADGE[areaColor] || 'bg-primary text-primary-foreground';
+
               return (
-                <div
-                  key={`rm-${mat.id}`}
-                  className="group grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,2fr)_80px_80px_80px_100px_100px_auto] gap-2 items-center px-3 py-2.5 border-b hover:bg-accent/50 transition-colors cursor-pointer"
-                  onClick={() => onSelectProduct(asProduct)}
-                >
-                  {/* Name + brand + alert */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="outline" className={cn("h-6 min-w-[28px] justify-center text-xs font-bold", isOut ? "border-destructive text-destructive" : isLow ? "border-amber-500 text-amber-500" : "border-primary text-primary")}>
-                      {stock}
-                    </Badge>
-                    <Badge variant="secondary" className="h-6 min-w-[28px] justify-center text-xs font-bold md:hidden">
-                      {wStock}
-                    </Badge>
-                    <span className="font-medium text-sm truncate">{mat.name}</span>
-                    {mat.brand && <span className="hidden sm:inline text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{mat.brand}</span>}
-                    {(isLow || isOut) && <AlertTriangle className={cn("h-3.5 w-3.5 shrink-0", isOut ? "text-destructive" : "text-amber-500")} />}
-                  </div>
-
-                  {/* Desktop columns */}
-                  <span className="hidden md:block text-center text-xs text-muted-foreground">{materialUnit}</span>
-                  <span className={cn("hidden md:block text-center text-sm font-bold", isOut && "text-destructive", isLow && !isOut && "text-amber-500")}>{stock}</span>
-                  <span className="hidden md:block text-center text-sm font-bold">{wStock}</span>
-                  <span className="hidden md:block text-right text-sm">${costoUnit.toFixed(2)}</span>
-                  <span className="hidden md:block text-right text-sm font-medium">${valorTotal.toFixed(2)}</span>
-
-                  {/* Actions */}
+                <div key={`rm-${mat.id}`} className="flex items-center gap-2 py-1.5 px-1 rounded-lg hover:bg-muted/50 transition-colors group">
+                  <button
+                    className="flex items-center gap-2 flex-1 text-left min-w-0"
+                    onClick={() => onSelectProduct(asProduct)}
+                  >
+                    <div className="flex gap-1 flex-shrink-0">
+                      <span className={cn('inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold', badgeBg)} title="En uso">
+                        {stock}
+                      </span>
+                      <span className="inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground" title="Almacén">
+                        {wStock}
+                      </span>
+                    </div>
+                    <span className="font-medium text-sm truncate flex-1">{mat.name}</span>
+                    {(isLow || isOut) && <AlertTriangle className={cn("h-3.5 w-3.5 flex-shrink-0", isOut ? "text-destructive" : "text-warning")} />}
+                  </button>
                   {canManage && (
-                    <div className="flex items-center gap-0.5 justify-end">
+                    <div className="flex gap-0.5 flex-shrink-0">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onAddStock(asProduct); }} title="Nueva Compra">
                         <PackagePlus className="h-3.5 w-3.5" />
                       </Button>
@@ -354,50 +346,37 @@ const InsumosInventoryTab = ({
               const stock = stockMap.get(product.id) || 0;
               const wStock = warehouseStockMap.get(product.id) || 0;
               const totalStock = stock + wStock;
-              const valorTotal = totalStock * Number(product.cost_price);
               const isLow = stock <= product.min_stock && stock > 0;
               const isOut = stock <= 0;
 
+              const areaColor = selectedArea?.color || 'blue';
+              const badgeBg = AREA_COLOR_BADGE[areaColor] || 'bg-primary text-primary-foreground';
+
               return (
-                <div
-                  key={product.id}
-                  className="group grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,2fr)_80px_80px_80px_100px_100px_auto] gap-2 items-center px-3 py-2.5 border-b hover:bg-accent/50 transition-colors cursor-pointer"
-                  onClick={() => onSelectProduct(product)}
-                >
-                  {/* Name + badges + alert */}
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Badge variant="outline" className={cn("h-6 min-w-[28px] justify-center text-xs font-bold", isOut ? "border-destructive text-destructive" : isLow ? "border-amber-500 text-amber-500" : "border-primary text-primary")}>
-                      {stock}
-                    </Badge>
-                    <Badge variant="secondary" className="h-6 min-w-[28px] justify-center text-xs font-bold md:hidden">
-                      {wStock}
-                    </Badge>
-                    <span className="font-medium text-sm truncate">{product.name}</span>
-                    {(product as any).brand && <span className="hidden sm:inline text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{(product as any).brand}</span>}
-                    {(isLow || isOut) && <AlertTriangle className={cn("h-3.5 w-3.5 shrink-0", isOut ? "text-destructive" : "text-amber-500")} />}
-                  </div>
-
-                  {/* Desktop columns */}
-                  <span className="hidden md:block text-center text-xs text-muted-foreground">{product.unit_of_measure || 'Pieza'}</span>
-                  <span className={cn("hidden md:block text-center text-sm font-bold", isOut && "text-destructive", isLow && !isOut && "text-amber-500")}>{stock}</span>
-                  <span className="hidden md:block text-center text-sm font-bold">{wStock}</span>
-                  <span className="hidden md:block text-right text-sm">${Number(product.cost_price).toFixed(2)}</span>
-                  <span className="hidden md:block text-right text-sm font-medium">${valorTotal.toFixed(2)}</span>
-
-                  {/* Actions */}
+                <div key={product.id} className="flex items-center gap-2 py-1.5 px-1 rounded-lg hover:bg-muted/50 transition-colors group">
+                  <button
+                    className="flex items-center gap-2 flex-1 text-left min-w-0"
+                    onClick={() => onSelectProduct(product)}
+                  >
+                    <div className="flex gap-1 flex-shrink-0">
+                      <span className={cn('inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold', badgeBg)} title="En uso">
+                        {stock}
+                      </span>
+                      <span className="inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground" title="Almacén">
+                        {wStock}
+                      </span>
+                    </div>
+                    <span className="font-medium text-sm truncate flex-1">{product.name}</span>
+                    {(isLow || isOut) && <AlertTriangle className={cn("h-3.5 w-3.5 flex-shrink-0", isOut ? "text-destructive" : "text-warning")} />}
+                  </button>
                   {canManage && (
-                    <div className="flex items-center gap-0.5 justify-end">
+                    <div className="flex gap-0.5 flex-shrink-0">
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onAddStock(product); }} title="Nueva Compra">
                         <PackagePlus className="h-3.5 w-3.5" />
                       </Button>
                       {(wStock > 0 || stock > 0) && onTransfer && (
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onTransfer(product, wStock > 0 ? 'toSale' : 'toWarehouse'); }} title={wStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén'}>
                           <ArrowRightLeft className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
-                      {wStock > 0 && onOutflow && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onOutflow(product); }} title="Salida almacén">
-                          <PackageX className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       {onDeleteProduct && (
