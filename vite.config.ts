@@ -51,17 +51,6 @@ export default defineConfig(({ mode }) => ({
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         skipWaiting: true,
         clientsClaim: true,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/.*\.lovable\.app\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "lovable-preview",
-              expiration: { maxEntries: 50, maxAgeSeconds: 60 * 60 },
-              networkTimeoutSeconds: 3,
-            },
-          },
-        ],
       },
     }),
   ].filter(Boolean),
