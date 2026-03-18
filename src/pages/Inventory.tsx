@@ -328,9 +328,12 @@ const Inventory = () => {
   const filteredProducts = useMemo(() => {
     // Filter regular products
     const filtered = products.filter((product) => {
+      const s = search.toLowerCase();
       const matchesSearch = !search || 
-        product.name.toLowerCase().includes(search.toLowerCase()) ||
-        product.code.toLowerCase().includes(search.toLowerCase());
+        product.name.toLowerCase().includes(s) ||
+        product.code.toLowerCase().includes(s) ||
+        (product.brand || '').toLowerCase().includes(s) ||
+        (product.description || '').toLowerCase().includes(s);
       if (!matchesSearch || product.status === 'discontinued') return false;
 
       const tipo = (product as any).tipo || 'reventa';
@@ -349,7 +352,8 @@ const Inventory = () => {
     const rawToAdd = rawMaterialsAsProducts.filter(rm => {
       if (existingIds.has(rm.id)) return false;
       if (!search) return true;
-      return rm.name.toLowerCase().includes(search.toLowerCase());
+      const s = search.toLowerCase();
+      return rm.name.toLowerCase().includes(s) || (rm.brand || '').toLowerCase().includes(s) || (rm.description || '').toLowerCase().includes(s);
     });
 
     return [...filtered, ...rawToAdd];
@@ -831,7 +835,7 @@ const Inventory = () => {
                 if (p.status === 'discontinued') return false;
                 const saleStock = getDisplayForSaleStock(p as any);
                 return saleStock > 0 || ['reventa', 'elaborado', 'granel'].includes(tipo);
-              }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
+              }).filter(p => { const s = search.toLowerCase(); return !search || p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.brand || '').toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s); });
               const totalUnits = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any), 0);
               const totalValue = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any) * Number(p.sale_price), 0);
               return (
@@ -884,7 +888,7 @@ const Inventory = () => {
                 if (p.status === 'discontinued') return false;
                 const wStock = warehouseStockMap.get(p.id) || 0;
                 return wStock > 0;
-              }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
+              }).filter(p => { const s = search.toLowerCase(); return !search || p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.brand || '').toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s); });
               const totalUnits = warehouseProducts.reduce((sum, p) => sum + (warehouseStockMap.get(p.id) || 0), 0);
               return (
                 <>
@@ -1039,8 +1043,8 @@ const Inventory = () => {
                 setTransferQty(1);
               }}
               onDeleteProduct={(product) => setDeletingProduct(product)}
-              
               canManage={canManage}
+              searchQuery={search}
             />
           </TabsContent>
         </Tabs>
