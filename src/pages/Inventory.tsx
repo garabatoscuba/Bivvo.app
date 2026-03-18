@@ -575,13 +575,24 @@ const Inventory = () => {
     }
   };
 
-  // Product detail data — raw materials carry stock on the object itself
+  // Product detail data
   const isRawMaterial = !!(selectedProduct as any)?._isRawMaterial;
+  const isIngredientSelected = (selectedProduct as any)?.tipo === 'ingrediente';
+  const getRawMaterialStockValue = (
+    product: any,
+    primaryKey: 'stock_vendedor' | 'stock_almacen',
+    fallbackKey: '_stockVendedor' | '_stockAlmacen'
+  ) => Number(product?.[primaryKey] ?? product?.[fallbackKey]) || 0;
+
   const selectedStock = selectedProduct
-    ? (isRawMaterial ? (Number((selectedProduct as any).stock_vendedor) || 0) : (stockMap.get(selectedProduct.id) || 0))
+    ? (isRawMaterial
+        ? getRawMaterialStockValue(selectedProduct as any, 'stock_vendedor', '_stockVendedor')
+        : (stockMap.get(selectedProduct.id) || 0))
     : 0;
   const selectedWarehouseStock = selectedProduct
-    ? (isRawMaterial ? (Number((selectedProduct as any).stock_almacen) || 0) : (warehouseStockMap.get(selectedProduct.id) || 0))
+    ? (isRawMaterial
+        ? getRawMaterialStockValue(selectedProduct as any, 'stock_almacen', '_stockAlmacen')
+        : (warehouseStockMap.get(selectedProduct.id) || 0))
     : 0;
 
   const selectedDisplayStock = selectedProduct && ((selectedProduct as any)?.tipo === 'elaborado' || (selectedProduct as any)?.tipo === 'granel')
@@ -591,10 +602,13 @@ const Inventory = () => {
     : selectedStock;
 
   const selectedDisplayTotalStock = selectedDisplayStock + selectedWarehouseStock;
+  const selectedUnitCost = Number(selectedProduct?.cost_price) || 0;
+  const selectedSalePrice = Number(selectedProduct?.sale_price) || 0;
+  const selectedStockValue = selectedDisplayTotalStock * (isRawMaterial ? selectedUnitCost : (selectedSalePrice || selectedUnitCost));
 
-  const selectedMargin = selectedProduct 
-    ? ((Number(selectedProduct.sale_price) - Number(selectedProduct.cost_price)) / Number(selectedProduct.sale_price) * 100)
-    : 0;
+  const selectedMargin = selectedProduct && !isRawMaterial && selectedSalePrice > 0
+    ? ((selectedSalePrice - selectedUnitCost) / selectedSalePrice * 100)
+    : null;
 
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
@@ -1117,9 +1131,9 @@ const Inventory = () => {
               {/* Key metrics */}
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard
-                  label={(selectedProduct as any).tipo === 'ingrediente' ? 'En uso' : 'En venta'}
+                  label={isIngredientSelected ? 'En uso' : 'En venta'}
                   value={selectedDisplayStock.toString()}
-                  sublabel={(selectedProduct as any).tipo === 'ingrediente' ? 'Disponible' : 'Disponible en POS'}
+                  sublabel={isIngredientSelected ? 'Disponible' : 'Disponible en POS'}
                   alert={selectedDisplayStock <= selectedProduct.min_stock}
                 />
                 <MetricCard
@@ -1128,14 +1142,14 @@ const Inventory = () => {
                   sublabel="En reserva"
                 />
                 <MetricCard
-                  label="Margen"
-                  value={`${selectedMargin.toFixed(0)}%`}
-                  sublabel={`Costo $${Number(selectedProduct.cost_price).toFixed(2)}`}
+                  label={isRawMaterial ? 'Costo unitario' : 'Margen'}
+                  value={isRawMaterial ? `$${selectedUnitCost.toFixed(2)}` : (selectedMargin !== null ? `${selectedMargin.toFixed(0)}%` : '—')}
+                  sublabel={isRawMaterial ? 'Costo promedio actual' : `Costo $${selectedUnitCost.toFixed(2)}`}
                 />
                 <MetricCard
                   label="Valor en stock"
-                  value={`$${(selectedDisplayTotalStock * Number(selectedProduct.sale_price)).toFixed(2)}`}
-                  sublabel={`${selectedDisplayTotalStock} uds. total`}
+                  value={`$${selectedStockValue.toFixed(2)}`}
+                  sublabel={`${selectedDisplayTotalStock} ${selectedProduct.unit_of_measure || 'uds.'} total`}
                 />
               </div>
 
@@ -1147,7 +1161,7 @@ const Inventory = () => {
                     <div 
                       className="bg-primary transition-all" 
                       style={{ width: `${(selectedDisplayStock / selectedDisplayTotalStock) * 100}%` }} 
-                      title={`Venta: ${selectedDisplayStock}`}
+                      title={`${isIngredientSelected ? 'Uso' : 'Venta'}: ${selectedDisplayStock}`}
                     />
                     <div 
                       className="bg-muted-foreground/30 transition-all" 
@@ -1156,7 +1170,7 @@ const Inventory = () => {
                     />
                   </div>
                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> Venta ({selectedDisplayStock})</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> {isIngredientSelected ? 'Uso' : 'Venta'} ({selectedDisplayStock})</span>
                     <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground/30 inline-block" /> Almacén ({selectedWarehouseStock})</span>
                   </div>
                 </div>
@@ -1168,7 +1182,7 @@ const Inventory = () => {
                   <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
                   <span>
                     {selectedDisplayStock <= 0 
-                      ? 'Sin stock disponible para venta' 
+                      ? (isIngredientSelected ? 'Sin stock disponible en uso' : 'Sin stock disponible para venta')
                       : `Stock bajo — mínimo recomendado: ${selectedProduct.min_stock}`
                     }
                     {selectedWarehouseStock > 0 && ' — Hay unidades en almacén'}
