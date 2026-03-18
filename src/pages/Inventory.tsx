@@ -352,7 +352,8 @@ const Inventory = () => {
     const rawToAdd = rawMaterialsAsProducts.filter(rm => {
       if (existingIds.has(rm.id)) return false;
       if (!search) return true;
-      return rm.name.toLowerCase().includes(search.toLowerCase());
+      const s = search.toLowerCase();
+      return rm.name.toLowerCase().includes(s) || (rm.brand || '').toLowerCase().includes(s) || (rm.description || '').toLowerCase().includes(s);
     });
 
     return [...filtered, ...rawToAdd];
