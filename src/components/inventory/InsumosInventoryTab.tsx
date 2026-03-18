@@ -191,11 +191,16 @@ const InsumosInventoryTab = ({
   // ─── Delete raw material ───
   const deleteRawMaterial = useMutation({
     mutationFn: async (id: string) => {
+      // Remove any recipe_ingredients referencing this raw material
+      await supabase.from('recipe_ingredients').delete().eq('ingredient_id', id).eq('is_raw_material', true);
       const { error } = await supabase.from('raw_materials').delete().eq('id', id);
       if (error) throw error;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['raw-materials-for-recipe'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({ title: 'Insumo eliminado' });
     },
     onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
