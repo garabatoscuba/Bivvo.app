@@ -101,14 +101,22 @@ const InsumosInventoryTab = ({
     enabled: !!businessId,
   });
 
+  const matchesSearch = (name: string, brand?: string | null, description?: string | null) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (name || '').toLowerCase().includes(q) ||
+      (brand || '').toLowerCase().includes(q) ||
+      (description || '').toLowerCase().includes(q);
+  };
+
   // Filter products: ingredientes belonging to the selected area
   const areaProducts = selectedArea
-    ? products.filter((p: any) => p.tipo === 'ingrediente' && p.insumo_area_id === selectedArea.id)
+    ? products.filter((p: any) => p.tipo === 'ingrediente' && p.insumo_area_id === selectedArea.id && matchesSearch(p.name, p.brand, p.description))
     : [];
 
   // Filter raw_materials belonging to the selected area
   const areaRawMaterials = selectedArea
-    ? rawMaterials.filter((m: any) => m.area_id === selectedArea.id)
+    ? rawMaterials.filter((m: any) => m.area_id === selectedArea.id && matchesSearch(m.name, m.brand, m.description))
     : [];
 
   // Count per area (products + raw_materials)
