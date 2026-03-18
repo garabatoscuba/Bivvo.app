@@ -237,34 +237,38 @@ const Inventory = () => {
 
   // Convert raw materials to Product-like objects for the products tab
   const rawMaterialsAsProducts = useMemo(() => {
-    return rawMaterialsForProducts.map((mat: any) => ({
-      id: mat.id,
-      name: mat.name,
-      code: mat.code || '',
-      description: mat.description || '',
-      sale_price: 0,
-      cost_price: mat.costo_unitario || 0,
-      min_stock: mat.stock_minimo || 0,
-      unit: mat.unit || 'unidad',
-      image_url: null,
-      is_active: true,
-      business_id: mat.business_id,
-      category_id: null,
-      created_at: mat.created_at,
-      updated_at: mat.updated_at || mat.created_at,
-      tipo: 'ingrediente',
-      insumo_area_id: mat.area_id,
-      status: 'active',
-      barcode: null,
-      supplier: null,
-      unit_of_measure: mat.unit || 'unidad',
-      brand: mat.brand || null,
-      category: null,
-      _isRawMaterial: true,
-      _stockVendedor: mat.stock_vendedor || 0,
-      _stockAlmacen: mat.stock_almacen || 0,
-      _areaColor: mat.area_id ? (areaColorMap.get(mat.area_id) || null) : null,
-    })) as unknown as (Product & { category: Category | null })[];
+    return rawMaterialsForProducts.map((mat: any) => {
+      const materialUnit = mat.unit_purchase || mat.unit_use || 'Pieza';
+
+      return {
+        id: mat.id,
+        name: mat.name,
+        code: mat.code || '',
+        description: mat.description || '',
+        sale_price: 0,
+        cost_price: mat.costo_unitario || 0,
+        min_stock: mat.stock_minimo || 0,
+        unit: materialUnit,
+        image_url: null,
+        is_active: true,
+        business_id: mat.business_id,
+        category_id: null,
+        created_at: mat.created_at,
+        updated_at: mat.updated_at || mat.created_at,
+        tipo: 'ingrediente',
+        insumo_area_id: mat.area_id,
+        status: 'active',
+        barcode: null,
+        supplier: null,
+        unit_of_measure: materialUnit,
+        brand: mat.brand || null,
+        category: null,
+        _isRawMaterial: true,
+        _stockVendedor: mat.stock_vendedor || 0,
+        _stockAlmacen: mat.stock_almacen || 0,
+        _areaColor: mat.area_id ? (areaColorMap.get(mat.area_id) || null) : null,
+      };
+    }) as unknown as (Product & { category: Category | null })[];
   }, [rawMaterialsForProducts, areaColorMap]);
 
   const FREE_PRODUCT_LIMIT = 5;

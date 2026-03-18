@@ -264,19 +264,18 @@ const InsumosInventoryTab = ({
               const valorTotal = totalStock * costoUnit;
               const isLow = mat.stock_minimo > 0 && totalStock <= mat.stock_minimo && totalStock > 0;
               const isOut = totalStock <= 0;
+              const materialUnit = mat.unit_purchase || mat.unit_use || 'Pieza';
 
               const asProduct = {
                 id: mat.id,
-                name: mat.name,
-                code: mat.code || '',
-                description: mat.description || '',
-                sale_price: 0,
-                cost_price: costoUnit,
-                min_stock: mat.stock_minimo || 0,
-                unit: mat.unit || 'unidad',
-                image_url: null,
-                is_active: true,
                 business_id: mat.business_id,
+                code: mat.code || '',
+                name: mat.name,
+                description: mat.description || '',
+                cost_price: costoUnit,
+                sale_price: 0,
+                image_url: null,
+                min_stock: mat.stock_minimo || 0,
                 category_id: null,
                 created_at: mat.created_at,
                 updated_at: mat.updated_at || mat.created_at,
@@ -285,7 +284,7 @@ const InsumosInventoryTab = ({
                 status: 'active',
                 barcode: null,
                 supplier: null,
-                unit_of_measure: mat.unit || 'unidad',
+                unit_of_measure: materialUnit,
                 brand: mat.brand || null,
                 category: null,
                 _isRawMaterial: true,
