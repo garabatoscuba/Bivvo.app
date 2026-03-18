@@ -38,13 +38,20 @@ export const useInventoryMovements = (branchId?: string) => {
       const productIds = [...new Set(data.map(m => m.product_id))];
       const userIds = [...new Set(data.map(m => m.user_id))];
 
-      const [productsRes, profilesRes, branchRes] = await Promise.all([
+      const [productsRes, rawMaterialsRes, profilesRes, branchRes] = await Promise.all([
         supabase.from('products').select('id, name, code').in('id', productIds),
+        supabase.from('raw_materials').select('id, name, code').in('id', productIds),
         supabase.from('profiles').select('user_id, full_name').in('user_id', userIds),
         supabase.from('branches').select('id, name').eq('id', branchId).single(),
       ]);
 
       const productMap = new Map(productsRes.data?.map(p => [p.id, p]) || []);
+      // Merge raw materials into product map (for items not found in products)
+      rawMaterialsRes.data?.forEach(rm => {
+        if (!productMap.has(rm.id)) {
+          productMap.set(rm.id, { id: rm.id, name: rm.name, code: rm.code || '' });
+        }
+      });
       const profileMap = new Map(profilesRes.data?.map(p => [p.user_id, p]) || []);
 
       return data.map(m => ({
