@@ -69,9 +69,9 @@ export const useProducts = (overrideBusinessId?: string) => {
   });
 
   const updateProduct = useMutation({
-    mutationFn: async ({ id, ...product }: Partial<Product> & { id: string }) => {
-      // Strip relation objects that aren't real columns
-      const { category, ...cleanProduct } = product as any;
+    mutationFn: async (input: Record<string, any> & { id: string }) => {
+      const { id, category, ...cleanProduct } = input;
+      console.log('[updateProduct] id:', id, 'payload:', cleanProduct);
       const { data, error } = await supabase
         .from('products')
         .update(cleanProduct)
@@ -80,6 +80,7 @@ export const useProducts = (overrideBusinessId?: string) => {
         .maybeSingle();
 
       if (error) throw error;
+      console.log('[updateProduct] result:', data);
       return data;
     },
     onSuccess: () => {
