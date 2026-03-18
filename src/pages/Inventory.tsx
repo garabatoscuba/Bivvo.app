@@ -1728,45 +1728,45 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
   const isLow = stock <= product.min_stock;
 
   return (
-    <div className="flex items-center gap-2 py-1.5 px-1 rounded-lg hover:bg-muted/50 transition-colors group">
+    <div className="flex items-center gap-1.5 sm:gap-2 py-1.5 px-1 rounded-lg hover:bg-muted/50 transition-colors group">
       <button
-        className="flex items-center gap-2 flex-1 text-left min-w-0"
+        className="flex items-center gap-1.5 sm:gap-2 flex-1 text-left min-w-0"
         onClick={onClick}
       >
         <div className="flex gap-1 flex-shrink-0">
           {(showBadges === 'both' || showBadges === 'sale') && (
             <span className={cn(
-              'inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold',
+              'inline-flex items-center justify-center h-7 sm:h-8 min-w-[1.75rem] sm:min-w-[2.2rem] px-1 sm:px-1.5 rounded-md text-[11px] sm:text-xs font-semibold',
               badgeColorClass || bgColor
             )} title="En uso">
               {stock}
             </span>
           )}
           {(showBadges === 'both' || showBadges === 'warehouse') && (
-            <span className="inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground" title="Almacén">
+            <span className="inline-flex items-center justify-center h-7 sm:h-8 min-w-[1.75rem] sm:min-w-[2.2rem] px-1 sm:px-1.5 rounded-md text-[11px] sm:text-xs font-semibold bg-muted text-muted-foreground" title="Almacén">
               {warehouseStock}
             </span>
           )}
         </div>
-        <span className="font-medium text-sm truncate flex-1">{product.name}</span>
+        <span className="font-medium text-[13px] sm:text-sm truncate flex-1">{product.name}</span>
         {isLow && <AlertTriangle className="h-3.5 w-3.5 text-warning flex-shrink-0" />}
       </button>
       {canManage && (
-        <div className="flex gap-0.5 flex-shrink-0">
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onAddStock} title="Dar entrada">
+        <div className="flex gap-0 sm:gap-0.5 flex-shrink-0">
+          <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-7 sm:w-7" onClick={onAddStock} title="Dar entrada">
             <PackagePlus className="h-3.5 w-3.5" />
           </Button>
           {(warehouseStock > 0 || stock > 0) && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={warehouseStock > 0 ? onTransferToSale : onReturnToWarehouse} title="Transferir stock">
+            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-7 sm:w-7" onClick={warehouseStock > 0 ? onTransferToSale : onReturnToWarehouse} title="Transferir stock">
               <ArrowRightLeft className="h-3.5 w-3.5" />
             </Button>
           )}
           {warehouseStock > 0 && (
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onOutflow} title="Salida almacén">
+            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-7 sm:w-7 hidden sm:inline-flex" onClick={onOutflow} title="Salida almacén">
               <PackageX className="h-3.5 w-3.5" />
             </Button>
           )}
-          <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={onDelete} title="Eliminar">
+          <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-7 sm:w-7 text-destructive" onClick={onDelete} title="Eliminar">
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
         </div>
