@@ -1120,7 +1120,7 @@ const Inventory = () => {
                   ) : (
                     <div className="space-y-1">
                       {warehouseProducts.map((product) => {
-                        const wStock = warehouseStockMap.get(product.id) || 0;
+                        const wStock = getProductWarehouseStock(product);
                         const isLow = wStock <= product.min_stock;
 
                         return (
