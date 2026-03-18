@@ -835,7 +835,7 @@ const Inventory = () => {
                 if (p.status === 'discontinued') return false;
                 const saleStock = getDisplayForSaleStock(p as any);
                 return saleStock > 0 || ['reventa', 'elaborado', 'granel'].includes(tipo);
-              }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
+              }).filter(p => { const s = search.toLowerCase(); return !search || p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.brand || '').toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s); });
               const totalUnits = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any), 0);
               const totalValue = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any) * Number(p.sale_price), 0);
               return (
