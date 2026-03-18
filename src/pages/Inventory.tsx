@@ -166,7 +166,11 @@ const Inventory = () => {
     () => products.filter((p: any) => p.tipo === 'elaborado' || p.tipo === 'granel').map(p => p.id),
     [products]
   );
-  const { data: productionCapacities } = useProductionCapacities(elaboradoIds, effectiveBranchId);
+  const granelIdSet = useMemo(
+    () => new Set(products.filter((p: any) => p.tipo === 'granel').map(p => p.id)),
+    [products]
+  );
+  const { data: productionCapacities } = useProductionCapacities(elaboradoIds, effectiveBranchId, { granelIds: granelIdSet });
 
   // Product review stats from portal
   const businessId = profile?.business_id;
