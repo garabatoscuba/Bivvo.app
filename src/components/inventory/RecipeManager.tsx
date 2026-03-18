@@ -196,7 +196,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
   const [newUnit, setNewUnit] = useState('');
   const [newType, setNewType] = useState<'base' | 'agrego'>('base');
   const [newGramaje, setNewGramaje] = useState('');
-  const [compatibleUnits, setCompatibleUnits] = useState<{ value: string; label: string }[]>([]);
+  
 
   const handleIngredientChange = (ingredientId: string) => {
     setNewIngredientId(ingredientId);
