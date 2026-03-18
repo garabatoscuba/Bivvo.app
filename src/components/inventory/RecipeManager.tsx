@@ -22,7 +22,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
-import { Plus, Trash2, Loader2, ChefHat } from 'lucide-react';
+import { Plus, Trash2, Loader2, ChefHat, Pencil, Check, X } from 'lucide-react';
 import type { Product } from '@/types/database';
 
 interface RecipeManagerProps {
