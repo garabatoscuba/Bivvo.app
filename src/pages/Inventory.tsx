@@ -65,6 +65,17 @@ const colorMap: Record<string, string> = {
   purple: 'bg-category-purple text-category-purple-foreground',
 };
 
+const AREA_COLOR_BADGE_MAP: Record<string, string> = {
+  blue: 'bg-blue-500 text-white',
+  green: 'bg-green-500 text-white',
+  orange: 'bg-orange-500 text-white',
+  purple: 'bg-purple-500 text-white',
+  pink: 'bg-pink-500 text-white',
+  red: 'bg-red-500 text-white',
+  yellow: 'bg-yellow-500 text-black',
+  teal: 'bg-teal-500 text-white',
+};
+
 const colorDotMap: Record<string, string> = {
   pink: 'bg-category-pink',
   green: 'bg-category-green',
@@ -202,6 +213,28 @@ const Inventory = () => {
     enabled: !!businessId,
   });
 
+  // Insumo areas query (for area colors)
+  const { data: insumoAreas = [] } = useQuery({
+    queryKey: ['insumo-areas-colors', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const { data, error } = await supabase
+        .from('insumo_areas')
+        .select('id, name, color')
+        .eq('business_id', businessId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!businessId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const areaColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    insumoAreas.forEach((a: any) => { if (a.color) map.set(a.id, a.color); });
+    return map;
+  }, [insumoAreas]);
+
   // Convert raw materials to Product-like objects for the products tab
   const rawMaterialsAsProducts = useMemo(() => {
     return rawMaterialsForProducts.map((mat: any) => ({
@@ -228,8 +261,11 @@ const Inventory = () => {
       brand: mat.brand || null,
       category: null,
       _isRawMaterial: true,
+      _stockVendedor: mat.stock_vendedor || 0,
+      _stockAlmacen: mat.stock_almacen || 0,
+      _areaColor: mat.area_id ? (areaColorMap.get(mat.area_id) || null) : null,
     })) as unknown as (Product & { category: Category | null })[];
-  }, [rawMaterialsForProducts]);
+  }, [rawMaterialsForProducts, areaColorMap]);
 
   const FREE_PRODUCT_LIMIT = 5;
   const FREE_CATEGORY_LIMIT = 2;
@@ -251,6 +287,22 @@ const Inventory = () => {
       if (typeof cap === 'number' && Number.isFinite(cap)) return cap;
     }
     return stockMap.get(product.id) || 0;
+  };
+
+  // Helpers for raw material stock & badge color
+  const getProductStock = (product: any) => {
+    if (product._isRawMaterial) return product._stockVendedor || 0;
+    return getDisplayForSaleStock(product);
+  };
+  const getProductWarehouseStock = (product: any) => {
+    if (product._isRawMaterial) return product._stockAlmacen || 0;
+    return warehouseStockMap.get(product.id) || 0;
+  };
+  const getProductBadgeColor = (product: any): string | undefined => {
+    if (product._isRawMaterial && product._areaColor) {
+      return AREA_COLOR_BADGE_MAP[product._areaColor] || undefined;
+    }
+    return undefined;
   };
 
   // Check if business is restaurant type (for kitchen features)
@@ -729,9 +781,10 @@ const Inventory = () => {
                       <ProductRow
                         key={product.id}
                         product={product}
-                        stock={getDisplayForSaleStock(product as any)}
-                        warehouseStock={warehouseStockMap.get(product.id) || 0}
+                        stock={getProductStock(product)}
+                        warehouseStock={getProductWarehouseStock(product)}
                         color={product.category?.color || 'blue'}
+                        badgeColorClass={getProductBadgeColor(product)}
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
@@ -750,9 +803,10 @@ const Inventory = () => {
                       <ProductRow
                         key={product.id}
                         product={product}
-                        stock={getDisplayForSaleStock(product as any)}
-                        warehouseStock={warehouseStockMap.get(product.id) || 0}
+                        stock={getProductStock(product)}
+                        warehouseStock={getProductWarehouseStock(product)}
                         color="blue"
+                        badgeColorClass={getProductBadgeColor(product)}
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
@@ -1467,9 +1521,10 @@ interface ProductRowProps {
   onReturnToWarehouse: () => void;
   onOutflow: () => void;
   showBadges?: 'both' | 'sale' | 'warehouse';
+  badgeColorClass?: string;
 }
 
-const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow, showBadges = 'both' }: ProductRowProps) => {
+const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow, showBadges = 'both', badgeColorClass }: ProductRowProps) => {
   const bgColor = colorMap[color] || colorMap.blue;
   const isLow = stock <= product.min_stock;
 
@@ -1483,8 +1538,8 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
           {(showBadges === 'both' || showBadges === 'sale') && (
             <span className={cn(
               'inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold',
-              bgColor
-            )} title="En venta">
+              badgeColorClass || bgColor
+            )} title="En uso">
               {stock}
             </span>
           )}
