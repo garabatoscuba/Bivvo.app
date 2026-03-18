@@ -273,7 +273,7 @@ serve(async (req) => {
         .maybeSingle(),
       supabase
         .from("branch_stock")
-        .select("quantity, product:products(id, name, description, sale_price, image_url, code, status, category:categories(name, color))")
+        .select("quantity, product:products(id, name, description, sale_price, image_url, code, status, tipo, category:categories(name, color))")
         .eq("branch_id", resolvedBranch.id)
         .gt("quantity", 0),
       supabase
