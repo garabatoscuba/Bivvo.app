@@ -781,9 +781,10 @@ const Inventory = () => {
                       <ProductRow
                         key={product.id}
                         product={product}
-                        stock={getDisplayForSaleStock(product as any)}
-                        warehouseStock={warehouseStockMap.get(product.id) || 0}
+                        stock={getProductStock(product)}
+                        warehouseStock={getProductWarehouseStock(product)}
                         color={product.category?.color || 'blue'}
+                        badgeColorClass={getProductBadgeColor(product)}
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
