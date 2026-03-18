@@ -338,9 +338,6 @@ const InsumosInventoryTab = ({
                           <ArrowRightLeft className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onAddStock(asProduct); }} title="Dar entrada">
-                        <PackagePlus className="h-3.5 w-3.5" />
-                      </Button>
                       <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); deleteRawMaterial.mutate(mat.id); }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
