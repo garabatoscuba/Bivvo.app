@@ -1134,64 +1134,8 @@ const Inventory = () => {
             })()}
           </TabsContent>
 
-          <TabsContent value="categories" className="mt-4">
-            {categoriesLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : categories.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <FolderOpen className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="font-semibold">No hay categorías</h3>
-                <p className="text-sm text-muted-foreground mt-1">Crea tu primera categoría</p>
-                {canManage && (
-                  <Button className="mt-4" onClick={() => {
-                    if (!canCreateCategory) {
-                      toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_CATEGORY_LIMIT} categorías.`, variant: 'destructive' });
-                      return;
-                    }
-                    setEditingCategory(null);
-                    setCategoryFormOpen(true);
-                  }}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Nueva Categoría
-                  </Button>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {categories.map((cat) => {
-                  const catProducts = products.filter(p => p.category_id === cat.id && p.status !== 'discontinued');
-                  return (
-                    <div
-                      key={cat.id}
-                      className="flex items-center justify-between rounded-lg border p-3"
-                    >
-                      <div className="flex items-center gap-3 min-w-0 flex-1">
-                        <div className={cn('h-8 w-8 rounded-full flex-shrink-0', colorDotMap[cat.color] || colorDotMap.blue)} />
-                        <div className="min-w-0">
-                          <p className="font-medium truncate">{cat.name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {catProducts.length} producto{catProducts.length !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                      </div>
-                      {canManage && (
-                        <div className="flex gap-1 flex-shrink-0">
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => handleEditCategory(cat)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletingCategory(cat)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </TabsContent>
+
+
           {/* ─── Movements Tab ─── */}
           <TabsContent value="movements" className="mt-4">
             <MovementsLog branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''} />
