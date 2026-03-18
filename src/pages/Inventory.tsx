@@ -312,6 +312,11 @@ const Inventory = () => {
     if (product._isRawMaterial && product._areaColor) {
       return AREA_COLOR_BADGE_MAP[product._areaColor] || undefined;
     }
+    // Non-raw-material products with tipo='ingrediente' also get area color
+    if (product.tipo === 'ingrediente' && product.insumo_area_id) {
+      const color = areaColorMap.get(product.insumo_area_id);
+      if (color) return AREA_COLOR_BADGE_MAP[color] || undefined;
+    }
     return undefined;
   };
 

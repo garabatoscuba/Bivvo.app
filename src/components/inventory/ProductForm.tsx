@@ -229,7 +229,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
           status: 'for_sale' as Product['status'],
           barcode: data.barcode || null,
           supplier: product?.supplier ?? null,
-          unit_of_measure: data.unit_of_measure,
+          unit_of_measure: (data.tipo === 'ingrediente' || data.tipo === 'granel') ? (data.unit_of_measure || null) : data.unit_of_measure,
           brand: data.brand || null,
           tipo: data.tipo,
           insumo_area_id: data.tipo === 'ingrediente' ? (insumoAreaId || null) : null,
