@@ -246,7 +246,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
     setNewUnit('');
     setNewType('base');
     setNewGramaje('');
-    setCompatibleUnits([]);
+    
   };
 
   // Calculate ingredient cost using unit conversion
