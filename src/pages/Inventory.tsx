@@ -508,54 +508,63 @@ const Inventory = () => {
     try {
       const branchId = selectedBranch || profile.branch_id || branches?.[0]?.id;
       if (!branchId) return;
+      const isRM = !!(selectedProduct as any)._isRawMaterial;
 
-      const { data: existing } = await supabase
-        .from('branch_stock')
-        .select('id, quantity, warehouse_quantity')
-        .eq('branch_id', branchId)
-        .eq('product_id', selectedProduct.id)
-        .maybeSingle();
+      if (isRM) {
+        // Raw material: update raw_materials stock fields
+        const { data: mat } = await supabase
+          .from('raw_materials')
+          .select('id, stock_almacen, stock_vendedor')
+          .eq('id', selectedProduct.id)
+          .single();
 
-      if (!existing || (existing.warehouse_quantity || 0) < transferQty) {
-        toast({ title: 'No hay suficientes unidades en almacén', variant: 'destructive' });
-        return;
+        if (!mat || (mat.stock_almacen || 0) < transferQty) {
+          toast({ title: 'No hay suficientes unidades en almacén', variant: 'destructive' });
+          return;
+        }
+
+        await supabase
+          .from('raw_materials')
+          .update({
+            stock_almacen: (mat.stock_almacen || 0) - transferQty,
+            stock_vendedor: (mat.stock_vendedor || 0) + transferQty,
+          })
+          .eq('id', mat.id);
+
+        queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+        queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
+      } else {
+        // Regular product: update branch_stock
+        const { data: existing } = await supabase
+          .from('branch_stock')
+          .select('id, quantity, warehouse_quantity')
+          .eq('branch_id', branchId)
+          .eq('product_id', selectedProduct.id)
+          .maybeSingle();
+
+        if (!existing || (existing.warehouse_quantity || 0) < transferQty) {
+          toast({ title: 'No hay suficientes unidades en almacén', variant: 'destructive' });
+          return;
+        }
+
+        await supabase
+          .from('branch_stock')
+          .update({
+            quantity: existing.quantity + transferQty,
+            warehouse_quantity: existing.warehouse_quantity - transferQty,
+          })
+          .eq('id', existing.id);
+
+        queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       }
 
-      await supabase
-        .from('branch_stock')
-        .update({
-          quantity: existing.quantity + transferQty,
-          warehouse_quantity: existing.warehouse_quantity - transferQty,
-        })
-        .eq('id', existing.id);
-
-      // Register movements
-      await supabase.from('inventory_movements').insert([
-        {
-          branch_id: branchId,
-          product_id: selectedProduct.id,
-          user_id: profile.user_id,
-          movement_type: 'transfer_out' as const,
-          quantity: transferQty,
-          notes: (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: almacén → uso' : 'Transferencia: almacén → venta',
-        },
-        {
-          branch_id: branchId,
-          product_id: selectedProduct.id,
-          user_id: profile.user_id,
-          movement_type: 'transfer_in' as const,
-          quantity: transferQty,
-          notes: (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: almacén → uso' : 'Transferencia: almacén → venta',
-        },
-      ]);
-
-      queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
+      const label = (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: almacén → uso' : 'Transferencia: almacén → venta';
       toast({ title: (selectedProduct as any).tipo === 'ingrediente' ? `${transferQty} unidades pasadas a uso` : `${transferQty} unidades pasadas a venta` });
       auditLog(
         'stock_transfer',
-        `Transferencia de ${transferQty} unidades de ${selectedProduct?.name} de almacén a venta`,
+        `Transferencia de ${transferQty} unidades de ${selectedProduct?.name} de almacén a ${isRM ? 'uso' : 'venta'}`,
         selectedProduct?.id,
-        'product'
+        isRM ? 'raw_material' : 'product'
       );
       setTransferQty(0);
       setShowTransfer(false);
@@ -572,48 +581,61 @@ const Inventory = () => {
     try {
       const branchId = selectedBranch || profile.branch_id || branches?.[0]?.id;
       if (!branchId) return;
+      const isRM = !!(selectedProduct as any)._isRawMaterial;
 
-      const { data: existing } = await supabase
-        .from('branch_stock')
-        .select('id, quantity, warehouse_quantity')
-        .eq('branch_id', branchId)
-        .eq('product_id', selectedProduct.id)
-        .maybeSingle();
+      if (isRM) {
+        const { data: mat } = await supabase
+          .from('raw_materials')
+          .select('id, stock_almacen, stock_vendedor')
+          .eq('id', selectedProduct.id)
+          .single();
 
-      if (!existing || existing.quantity < transferQty) {
-        toast({ title: 'No hay suficientes unidades en venta', variant: 'destructive' });
-        return;
+        if (!mat || (mat.stock_vendedor || 0) < transferQty) {
+          toast({ title: 'No hay suficientes unidades en uso', variant: 'destructive' });
+          return;
+        }
+
+        await supabase
+          .from('raw_materials')
+          .update({
+            stock_vendedor: (mat.stock_vendedor || 0) - transferQty,
+            stock_almacen: (mat.stock_almacen || 0) + transferQty,
+          })
+          .eq('id', mat.id);
+
+        queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+        queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
+      } else {
+        const { data: existing } = await supabase
+          .from('branch_stock')
+          .select('id, quantity, warehouse_quantity')
+          .eq('branch_id', branchId)
+          .eq('product_id', selectedProduct.id)
+          .maybeSingle();
+
+        if (!existing || existing.quantity < transferQty) {
+          toast({ title: 'No hay suficientes unidades en venta', variant: 'destructive' });
+          return;
+        }
+
+        await supabase
+          .from('branch_stock')
+          .update({
+            quantity: existing.quantity - transferQty,
+            warehouse_quantity: (existing.warehouse_quantity || 0) + transferQty,
+          })
+          .eq('id', existing.id);
+
+        queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       }
 
-      await supabase
-        .from('branch_stock')
-        .update({
-          quantity: existing.quantity - transferQty,
-          warehouse_quantity: (existing.warehouse_quantity || 0) + transferQty,
-        })
-        .eq('id', existing.id);
-
-      await supabase.from('inventory_movements').insert([
-        {
-          branch_id: branchId,
-          product_id: selectedProduct.id,
-          user_id: profile.user_id,
-          movement_type: 'transfer_out' as const,
-          quantity: transferQty,
-          notes: (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: uso → almacén' : 'Transferencia: venta → almacén',
-        },
-        {
-          branch_id: branchId,
-          product_id: selectedProduct.id,
-          user_id: profile.user_id,
-          movement_type: 'transfer_in' as const,
-          quantity: transferQty,
-          notes: (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: uso → almacén' : 'Transferencia: venta → almacén',
-        },
-      ]);
-
-      queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       toast({ title: `${transferQty} unidades devueltas a almacén` });
+      auditLog(
+        'stock_transfer',
+        `Transferencia de ${transferQty} unidades de ${selectedProduct?.name} de ${isRM ? 'uso' : 'venta'} a almacén`,
+        selectedProduct?.id,
+        isRM ? 'raw_material' : 'product'
+      );
       setTransferQty(0);
       setShowTransfer(false);
     } catch (err: any) {
