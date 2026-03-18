@@ -189,7 +189,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
     }
     const businessId = profile.business_id;
 
-    const salePrice = data.tipo === 'elaborado' && data.sale_price
+    const salePrice = (data.tipo === 'elaborado' || data.tipo === 'granel') && data.sale_price
       ? parseFloat(data.sale_price)
       : (product?.sale_price ?? 0);
 
@@ -460,7 +460,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
             </div>
 
             {/* ─── Sección 4: Precio de venta (solo elaborado) ─── */}
-            {form.watch('tipo') === 'elaborado' && (
+            {(form.watch('tipo') === 'elaborado' || form.watch('tipo') === 'granel') && (
               <>
                 <Separator />
                 <div className="space-y-3">
