@@ -47,13 +47,47 @@ export const useProductionCapacities = (productIds: string[], branchId: string |
       // Base ingredients for all recipes
       const { data: ingredients, error: ingredientsError } = await supabase
         .from('recipe_ingredients')
-        .select('recipe_id, ingredient_id, quantity, unit, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, unit_of_measure)')
+        .select('recipe_id, ingredient_id, quantity, unit, is_raw_material')
         .in('recipe_id', recipeIds)
         .eq('ingredient_type', 'base');
 
       if (ingredientsError) throw ingredientsError;
 
-      const typedIngredients = (ingredients || []) as IngredientRow[];
+      // Separate product IDs and raw_material IDs
+      const productIngredientIds = new Set<string>();
+      const rawMaterialIds = new Set<string>();
+      for (const ri of (ingredients || [])) {
+        if ((ri as any).is_raw_material) {
+          rawMaterialIds.add(ri.ingredient_id);
+        } else {
+          productIngredientIds.add(ri.ingredient_id);
+        }
+      }
+
+      // Fetch unit_of_measure from both tables
+      const unitMap = new Map<string, string>();
+      if (productIngredientIds.size > 0) {
+        const { data: prods } = await supabase
+          .from('products')
+          .select('id, unit_of_measure')
+          .in('id', Array.from(productIngredientIds));
+        for (const p of (prods || [])) unitMap.set(p.id, p.unit_of_measure || 'pieza');
+      }
+      if (rawMaterialIds.size > 0) {
+        const { data: mats } = await supabase
+          .from('raw_materials')
+          .select('id, unit_purchase')
+          .in('id', Array.from(rawMaterialIds));
+        for (const m of (mats || [])) unitMap.set(m.id, (m as any).unit_purchase || 'pieza');
+      }
+
+      const typedIngredients: IngredientRow[] = (ingredients || []).map((ri: any) => ({
+        recipe_id: ri.recipe_id,
+        ingredient_id: ri.ingredient_id,
+        quantity: ri.quantity,
+        unit: ri.unit,
+        ingredient: { id: ri.ingredient_id, unit_of_measure: unitMap.get(ri.ingredient_id) || 'pieza' },
+      }));
 
       // Group ingredients by recipe
       const byRecipe = new Map<string, IngredientRow[]>();
@@ -67,16 +101,29 @@ export const useProductionCapacities = (productIds: string[], branchId: string |
 
       if (ingredientIds.size === 0) return {};
 
-      // Stock for all ingredient products in this branch
-      const { data: stocks, error: stockError } = await supabase
-        .from('branch_stock')
-        .select('product_id, quantity')
-        .eq('branch_id', branchId)
-        .in('product_id', Array.from(ingredientIds));
+      // Stock for product-type ingredients from branch_stock
+      const stockMap = new Map<string, number>();
 
-      if (stockError) throw stockError;
+      const prodIds = Array.from(productIngredientIds).filter(id => ingredientIds.has(id));
+      const matIds = Array.from(rawMaterialIds).filter(id => ingredientIds.has(id));
 
-      const stockMap = new Map((stocks || []).map((s: any) => [s.product_id as string, Number(s.quantity) || 0]));
+      if (prodIds.length > 0) {
+        const { data: stocks, error: stockError } = await supabase
+          .from('branch_stock')
+          .select('product_id, quantity')
+          .eq('branch_id', branchId)
+          .in('product_id', prodIds);
+        if (stockError) throw stockError;
+        for (const s of (stocks || [])) stockMap.set(s.product_id, Number(s.quantity) || 0);
+      }
+
+      if (matIds.length > 0) {
+        const { data: mats } = await supabase
+          .from('raw_materials')
+          .select('id, stock_vendedor, stock_almacen')
+          .in('id', matIds);
+        for (const m of (mats || [])) stockMap.set(m.id, (Number((m as any).stock_vendedor) || 0) + (Number((m as any).stock_almacen) || 0));
+      }
 
       const capacities: CapacityMap = {};
 

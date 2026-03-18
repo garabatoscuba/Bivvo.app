@@ -43,11 +43,42 @@ interface RecipeIngredient {
 
 export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProps) => {
   const { profile } = useAuth();
-  const { products } = useProducts();
   const queryClient = useQueryClient();
   const businessId = profile?.business_id;
 
-  const ingredients = products.filter(p => (p as any).tipo === 'ingrediente');
+  // Fetch raw_materials (insumos) as available ingredients
+  const { data: rawMaterials } = useQuery({
+    queryKey: ['raw-materials-for-recipe', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const { data, error } = await supabase
+        .from('raw_materials')
+        .select('id, name, costo_unitario, unit_purchase')
+        .eq('business_id', businessId)
+        .order('name');
+      if (error) throw error;
+      return (data || []).map((m: any) => ({
+        id: m.id,
+        name: m.name,
+        cost_price: m.costo_unitario || 0,
+        unit_of_measure: m.unit_purchase || 'pieza',
+        _isRawMaterial: true,
+      }));
+    },
+    enabled: open && !!businessId,
+  });
+
+  // Also fetch products with tipo='ingrediente' (legacy support)
+  const { products } = useProducts();
+  const productIngredients = products.filter(p => (p as any).tipo === 'ingrediente').map(p => ({
+    id: p.id,
+    name: p.name,
+    cost_price: p.cost_price,
+    unit_of_measure: p.unit_of_measure,
+    _isRawMaterial: false,
+  }));
+
+  const ingredients = [...(rawMaterials || []), ...productIngredients];
 
   // Fetch or create recipe
   const { data: recipe, isLoading: recipeLoading } = useQuery({
@@ -65,17 +96,31 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
     enabled: open,
   });
 
-  // Fetch recipe ingredients
+  // Fetch recipe ingredients - manual join since FK was dropped
   const { data: recipeIngredients, isLoading: ingredientsLoading } = useQuery({
     queryKey: ['recipe-ingredients', recipe?.id],
     queryFn: async () => {
       if (!recipe?.id) return [];
       const { data, error } = await supabase
         .from('recipe_ingredients')
-        .select('*, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, cost_price, unit_of_measure)')
+        .select('*')
         .eq('recipe_id', recipe.id);
       if (error) throw error;
-      return (data || []) as unknown as RecipeIngredient[];
+
+      // Enrich with ingredient info from products or raw_materials
+      const enriched = await Promise.all((data || []).map(async (ri: any) => {
+        let ingredient = null;
+        if (ri.is_raw_material) {
+          const { data: mat } = await supabase.from('raw_materials').select('id, name, costo_unitario, unit_purchase').eq('id', ri.ingredient_id).maybeSingle();
+          if (mat) ingredient = { id: mat.id, name: mat.name, cost_price: (mat as any).costo_unitario || 0, unit_of_measure: (mat as any).unit_purchase || 'pieza' };
+        } else {
+          const { data: prod } = await supabase.from('products').select('id, name, cost_price, unit_of_measure').eq('id', ri.ingredient_id).maybeSingle();
+          if (prod) ingredient = prod;
+        }
+        return { ...ri, ingredient } as unknown as RecipeIngredient;
+      }));
+
+      return enriched;
     },
     enabled: !!recipe?.id,
   });
@@ -110,11 +155,11 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
   });
 
   const addIngredient = useMutation({
-    mutationFn: async ({ ingredientId, quantity, unit, ingredientType, gramaje }: { ingredientId: string; quantity: number; unit: string; ingredientType: 'base' | 'agrego'; gramaje: number }) => {
+    mutationFn: async ({ ingredientId, quantity, unit, ingredientType, gramaje, isRawMaterial }: { ingredientId: string; quantity: number; unit: string; ingredientType: 'base' | 'agrego'; gramaje: number; isRawMaterial: boolean }) => {
       if (!recipe?.id) throw new Error('No recipe');
       const { error } = await supabase
         .from('recipe_ingredients')
-        .insert({ recipe_id: recipe.id, ingredient_id: ingredientId, quantity, unit, ingredient_type: ingredientType, gramaje });
+        .insert({ recipe_id: recipe.id, ingredient_id: ingredientId, quantity, unit, ingredient_type: ingredientType, gramaje, is_raw_material: isRawMaterial } as any);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -187,12 +232,15 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
       gramaje = converted ?? qty;
     }
 
+    const isRawMaterial = ing?._isRawMaterial ?? false;
+
     addIngredient.mutate({
       ingredientId: newIngredientId,
       quantity: qty,
       unit: unit || 'pieza',
       ingredientType: newType,
       gramaje,
+      isRawMaterial,
     });
 
     setNewIngredientId('');

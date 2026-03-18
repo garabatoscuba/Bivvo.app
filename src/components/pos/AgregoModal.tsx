@@ -46,11 +46,24 @@ export const AgregoModal = ({ open, onOpenChange, product, onConfirm }: AgregoMo
 
       const { data, error } = await supabase
         .from('recipe_ingredients')
-        .select('id, ingredient_id, quantity, unit, gramaje, surcharge, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, cost_price, unit_of_measure)')
+        .select('id, ingredient_id, quantity, unit, gramaje, surcharge, is_raw_material')
         .eq('recipe_id', recipe.id)
         .eq('ingredient_type', 'agrego');
       if (error) throw error;
-      return (data || []) as unknown as AgregoItem[];
+
+      // Enrich with ingredient info
+      const enriched = await Promise.all((data || []).map(async (ri: any) => {
+        let ingredient = null;
+        if (ri.is_raw_material) {
+          const { data: mat } = await supabase.from('raw_materials').select('id, name, costo_unitario, unit_purchase').eq('id', ri.ingredient_id).maybeSingle();
+          if (mat) ingredient = { id: mat.id, name: mat.name, cost_price: (mat as any).costo_unitario || 0, unit_of_measure: (mat as any).unit_purchase || 'pieza' };
+        } else {
+          const { data: prod } = await supabase.from('products').select('id, name, cost_price, unit_of_measure').eq('id', ri.ingredient_id).maybeSingle();
+          if (prod) ingredient = prod;
+        }
+        return { ...ri, ingredient };
+      }));
+      return enriched as unknown as AgregoItem[];
     },
     enabled: open && !!product?.id,
   });

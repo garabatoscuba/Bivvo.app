@@ -68,23 +68,49 @@ export const ProductionDialog = ({ open, onOpenChange, product, branchId }: Prod
       if (!recipe) return { maxUnits: 0, bottleneck: null, breakdown: [] };
 
       // Get base ingredients
-      const { data: ingredients } = await supabase
+      const { data: riData } = await supabase
         .from('recipe_ingredients')
-        .select('*, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, unit_of_measure)')
+        .select('*')
         .eq('recipe_id', recipe.id)
         .eq('ingredient_type', 'base');
 
+      // Enrich with product/raw_material info
+      const ingredients = await Promise.all((riData || []).map(async (ri: any) => {
+        let ingredient = null;
+        if (ri.is_raw_material) {
+          const { data: mat } = await supabase.from('raw_materials').select('id, name, unit_purchase').eq('id', ri.ingredient_id).maybeSingle();
+          if (mat) ingredient = { id: mat.id, name: mat.name, unit_of_measure: (mat as any).unit_purchase || 'pieza' };
+        } else {
+          const { data: prod } = await supabase.from('products').select('id, name, unit_of_measure').eq('id', ri.ingredient_id).maybeSingle();
+          if (prod) ingredient = prod;
+        }
+        return { ...ri, ingredient };
+      }));
+
       if (!ingredients || ingredients.length === 0) return { maxUnits: Infinity, bottleneck: null, breakdown: [] };
 
-      // Get stock for all ingredient products in this branch
-      const ingredientIds = ingredients.map(i => i.ingredient_id);
-      const { data: stocks } = await supabase
-        .from('branch_stock')
-        .select('product_id, quantity')
-        .eq('branch_id', branchId)
-        .in('product_id', ingredientIds);
+      // Get stock for product-type ingredients from branch_stock
+      const productIngredientIds = ingredients.filter((i: any) => !i.is_raw_material).map((i: any) => i.ingredient_id);
+      const rawMaterialIds = ingredients.filter((i: any) => i.is_raw_material).map((i: any) => i.ingredient_id);
 
-      const stockMap = new Map((stocks || []).map(s => [s.product_id, s.quantity]));
+      const stockMap = new Map<string, number>();
+
+      if (productIngredientIds.length > 0) {
+        const { data: stocks } = await supabase
+          .from('branch_stock')
+          .select('product_id, quantity')
+          .eq('branch_id', branchId)
+          .in('product_id', productIngredientIds);
+        for (const s of (stocks || [])) stockMap.set(s.product_id, s.quantity);
+      }
+
+      if (rawMaterialIds.length > 0) {
+        const { data: mats } = await supabase
+          .from('raw_materials')
+          .select('id, stock_vendedor, stock_almacen')
+          .in('id', rawMaterialIds);
+        for (const m of (mats || [])) stockMap.set(m.id, ((m as any).stock_vendedor || 0) + ((m as any).stock_almacen || 0));
+      }
       const yieldQty = recipe.yield_quantity || 1;
 
       const breakdown: BottleneckInfo['breakdown'] = [];

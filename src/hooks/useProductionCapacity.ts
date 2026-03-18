@@ -25,23 +25,47 @@ export const useProductionCapacity = (productId: string | null, branchId: string
       if (!recipe) return { maxUnits: 0, bottleneck: null, breakdown: [] };
 
       // Get base ingredients
-      const { data: ingredients } = await supabase
+      const { data: riData } = await supabase
         .from('recipe_ingredients')
-        .select('*, ingredient:products!recipe_ingredients_ingredient_id_fkey(id, name, unit_of_measure)')
+        .select('*')
         .eq('recipe_id', recipe.id)
         .eq('ingredient_type', 'base');
 
+      // Enrich with product/raw_material info
+      const ingredients = await Promise.all((riData || []).map(async (ri: any) => {
+        let ingredient = null;
+        if (ri.is_raw_material) {
+          const { data } = await supabase.from('raw_materials').select('id, name, unit_purchase').eq('id', ri.ingredient_id).maybeSingle();
+          if (data) ingredient = { id: data.id, name: data.name, unit_of_measure: (data as any).unit_purchase || 'pieza' };
+        } else {
+          const { data } = await supabase.from('products').select('id, name, unit_of_measure').eq('id', ri.ingredient_id).maybeSingle();
+          if (data) ingredient = data;
+        }
+        return { ...ri, ingredient };
+      }));
+
       if (!ingredients || ingredients.length === 0) return { maxUnits: Infinity, bottleneck: null, breakdown: [] };
 
-      // Get stock for all ingredient products in this branch
-      const ingredientIds = ingredients.map(i => i.ingredient_id);
-      const { data: stocks } = await supabase
-        .from('branch_stock')
-        .select('product_id, quantity')
-        .eq('branch_id', branchId)
-        .in('product_id', ingredientIds);
+      // Get stock for ingredients from appropriate tables
+      const stockMap = new Map<string, number>();
+      const prodIds = ingredients.filter((i: any) => !i.is_raw_material).map((i: any) => i.ingredient_id);
+      const matIds = ingredients.filter((i: any) => i.is_raw_material).map((i: any) => i.ingredient_id);
 
-      const stockMap = new Map((stocks || []).map(s => [s.product_id, s.quantity]));
+      if (prodIds.length > 0) {
+        const { data: stocks } = await supabase
+          .from('branch_stock')
+          .select('product_id, quantity')
+          .eq('branch_id', branchId)
+          .in('product_id', prodIds);
+        for (const s of (stocks || [])) stockMap.set(s.product_id, s.quantity);
+      }
+      if (matIds.length > 0) {
+        const { data: mats } = await supabase
+          .from('raw_materials')
+          .select('id, stock_vendedor, stock_almacen')
+          .in('id', matIds);
+        for (const m of (mats || [])) stockMap.set(m.id, ((m as any).stock_vendedor || 0) + ((m as any).stock_almacen || 0));
+      }
       const yieldQty = recipe.yield_quantity || 1;
 
       const breakdown: BottleneckInfo['breakdown'] = [];
