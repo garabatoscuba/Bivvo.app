@@ -1094,14 +1094,14 @@ const Inventory = () => {
           {/* ─── Almacén Tab ─── */}
           <TabsContent value="warehouse" className="mt-4 space-y-4">
             {(() => {
-              const warehouseProducts = products.filter((p) => {
-                const tipo = (p as any).tipo || 'reventa';
-                if (tipo === 'ingrediente') return false;
+              // Combine products + raw materials, then filter for warehouse stock > 0
+              const allItems = [...products, ...rawMaterialsAsProducts.filter(rm => !products.some(p => p.id === rm.id))];
+              const warehouseProducts = allItems.filter((p) => {
                 if (p.status === 'discontinued') return false;
-                const wStock = warehouseStockMap.get(p.id) || 0;
+                const wStock = getProductWarehouseStock(p);
                 return wStock > 0;
               }).filter(p => { const s = search.toLowerCase(); return !search || p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.brand || '').toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s); });
-              const totalUnits = warehouseProducts.reduce((sum, p) => sum + (warehouseStockMap.get(p.id) || 0), 0);
+              const totalUnits = warehouseProducts.reduce((sum, p) => sum + getProductWarehouseStock(p), 0);
               return (
                 <>
                   <div className="text-sm text-muted-foreground">
@@ -1120,7 +1120,7 @@ const Inventory = () => {
                   ) : (
                     <div className="space-y-1">
                       {warehouseProducts.map((product) => {
-                        const wStock = warehouseStockMap.get(product.id) || 0;
+                        const wStock = getProductWarehouseStock(product);
                         const isLow = wStock <= product.min_stock;
 
                         return (
