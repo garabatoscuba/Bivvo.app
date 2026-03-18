@@ -198,8 +198,10 @@ const InsumosInventoryTab = ({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
       queryClient.invalidateQueries({ queryKey: ['raw-materials-for-recipe'] });
       queryClient.invalidateQueries({ queryKey: ['recipe'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-ingredients'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({ title: 'Insumo eliminado' });
     },

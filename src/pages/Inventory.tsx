@@ -481,9 +481,11 @@ const Inventory = () => {
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['raw-materials'] }),
+        queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] }),
         queryClient.invalidateQueries({ queryKey: ['raw-materials-for-recipe'] }),
         queryClient.invalidateQueries({ queryKey: ['recipe'] }),
         queryClient.invalidateQueries({ queryKey: ['recipe-ingredients'] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
       ]);
 
       if (selectedProduct?.id === deletingProduct.id) {
