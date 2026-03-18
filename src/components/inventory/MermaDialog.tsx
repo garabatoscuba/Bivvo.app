@@ -265,6 +265,7 @@ export const MermaDialog = ({
                 filteredProducts.map(p => {
                   const bd = stockBreakdownMap.get(p.id) || { sale: 0, warehouse: 0, area: 0 };
                   const total = bd.sale + bd.warehouse + bd.area;
+                  const pUnit = p.unit_of_measure || 'uds';
                   return (
                     <button
                       key={p.id}
@@ -276,7 +277,7 @@ export const MermaDialog = ({
                       )}
                     >
                       <span className="truncate">{p.name} {p.code && <span className="text-muted-foreground">({p.code})</span>}</span>
-                      <span className="text-xs text-muted-foreground ml-2 shrink-0">{total} uds</span>
+                      <span className="text-xs text-muted-foreground ml-2 shrink-0">{total} {pUnit}</span>
                     </button>
                   );
                 })
