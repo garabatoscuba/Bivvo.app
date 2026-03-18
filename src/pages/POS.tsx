@@ -354,7 +354,7 @@ const POS = () => {
           </div>
 
           {/* Product Grid */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-20 lg:pb-0">
+          <div className="flex-1 overflow-y-auto pb-20 md:pb-20 lg:pb-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
