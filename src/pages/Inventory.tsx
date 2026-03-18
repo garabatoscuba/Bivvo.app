@@ -903,7 +903,7 @@ const Inventory = () => {
             )}
           </TabsContent>
 
-          {/* ─── A la Venta Tab (filtered: stock > 0 or sale types) ─── */}
+          {/* ─── A la Venta Tab (filtered: stock > 0 or sale types, grouped by category) ─── */}
           <TabsContent value="for-sale" className="mt-4 space-y-4">
             {(() => {
               const forSaleProducts = products.filter((p) => {
@@ -914,12 +914,72 @@ const Inventory = () => {
                 return saleStock > 0 || ['reventa', 'elaborado', 'granel'].includes(tipo);
               }).filter(p => { const s = search.toLowerCase(); return !search || p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.brand || '').toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s); });
               const totalUnits = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any), 0);
-              const totalValue = forSaleProducts.reduce((sum, p) => sum + getDisplayForSaleStock(p as any) * Number(p.sale_price), 0);
+
+              // Group by category
+              const catGroups = new Map<string, { category: Category | null; products: typeof forSaleProducts }>();
+              const uncategorized: typeof forSaleProducts = [];
+              forSaleProducts.forEach((p) => {
+                if (p.category_id && p.category) {
+                  const existing = catGroups.get(p.category_id);
+                  if (existing) {
+                    existing.products.push(p);
+                  } else {
+                    catGroups.set(p.category_id, { category: p.category, products: [p] });
+                  }
+                } else {
+                  uncategorized.push(p);
+                }
+              });
+
               return (
                 <>
-                  <div className="text-sm text-muted-foreground">
-                    <span className="font-semibold text-foreground">{totalUnits}</span> unidades en venta
+                  {/* Header with category management */}
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm text-muted-foreground">
+                      <span className="font-semibold text-foreground">{totalUnits}</span> unidades en venta
+                    </div>
+                    {canManage && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          if (guardDowngrade()) return;
+                          if (!canCreateCategory) {
+                            toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_CATEGORY_LIMIT} categorías.`, variant: 'destructive' });
+                            return;
+                          }
+                          setEditingCategory(null);
+                          setCategoryFormOpen(true);
+                        }}
+                      >
+                        <Plus className="mr-1.5 h-3.5 w-3.5" />
+                        Categoría
+                      </Button>
+                    )}
                   </div>
+
+                  {/* Category chips for quick management */}
+                  {categories.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {categories.map((cat) => (
+                        <div key={cat.id} className="flex items-center gap-1 rounded-full border px-3 py-1 text-xs">
+                          <div className={cn('h-2.5 w-2.5 rounded-full flex-shrink-0', colorDotMap[cat.color] || colorDotMap.blue)} />
+                          <span className="font-medium">{cat.name}</span>
+                          {canManage && (
+                            <>
+                              <button type="button" className="ml-1 text-muted-foreground hover:text-foreground" onClick={() => handleEditCategory(cat)}>
+                                <Pencil className="h-3 w-3" />
+                              </button>
+                              <button type="button" className="text-muted-foreground hover:text-destructive" onClick={() => setDeletingCategory(cat)}>
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {productsLoading ? (
                     <div className="flex items-center justify-center py-12">
                       <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -931,24 +991,66 @@ const Inventory = () => {
                       <p className="text-sm text-muted-foreground mt-1">No hay productos con stock disponible para venta</p>
                     </div>
                   ) : (
-                    <div className="space-y-1">
-                      {forSaleProducts.map((product) => (
-                        <ProductRow
-                          key={product.id}
-                          product={product}
-                          stock={getDisplayForSaleStock(product as any)}
-                          warehouseStock={warehouseStockMap.get(product.id) || 0}
-                          color={product.category?.color || 'blue'}
-                          onClick={() => handleProductTap(product)}
-                          canManage={canManage}
-                          onDelete={() => setDeletingProduct(product)}
-                          onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
-                          onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
-                          onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                          onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
-                          showBadges="sale"
-                        />
+                    <div className="space-y-4">
+                      {Array.from(catGroups.values()).map(({ category, products: catProducts }) => (
+                        <div key={category?.id || 'none'}>
+                          <div className="flex items-center gap-2 mb-2">
+                            <div className={cn('h-3 w-3 rounded-full flex-shrink-0', colorDotMap[category?.color || 'blue'] || colorDotMap.blue)} />
+                            <p className="text-sm font-semibold">{category?.name}</p>
+                            <span className="text-xs text-muted-foreground">({catProducts.length})</span>
+                          </div>
+                          <div className="space-y-1">
+                            {catProducts.map((product) => (
+                              <ProductRow
+                                key={product.id}
+                                product={product}
+                                stock={getDisplayForSaleStock(product as any)}
+                                warehouseStock={warehouseStockMap.get(product.id) || 0}
+                                color={product.category?.color || 'blue'}
+                                onClick={() => handleProductTap(product)}
+                                canManage={canManage}
+                                onDelete={() => setDeletingProduct(product)}
+                                onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                                onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                                onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                                onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                                showBadges="sale"
+                              />
+                            ))}
+                          </div>
+                          <Separator className="mt-3" />
+                        </div>
                       ))}
+                      {uncategorized.length > 0 && (
+                        <div>
+                          {catGroups.size > 0 && (
+                            <div className="flex items-center gap-2 mb-2">
+                              <div className="h-3 w-3 rounded-full flex-shrink-0 bg-muted-foreground/30" />
+                              <p className="text-sm font-semibold text-muted-foreground">Sin categoría</p>
+                              <span className="text-xs text-muted-foreground">({uncategorized.length})</span>
+                            </div>
+                          )}
+                          <div className="space-y-1">
+                            {uncategorized.map((product) => (
+                              <ProductRow
+                                key={product.id}
+                                product={product}
+                                stock={getDisplayForSaleStock(product as any)}
+                                warehouseStock={warehouseStockMap.get(product.id) || 0}
+                                color={product.category?.color || 'blue'}
+                                onClick={() => handleProductTap(product)}
+                                canManage={canManage}
+                                onDelete={() => setDeletingProduct(product)}
+                                onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                                onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                                onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                                onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
+                                showBadges="sale"
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </>
