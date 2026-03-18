@@ -954,7 +954,7 @@ export default function AdminAssistant() {
             <TabsTrigger value="questions" className="gap-1.5 text-xs"><MessageSquare className="h-3.5 w-3.5" /> Preguntas</TabsTrigger>
             <TabsTrigger value="instructions" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por tipo</TabsTrigger>
             <TabsTrigger value="by-module" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por módulo</TabsTrigger>
-            <TabsTrigger value="training" className="gap-1.5 text-xs"><GraduationCap className="h-3.5 w-3.5" /> Entrenamiento</TabsTrigger>
+            
             <TabsTrigger value="history" className="gap-1.5 text-xs"><History className="h-3.5 w-3.5" /> Historial</TabsTrigger>
             <TabsTrigger value="actions" className="gap-1.5 text-xs"><Zap className="h-3.5 w-3.5" /> Acciones</TabsTrigger>
           </TabsList>
