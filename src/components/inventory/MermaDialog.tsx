@@ -76,22 +76,53 @@ export const MermaDialog = ({
     mutationFn: async () => {
       if (!profile?.user_id || !productId || !reason) throw new Error('Datos incompletos');
 
-      // Deduct stock
-      const { data: existing } = await supabase
-        .from('branch_stock')
-        .select('id, quantity')
-        .eq('branch_id', branchId)
-        .eq('product_id', productId)
-        .maybeSingle();
+      const isRawMaterial = selectedProduct?._isRawMaterial === true;
 
-      if (!existing || existing.quantity < quantity) {
-        throw new Error('Stock insuficiente');
+      if (isRawMaterial) {
+        // Deduct from raw_materials table
+        const { data: mat } = await supabase
+          .from('raw_materials')
+          .select('id, stock_vendedor, stock_almacen')
+          .eq('id', productId)
+          .maybeSingle();
+
+        if (!mat) throw new Error('Insumo no encontrado');
+        const totalStock = (mat.stock_vendedor || 0) + (mat.stock_almacen || 0);
+        if (totalStock < quantity) throw new Error('Stock insuficiente');
+
+        // Deduct from stock_vendedor first, then stock_almacen
+        let remaining = quantity;
+        const newVendedor = Math.max(0, (mat.stock_vendedor || 0) - remaining);
+        remaining = Math.max(0, remaining - (mat.stock_vendedor || 0));
+        const newAlmacen = Math.max(0, (mat.stock_almacen || 0) - remaining);
+
+        await supabase
+          .from('raw_materials')
+          .update({ stock_vendedor: newVendedor, stock_almacen: newAlmacen })
+          .eq('id', productId);
+      } else {
+        // Deduct from branch_stock (sale stock first, then warehouse)
+        const { data: existing } = await supabase
+          .from('branch_stock')
+          .select('id, quantity, warehouse_quantity')
+          .eq('branch_id', branchId)
+          .eq('product_id', productId)
+          .maybeSingle();
+
+        if (!existing) throw new Error('Stock no encontrado');
+        const totalStock = (existing.quantity || 0) + (existing.warehouse_quantity || 0);
+        if (totalStock < quantity) throw new Error('Stock insuficiente');
+
+        let remaining = quantity;
+        const newQty = Math.max(0, (existing.quantity || 0) - remaining);
+        remaining = Math.max(0, remaining - (existing.quantity || 0));
+        const newWarehouse = Math.max(0, (existing.warehouse_quantity || 0) - remaining);
+
+        await supabase
+          .from('branch_stock')
+          .update({ quantity: newQty, warehouse_quantity: newWarehouse })
+          .eq('id', existing.id);
       }
-
-      await supabase
-        .from('branch_stock')
-        .update({ quantity: existing.quantity - quantity })
-        .eq('id', existing.id);
 
       // Record movement
       const reasonLabel = MERMA_REASONS.find(r => r.value === reason)?.label || reason;
@@ -109,6 +140,8 @@ export const MermaDialog = ({
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
       toast({ title: 'Merma registrada', description: `${quantity} unidad(es) de ${selectedProduct?.name} descontadas del inventario` });
       const reasonLabel = MERMA_REASONS.find(r => r.value === reason)?.label || reason;
       auditLog(
