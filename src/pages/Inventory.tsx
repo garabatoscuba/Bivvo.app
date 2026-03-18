@@ -213,6 +213,28 @@ const Inventory = () => {
     enabled: !!businessId,
   });
 
+  // Insumo areas query (for area colors)
+  const { data: insumoAreas = [] } = useQuery({
+    queryKey: ['insumo-areas-colors', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const { data, error } = await supabase
+        .from('insumo_areas')
+        .select('id, name, color')
+        .eq('business_id', businessId);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!businessId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const areaColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    insumoAreas.forEach((a: any) => { if (a.color) map.set(a.id, a.color); });
+    return map;
+  }, [insumoAreas]);
+
   // Convert raw materials to Product-like objects for the products tab
   const rawMaterialsAsProducts = useMemo(() => {
     return rawMaterialsForProducts.map((mat: any) => ({
@@ -239,8 +261,11 @@ const Inventory = () => {
       brand: mat.brand || null,
       category: null,
       _isRawMaterial: true,
+      _stockVendedor: mat.stock_vendedor || 0,
+      _stockAlmacen: mat.stock_almacen || 0,
+      _areaColor: mat.area_id ? (areaColorMap.get(mat.area_id) || null) : null,
     })) as unknown as (Product & { category: Category | null })[];
-  }, [rawMaterialsForProducts]);
+  }, [rawMaterialsForProducts, areaColorMap]);
 
   const FREE_PRODUCT_LIMIT = 5;
   const FREE_CATEGORY_LIMIT = 2;
