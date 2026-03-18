@@ -12,7 +12,7 @@ export interface InventoryMovementRecord {
   notes: string | null;
   reference_id: string | null;
   created_at: string;
-  product: { name: string; code: string } | null;
+  product: { name: string; code: string; unit_of_measure?: string | null } | null;
   user_profile: { full_name: string } | null;
   branch: { name: string } | null;
 }
@@ -39,8 +39,8 @@ export const useInventoryMovements = (branchId?: string) => {
       const userIds = [...new Set(data.map(m => m.user_id))];
 
       const [productsRes, rawMaterialsRes, profilesRes, branchRes] = await Promise.all([
-        supabase.from('products').select('id, name, code').in('id', productIds),
-        supabase.from('raw_materials').select('id, name').in('id', productIds),
+        supabase.from('products').select('id, name, code, unit_of_measure').in('id', productIds),
+        supabase.from('raw_materials').select('id, name, unit_use').in('id', productIds),
         supabase.from('profiles').select('user_id, full_name').in('user_id', userIds),
         supabase.from('branches').select('id, name').eq('id', branchId).single(),
       ]);
@@ -49,7 +49,7 @@ export const useInventoryMovements = (branchId?: string) => {
       // Merge raw materials into product map (for items not found in products)
       rawMaterialsRes.data?.forEach(rm => {
         if (!productMap.has(rm.id)) {
-          productMap.set(rm.id, { id: rm.id, name: rm.name, code: '' });
+          productMap.set(rm.id, { id: rm.id, name: rm.name, code: '', unit_of_measure: rm.unit_use || null });
         }
       });
       const profileMap = new Map(profilesRes.data?.map(p => [p.user_id, p]) || []);

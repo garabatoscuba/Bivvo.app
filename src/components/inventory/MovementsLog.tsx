@@ -214,7 +214,7 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
                           'text-sm font-bold tabular-nums',
                           ['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? 'text-success' : 'text-destructive'
                         )}>
-                          {['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? '+' : '−'}{m.quantity}
+                          {['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? '+' : '−'}{m.quantity} {m.product?.unit_of_measure || 'uds'}
                         </span>
                         <span className="text-[10px] text-muted-foreground">{config.label}</span>
                       </div>
