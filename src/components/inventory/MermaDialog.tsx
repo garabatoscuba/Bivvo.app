@@ -97,12 +97,11 @@ export const MermaDialog = ({
 
     if (isRaw) {
       // Raw materials: "Área" (stock_vendedor) and "Almacén" (stock_almacen)
-      sources.push({ value: 'area', label: 'Área (uso)', stock: breakdown.area });
+      sources.push({ value: 'area', label: `Área (uso)`, stock: breakdown.area });
       if (!sellerOnly) {
         sources.push({ value: 'warehouse', label: 'Almacén', stock: breakdown.warehouse });
       }
     } else {
-      // Regular products: "A la Venta" and "Almacén"
       sources.push({ value: 'sale', label: 'A la Venta', stock: breakdown.sale });
       if (!sellerOnly) {
         sources.push({ value: 'warehouse', label: 'Almacén', stock: breakdown.warehouse });
