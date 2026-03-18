@@ -1503,9 +1503,10 @@ interface ProductRowProps {
   onReturnToWarehouse: () => void;
   onOutflow: () => void;
   showBadges?: 'both' | 'sale' | 'warehouse';
+  badgeColorClass?: string;
 }
 
-const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow, showBadges = 'both' }: ProductRowProps) => {
+const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow, showBadges = 'both', badgeColorClass }: ProductRowProps) => {
   const bgColor = colorMap[color] || colorMap.blue;
   const isLow = stock <= product.min_stock;
 
