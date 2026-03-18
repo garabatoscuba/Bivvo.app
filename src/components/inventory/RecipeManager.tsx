@@ -232,12 +232,15 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
       gramaje = converted ?? qty;
     }
 
+    const isRawMaterial = ing?._isRawMaterial ?? false;
+
     addIngredient.mutate({
       ingredientId: newIngredientId,
       quantity: qty,
       unit: unit || 'pieza',
       ingredientType: newType,
       gramaje,
+      isRawMaterial,
     });
 
     setNewIngredientId('');
