@@ -966,7 +966,7 @@ export default function AdminAssistant() {
         <TabsContent value="questions"><GeneralQuestionsTab /></TabsContent>
         <TabsContent value="instructions"><InstructionsTab /></TabsContent>
         <TabsContent value="by-module"><ModuleInstructionsTab /></TabsContent>
-        <TabsContent value="training"><TrainingTab /></TabsContent>
+        
         <TabsContent value="history"><HistoryTab /></TabsContent>
         <TabsContent value="actions"><QuickActionsTab /></TabsContent>
       </Tabs>
