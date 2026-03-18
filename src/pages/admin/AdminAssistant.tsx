@@ -593,8 +593,12 @@ function ModuleInstructionsTab() {
   });
 
   // Build dynamic module list from platform_modules
+  // Normalize: lowercase, replace spaces with _, strip accents
+  const normalizeKey = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_');
+
   const dynamicModules = platformModules.filter((m: any) => m.is_active).map((m: any) => ({
-    key: m.sidebar_label?.toLowerCase().replace(/\s+/g, '_') || m.name.toLowerCase().replace(/\s+/g, '_'),
+    key: normalizeKey(m.sidebar_label || m.name),
     label: m.sidebar_label || m.name,
     id: m.id,
   }));
@@ -954,7 +958,7 @@ export default function AdminAssistant() {
             <TabsTrigger value="questions" className="gap-1.5 text-xs"><MessageSquare className="h-3.5 w-3.5" /> Preguntas</TabsTrigger>
             <TabsTrigger value="instructions" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por tipo</TabsTrigger>
             <TabsTrigger value="by-module" className="gap-1.5 text-xs"><BookOpen className="h-3.5 w-3.5" /> Por módulo</TabsTrigger>
-            <TabsTrigger value="training" className="gap-1.5 text-xs"><GraduationCap className="h-3.5 w-3.5" /> Entrenamiento</TabsTrigger>
+            
             <TabsTrigger value="history" className="gap-1.5 text-xs"><History className="h-3.5 w-3.5" /> Historial</TabsTrigger>
             <TabsTrigger value="actions" className="gap-1.5 text-xs"><Zap className="h-3.5 w-3.5" /> Acciones</TabsTrigger>
           </TabsList>
@@ -966,7 +970,7 @@ export default function AdminAssistant() {
         <TabsContent value="questions"><GeneralQuestionsTab /></TabsContent>
         <TabsContent value="instructions"><InstructionsTab /></TabsContent>
         <TabsContent value="by-module"><ModuleInstructionsTab /></TabsContent>
-        <TabsContent value="training"><TrainingTab /></TabsContent>
+        
         <TabsContent value="history"><HistoryTab /></TabsContent>
         <TabsContent value="actions"><QuickActionsTab /></TabsContent>
       </Tabs>

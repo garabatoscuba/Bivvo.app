@@ -70,13 +70,14 @@ const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 /** Route-to-module key mapping for quick questions lookup */
 const ROUTE_TO_MODULE: Record<string, string> = {
-  dashboard: "dashboard", pos: "pos", inventory: "inventory", inventario: "inventory",
-  services: "services", servicios: "services", sales: "sales", ventas: "sales",
-  employees: "employees", empleados: "employees", nomina: "nomina",
+  dashboard: "dashboard", pos: "pos", inventory: "inventario", inventario: "inventario",
+  services: "servicios", servicios: "servicios", sales: "ventas", ventas: "ventas",
+  employees: "empleados", empleados: "empleados", nomina: "nomina",
   tesoreria: "tesoreria", caja: "caja", settings: "configuracion", configuracion: "configuracion",
-  contabilidad: "contabilidad", impresiones: "impresiones", orders: "orders", pedidos: "orders",
+  contabilidad: "contabilidad", impresiones: "impresiones", orders: "pedidos", pedidos: "pedidos",
   "store-settings": "portal", portal: "portal", "my-employment": "mi_empleo",
-  "mi-red": "mi_red", "partner-dashboard": "mi_red",
+  "mi-red": "mi_red", "partner-dashboard": "mi_red", cocina: "cocina",
+  reportes: "reportes",
   plans: "planes", planes: "planes",
   branches: "mis_negocios", "mis-negocios": "mis_negocios",
 };
