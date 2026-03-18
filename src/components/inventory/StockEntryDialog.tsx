@@ -127,6 +127,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
               stock_vendedor: newStockVendedor,
               stock_almacen: newStockAlmacen,
               costo_unitario: Math.round(avgCost * 10000) / 10000,
+              unit_purchase: purchaseUnit,
             })
             .eq('id', product.id);
         }
