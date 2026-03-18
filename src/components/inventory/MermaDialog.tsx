@@ -285,7 +285,7 @@ export const MermaDialog = ({
             </div>
             {selectedProduct && (
               <p className="text-sm text-muted-foreground">
-                Seleccionado: <strong>{selectedProduct.name}</strong> — Total: {totalStock} uds
+                Seleccionado: <strong>{selectedProduct.name}</strong> — Total: {totalStock} {unitLabel}
               </p>
             )}
           </div>
