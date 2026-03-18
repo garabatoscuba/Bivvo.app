@@ -82,7 +82,7 @@ const POS = () => {
 
   const stockMap = new Map<string, number>();
   branchStock?.forEach((bs: any) => {
-    stockMap.set(bs.product_id, bs.quantity);
+    stockMap.set(bs.product_id, (bs.quantity || 0) + (bs.warehouse_quantity || 0));
   });
 
   const hasIngredients = products.some((p) => (p as any).tipo === 'ingrediente');
