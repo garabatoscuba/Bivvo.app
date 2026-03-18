@@ -593,8 +593,12 @@ function ModuleInstructionsTab() {
   });
 
   // Build dynamic module list from platform_modules
+  // Normalize: lowercase, replace spaces with _, strip accents
+  const normalizeKey = (s: string) =>
+    s.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '_');
+
   const dynamicModules = platformModules.filter((m: any) => m.is_active).map((m: any) => ({
-    key: m.sidebar_label?.toLowerCase().replace(/\s+/g, '_') || m.name.toLowerCase().replace(/\s+/g, '_'),
+    key: normalizeKey(m.sidebar_label || m.name),
     label: m.sidebar_label || m.name,
     id: m.id,
   }));
