@@ -58,6 +58,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
     setUnitCost('');
     setNewSalePrice('');
     setSupplier('');
+    setFreightCost('');
     setPurchaseUnit((product as any)?.unit_of_measure || (product as any)?.unit || 'Pieza');
   };
 
