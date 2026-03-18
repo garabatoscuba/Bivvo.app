@@ -116,7 +116,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
           // Weighted average cost
           const oldTotal = (mat.stock_vendedor || 0) + (mat.stock_almacen || 0);
           const oldCost = mat.costo_unitario || 0;
-          const newCost = unitCost ? parseFloat(unitCost) : oldCost;
+          const newCost = effectiveCostPerUnit > 0 ? effectiveCostPerUnit : oldCost;
           const avgCost = (oldTotal + totalQty) > 0
             ? ((oldTotal * oldCost) + (totalQty * newCost)) / (oldTotal + totalQty)
             : newCost;
