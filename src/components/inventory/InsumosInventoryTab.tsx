@@ -390,8 +390,6 @@ const InsumosInventoryTab = ({
               const costoUnit = Number(mat.costo_unitario) || 0;
               const materialUnit = mat.unit_purchase || mat.unit_use || 'Pieza';
 
-              const category = categories.find((cat) => cat.id === mat.category_id) || null;
-
               const asProduct = {
                 id: mat.id,
                 business_id: mat.business_id,
@@ -412,7 +410,7 @@ const InsumosInventoryTab = ({
                 supplier: null,
                 unit_of_measure: materialUnit,
                 brand: mat.brand || null,
-                category,
+                category: null,
                 _isRawMaterial: true,
                 stock_vendedor: stock,
                 stock_almacen: wStock,
