@@ -65,6 +65,17 @@ const colorMap: Record<string, string> = {
   purple: 'bg-category-purple text-category-purple-foreground',
 };
 
+const AREA_COLOR_BADGE_MAP: Record<string, string> = {
+  blue: 'bg-blue-500 text-white',
+  green: 'bg-green-500 text-white',
+  orange: 'bg-orange-500 text-white',
+  purple: 'bg-purple-500 text-white',
+  pink: 'bg-pink-500 text-white',
+  red: 'bg-red-500 text-white',
+  yellow: 'bg-yellow-500 text-black',
+  teal: 'bg-teal-500 text-white',
+};
+
 const colorDotMap: Record<string, string> = {
   pink: 'bg-category-pink',
   green: 'bg-category-green',
