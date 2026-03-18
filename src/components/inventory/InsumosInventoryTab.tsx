@@ -363,7 +363,7 @@ const InsumosInventoryTab = ({
           </div>
           {canManage && (
             <Button size="sm" variant="outline" onClick={() => { setInsumoForm({ name: '', description: '', brand: '', area_id: selectedArea.id }); setNewInsumoOpen(true); }}>
-              Nuevo insumo
+              <Plus className="h-4 w-4 mr-1" />Nuevo insumo
             </Button>
           )}
         </div>
@@ -531,7 +531,7 @@ const InsumosInventoryTab = ({
         {canManage && (
           <div className="flex gap-2">
             <Button size="sm" variant="outline" onClick={() => { setInsumoForm({ name: '', description: '', brand: '', area_id: '' }); setNewInsumoOpen(true); }}>
-              Nuevo insumo
+              <Plus className="h-4 w-4 mr-1" />Nuevo insumo
             </Button>
             <Button size="sm" onClick={openNewArea}>
               <Plus className="h-4 w-4 mr-1" />Nueva área
