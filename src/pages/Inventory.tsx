@@ -888,7 +888,7 @@ const Inventory = () => {
                 if (p.status === 'discontinued') return false;
                 const wStock = warehouseStockMap.get(p.id) || 0;
                 return wStock > 0;
-              }).filter(p => !search || p.name.toLowerCase().includes(search.toLowerCase()) || p.code.toLowerCase().includes(search.toLowerCase()));
+              }).filter(p => { const s = search.toLowerCase(); return !search || p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.brand || '').toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s); });
               const totalUnits = warehouseProducts.reduce((sum, p) => sum + (warehouseStockMap.get(p.id) || 0), 0);
               return (
                 <>
