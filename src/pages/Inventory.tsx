@@ -575,9 +575,14 @@ const Inventory = () => {
     }
   };
 
-  // Product detail data
-  const selectedStock = selectedProduct ? (stockMap.get(selectedProduct.id) || 0) : 0;
-  const selectedWarehouseStock = selectedProduct ? (warehouseStockMap.get(selectedProduct.id) || 0) : 0;
+  // Product detail data — raw materials carry stock on the object itself
+  const isRawMaterial = !!(selectedProduct as any)?._isRawMaterial;
+  const selectedStock = selectedProduct
+    ? (isRawMaterial ? (Number((selectedProduct as any).stock_vendedor) || 0) : (stockMap.get(selectedProduct.id) || 0))
+    : 0;
+  const selectedWarehouseStock = selectedProduct
+    ? (isRawMaterial ? (Number((selectedProduct as any).stock_almacen) || 0) : (warehouseStockMap.get(selectedProduct.id) || 0))
+    : 0;
 
   const selectedDisplayStock = selectedProduct && ((selectedProduct as any)?.tipo === 'elaborado' || (selectedProduct as any)?.tipo === 'granel')
     ? (productionCapacity && !capacityLoading && Number.isFinite(productionCapacity.maxUnits)
