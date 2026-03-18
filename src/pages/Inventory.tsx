@@ -1018,13 +1018,6 @@ const Inventory = () => {
                       ))}
                       {uncategorized.length > 0 && (
                         <div>
-                          {catGroups.size > 0 && (
-                            <div className="flex items-center gap-2 mb-2">
-                              <div className="h-3 w-3 rounded-full flex-shrink-0 bg-muted-foreground/30" />
-                              <p className="text-sm font-semibold text-muted-foreground">Sin categoría</p>
-                              <span className="text-xs text-muted-foreground">({uncategorized.length})</span>
-                            </div>
-                          )}
                           <div className="space-y-1">
                             {uncategorized.map((product) => (
                               <ProductRow
