@@ -101,16 +101,29 @@ export const useProductionCapacities = (productIds: string[], branchId: string |
 
       if (ingredientIds.size === 0) return {};
 
-      // Stock for all ingredient products in this branch
-      const { data: stocks, error: stockError } = await supabase
-        .from('branch_stock')
-        .select('product_id, quantity')
-        .eq('branch_id', branchId)
-        .in('product_id', Array.from(ingredientIds));
+      // Stock for product-type ingredients from branch_stock
+      const stockMap = new Map<string, number>();
 
-      if (stockError) throw stockError;
+      const prodIds = Array.from(productIngredientIds).filter(id => ingredientIds.has(id));
+      const matIds = Array.from(rawMaterialIds).filter(id => ingredientIds.has(id));
 
-      const stockMap = new Map((stocks || []).map((s: any) => [s.product_id as string, Number(s.quantity) || 0]));
+      if (prodIds.length > 0) {
+        const { data: stocks, error: stockError } = await supabase
+          .from('branch_stock')
+          .select('product_id, quantity')
+          .eq('branch_id', branchId)
+          .in('product_id', prodIds);
+        if (stockError) throw stockError;
+        for (const s of (stocks || [])) stockMap.set(s.product_id, Number(s.quantity) || 0);
+      }
+
+      if (matIds.length > 0) {
+        const { data: mats } = await supabase
+          .from('raw_materials')
+          .select('id, stock_vendedor, stock_almacen')
+          .in('id', matIds);
+        for (const m of (mats || [])) stockMap.set(m.id, (Number((m as any).stock_vendedor) || 0) + (Number((m as any).stock_almacen) || 0));
+      }
 
       const capacities: CapacityMap = {};
 
