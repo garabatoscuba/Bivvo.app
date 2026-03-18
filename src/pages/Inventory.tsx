@@ -154,9 +154,11 @@ const Inventory = () => {
   const canManage = isOwner || isManager;
 
   // Production capacity for elaborado products (detail sheet)
+  const isGranelSelected = (selectedProduct as any)?.tipo === 'granel';
   const { data: productionCapacity, isLoading: capacityLoading } = useProductionCapacity(
-    ((selectedProduct as any)?.tipo === 'elaborado' || (selectedProduct as any)?.tipo === 'granel') ? selectedProduct?.id || null : null,
-    effectiveBranchId
+    ((selectedProduct as any)?.tipo === 'elaborado' || isGranelSelected) ? selectedProduct?.id || null : null,
+    effectiveBranchId,
+    { onlySellerStock: isGranelSelected }
   );
 
   // Batch capacity map for list badges (finite values only)
