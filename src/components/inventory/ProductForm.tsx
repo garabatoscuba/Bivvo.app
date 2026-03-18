@@ -62,6 +62,7 @@ const unitOptions = [
 
 export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: ProductFormProps) => {
   const { profile } = useAuth();
+  const queryClient = useQueryClient();
   const { isRestaurant } = useIsRestaurant();
   const { categories } = useCategories();
   const { createProduct, updateProduct } = useProducts();
