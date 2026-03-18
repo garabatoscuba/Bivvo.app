@@ -155,11 +155,11 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
   });
 
   const addIngredient = useMutation({
-    mutationFn: async ({ ingredientId, quantity, unit, ingredientType, gramaje }: { ingredientId: string; quantity: number; unit: string; ingredientType: 'base' | 'agrego'; gramaje: number }) => {
+    mutationFn: async ({ ingredientId, quantity, unit, ingredientType, gramaje, isRawMaterial }: { ingredientId: string; quantity: number; unit: string; ingredientType: 'base' | 'agrego'; gramaje: number; isRawMaterial: boolean }) => {
       if (!recipe?.id) throw new Error('No recipe');
       const { error } = await supabase
         .from('recipe_ingredients')
-        .insert({ recipe_id: recipe.id, ingredient_id: ingredientId, quantity, unit, ingredient_type: ingredientType, gramaje });
+        .insert({ recipe_id: recipe.id, ingredient_id: ingredientId, quantity, unit, ingredient_type: ingredientType, gramaje, is_raw_material: isRawMaterial } as any);
       if (error) throw error;
     },
     onSuccess: () => {
