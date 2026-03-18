@@ -119,19 +119,16 @@ export const useProductionCapacities = (productIds: string[], branchId: string |
         for (const s of (stocks || [])) stockMap.set(s.product_id, Number(s.quantity) || 0);
       }
 
+      const sellerOnlyStockMap = new Map<string, number>();
+
       if (matIds.length > 0) {
         const { data: mats } = await supabase
           .from('raw_materials')
           .select('id, stock_vendedor, stock_almacen')
           .in('id', matIds);
         for (const m of (mats || [])) {
-          // For granel products we'll handle per-recipe below; store both values
           stockMap.set(m.id, (Number((m as any).stock_vendedor) || 0) + (Number((m as any).stock_almacen) || 0));
-        }
-        // Also store seller-only stock for granel lookups
-        const sellerStockMap = new Map<string, number>();
-        for (const m of (mats || [])) {
-          sellerStockMap.set(m.id, Number((m as any).stock_vendedor) || 0);
+          sellerOnlyStockMap.set(m.id, Number((m as any).stock_vendedor) || 0);
         }
       }
 
@@ -144,10 +141,13 @@ export const useProductionCapacities = (productIds: string[], branchId: string |
         // Sin ingredientes base (o receta vacía): capacidad indefinida → no sobreescribimos "En venta"
         if (recipeIngredients.length === 0) continue;
 
+        const isGranel = granelIds?.has(recipe.product_id);
         let minUnits = Infinity;
 
         for (const ri of recipeIngredients) {
-          const available = stockMap.get(ri.ingredient_id) || 0;
+          const available = isGranel && sellerOnlyStockMap.has(ri.ingredient_id)
+            ? sellerOnlyStockMap.get(ri.ingredient_id)!
+            : (stockMap.get(ri.ingredient_id) || 0);
           const purchaseUnit = ri.ingredient?.unit_of_measure || ri.unit || 'pieza';
 
           let neededInStockUnit = Number(ri.quantity) || 0;
