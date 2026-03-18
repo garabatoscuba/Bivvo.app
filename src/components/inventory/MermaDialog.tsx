@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,13 +33,33 @@ const MERMA_REASONS = [
   { value: 'otro', label: 'Otro' },
 ] as const;
 
+type DeductSource = 'sale' | 'warehouse' | 'area';
+
+interface MermaProduct {
+  id: string;
+  name: string;
+  code: string;
+  cost_price: number;
+  _isRawMaterial?: boolean;
+}
+
+interface StockBreakdown {
+  sale: number;
+  warehouse: number;
+  area: number; // only for raw materials (stock_vendedor)
+}
+
 interface MermaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   branchId: string;
-  products: Array<{ id: string; name: string; code: string; cost_price: number; _isRawMaterial?: boolean }>;
-  stockMap: Map<string, number>;
-  /** Pre-select a product (e.g. from POS) */
+  products: MermaProduct[];
+  /** Per-product stock breakdown: { sale, warehouse, area } */
+  stockBreakdownMap: Map<string, StockBreakdown>;
+  /** Legacy total stockMap for backwards compat */
+  stockMap?: Map<string, number>;
+  /** If true, user can only deduct from "A la Venta" */
+  sellerOnly?: boolean;
   preselectedProductId?: string;
 }
 
@@ -48,7 +68,9 @@ export const MermaDialog = ({
   onOpenChange,
   branchId,
   products,
+  stockBreakdownMap,
   stockMap,
+  sellerOnly = false,
   preselectedProductId,
 }: MermaDialogProps) => {
   const { profile } = useAuth();
@@ -60,9 +82,42 @@ export const MermaDialog = ({
   const [reason, setReason] = useState('');
   const [notes, setNotes] = useState('');
   const [productSearch, setProductSearch] = useState('');
+  const [deductSource, setDeductSource] = useState<DeductSource>('sale');
 
   const selectedProduct = products.find(p => p.id === productId);
-  const maxStock = stockMap.get(productId) || 0;
+  const breakdown = stockBreakdownMap.get(productId) || { sale: 0, warehouse: 0, area: 0 };
+
+  // Determine available sources for the selected product
+  const availableSources = useMemo(() => {
+    if (!selectedProduct) return [];
+    const isRaw = selectedProduct._isRawMaterial === true;
+    const sources: { value: DeductSource; label: string; stock: number }[] = [];
+
+    if (isRaw) {
+      // Raw materials: "Área" (stock_vendedor) and "Almacén" (stock_almacen)
+      sources.push({ value: 'area', label: 'Área (uso)', stock: breakdown.area });
+      if (!sellerOnly) {
+        sources.push({ value: 'warehouse', label: 'Almacén', stock: breakdown.warehouse });
+      }
+    } else {
+      // Regular products: "A la Venta" and "Almacén"
+      sources.push({ value: 'sale', label: 'A la Venta', stock: breakdown.sale });
+      if (!sellerOnly) {
+        sources.push({ value: 'warehouse', label: 'Almacén', stock: breakdown.warehouse });
+      }
+    }
+
+    return sources.filter(s => s.stock > 0 || s.value === (isRaw ? 'area' : 'sale'));
+  }, [selectedProduct, breakdown, sellerOnly]);
+
+  const maxStock = useMemo(() => {
+    if (deductSource === 'sale') return breakdown.sale;
+    if (deductSource === 'warehouse') return breakdown.warehouse;
+    if (deductSource === 'area') return breakdown.area;
+    return 0;
+  }, [deductSource, breakdown]);
+
+  const totalStock = breakdown.sale + breakdown.warehouse + breakdown.area;
 
   const resetForm = () => {
     setProductId(preselectedProductId || '');
@@ -70,16 +125,27 @@ export const MermaDialog = ({
     setReason('');
     setNotes('');
     setProductSearch('');
+    setDeductSource('sale');
+  };
+
+  // Auto-select first valid source when product changes
+  const handleSelectProduct = (id: string) => {
+    setProductId(id);
+    setProductSearch('');
+    const prod = products.find(p => p.id === id);
+    const isRaw = prod?._isRawMaterial === true;
+    setDeductSource(isRaw ? 'area' : 'sale');
+    setQuantity(1);
   };
 
   const mutation = useMutation({
     mutationFn: async () => {
       if (!profile?.user_id || !productId || !reason) throw new Error('Datos incompletos');
+      if (quantity <= 0 || quantity > maxStock) throw new Error('Cantidad inválida');
 
       const isRawMaterial = selectedProduct?._isRawMaterial === true;
 
       if (isRawMaterial) {
-        // Deduct from raw_materials table
         const { data: mat } = await supabase
           .from('raw_materials')
           .select('id, stock_vendedor, stock_almacen')
@@ -87,21 +153,21 @@ export const MermaDialog = ({
           .maybeSingle();
 
         if (!mat) throw new Error('Insumo no encontrado');
-        const totalStock = (mat.stock_vendedor || 0) + (mat.stock_almacen || 0);
-        if (totalStock < quantity) throw new Error('Stock insuficiente');
 
-        // Deduct from stock_vendedor first, then stock_almacen
-        let remaining = quantity;
-        const newVendedor = Math.max(0, (mat.stock_vendedor || 0) - remaining);
-        remaining = Math.max(0, remaining - (mat.stock_vendedor || 0));
-        const newAlmacen = Math.max(0, (mat.stock_almacen || 0) - remaining);
-
-        await supabase
-          .from('raw_materials')
-          .update({ stock_vendedor: newVendedor, stock_almacen: newAlmacen })
-          .eq('id', productId);
+        if (deductSource === 'area') {
+          if ((mat.stock_vendedor || 0) < quantity) throw new Error('Stock insuficiente en área');
+          await supabase
+            .from('raw_materials')
+            .update({ stock_vendedor: (mat.stock_vendedor || 0) - quantity })
+            .eq('id', productId);
+        } else {
+          if ((mat.stock_almacen || 0) < quantity) throw new Error('Stock insuficiente en almacén');
+          await supabase
+            .from('raw_materials')
+            .update({ stock_almacen: (mat.stock_almacen || 0) - quantity })
+            .eq('id', productId);
+        }
       } else {
-        // Deduct from branch_stock (sale stock first, then warehouse)
         const { data: existing } = await supabase
           .from('branch_stock')
           .select('id, quantity, warehouse_quantity')
@@ -110,23 +176,26 @@ export const MermaDialog = ({
           .maybeSingle();
 
         if (!existing) throw new Error('Stock no encontrado');
-        const totalStock = (existing.quantity || 0) + (existing.warehouse_quantity || 0);
-        if (totalStock < quantity) throw new Error('Stock insuficiente');
 
-        let remaining = quantity;
-        const newQty = Math.max(0, (existing.quantity || 0) - remaining);
-        remaining = Math.max(0, remaining - (existing.quantity || 0));
-        const newWarehouse = Math.max(0, (existing.warehouse_quantity || 0) - remaining);
-
-        await supabase
-          .from('branch_stock')
-          .update({ quantity: newQty, warehouse_quantity: newWarehouse })
-          .eq('id', existing.id);
+        if (deductSource === 'sale') {
+          if ((existing.quantity || 0) < quantity) throw new Error('Stock insuficiente en venta');
+          await supabase
+            .from('branch_stock')
+            .update({ quantity: (existing.quantity || 0) - quantity })
+            .eq('id', existing.id);
+        } else {
+          if ((existing.warehouse_quantity || 0) < quantity) throw new Error('Stock insuficiente en almacén');
+          await supabase
+            .from('branch_stock')
+            .update({ warehouse_quantity: (existing.warehouse_quantity || 0) - quantity })
+            .eq('id', existing.id);
+        }
       }
 
       // Record movement
       const reasonLabel = MERMA_REASONS.find(r => r.value === reason)?.label || reason;
-      const fullNotes = `Merma: ${reasonLabel}${notes ? ' — ' + notes : ''}`;
+      const sourceLabel = deductSource === 'sale' ? 'venta' : deductSource === 'warehouse' ? 'almacén' : 'área';
+      const fullNotes = `Merma (${sourceLabel}): ${reasonLabel}${notes ? ' — ' + notes : ''}`;
 
       await supabase.from('inventory_movements').insert({
         branch_id: branchId,
@@ -142,7 +211,7 @@ export const MermaDialog = ({
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
       queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
-      toast({ title: 'Merma registrada', description: `${quantity} unidad(es) de ${selectedProduct?.name} descontadas del inventario` });
+      toast({ title: 'Merma registrada', description: `${quantity} unidad(es) de ${selectedProduct?.name} descontadas` });
       const reasonLabel = MERMA_REASONS.find(r => r.value === reason)?.label || reason;
       auditLog(
         'shrinkage_registered',
@@ -192,19 +261,20 @@ export const MermaDialog = ({
                 <p className="text-sm text-muted-foreground text-center py-3">Sin resultados</p>
               ) : (
                 filteredProducts.map(p => {
-                  const stock = stockMap.get(p.id) || 0;
+                  const bd = stockBreakdownMap.get(p.id) || { sale: 0, warehouse: 0, area: 0 };
+                  const total = bd.sale + bd.warehouse + bd.area;
                   return (
                     <button
                       key={p.id}
                       type="button"
-                      onClick={() => { setProductId(p.id); setProductSearch(''); }}
+                      onClick={() => handleSelectProduct(p.id)}
                       className={cn(
                         'w-full flex items-center justify-between px-3 py-2 text-sm hover:bg-muted transition-colors text-left',
                         productId === p.id && 'bg-primary/10 font-medium'
                       )}
                     >
-                      <span className="truncate">{p.name} <span className="text-muted-foreground">({p.code})</span></span>
-                      <span className="text-xs text-muted-foreground ml-2 shrink-0">{stock} uds</span>
+                      <span className="truncate">{p.name} {p.code && <span className="text-muted-foreground">({p.code})</span>}</span>
+                      <span className="text-xs text-muted-foreground ml-2 shrink-0">{total} uds</span>
                     </button>
                   );
                 })
@@ -212,20 +282,39 @@ export const MermaDialog = ({
             </div>
             {selectedProduct && (
               <p className="text-sm text-muted-foreground">
-                Seleccionado: <strong>{selectedProduct.name}</strong> — Stock: {maxStock}
+                Seleccionado: <strong>{selectedProduct.name}</strong> — Total: {totalStock} uds
               </p>
             )}
           </div>
 
+          {/* Deduct source */}
+          {selectedProduct && availableSources.length > 0 && (
+            <div className="space-y-2">
+              <Label>Descontar de</Label>
+              <Select value={deductSource} onValueChange={(v) => { setDeductSource(v as DeductSource); setQuantity(1); }}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableSources.map(s => (
+                    <SelectItem key={s.value} value={s.value}>
+                      {s.label} ({s.stock} uds)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Quantity */}
           <div className="space-y-2">
-            <Label>Cantidad</Label>
+            <Label>Cantidad {maxStock > 0 && <span className="text-muted-foreground font-normal">(máx. {maxStock})</span>}</Label>
             <Input
               type="number"
               min={1}
               max={maxStock}
               value={quantity}
-              onChange={e => setQuantity(Math.min(Number(e.target.value), maxStock))}
+              onChange={e => setQuantity(Math.min(Math.max(1, Number(e.target.value)), maxStock))}
             />
           </div>
 
@@ -261,7 +350,7 @@ export const MermaDialog = ({
           <Button
             variant="destructive"
             onClick={() => mutation.mutate()}
-            disabled={!productId || !reason || quantity <= 0 || quantity > maxStock || mutation.isPending}
+            disabled={!productId || !reason || quantity <= 0 || quantity > maxStock || maxStock <= 0 || mutation.isPending}
           >
             {mutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <PackageX className="h-4 w-4 mr-2" />}
             Registrar merma

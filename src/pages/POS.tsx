@@ -510,7 +510,14 @@ const POS = () => {
         onOpenChange={setMermaOpen}
         branchId={currentBranch || ''}
         products={products.map(p => ({ id: p.id, name: p.name, code: p.code, cost_price: Number(p.cost_price) }))}
-        stockMap={stockMap}
+        stockBreakdownMap={(() => {
+          const map = new Map<string, { sale: number; warehouse: number; area: number }>();
+          branchStock?.forEach((bs: any) => {
+            map.set(bs.product_id, { sale: bs.quantity || 0, warehouse: bs.warehouse_quantity || 0, area: 0 });
+          });
+          return map;
+        })()}
+        sellerOnly
       />
 
       <AgregoModal
