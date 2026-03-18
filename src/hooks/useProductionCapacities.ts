@@ -25,9 +25,11 @@ interface IngredientRow {
  * Calcula en batch la producción posible (solo ingredientes base) para múltiples productos elaborados.
  * Devuelve SOLO valores finitos; si no hay receta o la capacidad es infinita, no incluye el producto en el map.
  */
-export const useProductionCapacities = (productIds: string[], branchId: string | undefined) => {
+export const useProductionCapacities = (productIds: string[], branchId: string | undefined, options?: { granelIds?: Set<string> }) => {
+  const granelIds = options?.granelIds;
+  const granelKey = granelIds ? Array.from(granelIds).sort().join(',') : '';
   return useQuery({
-    queryKey: ['production-capacities', branchId, productIds.slice().sort().join(',')],
+    queryKey: ['production-capacities', branchId, productIds.slice().sort().join(','), granelKey],
     queryFn: async (): Promise<CapacityMap> => {
       if (!branchId || productIds.length === 0) return {};
 
