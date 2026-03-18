@@ -300,7 +300,7 @@ export const MermaDialog = ({
                 <SelectContent>
                   {availableSources.map(s => (
                     <SelectItem key={s.value} value={s.value}>
-                      {s.label} ({s.stock} uds)
+                      {s.label} ({s.stock} {unitLabel})
                     </SelectItem>
                   ))}
                 </SelectContent>
