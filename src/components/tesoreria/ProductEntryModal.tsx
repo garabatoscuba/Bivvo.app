@@ -31,6 +31,7 @@ export default function ProductEntryModal({ open, onOpenChange, businessId, bran
   const [quantity, setQuantity] = useState("");
   const [costPerUnit, setCostPerUnit] = useState("");
   const [salePricePerUnit, setSalePricePerUnit] = useState("");
+  const [freightCost, setFreightCost] = useState("");
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split("T")[0]);
 
   const forSaleProducts = products.filter((p) => p.status !== "discontinued");
