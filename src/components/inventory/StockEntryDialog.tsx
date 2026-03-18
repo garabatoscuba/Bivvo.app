@@ -447,7 +447,27 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
             )}
           </div>
 
-          {/* Purchase unit */}
+          {/* Freight / transport cost */}
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5 text-xs">
+              <Truck className="h-3.5 w-3.5 text-muted-foreground" />
+              Costo de transporte/flete (opcional)
+            </Label>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="Ej: 50.00"
+              value={freightCost}
+              onChange={(e) => setFreightCost(e.target.value)}
+            />
+            {parseFloat(freightCost || '0') > 0 && totalQty > 0 && unitCost && (
+              <p className="text-xs text-muted-foreground">
+                Costo unitario real: ${effectiveCostPerUnit.toFixed(2)} (${unitCost} + ${(parseFloat(freightCost) / totalQty).toFixed(2)} flete)
+              </p>
+            )}
+          </div>
+
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5">
               <Ruler className="h-3.5 w-3.5 text-muted-foreground" />
