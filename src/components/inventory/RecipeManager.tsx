@@ -189,6 +189,34 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
     },
   });
 
+  const updateIngredient = useMutation({
+    mutationFn: async ({ id, quantity, unit }: { id: string; quantity: number; unit: string }) => {
+      const { error } = await supabase.from('recipe_ingredients').update({ quantity, unit }).eq('id', id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['recipe-ingredients', recipe?.id] });
+      toast({ title: 'Ingrediente actualizado' });
+      setEditingId(null);
+    },
+  });
+
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editQty, setEditQty] = useState('');
+  const [editUnit, setEditUnit] = useState('');
+
+  const startEdit = (ri: RecipeIngredient) => {
+    setEditingId(ri.id);
+    setEditQty(String(ri.quantity));
+    setEditUnit(ri.unit || ri.ingredient?.unit_of_measure || 'pieza');
+  };
+
+  const confirmEdit = () => {
+    if (!editingId || !editQty) return;
+    updateIngredient.mutate({ id: editingId, quantity: Number(editQty), unit: editUnit });
+  };
+
   // Add ingredient form state
   const [newIngredientId, setNewIngredientId] = useState('');
   const [newQuantity, setNewQuantity] = useState('');
