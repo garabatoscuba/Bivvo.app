@@ -254,8 +254,19 @@ const InsumosInventoryTab = ({
             <p className="text-xs mt-1">Crea un nuevo insumo con el botón de arriba</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {/* Raw materials */}
+          <div className="space-y-0">
+            {/* Table header */}
+            <div className="hidden md:grid md:grid-cols-[minmax(0,2fr)_80px_80px_80px_100px_100px_auto] gap-2 px-3 py-2 text-[11px] font-medium text-muted-foreground uppercase tracking-wider border-b">
+              <span>Nombre</span>
+              <span className="text-center">Unidad</span>
+              <span className="text-center">En uso</span>
+              <span className="text-center">Almacén</span>
+              <span className="text-right">Costo</span>
+              <span className="text-right">Valor</span>
+              <span></span>
+            </div>
+
+            {/* Raw materials rows */}
             {areaRawMaterials.map((mat: any) => {
               const stock = Number(mat.stock_vendedor) || 0;
               const wStock = Number(mat.stock_almacen) || 0;
@@ -291,78 +302,43 @@ const InsumosInventoryTab = ({
               } as unknown as Product & { category: Category | null };
 
               return (
-                <div key={`rm-${mat.id}`} className="rounded-lg border bg-card overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => onSelectProduct(asProduct)}
-                    className="w-full text-left p-3 transition-colors hover:bg-accent/50"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm truncate">{mat.name}</p>
-                          {mat.brand && (
-                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{mat.brand}</span>
-                          )}
-                          {(isLow || isOut) && (
-                            <AlertTriangle className={cn("h-3.5 w-3.5 shrink-0", isOut ? "text-destructive" : "text-amber-500")} />
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                <div
+                  key={`rm-${mat.id}`}
+                  className="group grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,2fr)_80px_80px_80px_100px_100px_auto] gap-2 items-center px-3 py-2.5 border-b hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => onSelectProduct(asProduct)}
+                >
+                  {/* Name + brand + alert */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Badge variant="outline" className={cn("h-6 min-w-[28px] justify-center text-xs font-bold", isOut ? "border-destructive text-destructive" : isLow ? "border-amber-500 text-amber-500" : "border-primary text-primary")}>
+                      {stock}
+                    </Badge>
+                    <Badge variant="secondary" className="h-6 min-w-[28px] justify-center text-xs font-bold md:hidden">
+                      {wStock}
+                    </Badge>
+                    <span className="font-medium text-sm truncate">{mat.name}</span>
+                    {mat.brand && <span className="hidden sm:inline text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{mat.brand}</span>}
+                    {(isLow || isOut) && <AlertTriangle className={cn("h-3.5 w-3.5 shrink-0", isOut ? "text-destructive" : "text-amber-500")} />}
+                  </div>
 
-                    {/* Metrics grid */}
-                    <div className="grid grid-cols-4 gap-2 mt-2">
-                      <div className="rounded-md bg-muted/60 p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">En uso</p>
-                        <p className={cn("text-sm font-bold", isOut && "text-destructive", isLow && !isOut && "text-amber-500")}>
-                          {stock}
-                        </p>
-                      </div>
-                      <div className="rounded-md bg-muted/60 p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">Almacén</p>
-                        <p className="text-sm font-bold">{wStock}</p>
-                      </div>
-                      <div className="rounded-md bg-muted/60 p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">Costo</p>
-                        <p className="text-sm font-bold">${costoUnit.toFixed(2)}</p>
-                      </div>
-                      <div className="rounded-md bg-muted/60 p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">Valor</p>
-                        <p className="text-sm font-bold">${valorTotal.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </button>
+                  {/* Desktop columns */}
+                  <span className="hidden md:block text-center text-xs text-muted-foreground">{materialUnit}</span>
+                  <span className={cn("hidden md:block text-center text-sm font-bold", isOut && "text-destructive", isLow && !isOut && "text-amber-500")}>{stock}</span>
+                  <span className="hidden md:block text-center text-sm font-bold">{wStock}</span>
+                  <span className="hidden md:block text-right text-sm">${costoUnit.toFixed(2)}</span>
+                  <span className="hidden md:block text-right text-sm font-medium">${valorTotal.toFixed(2)}</span>
 
-                  {/* Action buttons */}
+                  {/* Actions */}
                   {canManage && (
-                    <div className="flex items-center gap-1 px-3 pb-3 pt-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-xs h-8"
-                        onClick={(e) => { e.stopPropagation(); onAddStock(asProduct); }}
-                      >
-                        <PackagePlus className="h-3.5 w-3.5 mr-1" />
-                        Nueva Compra
+                    <div className="flex items-center gap-0.5 justify-end">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onAddStock(asProduct); }} title="Nueva Compra">
+                        <PackagePlus className="h-3.5 w-3.5" />
                       </Button>
                       {(wStock > 0 || stock > 0) && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 text-xs h-8"
-                          onClick={(e) => { e.stopPropagation(); onTransfer?.(asProduct, wStock > 0 ? 'toSale' : 'toWarehouse'); }}
-                        >
-                          <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
-                          {wStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén'}
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onTransfer?.(asProduct, wStock > 0 ? 'toSale' : 'toWarehouse'); }} title={wStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén'}>
+                          <ArrowRightLeft className="h-3.5 w-3.5" />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs h-8 text-destructive hover:text-destructive"
-                        onClick={() => deleteRawMaterial.mutate(mat.id)}
-                      >
+                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); deleteRawMaterial.mutate(mat.id); }}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
@@ -371,7 +347,7 @@ const InsumosInventoryTab = ({
               );
             })}
 
-            {/* Product-based ingredientes */}
+            {/* Product-based ingredientes rows */}
             {areaProducts.map((product) => {
               const stock = stockMap.get(product.id) || 0;
               const wStock = warehouseStockMap.get(product.id) || 0;
@@ -383,98 +359,47 @@ const InsumosInventoryTab = ({
               return (
                 <div
                   key={product.id}
-                  className="rounded-lg border bg-card overflow-hidden"
+                  className="group grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[minmax(0,2fr)_80px_80px_80px_100px_100px_auto] gap-2 items-center px-3 py-2.5 border-b hover:bg-accent/50 transition-colors cursor-pointer"
+                  onClick={() => onSelectProduct(product)}
                 >
-                  <button
-                    type="button"
-                    onClick={() => onSelectProduct(product)}
-                    className="w-full text-left p-3 transition-colors hover:bg-accent/50"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-sm truncate">{product.name}</p>
-                          {product.unit_of_measure && (
-                            <span className="text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{product.unit_of_measure}</span>
-                          )}
-                          {(isLow || isOut) && (
-                            <AlertTriangle className={cn("h-3.5 w-3.5 shrink-0", isOut ? "text-destructive" : "text-amber-500")} />
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-4 gap-2 mt-2">
-                      <div className="rounded-md bg-muted/60 p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">En uso</p>
-                        <p className={cn("text-sm font-bold", isOut && "text-destructive", isLow && !isOut && "text-amber-500")}>
-                          {stock}
-                        </p>
-                      </div>
-                      <div className="rounded-md bg-muted/60 p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">Almacén</p>
-                        <p className="text-sm font-bold">{wStock}</p>
-                      </div>
-                      <div className="rounded-md bg-muted/60 p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">Costo</p>
-                        <p className="text-sm font-bold">${Number(product.cost_price).toFixed(2)}</p>
-                      </div>
-                      <div className="rounded-md bg-muted/60 p-2 text-center">
-                        <p className="text-[10px] text-muted-foreground">Valor</p>
-                        <p className="text-sm font-bold">${valorTotal.toFixed(2)}</p>
-                      </div>
-                    </div>
-                  </button>
+                  {/* Name + badges + alert */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Badge variant="outline" className={cn("h-6 min-w-[28px] justify-center text-xs font-bold", isOut ? "border-destructive text-destructive" : isLow ? "border-amber-500 text-amber-500" : "border-primary text-primary")}>
+                      {stock}
+                    </Badge>
+                    <Badge variant="secondary" className="h-6 min-w-[28px] justify-center text-xs font-bold md:hidden">
+                      {wStock}
+                    </Badge>
+                    <span className="font-medium text-sm truncate">{product.name}</span>
+                    {(product as any).brand && <span className="hidden sm:inline text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded">{(product as any).brand}</span>}
+                    {(isLow || isOut) && <AlertTriangle className={cn("h-3.5 w-3.5 shrink-0", isOut ? "text-destructive" : "text-amber-500")} />}
+                  </div>
+
+                  {/* Desktop columns */}
+                  <span className="hidden md:block text-center text-xs text-muted-foreground">{product.unit_of_measure || 'Pieza'}</span>
+                  <span className={cn("hidden md:block text-center text-sm font-bold", isOut && "text-destructive", isLow && !isOut && "text-amber-500")}>{stock}</span>
+                  <span className="hidden md:block text-center text-sm font-bold">{wStock}</span>
+                  <span className="hidden md:block text-right text-sm">${Number(product.cost_price).toFixed(2)}</span>
+                  <span className="hidden md:block text-right text-sm font-medium">${valorTotal.toFixed(2)}</span>
+
+                  {/* Actions */}
                   {canManage && (
-                    <div className="flex items-center gap-1 px-3 pb-3 pt-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 text-xs h-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onAddStock(product);
-                        }}
-                      >
-                        <PackagePlus className="h-3.5 w-3.5 mr-1" />
-                        Nueva Compra
+                    <div className="flex items-center gap-0.5 justify-end">
+                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onAddStock(product); }} title="Nueva Compra">
+                        <PackagePlus className="h-3.5 w-3.5" />
                       </Button>
                       {(wStock > 0 || stock > 0) && onTransfer && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 text-xs h-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onTransfer(product, wStock > 0 ? 'toSale' : 'toWarehouse');
-                          }}
-                        >
-                          <ArrowRightLeft className="h-3.5 w-3.5 mr-1" />
-                          {wStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén'}
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onTransfer(product, wStock > 0 ? 'toSale' : 'toWarehouse'); }} title={wStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén'}>
+                          <ArrowRightLeft className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       {wStock > 0 && onOutflow && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs h-8"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onOutflow(product);
-                          }}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onOutflow(product); }} title="Salida almacén">
                           <PackageX className="h-3.5 w-3.5" />
                         </Button>
                       )}
                       {onDeleteProduct && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs h-8 text-destructive hover:text-destructive"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onDeleteProduct(product);
-                          }}
-                        >
+                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={(e) => { e.stopPropagation(); onDeleteProduct(product); }}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
@@ -485,7 +410,6 @@ const InsumosInventoryTab = ({
             })}
           </div>
         )}
-
       </div>
     );
   }
