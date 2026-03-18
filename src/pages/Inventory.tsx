@@ -796,46 +796,48 @@ const Inventory = () => {
 
         {/* Tabs + Action Buttons */}
         <Tabs value={mainTab} onValueChange={setMainTab}>
-          <TabsList className="w-full">
-            <TabsTrigger value="products" className="flex items-center gap-1 flex-1 text-xs px-2">
-              Productos
-              {canManage && (
-                <button
-                  type="button"
-                  className="inline-flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (guardDowngrade()) return;
-                    if (!canCreateProduct) {
-                      toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos. Mejora tu plan para agregar más.`, variant: 'destructive' });
-                      return;
-                    }
-                    setEditingProduct(null);
-                    setProductFormOpen(true);
-                  }}
-                >
-                  <Plus className="h-3 w-3" />
-                </button>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="for-sale" className="flex items-center gap-1 flex-1 text-xs px-2">
-              A la Venta
-            </TabsTrigger>
-            <TabsTrigger value="warehouse" className="flex items-center gap-1 flex-1 text-xs px-2">
-              Almacén
-            </TabsTrigger>
-            <TabsTrigger value="insumos" className="flex items-center gap-1 flex-1 text-xs px-2">
-              Insumos
-            </TabsTrigger>
-            <TabsTrigger value="movements" className="flex items-center gap-1 flex-1 text-xs px-2">
-              <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
-              Movim.
-            </TabsTrigger>
-            <TabsTrigger value="mermas" className="flex items-center gap-1 flex-1 text-xs px-2">
-              <PackageX className="h-3.5 w-3.5 shrink-0" />
-              Mermas
-            </TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto scrollbar-hide -mx-2 px-2">
+            <TabsList className="inline-flex w-auto min-w-full sm:w-full">
+              <TabsTrigger value="products" className="flex items-center gap-1.5 text-xs px-3 whitespace-nowrap">
+                Productos
+                {canManage && (
+                  <button
+                    type="button"
+                    className="inline-flex h-4 w-4 items-center justify-center rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (guardDowngrade()) return;
+                      if (!canCreateProduct) {
+                        toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos. Mejora tu plan para agregar más.`, variant: 'destructive' });
+                        return;
+                      }
+                      setEditingProduct(null);
+                      setProductFormOpen(true);
+                    }}
+                  >
+                    <Plus className="h-3 w-3" />
+                  </button>
+                )}
+              </TabsTrigger>
+              <TabsTrigger value="for-sale" className="text-xs px-3 whitespace-nowrap">
+                A la Venta
+              </TabsTrigger>
+              <TabsTrigger value="warehouse" className="text-xs px-3 whitespace-nowrap">
+                Almacén
+              </TabsTrigger>
+              <TabsTrigger value="insumos" className="text-xs px-3 whitespace-nowrap">
+                Insumos
+              </TabsTrigger>
+              <TabsTrigger value="movements" className="flex items-center gap-1 text-xs px-3 whitespace-nowrap">
+                <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
+                Movim.
+              </TabsTrigger>
+              <TabsTrigger value="mermas" className="flex items-center gap-1 text-xs px-3 whitespace-nowrap">
+                <PackageX className="h-3.5 w-3.5 shrink-0" />
+                Mermas
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* ─── Productos Tab (master view, all products) ─── */}
           <TabsContent value="products" className="mt-4 space-y-4">
