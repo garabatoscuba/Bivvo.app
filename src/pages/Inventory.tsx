@@ -1039,8 +1039,8 @@ const Inventory = () => {
                 setTransferQty(1);
               }}
               onDeleteProduct={(product) => setDeletingProduct(product)}
-              
               canManage={canManage}
+              searchQuery={search}
             />
           </TabsContent>
         </Tabs>
