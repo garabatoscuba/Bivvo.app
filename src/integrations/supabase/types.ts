@@ -4349,6 +4349,7 @@ export type Database = {
           id: string
           ingredient_id: string
           ingredient_type: string
+          is_raw_material: boolean
           quantity: number
           recipe_id: string
           surcharge: number
@@ -4360,6 +4361,7 @@ export type Database = {
           id?: string
           ingredient_id: string
           ingredient_type?: string
+          is_raw_material?: boolean
           quantity?: number
           recipe_id: string
           surcharge?: number
@@ -4371,19 +4373,13 @@ export type Database = {
           id?: string
           ingredient_id?: string
           ingredient_type?: string
+          is_raw_material?: boolean
           quantity?: number
           recipe_id?: string
           surcharge?: number
           unit?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "recipe_ingredients_ingredient_id_fkey"
-            columns: ["ingredient_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "recipe_ingredients_recipe_id_fkey"
             columns: ["recipe_id"]
