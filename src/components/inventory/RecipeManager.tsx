@@ -434,39 +434,67 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                       const cost = calcCostForIngredient(ri);
                       const purchaseUnit = ri.ingredient?.unit_of_measure || 'pieza';
                       const showConversion = ri.unit && ri.unit !== purchaseUnit && getUnitCategory(ri.unit) !== 'unit';
+                      const isEditing = editingId === ri.id;
                       return (
                         <div key={ri.id} className="flex items-center justify-between rounded-md border border-dashed p-2 gap-2">
                           <div className="min-w-0 flex-1">
                             <p className="text-sm font-medium truncate">{ri.ingredient?.name || 'Desconocido'}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {ri.quantity} {ri.unit} por unidad vendida
-                              {showConversion && (
-                                <span className="text-muted-foreground/60"> (consume {ri.gramaje} {purchaseUnit})</span>
-                              )}
-                              {' · '}
-                              <span className="font-medium text-foreground">${cost.toFixed(2)} costo</span>
-                            </p>
+                            {isEditing ? (
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <Input type="number" min={0.01} step={0.01} className="w-20 h-7 text-xs" value={editQty} onChange={(e) => setEditQty(e.target.value)} />
+                                <select value={editUnit} onChange={(e) => setEditUnit(e.target.value)} className="h-7 rounded-md border border-input bg-background px-1.5 text-xs">
+                                  {getAllUnits().map(u => <option key={u.value} value={u.value}>{u.label}</option>)}
+                                </select>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">
+                                {ri.quantity} {ri.unit} por unidad vendida
+                                {showConversion && (
+                                  <span className="text-muted-foreground/60"> (consume {ri.gramaje} {purchaseUnit})</span>
+                                )}
+                                {' · '}
+                                <span className="font-medium text-foreground">${cost.toFixed(2)} costo</span>
+                              </p>
+                            )}
                           </div>
                           <div className="flex items-center gap-1 flex-shrink-0">
-                            <div className="flex items-center gap-1">
-                              <span className="text-xs text-muted-foreground">+$</span>
-                              <Input
-                                type="number"
-                                min={0}
-                                step={0.5}
-                                className="w-16 h-7 text-xs text-center"
-                                defaultValue={(ri as any).surcharge || 0}
-                                onBlur={(e) => {
-                                  const v = Number(e.target.value);
-                                  if (v !== ((ri as any).surcharge || 0)) {
-                                    updateSurcharge.mutate({ id: ri.id, surcharge: v });
-                                  }
-                                }}
-                              />
-                            </div>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeIngredient.mutate(ri.id)}>
-                              <Trash2 className="h-3.5 w-3.5" />
-                            </Button>
+                            {!isEditing && (
+                              <div className="flex items-center gap-1">
+                                <span className="text-xs text-muted-foreground">+$</span>
+                                <Input
+                                  type="number"
+                                  min={0}
+                                  step={0.5}
+                                  className="w-16 h-7 text-xs text-center"
+                                  defaultValue={(ri as any).surcharge || 0}
+                                  onBlur={(e) => {
+                                    const v = Number(e.target.value);
+                                    if (v !== ((ri as any).surcharge || 0)) {
+                                      updateSurcharge.mutate({ id: ri.id, surcharge: v });
+                                    }
+                                  }}
+                                />
+                              </div>
+                            )}
+                            {isEditing ? (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-green-500" onClick={confirmEdit} disabled={updateIngredient.isPending}>
+                                  <Check className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => setEditingId(null)}>
+                                  <X className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            ) : (
+                              <>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground" onClick={() => startEdit(ri)}>
+                                  <Pencil className="h-3.5 w-3.5" />
+                                </Button>
+                                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => removeIngredient.mutate(ri.id)}>
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </div>
                       );
