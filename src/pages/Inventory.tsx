@@ -237,9 +237,10 @@ const Inventory = () => {
 
   // Convert raw materials to Product-like objects for the products tab
   const rawMaterialsAsProducts = useMemo(() => {
+    return rawMaterialsForProducts.map((mat: any) => {
       const materialUnit = mat.unit_purchase || mat.unit_use || 'Pieza';
 
-      return rawMaterialsForProducts.map((mat: any) => ({
+      return {
         id: mat.id,
         name: mat.name,
         code: mat.code || '',
@@ -260,13 +261,14 @@ const Inventory = () => {
         barcode: null,
         supplier: null,
         unit_of_measure: materialUnit,
-      brand: mat.brand || null,
-      category: null,
-      _isRawMaterial: true,
-      _stockVendedor: mat.stock_vendedor || 0,
-      _stockAlmacen: mat.stock_almacen || 0,
-      _areaColor: mat.area_id ? (areaColorMap.get(mat.area_id) || null) : null,
-    })) as unknown as (Product & { category: Category | null })[];
+        brand: mat.brand || null,
+        category: null,
+        _isRawMaterial: true,
+        _stockVendedor: mat.stock_vendedor || 0,
+        _stockAlmacen: mat.stock_almacen || 0,
+        _areaColor: mat.area_id ? (areaColorMap.get(mat.area_id) || null) : null,
+      };
+    }) as unknown as (Product & { category: Category | null })[];
   }, [rawMaterialsForProducts, areaColorMap]);
 
   const FREE_PRODUCT_LIMIT = 5;
