@@ -45,6 +45,8 @@ export default function ProductEntryModal({ open, onOpenChange, businessId, bran
     setEntryDate(new Date().toISOString().split("T")[0]);
   };
 
+  const effectiveCostPerUnit = Number(costPerUnit) + (Number(freightCost || 0) / (Number(quantity) || 1));
+
   const mutation = useMutation({
     mutationFn: async () => {
       const { error } = await supabase.from("product_entries" as any).insert({
@@ -52,7 +54,7 @@ export default function ProductEntryModal({ open, onOpenChange, businessId, bran
         branch_id: branchId,
         product_id: productId,
         quantity: Number(quantity),
-        cost_per_unit: Number(costPerUnit),
+        cost_per_unit: effectiveCostPerUnit,
         sale_price_per_unit: Number(salePricePerUnit),
         entry_date: entryDate,
         user_id: user!.id,
