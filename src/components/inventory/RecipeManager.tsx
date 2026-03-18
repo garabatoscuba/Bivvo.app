@@ -476,26 +476,16 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                           onChange={(e) => setNewQuantity(e.target.value)}
                         />
                       )}
-                      {/* Unit selector with compatible units */}
-                      {compatibleUnits.length > 1 ? (
-                        <select
-                          value={newUnit}
-                          onChange={(e) => setNewUnit(e.target.value)}
-                          className="flex h-10 w-24 rounded-md border border-input bg-background px-2 py-2 text-sm"
-                        >
-                          {compatibleUnits.map(u => (
-                            <option key={u.value} value={u.value}>{u.label}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <Input
-                          placeholder="Unidad"
-                          className="w-24"
-                          value={newUnit}
-                          onChange={(e) => setNewUnit(e.target.value)}
-                          readOnly
-                        />
-                      )}
+                      {/* Unit selector – all system units */}
+                      <select
+                        value={newUnit}
+                        onChange={(e) => setNewUnit(e.target.value)}
+                        className="flex h-10 w-28 rounded-md border border-input bg-background px-2 py-2 text-sm"
+                      >
+                        {getAllUnits().map(u => (
+                          <option key={u.value} value={u.value}>{u.label}</option>
+                        ))}
+                      </select>
                       <Button
                         size="icon"
                         className="flex-shrink-0"
