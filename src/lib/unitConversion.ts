@@ -1,28 +1,36 @@
 // Unit conversion utilities for recipe ingredient cost calculations
 
-type UnitCategory = 'weight' | 'volume' | 'unit';
+type UnitCategory = 'weight' | 'volume' | 'length' | 'unit';
 
 interface UnitDef {
   category: UnitCategory;
-  /** Factor to convert 1 of this unit to the base unit (g for weight, ml for volume) */
+  /** Factor to convert 1 of this unit to the base unit (g for weight, ml for volume, cm for length) */
   toBase: number;
   label: string;
 }
 
 const UNITS: Record<string, UnitDef> = {
   // Weight – base: grams
-  g:   { category: 'weight', toBase: 1,       label: 'g' },
-  kg:  { category: 'weight', toBase: 1000,    label: 'kg' },
-  lb:  { category: 'weight', toBase: 453.592, label: 'lb' },
-  oz:  { category: 'weight', toBase: 28.3495, label: 'oz' },
+  g:   { category: 'weight', toBase: 1,       label: 'Gramo' },
+  kg:  { category: 'weight', toBase: 1000,    label: 'Kilogramo' },
+  lb:  { category: 'weight', toBase: 453.592, label: 'Libra' },
+  oz:  { category: 'weight', toBase: 28.3495, label: 'Onza' },
   // Volume – base: ml
-  ml:  { category: 'volume', toBase: 1,       label: 'ml' },
-  l:   { category: 'volume', toBase: 1000,    label: 'l' },
+  ml:  { category: 'volume', toBase: 1,       label: 'Mililitro' },
+  l:   { category: 'volume', toBase: 1000,    label: 'Litro' },
   'fl oz': { category: 'volume', toBase: 29.5735, label: 'fl oz' },
-  galón:   { category: 'volume', toBase: 3785.41, label: 'galón' },
-  // Discrete – no conversion
+  galón:   { category: 'volume', toBase: 3785.41, label: 'Galón' },
+  // Length – base: cm
+  metro:      { category: 'length', toBase: 100, label: 'Metro' },
+  centímetro: { category: 'length', toBase: 1,   label: 'Centímetro' },
+  // Discrete – no conversion between different discrete types
   pieza:  { category: 'unit', toBase: 1, label: 'Pieza' },
   unidad: { category: 'unit', toBase: 1, label: 'Unidad' },
+  caja:   { category: 'unit', toBase: 1, label: 'Caja' },
+  paquete:{ category: 'unit', toBase: 1, label: 'Paquete' },
+  par:    { category: 'unit', toBase: 1, label: 'Par' },
+  docena: { category: 'unit', toBase: 1, label: 'Docena' },
+  rollo:  { category: 'unit', toBase: 1, label: 'Rollo' },
 };
 
 /** Normalize key: lowercase, trim */
@@ -37,8 +45,16 @@ export function normalizeUnitKey(unit: string): string {
   if (u === 'litro' || u === 'litros') return 'l';
   if (u === 'galon' || u === 'galones' || u === 'galón') return 'galón';
   if (u === 'fl oz' || u === 'floz') return 'fl oz';
+  if (u === 'metro' || u === 'metros') return 'metro';
+  if (u === 'metro cuadrado (m²)') return 'metro'; // approximate fallback
+  if (u === 'centímetro' || u === 'centimetro' || u === 'centímetros' || u === 'centimetros') return 'centímetro';
   if (u === 'pieza' || u === 'piezas' || u === 'pza') return 'pieza';
   if (u === 'unidad' || u === 'unidades' || u === 'ud' || u === 'u') return 'unidad';
+  if (u === 'caja' || u === 'cajas') return 'caja';
+  if (u === 'paquete' || u === 'paquetes') return 'paquete';
+  if (u === 'par' || u === 'pares') return 'par';
+  if (u === 'docena' || u === 'docenas') return 'docena';
+  if (u === 'rollo' || u === 'rollos') return 'rollo';
   return u;
 }
 

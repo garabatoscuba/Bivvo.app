@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   calcIngredientCost,
   convertUnits,
-  getCompatibleUnits,
+  getAllUnits,
   getUnitCategory,
   normalizeUnitKey,
 } from '@/lib/unitConversion';
@@ -195,7 +195,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
   const [newUnit, setNewUnit] = useState('');
   const [newType, setNewType] = useState<'base' | 'agrego'>('base');
   const [newGramaje, setNewGramaje] = useState('');
-  const [compatibleUnits, setCompatibleUnits] = useState<{ value: string; label: string }[]>([]);
+  
 
   const handleIngredientChange = (ingredientId: string) => {
     setNewIngredientId(ingredientId);
@@ -204,9 +204,6 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
       const baseUnit = ing.unit_of_measure || 'pieza';
       const normalized = normalizeUnitKey(baseUnit);
       setNewUnit(normalized);
-      setCompatibleUnits(getCompatibleUnits(baseUnit));
-    } else {
-      setCompatibleUnits([]);
     }
   };
 
@@ -248,7 +245,7 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
     setNewUnit('');
     setNewType('base');
     setNewGramaje('');
-    setCompatibleUnits([]);
+    
   };
 
   // Calculate ingredient cost using unit conversion
@@ -475,26 +472,16 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                           onChange={(e) => setNewQuantity(e.target.value)}
                         />
                       )}
-                      {/* Unit selector with compatible units */}
-                      {compatibleUnits.length > 1 ? (
-                        <select
-                          value={newUnit}
-                          onChange={(e) => setNewUnit(e.target.value)}
-                          className="flex h-10 w-24 rounded-md border border-input bg-background px-2 py-2 text-sm"
-                        >
-                          {compatibleUnits.map(u => (
-                            <option key={u.value} value={u.value}>{u.label}</option>
-                          ))}
-                        </select>
-                      ) : (
-                        <Input
-                          placeholder="Unidad"
-                          className="w-24"
-                          value={newUnit}
-                          onChange={(e) => setNewUnit(e.target.value)}
-                          readOnly
-                        />
-                      )}
+                      {/* Unit selector – all system units */}
+                      <select
+                        value={newUnit}
+                        onChange={(e) => setNewUnit(e.target.value)}
+                        className="flex h-10 w-28 rounded-md border border-input bg-background px-2 py-2 text-sm"
+                      >
+                        {getAllUnits().map(u => (
+                          <option key={u.value} value={u.value}>{u.label}</option>
+                        ))}
+                      </select>
                       <Button
                         size="icon"
                         className="flex-shrink-0"
@@ -504,6 +491,25 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
+                    {/* Conversion hint */}
+                    {(() => {
+                      const ing = ingredients.find(i => i.id === newIngredientId);
+                      if (!ing) return null;
+                      const purchaseUnit = normalizeUnitKey(ing.unit_of_measure || 'pieza');
+                      const selectedUnit = normalizeUnitKey(newUnit || purchaseUnit);
+                      if (selectedUnit === purchaseUnit) return null;
+                      const rawQty = newType === 'agrego' ? Number(newGramaje) : Number(newQuantity);
+                      if (!rawQty || rawQty <= 0) return null;
+                      const converted = convertUnits(rawQty, selectedUnit, purchaseUnit);
+                      if (converted === null) return (
+                        <p className="text-xs text-destructive">⚠ Unidades incompatibles: no se puede convertir de {selectedUnit} a {purchaseUnit}</p>
+                      );
+                      return (
+                        <p className="text-xs text-muted-foreground">
+                          ≈ {converted.toFixed(4)} {purchaseUnit} (unidad de compra)
+                        </p>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
