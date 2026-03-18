@@ -12,7 +12,7 @@ export interface InventoryMovementRecord {
   notes: string | null;
   reference_id: string | null;
   created_at: string;
-  product: { name: string; code: string } | null;
+  product: { name: string; code: string; unit_of_measure?: string } | null;
   user_profile: { full_name: string } | null;
   branch: { name: string } | null;
 }
