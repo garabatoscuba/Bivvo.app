@@ -161,6 +161,27 @@ export default function ProductEntryModal({ open, onOpenChange, businessId, bran
           </div>
 
           <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1">
+              <Truck className="h-3.5 w-3.5" />
+              Costo de transporte/flete (opcional)
+            </Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              className="h-9"
+              placeholder="Ej: 50.00"
+              value={freightCost}
+              onChange={(e) => setFreightCost(e.target.value)}
+            />
+            {Number(freightCost) > 0 && Number(quantity) > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Costo unitario real: ${effectiveCostPerUnit.toFixed(2)} (${costPerUnit} + ${(Number(freightCost) / Number(quantity)).toFixed(2)} flete)
+              </p>
+            )}
+          </div>
+
+          <div className="space-y-1.5">
             <Label className="text-xs">Fecha de compra</Label>
             <Input
               type="date"
