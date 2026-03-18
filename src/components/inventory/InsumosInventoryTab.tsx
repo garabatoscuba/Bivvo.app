@@ -264,10 +264,8 @@ const InsumosInventoryTab = ({
               const valorTotal = totalStock * costoUnit;
               const isLow = mat.stock_minimo > 0 && totalStock <= mat.stock_minimo && totalStock > 0;
               const isOut = totalStock <= 0;
-
-              const asProduct = {
-                id: mat.id,
               const materialUnit = mat.unit_purchase || mat.unit_use || 'Pieza';
+
               const asProduct = {
                 id: mat.id,
                 business_id: mat.business_id,
