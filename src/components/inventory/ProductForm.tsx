@@ -188,47 +188,78 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
       toast({ title: 'Error', description: 'No se encontró tu negocio. Recarga la página.', variant: 'destructive' });
       return;
     }
+
     const businessId = profile.business_id;
+    const isRawMaterial = Boolean((product as any)?._isRawMaterial);
 
-    const salePrice = (data.tipo === 'elaborado' || data.tipo === 'granel') && data.sale_price
-      ? parseFloat(data.sale_price)
-      : (product?.sale_price ?? 0);
+    try {
+      if (product && isRawMaterial) {
+        const { error } = await supabase
+          .from('raw_materials')
+          .update({
+            name: data.name,
+            description: data.description || null,
+            brand: data.brand || null,
+            area_id: data.tipo === 'ingrediente' ? (insumoAreaId || null) : null,
+            unit_purchase: data.unit_of_measure,
+          })
+          .eq('id', product.id);
 
-    const payload: any = {
-      name: data.name,
-      description: data.description || null,
-      category_id: data.category_id || null,
-      cost_price: product?.cost_price ?? 0,
-      sale_price: salePrice,
-      min_stock: product?.min_stock ?? 0,
-      status: 'for_sale' as Product['status'],
-      barcode: data.barcode || null,
-      supplier: product?.supplier ?? null,
-      unit_of_measure: data.unit_of_measure,
-      brand: data.brand || null,
-      tipo: data.tipo,
-      insumo_area_id: data.tipo === 'ingrediente' ? (insumoAreaId || null) : null,
-    };
+        if (error) throw error;
 
-    if (product) {
-      const imageUrl = await uploadImage(product.id);
-      await updateProduct.mutateAsync({ id: product.id, ...payload, image_url: imageUrl });
-    } else {
-      const created = await createProduct.mutateAsync({
-        ...payload,
-        business_id: businessId,
-        image_url: null,
-      });
-      if (created?.id) {
-        const imageUrl = await uploadImage(created.id);
-        if (imageUrl) {
-          await updateProduct.mutateAsync({ id: created.id, image_url: imageUrl });
+        await Promise.all([
+          queryClient.invalidateQueries({ queryKey: ['raw-materials'] }),
+          queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] }),
+          queryClient.invalidateQueries({ queryKey: ['products'] }),
+        ]);
+
+        toast({ title: 'Insumo actualizado' });
+      } else {
+        const salePrice = (data.tipo === 'elaborado' || data.tipo === 'granel') && data.sale_price
+          ? parseFloat(data.sale_price)
+          : (product?.sale_price ?? 0);
+
+        const payload: any = {
+          name: data.name,
+          description: data.description || null,
+          category_id: data.category_id || null,
+          cost_price: product?.cost_price ?? 0,
+          sale_price: salePrice,
+          min_stock: product?.min_stock ?? 0,
+          status: 'for_sale' as Product['status'],
+          barcode: data.barcode || null,
+          supplier: product?.supplier ?? null,
+          unit_of_measure: data.unit_of_measure,
+          brand: data.brand || null,
+          tipo: data.tipo,
+          insumo_area_id: data.tipo === 'ingrediente' ? (insumoAreaId || null) : null,
+        };
+
+        if (product) {
+          const imageUrl = await uploadImage(product.id);
+          await updateProduct.mutateAsync({ id: product.id, ...payload, image_url: imageUrl });
+        } else {
+          const created = await createProduct.mutateAsync({
+            ...payload,
+            business_id: businessId,
+            image_url: null,
+          });
+          if (created?.id) {
+            const imageUrl = await uploadImage(created.id);
+            if (imageUrl) {
+              await updateProduct.mutateAsync({ id: created.id, image_url: imageUrl });
+            }
+          }
         }
       }
-    }
 
-    onOpenChange(false);
-    form.reset();
+      onOpenChange(false);
+      form.reset();
+    } catch (error: any) {
+      if (isRawMaterial) {
+        toast({ title: 'Error al actualizar', description: error.message, variant: 'destructive' });
+      }
+    }
   };
 
 

@@ -71,16 +71,14 @@ export const useProducts = (overrideBusinessId?: string) => {
   const updateProduct = useMutation({
     mutationFn: async (input: Record<string, any> & { id: string }) => {
       const { id, category, ...cleanProduct } = input;
-      console.log('[updateProduct] id:', id, 'payload:', cleanProduct);
       const { data, error } = await supabase
         .from('products')
         .update(cleanProduct)
         .eq('id', id)
         .select()
-        .maybeSingle();
+        .single();
 
       if (error) throw error;
-      console.log('[updateProduct] result:', data);
       return data;
     },
     onSuccess: () => {
