@@ -239,6 +239,115 @@ const InsumosInventoryTab = ({
     return <div className="flex justify-center py-12"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" /></div>;
   }
 
+  // ─── Shared dialogs fragment (rendered always) ───
+  const dialogs = (
+    <>
+      {/* Area Dialog */}
+      <Dialog open={areaDialogOpen} onOpenChange={(o) => { setAreaDialogOpen(o); if (!o) setEditingArea(null); }}>
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+          <DialogHeader><DialogTitle>{editingArea ? 'Editar área' : 'Nueva área'}</DialogTitle></DialogHeader>
+          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+            <div>
+              <Label>Nombre</Label>
+              <Input value={areaForm.name} onChange={e => setAreaForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Carnes, Lácteos, Verduras" />
+            </div>
+            <div>
+              <Label>Ícono</Label>
+              <IconSelector value={areaForm.icon} onChange={v => setAreaForm(f => ({ ...f, icon: v }))} />
+            </div>
+            <div>
+              <Label>Color</Label>
+              <div className="flex flex-wrap gap-2 mt-1">
+                {AREA_COLORS.map(c => (
+                  <button
+                    key={c.value}
+                    type="button"
+                    onClick={() => setAreaForm(f => ({ ...f, color: c.value }))}
+                    className={cn(
+                      'h-8 w-8 rounded-full border-2 transition-all',
+                      c.class,
+                      areaForm.color === c.value ? 'border-foreground scale-110' : 'border-transparent'
+                    )}
+                    title={c.label}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAreaDialogOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => saveArea.mutate(editingArea ? { ...areaForm, id: editingArea.id } : areaForm)}
+              disabled={!areaForm.name.trim() || saveArea.isPending}
+            >
+              {saveArea.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Nuevo Insumo Dialog */}
+      <Dialog open={newInsumoOpen} onOpenChange={(o) => { setNewInsumoOpen(o); if (!o) setInsumoForm({ name: '', description: '', brand: '', area_id: '' }); }}>
+        <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+          <DialogHeader><DialogTitle>Nuevo Insumo</DialogTitle></DialogHeader>
+          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+            <div>
+              <Label>Nombre</Label>
+              <Input value={insumoForm.name} onChange={e => setInsumoForm(f => ({ ...f, name: e.target.value }))} placeholder="Ej: Harina de trigo" />
+            </div>
+            <div>
+              <Label>Descripción (opcional)</Label>
+              <Textarea value={insumoForm.description} onChange={e => setInsumoForm(f => ({ ...f, description: e.target.value }))} rows={2} placeholder="Detalles del insumo" />
+            </div>
+            <div>
+              <Label>Marca (opcional)</Label>
+              <Input value={insumoForm.brand} onChange={e => setInsumoForm(f => ({ ...f, brand: e.target.value }))} placeholder="Ej: La Estrella" />
+            </div>
+            <div>
+              <Label>Área (opcional)</Label>
+              <Select value={insumoForm.area_id} onValueChange={v => setInsumoForm(f => ({ ...f, area_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Sin área" /></SelectTrigger>
+                <SelectContent>
+                  {areas.map((a: any) => (
+                    <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setNewInsumoOpen(false)}>Cancelar</Button>
+            <Button onClick={() => saveInsumo.mutate(insumoForm)} disabled={!insumoForm.name.trim() || saveInsumo.isPending}>
+              {saveInsumo.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Area Confirmation */}
+      <AlertDialog open={!!deletingArea} onOpenChange={(o) => !o && setDeletingArea(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar área?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará "{deletingArea?.name}". Los insumos asignados quedarán sin área.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deletingArea && deleteArea.mutate(deletingArea.id)}
+              className="bg-destructive text-destructive-foreground"
+            >
+              {deleteArea.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
+
   // ─── Level 2: Ingredients in area ───
   if (selectedArea) {
     return (
@@ -345,7 +454,6 @@ const InsumosInventoryTab = ({
             {areaProducts.map((product) => {
               const stock = stockMap.get(product.id) || 0;
               const wStock = warehouseStockMap.get(product.id) || 0;
-              const totalStock = stock + wStock;
               const isLow = stock <= product.min_stock && stock > 0;
               const isOut = stock <= 0;
 
@@ -391,6 +499,7 @@ const InsumosInventoryTab = ({
             })}
           </div>
         )}
+        {dialogs}
       </div>
     );
   }
