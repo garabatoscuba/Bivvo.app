@@ -363,7 +363,7 @@ const InsumosInventoryTab = ({
           </div>
           {canManage && (
             <Button size="sm" variant="outline" onClick={() => { setInsumoForm({ name: '', description: '', brand: '', area_id: selectedArea.id }); setNewInsumoOpen(true); }}>
-              <Plus className="h-4 w-4 mr-1" />Nuevo insumo
+              Nuevo insumo
             </Button>
           )}
         </div>
