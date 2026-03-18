@@ -39,7 +39,7 @@ const productSchema = z.object({
   description: z.string().max(500).optional(),
   category_id: z.string().optional(),
   barcode: z.string().max(50).optional(),
-  unit_of_measure: z.string().min(1),
+  unit_of_measure: z.string().optional().default('Pieza'),
   brand: z.string().max(100).optional(),
   tipo: z.enum(['reventa', 'ingrediente', 'elaborado', 'granel']).default('reventa'),
   sale_price: z.string().optional(),
