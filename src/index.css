@@ -207,29 +207,10 @@
 
 /* Global: prevent focus rings from being clipped by overflow containers */
 @layer base {
-  /* Horizontal scroll containers need vertical padding for rings */
-  .overflow-x-auto {
-    padding-block: 2px;
-  }
-
   /* Use outline instead of box-shadow for focus rings — outlines are NOT clipped by overflow */
   *:focus-visible {
     outline: 2px solid hsl(var(--ring));
     outline-offset: 2px;
-    box-shadow: none !important;
-  }
-
-  /* Restore Tailwind ring utility when explicitly used (e.g. ring-2) — override with outline */
-  .focus-visible\:ring-2:focus-visible,
-  .focus-visible\:ring-ring:focus-visible {
-    --tw-ring-shadow: none;
-    outline: 2px solid hsl(var(--ring));
-    outline-offset: 2px;
-  }
-
-  /* Sidebar ring variant */
-  .ring-sidebar-ring:focus-visible {
-    outline-color: hsl(var(--sidebar-ring));
   }
 }
 

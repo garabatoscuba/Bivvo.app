@@ -317,7 +317,7 @@ const POS = () => {
               </Button>
             </div>
 
-            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+            <div className="flex gap-2 overflow-x-auto py-1 px-0.5 scrollbar-none">
               <button
                 onClick={() => setSelectedCategory(null)}
                 className={cn(
@@ -354,7 +354,7 @@ const POS = () => {
           </div>
 
           {/* Product Grid */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden pb-20 md:pb-20 lg:pb-0">
+          <div className="flex-1 overflow-y-auto pb-20 md:pb-20 lg:pb-0">
             {isLoading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -365,7 +365,7 @@ const POS = () => {
                 <p>No se encontraron productos</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4 px-0.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4 p-1">
                 {filteredProducts.map((product) => {
                   const availableStock = getAvailableStock(product.id);
                   return (

@@ -21,7 +21,7 @@ export const ProductCard = ({ product, stock = 0, onClick, compact = false, disa
     return (
       <Card
         className={cn(
-          "transition-all overflow-hidden",
+          "transition-all",
           disabled
             ? "opacity-40 cursor-not-allowed"
             : "cursor-pointer hover:shadow-md hover:scale-[1.02] active:scale-[0.98]",
