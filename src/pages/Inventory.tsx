@@ -281,6 +281,22 @@ const Inventory = () => {
     warehouseStockMap.set(bs.product_id, bs.warehouse_quantity || 0);
   });
 
+  // Helpers for raw material stock & badge color
+  const getProductStock = (product: any) => {
+    if (product._isRawMaterial) return product._stockVendedor || 0;
+    return getDisplayForSaleStock(product);
+  };
+  const getProductWarehouseStock = (product: any) => {
+    if (product._isRawMaterial) return product._stockAlmacen || 0;
+    return warehouseStockMap.get(product.id) || 0;
+  };
+  const getProductBadgeColor = (product: any): string | undefined => {
+    if (product._isRawMaterial && product._areaColor) {
+      return AREA_COLOR_BADGE_MAP[product._areaColor] || undefined;
+    }
+    return undefined;
+  };
+
   const getDisplayForSaleStock = (product: Product & { [key: string]: any }) => {
     if (product?.tipo === 'elaborado' || product?.tipo === 'granel') {
       const cap = productionCapacities?.[product.id];
