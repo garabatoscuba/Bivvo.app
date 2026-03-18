@@ -201,6 +201,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
             description: data.description || null,
             brand: data.brand || null,
             area_id: data.tipo === 'ingrediente' ? (insumoAreaId || null) : null,
+            category_id: data.category_id || null,
             unit_purchase: data.unit_of_measure,
           })
           .eq('id', product.id);
