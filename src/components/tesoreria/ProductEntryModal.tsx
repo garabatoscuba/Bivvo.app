@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ShoppingCart } from "lucide-react";
+import { Loader2, ShoppingCart, Truck } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
@@ -31,6 +31,7 @@ export default function ProductEntryModal({ open, onOpenChange, businessId, bran
   const [quantity, setQuantity] = useState("");
   const [costPerUnit, setCostPerUnit] = useState("");
   const [salePricePerUnit, setSalePricePerUnit] = useState("");
+  const [freightCost, setFreightCost] = useState("");
   const [entryDate, setEntryDate] = useState(new Date().toISOString().split("T")[0]);
 
   const forSaleProducts = products.filter((p) => p.status !== "discontinued");
@@ -40,8 +41,11 @@ export default function ProductEntryModal({ open, onOpenChange, businessId, bran
     setQuantity("");
     setCostPerUnit("");
     setSalePricePerUnit("");
+    setFreightCost("");
     setEntryDate(new Date().toISOString().split("T")[0]);
   };
+
+  const effectiveCostPerUnit = Number(costPerUnit) + (Number(freightCost || 0) / (Number(quantity) || 1));
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -50,7 +54,7 @@ export default function ProductEntryModal({ open, onOpenChange, businessId, bran
         branch_id: branchId,
         product_id: productId,
         quantity: Number(quantity),
-        cost_per_unit: Number(costPerUnit),
+        cost_per_unit: effectiveCostPerUnit,
         sale_price_per_unit: Number(salePricePerUnit),
         entry_date: entryDate,
         user_id: user!.id,
@@ -154,6 +158,27 @@ export default function ProductEntryModal({ open, onOpenChange, businessId, bran
                 onChange={(e) => setSalePricePerUnit(e.target.value)}
               />
             </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs flex items-center gap-1">
+              <Truck className="h-3.5 w-3.5" />
+              Costo de transporte/flete (opcional)
+            </Label>
+            <Input
+              type="number"
+              min="0"
+              step="0.01"
+              className="h-9"
+              placeholder="Ej: 50.00"
+              value={freightCost}
+              onChange={(e) => setFreightCost(e.target.value)}
+            />
+            {Number(freightCost) > 0 && Number(quantity) > 0 && (
+              <p className="text-xs text-muted-foreground">
+                Costo unitario real: ${effectiveCostPerUnit.toFixed(2)} (${costPerUnit} + ${(Number(freightCost) / Number(quantity)).toFixed(2)} flete)
+              </p>
+            )}
           </div>
 
           <div className="space-y-1.5">
