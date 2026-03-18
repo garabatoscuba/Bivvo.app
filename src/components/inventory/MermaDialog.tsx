@@ -37,7 +37,7 @@ interface MermaDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   branchId: string;
-  products: Array<{ id: string; name: string; code: string; cost_price: number }>;
+  products: Array<{ id: string; name: string; code: string; cost_price: number; _isRawMaterial?: boolean }>;
   stockMap: Map<string, number>;
   /** Pre-select a product (e.g. from POS) */
   preselectedProductId?: string;
