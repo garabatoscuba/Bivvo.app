@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
-import { Loader2, ShoppingCart } from "lucide-react";
+import { Loader2, ShoppingCart, Truck } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props {
