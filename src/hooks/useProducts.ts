@@ -97,6 +97,11 @@ export const useProducts = (overrideBusinessId?: string) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
+      queryClient.invalidateQueries({ queryKey: ['raw-materials-for-recipe'] });
+      queryClient.invalidateQueries({ queryKey: ['recipe-ingredients'] });
+      queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       toast({ title: 'Producto eliminado' });
     },
     onError: (error) => {
