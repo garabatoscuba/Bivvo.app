@@ -22,6 +22,7 @@ import { useAuditLog } from '@/hooks/useAuditLog';
 import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, PackagePlus, PackageX, ArrowRightLeft, Star, ChefHat } from 'lucide-react';
 import { MovementsLog } from '@/components/inventory/MovementsLog';
 import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowDialog';
+import { StockMoveModal } from '@/components/inventory/StockMoveModal';
 import { MermaDialog } from '@/components/inventory/MermaDialog';
 import { MermasTab } from '@/components/inventory/MermasTab';
 import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
@@ -133,10 +134,7 @@ const Inventory = () => {
   const [productTypeTab, setProductTypeTab] = useState<'reventa' | 'cocina'>('reventa');
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [stockEntryProduct, setStockEntryProduct] = useState<Product | null>(null);
-  const [transferQty, setTransferQty] = useState(0);
-  const [transferring, setTransferring] = useState(false);
-  const [showTransfer, setShowTransfer] = useState(false);
-  const [transferDirection, setTransferDirection] = useState<'toSale' | 'toWarehouse'>('toSale');
+  const [stockMoveProduct, setStockMoveProduct] = useState<Product | null>(null);
   const [outflowProduct, setOutflowProduct] = useState<Product | null>(null);
   
   const [mermaOpen, setMermaOpen] = useState(false);
@@ -508,195 +506,7 @@ const Inventory = () => {
   };
 
   // handleAddStock removed — now handled by StockEntryDialog component
-
-  const handleTransferToSale = async () => {
-    if (!selectedProduct || !profile?.user_id || transferQty <= 0) return;
-    setTransferring(true);
-    try {
-      const branchId = selectedBranch || profile.branch_id || branches?.[0]?.id;
-      if (!branchId) return;
-      const isRM = !!(selectedProduct as any)._isRawMaterial;
-
-      if (isRM) {
-        // Raw material: update raw_materials stock fields
-        const { data: mat } = await supabase
-          .from('raw_materials')
-          .select('id, stock_almacen, stock_vendedor')
-          .eq('id', selectedProduct.id)
-          .single();
-
-        if (!mat || (mat.stock_almacen || 0) < transferQty) {
-          toast({ title: 'No hay suficientes unidades en almacén', variant: 'destructive' });
-          return;
-        }
-
-        await supabase
-          .from('raw_materials')
-          .update({
-            stock_almacen: (mat.stock_almacen || 0) - transferQty,
-            stock_vendedor: (mat.stock_vendedor || 0) + transferQty,
-          })
-          .eq('id', mat.id);
-
-        queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
-        queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
-      } else {
-        // Regular product: update branch_stock
-        const { data: existing } = await supabase
-          .from('branch_stock')
-          .select('id, quantity, warehouse_quantity')
-          .eq('branch_id', branchId)
-          .eq('product_id', selectedProduct.id)
-          .maybeSingle();
-
-        if (!existing || (existing.warehouse_quantity || 0) < transferQty) {
-          toast({ title: 'No hay suficientes unidades en almacén', variant: 'destructive' });
-          return;
-        }
-
-        await supabase
-          .from('branch_stock')
-          .update({
-            quantity: existing.quantity + transferQty,
-            warehouse_quantity: existing.warehouse_quantity - transferQty,
-          })
-          .eq('id', existing.id);
-
-        queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
-      }
-
-      const areaName = (selectedProduct as any)?._areaName || areaNameMap.get((selectedProduct as any)?.insumo_area_id) || 'Uso';
-      const label = (selectedProduct as any).tipo === 'ingrediente' ? `Transferencia: almacén → ${areaName.toLowerCase()}` : 'Transferencia: almacén → venta';
-
-      // Register inventory movements
-      await supabase.from('inventory_movements').insert([
-        {
-          branch_id: branchId,
-          product_id: selectedProduct.id,
-          user_id: profile.user_id,
-          movement_type: 'transfer_out' as const,
-          quantity: transferQty,
-          notes: label,
-        },
-        {
-          branch_id: branchId,
-          product_id: selectedProduct.id,
-          user_id: profile.user_id,
-          movement_type: 'transfer_in' as const,
-          quantity: transferQty,
-          notes: label,
-        },
-      ]);
-
-      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
-      toast({ title: (selectedProduct as any).tipo === 'ingrediente' ? `${transferQty} unidades pasadas a uso` : `${transferQty} unidades pasadas a venta` });
-      auditLog(
-        'stock_transfer',
-        `Transferencia de ${transferQty} unidades de ${selectedProduct?.name} de almacén a ${isRM ? 'uso' : 'venta'}`,
-        selectedProduct?.id,
-        isRM ? 'raw_material' : 'product'
-      );
-      setTransferQty(0);
-      setShowTransfer(false);
-    } catch (err: any) {
-      toast({ title: 'Error al transferir', description: err.message, variant: 'destructive' });
-    } finally {
-      setTransferring(false);
-    }
-  };
-
-  const handleReturnToWarehouse = async () => {
-    if (!selectedProduct || !profile?.user_id || transferQty <= 0) return;
-    setTransferring(true);
-    try {
-      const branchId = selectedBranch || profile.branch_id || branches?.[0]?.id;
-      if (!branchId) return;
-      const isRM = !!(selectedProduct as any)._isRawMaterial;
-
-      if (isRM) {
-        const { data: mat } = await supabase
-          .from('raw_materials')
-          .select('id, stock_almacen, stock_vendedor')
-          .eq('id', selectedProduct.id)
-          .single();
-
-        if (!mat || (mat.stock_vendedor || 0) < transferQty) {
-          toast({ title: `No hay suficientes unidades en ${(selectedProduct as any)?._areaName?.toLowerCase() || 'uso'}`, variant: 'destructive' });
-          return;
-        }
-
-        await supabase
-          .from('raw_materials')
-          .update({
-            stock_vendedor: (mat.stock_vendedor || 0) - transferQty,
-            stock_almacen: (mat.stock_almacen || 0) + transferQty,
-          })
-          .eq('id', mat.id);
-
-        queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
-        queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
-      } else {
-        const { data: existing } = await supabase
-          .from('branch_stock')
-          .select('id, quantity, warehouse_quantity')
-          .eq('branch_id', branchId)
-          .eq('product_id', selectedProduct.id)
-          .maybeSingle();
-
-        if (!existing || existing.quantity < transferQty) {
-          toast({ title: 'No hay suficientes unidades en venta', variant: 'destructive' });
-          return;
-        }
-
-        await supabase
-          .from('branch_stock')
-          .update({
-            quantity: existing.quantity - transferQty,
-            warehouse_quantity: (existing.warehouse_quantity || 0) + transferQty,
-          })
-          .eq('id', existing.id);
-
-        queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
-      }
-
-      const label = (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: uso → almacén' : 'Transferencia: venta → almacén';
-
-      // Register inventory movements
-      await supabase.from('inventory_movements').insert([
-        {
-          branch_id: branchId,
-          product_id: selectedProduct.id,
-          user_id: profile.user_id,
-          movement_type: 'transfer_out' as const,
-          quantity: transferQty,
-          notes: label,
-        },
-        {
-          branch_id: branchId,
-          product_id: selectedProduct.id,
-          user_id: profile.user_id,
-          movement_type: 'transfer_in' as const,
-          quantity: transferQty,
-          notes: label,
-        },
-      ]);
-
-      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
-      toast({ title: `${transferQty} unidades devueltas a almacén` });
-      auditLog(
-        'stock_transfer',
-        `Transferencia de ${transferQty} unidades de ${selectedProduct?.name} de ${isRM ? 'uso' : 'venta'} a almacén`,
-        selectedProduct?.id,
-        isRM ? 'raw_material' : 'product'
-      );
-      setTransferQty(0);
-      setShowTransfer(false);
-    } catch (err: any) {
-      toast({ title: 'Error al devolver', description: err.message, variant: 'destructive' });
-    } finally {
-      setTransferring(false);
-    }
-  };
+  // handleTransferToSale / handleReturnToWarehouse removed — replaced by StockMoveModal
 
   // Product detail data
   const isRawMaterial = !!(selectedProduct as any)?._isRawMaterial;
@@ -927,9 +737,8 @@ const Inventory = () => {
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
                         onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
-                        onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                        onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                         onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                        onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
                       />
                     ))}
                     <Separator className="my-2" />
@@ -950,9 +759,8 @@ const Inventory = () => {
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
                         onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
-                        onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                        onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                         onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                        onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
                       />
                     ))}
                   </div>
@@ -1064,9 +872,8 @@ const Inventory = () => {
                                 canManage={canManage}
                                 onDelete={() => setDeletingProduct(product)}
                                 onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
-                                onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                                onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                                 onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                                onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
                                 showBadges="sale"
                               />
                             ))}
@@ -1088,9 +895,8 @@ const Inventory = () => {
                                 canManage={canManage}
                                 onDelete={() => setDeletingProduct(product)}
                                 onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
-                                onTransferToSale={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }}
+                                onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                                 onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                                onReturnToWarehouse={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toWarehouse'); setTransferQty(1); }}
                                 showBadges="sale"
                               />
                             ))}
@@ -1156,7 +962,7 @@ const Inventory = () => {
                                   <PackagePlus className="h-3.5 w-3.5" />
                                 </Button>
                                 {wStock > 0 && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }} title="Transferir stock">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { if (!guardDowngrade()) setStockMoveProduct(product); }} title="Mover stock">
                                     <ArrowRightLeft className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
@@ -1206,10 +1012,7 @@ const Inventory = () => {
               onOutflow={(product) => { if (!guardDowngrade()) setOutflowProduct(product); }}
               onTransfer={(product, direction) => {
                 if (guardDowngrade()) return;
-                setSelectedProduct(product as Product & { category: Category | null });
-                setShowTransfer(true);
-                setTransferDirection(direction);
-                setTransferQty(1);
+                setStockMoveProduct(product as Product);
               }}
               onDeleteProduct={(product) => setDeletingProduct(product)}
               canManage={canManage}
@@ -1396,7 +1199,7 @@ const Inventory = () => {
               {/* Transfer warehouse → sale */}
               {canManage && (
                 <div className="space-y-2">
-                {!showTransfer && !showGranelPriceEdit ? (
+                {!showGranelPriceEdit ? (
                     <div className="flex flex-col gap-2">
                       {/* Nueva Compra - only for reventa and ingrediente (not elaborado, not granel) */}
                       {(selectedProduct as any).tipo !== 'elaborado' && (selectedProduct as any).tipo !== 'granel' && (
@@ -1428,24 +1231,22 @@ const Inventory = () => {
                           Actualizar precio de venta
                         </Button>
                       )}
+                      {/* Mover stock */}
                       {(selectedProduct as any).tipo !== 'elaborado' && (selectedProduct as any).tipo !== 'granel' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
                           onClick={() => {
                             if (guardDowngrade()) return;
-                            const dir = selectedWarehouseStock > 0 ? 'toSale' : 'toWarehouse';
-                            setTransferDirection(dir);
-                            setShowTransfer(true);
-                            setTransferQty(1);
+                            setStockMoveProduct(selectedProduct);
+                            setSelectedProduct(null);
                           }}
                         >
                           <ArrowRightLeft className="mr-2 h-4 w-4" />
-                          {(selectedProduct as any).tipo === 'ingrediente'
-                            ? (selectedWarehouseStock > 0 ? `Almacén → ${selectedAreaName}` : `${selectedAreaName} → Almacén`)
-                            : (selectedWarehouseStock > 0 ? 'Almacén → Venta' : 'Venta → Almacén')}
+                          Mover stock
                         </Button>
                       )}
+                      {/* Salida almacén */}
                       {(selectedProduct as any).tipo !== 'granel' && selectedWarehouseStock > 0 && (
                         <Button 
                           variant="outline" 
@@ -1461,7 +1262,7 @@ const Inventory = () => {
                          </Button>
                        )}
                      </div>
-                  ) : showGranelPriceEdit ? (
+                  ) : (
                     <div className="rounded-lg border p-3 space-y-3">
                       <p className="text-sm font-medium">Actualizar precio de venta</p>
                       <div className="space-y-1.5">
@@ -1509,60 +1310,6 @@ const Inventory = () => {
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                     (() => {
-                       const isToSale = transferDirection === 'toSale';
-                       const maxQty = isToSale ? selectedWarehouseStock : selectedStock;
-                       const canFlip = isToSale ? selectedStock > 0 : selectedWarehouseStock > 0;
-                       return (
-                         <div className="rounded-lg border p-3 space-y-3">
-                           <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-2">
-                             <p className="text-sm font-medium">
-                                   {(selectedProduct as any)?.tipo === 'ingrediente'
-                                     ? (isToSale ? `Almacén → ${selectedAreaName}` : `${selectedAreaName} → Almacén`)
-                                     : (isToSale ? 'Almacén → Venta' : 'Venta → Almacén')}
-                                </p>
-                               {canFlip && (
-                                 <Button
-                                   variant="ghost"
-                                   size="icon"
-                                   className="h-6 w-6"
-                                   onClick={() => {
-                                     setTransferDirection(isToSale ? 'toWarehouse' : 'toSale');
-                                     setTransferQty(1);
-                                   }}
-                                   title="Cambiar dirección"
-                                 >
-                                   <ArrowRightLeft className="h-3.5 w-3.5" />
-                                 </Button>
-                               )}
-                             </div>
-                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowTransfer(false)}>
-                               <X className="h-3.5 w-3.5" />
-                             </Button>
-                           </div>
-                           <div className="flex items-center gap-3">
-                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setTransferQty(Math.max(1, transferQty - 1))} disabled={transferQty <= 1}>
-                               <span className="text-lg leading-none">−</span>
-                             </Button>
-                             <Input type="number" min={1} max={maxQty} value={transferQty} onChange={(e) => setTransferQty(Math.min(maxQty, Math.max(1, parseInt(e.target.value) || 1)))} className="w-20 text-center" />
-                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setTransferQty(Math.min(maxQty, transferQty + 1))} disabled={transferQty >= maxQty}>
-                               <span className="text-lg leading-none">+</span>
-                             </Button>
-                             <span className="text-xs text-muted-foreground">/ {maxQty}</span>
-                           </div>
-                           <Button
-                             className="w-full"
-                             onClick={isToSale ? handleTransferToSale : handleReturnToWarehouse}
-                             disabled={transferring || transferQty <= 0 || transferQty > maxQty}
-                           >
-                             {transferring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                             {isToSale ? 'Transferir' : 'Devolver'} {transferQty} unidad{transferQty !== 1 ? 'es' : ''}
-                           </Button>
-                         </div>
-                       );
-                     })()
                   )}
                 </div>
               )}
@@ -1712,6 +1459,25 @@ const Inventory = () => {
         />
       )}
       <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
+      {/* Stock Move Modal */}
+      <StockMoveModal
+        open={!!stockMoveProduct}
+        onOpenChange={(open) => { if (!open) setStockMoveProduct(null); }}
+        product={stockMoveProduct}
+        saleStock={stockMoveProduct ? (
+          (stockMoveProduct as any)._isRawMaterial
+            ? ((stockMoveProduct as any)._stockVendedor || 0)
+            : (stockMap.get(stockMoveProduct.id) || 0)
+        ) : 0}
+        warehouseStock={stockMoveProduct ? (
+          (stockMoveProduct as any)._isRawMaterial
+            ? ((stockMoveProduct as any)._stockAlmacen || 0)
+            : (warehouseStockMap.get(stockMoveProduct.id) || 0)
+        ) : 0}
+        branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
+        isRawMaterial={!!(stockMoveProduct as any)?._isRawMaterial}
+        areaName={(stockMoveProduct as any)?._areaName || areaNameMap.get((stockMoveProduct as any)?.insumo_area_id) || undefined}
+      />
     </AppLayout>
   );
 };
@@ -1727,15 +1493,14 @@ interface ProductRowProps {
   canManage: boolean;
   onDelete: () => void;
   onAddStock: () => void;
-  onTransferToSale: () => void;
-  onReturnToWarehouse: () => void;
+  onMoveStock: () => void;
   onOutflow: () => void;
   showBadges?: 'both' | 'sale' | 'warehouse';
   badgeColorClass?: string;
   areaName?: string;
 }
 
-const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow, showBadges = 'both', badgeColorClass, areaName }: ProductRowProps) => {
+const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onMoveStock, onOutflow, showBadges = 'both', badgeColorClass, areaName }: ProductRowProps) => {
   const bgColor = colorMap[color] || colorMap.blue;
   const isLow = stock <= product.min_stock;
 
@@ -1769,7 +1534,7 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
             <PackagePlus className="h-3.5 w-3.5" />
           </Button>
           {(warehouseStock > 0 || stock > 0) && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-7 sm:w-7" onClick={warehouseStock > 0 ? onTransferToSale : onReturnToWarehouse} title="Transferir stock">
+            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-7 sm:w-7" onClick={onMoveStock} title="Mover stock">
               <ArrowRightLeft className="h-3.5 w-3.5" />
             </Button>
           )}
