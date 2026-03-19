@@ -218,6 +218,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
               branch_id: branchId,
               entry_type: 'compra',
               resulting_avg_cost: resultingAvgCost,
+              purchase_unit: purchaseUnit,
             } as any);
           } else {
             // Products → product_stock_entries (product_id references products.id)
@@ -232,6 +233,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
               supplier: supplier.trim() || null,
               notes: notes.trim() || null,
               reason: reason || null,
+              purchase_unit: purchaseUnit,
             });
             // resulting_avg_cost is set by the DB trigger for products
           }
