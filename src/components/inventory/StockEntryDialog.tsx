@@ -201,17 +201,31 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
       if (!isGranel) {
         const businessId = profile.business_id || (await supabase.from('branches').select('business_id').eq('id', branchId).single()).data?.business_id;
         if (businessId) {
+          const entryUnitCost = effectiveCostPerUnit > 0 ? effectiveCostPerUnit : (unitCost ? parseFloat(unitCost) : null);
+          // For raw materials, compute resulting_avg_cost here (trigger only handles products table)
+          let resultingAvgCost: number | null = null;
+          if (isRawMaterial && entryUnitCost != null && entryUnitCost > 0) {
+            const oldTotal = ((await supabase.from('raw_materials').select('stock_vendedor, stock_almacen, costo_unitario').eq('id', product.id).single()).data);
+            if (oldTotal) {
+              resultingAvgCost = Math.round(((((oldTotal.stock_vendedor || 0) + (oldTotal.stock_almacen || 0)) * (oldTotal.costo_unitario || 0)) / 1) * 10000) / 10000;
+              // Actually use the avgCost we already computed above for raw_materials
+              // The raw_materials.costo_unitario was already updated, so just read it
+              const { data: updated } = await supabase.from('raw_materials').select('costo_unitario').eq('id', product.id).single();
+              resultingAvgCost = updated?.costo_unitario ?? null;
+            }
+          }
           await supabase.from('product_stock_entries' as any).insert({
             business_id: businessId,
             branch_id: branchId,
             product_id: product.id,
             user_id: profile.user_id,
             quantity: totalQty,
-            unit_cost: effectiveCostPerUnit > 0 ? effectiveCostPerUnit : (unitCost ? parseFloat(unitCost) : null),
+            unit_cost: entryUnitCost,
             sale_price: !isIngrediente && newSalePrice ? parseFloat(newSalePrice) : null,
             supplier: supplier.trim() || null,
             notes: notes.trim() || null,
             reason: reason || null,
+            resulting_avg_cost: resultingAvgCost,
           });
         }
       }
