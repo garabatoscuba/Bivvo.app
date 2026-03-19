@@ -69,6 +69,7 @@ const InsumosInventoryTab = ({
   onOutflow,
   onTransfer,
   onDeleteProduct,
+  onConsumoInterno,
   canManage,
   searchQuery = '',
 }: InsumosInventoryTabProps) => {
