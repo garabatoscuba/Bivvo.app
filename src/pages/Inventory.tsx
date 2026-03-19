@@ -739,7 +739,6 @@ const Inventory = () => {
                         onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
                         onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                         onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                        onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                       />
                     ))}
                     <Separator className="my-2" />
@@ -762,7 +761,6 @@ const Inventory = () => {
                         onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
                         onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                         onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                        onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                       />
                     ))}
                   </div>
@@ -876,7 +874,6 @@ const Inventory = () => {
                                 onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
                                 onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                                 onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                                onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                                 showBadges="sale"
                               />
                             ))}
@@ -900,7 +897,6 @@ const Inventory = () => {
                                 onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
                                 onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                                 onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
-                                onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
                                 showBadges="sale"
                               />
                             ))}
