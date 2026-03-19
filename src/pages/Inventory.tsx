@@ -1459,6 +1459,25 @@ const Inventory = () => {
         />
       )}
       <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
+      {/* Stock Move Modal */}
+      <StockMoveModal
+        open={!!stockMoveProduct}
+        onOpenChange={(open) => { if (!open) setStockMoveProduct(null); }}
+        product={stockMoveProduct}
+        saleStock={stockMoveProduct ? (
+          (stockMoveProduct as any)._isRawMaterial
+            ? ((stockMoveProduct as any)._stockVendedor || 0)
+            : (stockMap.get(stockMoveProduct.id) || 0)
+        ) : 0}
+        warehouseStock={stockMoveProduct ? (
+          (stockMoveProduct as any)._isRawMaterial
+            ? ((stockMoveProduct as any)._stockAlmacen || 0)
+            : (warehouseStockMap.get(stockMoveProduct.id) || 0)
+        ) : 0}
+        branchId={selectedBranch || profile?.branch_id || branches?.[0]?.id || ''}
+        isRawMaterial={!!(stockMoveProduct as any)?._isRawMaterial}
+        areaName={(stockMoveProduct as any)?._areaName || areaNameMap.get((stockMoveProduct as any)?.insumo_area_id) || undefined}
+      />
     </AppLayout>
   );
 };
