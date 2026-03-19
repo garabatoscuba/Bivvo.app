@@ -397,7 +397,7 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
                             ['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? 'text-success' : 'text-destructive'
                           )
                         )}>
-                          {['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? '+' : '−'}{m.quantity} {unitLabel}
+                          {['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? '+' : '−'}{Math.abs(m.quantity)} {unitLabel}
                         </span>
                         <span className="text-[10px] text-muted-foreground">
                           {isVoided ? 'Anulado' : config.label}
