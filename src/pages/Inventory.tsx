@@ -966,7 +966,7 @@ const Inventory = () => {
                                   <PackagePlus className="h-3.5 w-3.5" />
                                 </Button>
                                 {wStock > 0 && (
-                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { if (guardDowngrade()) return; setSelectedProduct(product); setShowTransfer(true); setTransferDirection('toSale'); setTransferQty(1); }} title="Transferir stock">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { if (!guardDowngrade()) setStockMoveProduct(product); }} title="Mover stock">
                                     <ArrowRightLeft className="h-3.5 w-3.5" />
                                   </Button>
                                 )}
