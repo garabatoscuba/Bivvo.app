@@ -97,7 +97,8 @@ const InsumosTab = () => {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Insumos</h2>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setEntryOpen(true)}><PackagePlus className="h-4 w-4 mr-1" />Dar entrada</Button>
+          <Button size="sm" variant="outline" onClick={() => setEntryOpen(true)}><PackagePlus className="h-4 w-4 mr-1" />Nueva compra</Button>
+          <Button size="sm" variant="outline" onClick={() => setUsageOpen(true)}><PackageMinus className="h-4 w-4 mr-1" />Salida por uso</Button>
           <Button size="sm" variant="outline" onClick={() => setTransferOpen(true)}><Send className="h-4 w-4 mr-1" />Entregar a empleado</Button>
           <Button size="sm" onClick={() => setNewOpen(true)}><Plus className="h-4 w-4 mr-1" />Nuevo insumo</Button>
         </div>
