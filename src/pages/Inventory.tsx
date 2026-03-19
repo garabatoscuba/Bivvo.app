@@ -241,6 +241,12 @@ const Inventory = () => {
     return map;
   }, [insumoAreas]);
 
+  const areaNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    insumoAreas.forEach((a: any) => { if (a.name) map.set(a.id, a.name); });
+    return map;
+  }, [insumoAreas]);
+
   // Convert raw materials to Product-like objects for the products tab
   const rawMaterialsAsProducts = useMemo(() => {
     return rawMaterialsForProducts.map((mat: any) => {
