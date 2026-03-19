@@ -10,8 +10,9 @@ interface PurchaseHistoryProps {
 }
 
 export const PurchaseHistory = ({ productId, isRawMaterial }: PurchaseHistoryProps) => {
-  const { data: entries, isLoading } = useQuery({
-    queryKey: ['purchase-history', productId],
+  // For products: query product_stock_entries
+  const { data: productEntries, isLoading: loadingProducts } = useQuery({
+    queryKey: ['purchase-history-product', productId],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('product_stock_entries')
@@ -22,8 +23,44 @@ export const PurchaseHistory = ({ productId, isRawMaterial }: PurchaseHistoryPro
       if (error) throw error;
       return data || [];
     },
-    enabled: !!productId,
+    enabled: !!productId && !isRawMaterial,
   });
+
+  // For raw materials: query raw_material_entries (positive entries = purchases)
+  const { data: rawEntries, isLoading: loadingRaw } = useQuery({
+    queryKey: ['purchase-history-raw', productId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('raw_material_entries')
+        .select('id, cantidad, costo_unitario, resulting_avg_cost, created_at, nota, entry_type')
+        .eq('material_id', productId)
+        .gt('cantidad', 0)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!productId && !!isRawMaterial,
+  });
+
+  const isLoading = loadingProducts || loadingRaw;
+
+  // Normalize to a common shape
+  const entries = isRawMaterial
+    ? (rawEntries || []).map((e) => ({
+        id: e.id,
+        quantity: e.cantidad,
+        unit_cost: e.costo_unitario,
+        resulting_avg_cost: e.resulting_avg_cost,
+        created_at: e.created_at,
+      }))
+    : (productEntries || []).map((e) => ({
+        id: e.id,
+        quantity: e.quantity,
+        unit_cost: e.unit_cost,
+        resulting_avg_cost: e.resulting_avg_cost,
+        created_at: e.created_at,
+      }));
 
   if (isLoading) {
     return (
