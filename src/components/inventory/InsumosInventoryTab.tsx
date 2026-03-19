@@ -55,6 +55,7 @@ interface InsumosInventoryTabProps {
   onOutflow?: (product: Product) => void;
   onTransfer?: (product: Product, direction: 'toSale' | 'toWarehouse') => void;
   onDeleteProduct?: (product: Product) => void;
+  onConsumoInterno?: (product: any) => void;
   canManage: boolean;
   searchQuery?: string;
 }
