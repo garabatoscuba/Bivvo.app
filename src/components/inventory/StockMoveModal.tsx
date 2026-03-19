@@ -28,7 +28,7 @@ interface StockMoveModalProps {
   areaName?: string;
 }
 
-type LocationKey = 'sale' | 'warehouse';
+type LocationKey = 'sale' | 'warehouse' | 'uso_interno';
 
 export const StockMoveModal = ({
   open,
@@ -45,13 +45,30 @@ export const StockMoveModal = ({
   const auditLog = useAuditLog();
 
   const [from, setFrom] = useState<LocationKey | ''>('');
-  const [to, setTo] = useState<LocationKey | 'uso_interno' | ''>('');
+  const [to, setTo] = useState<LocationKey | ''>('');
   const [quantity, setQuantity] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const isIngredient = (product as any)?.tipo === 'ingrediente';
-  const saleLabel = isIngredient ? (areaName || 'Área') : 'Venta';
+  const saleLabel = isIngredient ? (areaName || 'Área') : 'A la Venta';
+
+  // Fetch business areas for raw materials
+  const { data: areas } = useQuery({
+    queryKey: ['insumo-areas-move', profile?.business_id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('insumo_areas')
+        .select('id, name, is_internal')
+        .eq('business_id', profile!.business_id!)
+        .order('is_internal', { ascending: false });
+      return data || [];
+    },
+    enabled: !!profile?.business_id && open && isRawMaterial,
+  });
+
+  // Check if product's area is the internal one
+  const isCurrentAreaInternal = areas?.find(a => a.name === areaName)?.is_internal ?? false;
 
   // Build available locations based on stock
   const fromOptions = useMemo(() => {
@@ -62,13 +79,33 @@ export const StockMoveModal = ({
   }, [saleStock, warehouseStock, saleLabel]);
 
   const toOptions = useMemo(() => {
-    const opts: { key: LocationKey | 'uso_interno'; label: string }[] = [];
-    if (from !== 'sale') opts.push({ key: 'sale', label: saleLabel });
-    if (from !== 'warehouse') opts.push({ key: 'warehouse', label: 'Almacén' });
-    // Always show Uso Interno as destination
-    opts.push({ key: 'uso_interno', label: 'Uso Interno' });
+    const opts: { key: LocationKey; label: string }[] = [];
+
+    if (isRawMaterial) {
+      // For raw materials: show the product's own area (if not origin) + Almacén + Uso Interno area
+      if (from !== 'sale') {
+        opts.push({ key: 'sale', label: saleLabel });
+      }
+      if (from !== 'warehouse') {
+        opts.push({ key: 'warehouse', label: 'Almacén' });
+      }
+      // Add "Uso Interno" only if the product's current area is NOT already Uso Interno
+      // (to avoid duplicate when from=warehouse and saleLabel="Uso Interno")
+      if (!isCurrentAreaInternal || from === 'sale') {
+        // Only add if not already present as saleLabel
+        const alreadyHasInternal = opts.some(o => o.label === 'Uso Interno');
+        if (!alreadyHasInternal) {
+          opts.push({ key: 'uso_interno', label: 'Uso Interno' });
+        }
+      }
+    } else {
+      // For products: A la Venta + Almacén, excluding origin
+      if (from !== 'sale') opts.push({ key: 'sale', label: 'A la Venta' });
+      if (from !== 'warehouse') opts.push({ key: 'warehouse', label: 'Almacén' });
+    }
+
     return opts;
-  }, [from, saleLabel]);
+  }, [from, saleLabel, isRawMaterial, isCurrentAreaInternal]);
 
   const maxQty = useMemo(() => {
     const selected = fromOptions.find(o => o.key === from);
