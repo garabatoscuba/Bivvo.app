@@ -233,6 +233,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
               supplier: supplier.trim() || null,
               notes: notes.trim() || null,
               reason: reason || null,
+              purchase_unit: purchaseUnit,
             });
             // resulting_avg_cost is set by the DB trigger for products
           }
