@@ -1748,7 +1748,7 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
             <span className={cn(
               'inline-flex items-center justify-center h-7 sm:h-8 min-w-[1.75rem] sm:min-w-[2.2rem] px-1 sm:px-1.5 rounded-md text-[11px] sm:text-xs font-semibold',
               badgeColorClass || bgColor
-            )} title="En uso">
+            )} title={areaName || 'En venta'}>
               {stock}
             </span>
           )}
