@@ -39,6 +39,9 @@ const InsumosTab = () => {
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferForm, setTransferForm] = useState({ material_id: '', cantidad: 0, employee_id: '', nota: '' });
 
+  const [usageOpen, setUsageOpen] = useState(false);
+  const [usageForm, setUsageForm] = useState({ material_id: '', cantidad: 0, nota: '', fecha: '' });
+
   const handleSaveMaterial = () => {
     saveMaterial.mutate(matForm, {
       onSuccess: () => {
