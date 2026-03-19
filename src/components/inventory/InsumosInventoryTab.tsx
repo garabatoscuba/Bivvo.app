@@ -92,6 +92,7 @@ const InsumosInventoryTab = ({
         .from('insumo_areas')
         .select('*')
         .eq('business_id', businessId)
+        .order('is_internal', { ascending: false })
         .order('name');
       if (error) throw error;
       return data || [];
