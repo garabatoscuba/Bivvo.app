@@ -35,7 +35,7 @@ interface MovementsLogProps {
 }
 
 // Allowed movement types (no direct sales)
-const ALLOWED_TYPES = ['purchase', 'transfer_in', 'transfer_out', 'loss', 'adjustment', 'return'];
+const ALLOWED_TYPES = ['purchase', 'transfer_in', 'transfer_out', 'loss', 'adjustment', 'return', 'consumo_interno'];
 
 const movementConfig: Record<string, { label: string; icon: React.ElementType; className: string }> = {
   purchase: { label: 'Compra / Entrada', icon: ArrowDownCircle, className: 'bg-success/15 text-success' },
@@ -45,6 +45,7 @@ const movementConfig: Record<string, { label: string; icon: React.ElementType; c
   adjustment: { label: 'Ajuste', icon: Wrench, className: 'bg-muted text-muted-foreground' },
   return: { label: 'Devolución', icon: RotateCcw, className: 'bg-accent text-accent-foreground' },
   void: { label: 'Anulación', icon: Ban, className: 'bg-destructive/15 text-destructive' },
+  consumo_interno: { label: 'Consumo interno', icon: PackageX, className: 'bg-orange-500/15 text-orange-600' },
 };
 
 type DateFilter = 'all' | 'today' | '3days' | '7days' | 'month' | '3months';
