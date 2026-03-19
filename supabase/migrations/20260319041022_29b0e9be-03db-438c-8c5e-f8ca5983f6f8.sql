@@ -1,0 +1,1 @@
+ALTER TABLE public.raw_material_entries ADD COLUMN IF NOT EXISTS resulting_avg_cost numeric;

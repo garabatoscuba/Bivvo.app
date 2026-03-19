@@ -197,36 +197,44 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
         });
       }
 
-      // Save stock entry for Treasury cost tracking (skip for granel)
+      // Save purchase entry for cost tracking (skip for granel)
       if (!isGranel) {
         const businessId = profile.business_id || (await supabase.from('branches').select('business_id').eq('id', branchId).single()).data?.business_id;
         if (businessId) {
           const entryUnitCost = effectiveCostPerUnit > 0 ? effectiveCostPerUnit : (unitCost ? parseFloat(unitCost) : null);
-          // For raw materials, compute resulting_avg_cost here (trigger only handles products table)
-          let resultingAvgCost: number | null = null;
-          if (isRawMaterial && entryUnitCost != null && entryUnitCost > 0) {
-            const oldTotal = ((await supabase.from('raw_materials').select('stock_vendedor, stock_almacen, costo_unitario').eq('id', product.id).single()).data);
-            if (oldTotal) {
-              resultingAvgCost = Math.round(((((oldTotal.stock_vendedor || 0) + (oldTotal.stock_almacen || 0)) * (oldTotal.costo_unitario || 0)) / 1) * 10000) / 10000;
-              // Actually use the avgCost we already computed above for raw_materials
-              // The raw_materials.costo_unitario was already updated, so just read it
-              const { data: updated } = await supabase.from('raw_materials').select('costo_unitario').eq('id', product.id).single();
-              resultingAvgCost = updated?.costo_unitario ?? null;
-            }
+
+          if (isRawMaterial) {
+            // Raw materials → raw_material_entries (material_id references raw_materials.id)
+            const { data: updated } = await supabase.from('raw_materials').select('costo_unitario').eq('id', product.id).single();
+            const resultingAvgCost = updated?.costo_unitario ?? null;
+
+            await supabase.from('raw_material_entries').insert({
+              material_id: product.id,
+              cantidad: totalQty,
+              costo_unitario: entryUnitCost ?? 0,
+              nota: notes.trim() || `Compra: ${supplier.trim() || 'sin proveedor'}`,
+              user_id: profile.user_id,
+              business_id: businessId,
+              branch_id: branchId,
+              entry_type: 'compra',
+              resulting_avg_cost: resultingAvgCost,
+            } as any);
+          } else {
+            // Products → product_stock_entries (product_id references products.id)
+            await supabase.from('product_stock_entries' as any).insert({
+              business_id: businessId,
+              branch_id: branchId,
+              product_id: product.id,
+              user_id: profile.user_id,
+              quantity: totalQty,
+              unit_cost: entryUnitCost,
+              sale_price: !isIngrediente && newSalePrice ? parseFloat(newSalePrice) : null,
+              supplier: supplier.trim() || null,
+              notes: notes.trim() || null,
+              reason: reason || null,
+            });
+            // resulting_avg_cost is set by the DB trigger for products
           }
-          await supabase.from('product_stock_entries' as any).insert({
-            business_id: businessId,
-            branch_id: branchId,
-            product_id: product.id,
-            user_id: profile.user_id,
-            quantity: totalQty,
-            unit_cost: entryUnitCost,
-            sale_price: !isIngrediente && newSalePrice ? parseFloat(newSalePrice) : null,
-            supplier: supplier.trim() || null,
-            notes: notes.trim() || null,
-            reason: reason || null,
-            resulting_avg_cost: resultingAvgCost,
-          });
         }
       }
 
