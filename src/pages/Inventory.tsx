@@ -565,7 +565,8 @@ const Inventory = () => {
         queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       }
 
-      const label = (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: almacén → uso' : 'Transferencia: almacén → venta';
+      const areaName = (selectedProduct as any)?._areaName || areaNameMap.get((selectedProduct as any)?.insumo_area_id) || 'Uso';
+      const label = (selectedProduct as any).tipo === 'ingrediente' ? `Transferencia: almacén → ${areaName.toLowerCase()}` : 'Transferencia: almacén → venta';
 
       // Register inventory movements
       await supabase.from('inventory_movements').insert([
