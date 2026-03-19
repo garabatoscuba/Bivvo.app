@@ -26,9 +26,11 @@ const AREA_COLORS = [
   { value: 'red', label: 'Rojo', class: 'bg-red-500' },
   { value: 'yellow', label: 'Amarillo', class: 'bg-yellow-500' },
   { value: 'teal', label: 'Teal', class: 'bg-teal-500' },
+  { value: 'primary', label: 'Principal', class: 'bg-primary' },
 ];
 
 const getAreaColorClass = (color: string | null) => {
+  if (color === 'primary') return 'bg-primary';
   return AREA_COLORS.find(c => c.value === color)?.class || 'bg-muted-foreground';
 };
 
@@ -41,6 +43,7 @@ const AREA_COLOR_BADGE: Record<string, string> = {
   red: 'bg-red-500 text-white',
   yellow: 'bg-yellow-500 text-black',
   teal: 'bg-teal-500 text-white',
+  primary: 'bg-primary text-primary-foreground',
 };
 
 interface InsumosInventoryTabProps {
@@ -89,6 +92,7 @@ const InsumosInventoryTab = ({
         .from('insumo_areas')
         .select('*')
         .eq('business_id', businessId)
+        .order('is_internal', { ascending: false })
         .order('name');
       if (error) throw error;
       return data || [];
@@ -364,7 +368,7 @@ const InsumosInventoryTab = ({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            {(() => { const Icon = getIconComponent(selectedArea.icon); return <Icon className="h-5 w-5 shrink-0" />; })()}
+            {(() => { const Icon = selectedArea.is_internal ? getIconComponent('Home') : getIconComponent(selectedArea.icon); return <Icon className="h-5 w-5 shrink-0" />; })()}
             <h2 className="text-lg font-semibold truncate">{selectedArea.name}</h2>
             <Badge variant="secondary" className="text-xs">{areaProducts.length + areaRawMaterials.length}</Badge>
           </div>
@@ -559,7 +563,8 @@ const InsumosInventoryTab = ({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {areas.map((area: any) => {
-            const Icon = getIconComponent(area.icon);
+            const isInternal = !!area.is_internal;
+            const Icon = isInternal ? getIconComponent('Home') : getIconComponent(area.icon);
             const count = areaCountMap.get(area.id) || 0;
             return (
               <button
@@ -568,10 +573,10 @@ const InsumosInventoryTab = ({
                 className="group relative rounded-xl border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className={`rounded-lg p-2 ${getAreaColorClass(area.color)} text-white`}>
+                  <div className={`rounded-lg p-2 ${isInternal ? 'bg-primary' : getAreaColorClass(area.color)} text-white`}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  {canManage && (
+                  {canManage && !isInternal && (
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         type="button"

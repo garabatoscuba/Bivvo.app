@@ -118,8 +118,9 @@ Deno.serve(async (req) => {
     await admin.from("insumo_areas").insert({
       business_id: biz.id,
       name: "Uso Interno",
-      icon: "package",
-      color: "#9CA3AF",
+      icon: "Home",
+      color: "primary",
+      is_internal: true,
     });
 
     return new Response(
