@@ -290,6 +290,46 @@ const InsumosTab = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Internal Usage Dialog */}
+      <Dialog open={usageOpen} onOpenChange={setUsageOpen}>
+        <DialogContent className="max-w-sm max-h-[90vh] flex flex-col">
+          <DialogHeader><DialogTitle>Salida por uso interno</DialogTitle></DialogHeader>
+          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+            <div>
+              <Label>Insumo</Label>
+              <Select value={usageForm.material_id} onValueChange={v => setUsageForm(f => ({ ...f, material_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  {materials.map((m: any) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name} (Stock: {m.stock_almacen})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Cantidad</Label>
+                <Input type="number" min={0.01} step="0.01" value={usageForm.cantidad || ''} onChange={e => setUsageForm(f => ({ ...f, cantidad: parseFloat(e.target.value) || 0 }))} />
+              </div>
+              <div>
+                <Label>Fecha (opcional)</Label>
+                <Input type="date" value={usageForm.fecha} onChange={e => setUsageForm(f => ({ ...f, fecha: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <Label>Motivo (opcional)</Label>
+              <Textarea value={usageForm.nota} onChange={e => setUsageForm(f => ({ ...f, nota: e.target.value }))} rows={2} placeholder="Ej: Limpieza, comida empleados..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUsageOpen(false)}>Cancelar</Button>
+            <Button onClick={handleUsage} disabled={!usageForm.material_id || !usageForm.cantidad || internalUsage.isPending}>
+              {internalUsage.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Registrar salida
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
