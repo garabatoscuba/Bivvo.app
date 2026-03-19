@@ -621,7 +621,7 @@ const Inventory = () => {
           .single();
 
         if (!mat || (mat.stock_vendedor || 0) < transferQty) {
-          toast({ title: 'No hay suficientes unidades en uso', variant: 'destructive' });
+          toast({ title: `No hay suficientes unidades en ${(selectedProduct as any)?._areaName?.toLowerCase() || 'uso'}`, variant: 'destructive' });
           return;
         }
 
