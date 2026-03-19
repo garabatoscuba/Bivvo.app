@@ -3905,6 +3905,7 @@ export type Database = {
           product_id: string
           quantity: number
           reason: string | null
+          resulting_avg_cost: number | null
           sale_price: number | null
           supplier: string | null
           unit_cost: number | null
@@ -3919,6 +3920,7 @@ export type Database = {
           product_id: string
           quantity?: number
           reason?: string | null
+          resulting_avg_cost?: number | null
           sale_price?: number | null
           supplier?: string | null
           unit_cost?: number | null
@@ -3933,6 +3935,7 @@ export type Database = {
           product_id?: string
           quantity?: number
           reason?: string | null
+          resulting_avg_cost?: number | null
           sale_price?: number | null
           supplier?: string | null
           unit_cost?: number | null
