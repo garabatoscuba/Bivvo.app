@@ -27,6 +27,7 @@ const InsumosTab = () => {
   const saveMaterial = useSaveRawMaterial();
   const createEntry = useCreateMaterialEntry();
   const transferToEmployee = useTransferToEmployee();
+  const internalUsage = useInternalUsageEntry();
   const { profile } = useAuth();
 
   const [newOpen, setNewOpen] = useState(false);
