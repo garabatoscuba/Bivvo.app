@@ -218,6 +218,7 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
               branch_id: branchId,
               entry_type: 'compra',
               resulting_avg_cost: resultingAvgCost,
+              purchase_unit: purchaseUnit,
             } as any);
           } else {
             // Products → product_stock_entries (product_id references products.id)
