@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { ArrowLeft, Plus, Loader2, Pencil, Trash2, PackagePlus, AlertTriangle, ArrowRightLeft, PackageX } from 'lucide-react';
+import { ArrowLeft, Plus, Loader2, Pencil, Trash2, PackagePlus, AlertTriangle, ArrowRightLeft, PackageX, ClipboardMinus } from 'lucide-react';
 import { getIconComponent } from '@/components/services/IconSelector';
 import IconSelector from '@/components/services/IconSelector';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -55,6 +55,7 @@ interface InsumosInventoryTabProps {
   onOutflow?: (product: Product) => void;
   onTransfer?: (product: Product, direction: 'toSale' | 'toWarehouse') => void;
   onDeleteProduct?: (product: Product) => void;
+  onConsumoInterno?: (product: any) => void;
   canManage: boolean;
   searchQuery?: string;
 }
@@ -68,6 +69,7 @@ const InsumosInventoryTab = ({
   onOutflow,
   onTransfer,
   onDeleteProduct,
+  onConsumoInterno,
   canManage,
   searchQuery = '',
 }: InsumosInventoryTabProps) => {
@@ -451,6 +453,11 @@ const InsumosInventoryTab = ({
                       <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onAddStock(asProduct); }} title="Nueva Compra">
                         <PackagePlus className="h-3.5 w-3.5" />
                       </Button>
+                      {selectedArea?.is_internal && stock > 0 && onConsumoInterno && (
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onConsumoInterno(asProduct); }} title="Registrar consumo">
+                          <ClipboardMinus className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                       {(wStock > 0 || stock > 0) && (
                         <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onTransfer?.(asProduct, wStock > 0 ? 'toSale' : 'toWarehouse'); }} title={wStock > 0 ? `Almacén → ${selectedArea?.name || 'Uso'}` : `${selectedArea?.name || 'Uso'} → Almacén`}>
                           <ArrowRightLeft className="h-3.5 w-3.5" />

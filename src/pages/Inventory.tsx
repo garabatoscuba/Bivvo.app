@@ -19,7 +19,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, PackagePlus, PackageX, ArrowRightLeft, Star, ChefHat } from 'lucide-react';
+import { Plus, Search, Package, Loader2, Pencil, Trash2, FolderOpen, X, AlertTriangle, DollarSign, PackagePlus, PackageX, ArrowRightLeft, Star, ChefHat, ClipboardMinus } from 'lucide-react';
 import { MovementsLog } from '@/components/inventory/MovementsLog';
 import { WarehouseOutflowDialog } from '@/components/inventory/WarehouseOutflowDialog';
 import { StockMoveModal } from '@/components/inventory/StockMoveModal';
@@ -29,6 +29,7 @@ import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
 import { ProductionDialog } from '@/components/inventory/ProductionDialog';
 import { RecipeManager } from '@/components/inventory/RecipeManager';
 import { PurchaseHistory } from '@/components/inventory/PurchaseHistory';
+import ConsumoInternoModal from '@/components/inventory/ConsumoInternoModal';
 import InsumosInventoryTab from '@/components/inventory/InsumosInventoryTab';
 import { useProductionCapacity } from '@/hooks/useProductionCapacity';
 import { useProductionCapacities } from '@/hooks/useProductionCapacities';
@@ -147,6 +148,7 @@ const Inventory = () => {
   const [granelNewPrice, setGranelNewPrice] = useState('');
   const [granelPriceUpdating, setGranelPriceUpdating] = useState(false);
   const { isDowngraded } = useIsDowngraded();
+  const [consumoInternoProduct, setConsumoInternoProduct] = useState<any>(null);
 
   const effectiveBranchId = selectedBranch || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(effectiveBranchId);
@@ -520,6 +522,8 @@ const Inventory = () => {
   const isRawMaterial = !!(selectedProduct as any)?._isRawMaterial;
   const isIngredientSelected = (selectedProduct as any)?.tipo === 'ingrediente';
   const selectedAreaName = (selectedProduct as any)?._areaName || areaNameMap.get((selectedProduct as any)?.insumo_area_id) || 'Uso';
+  const selectedAreaId = (selectedProduct as any)?.insumo_area_id || (selectedProduct as any)?.area_id;
+  const isInternalArea = isIngredientSelected && !!insumoAreas.find((a: any) => a.id === selectedAreaId && a.is_internal);
   const getRawMaterialStockValue = (
     product: any,
     primaryKey: 'stock_vendedor' | 'stock_almacen',
@@ -1023,6 +1027,7 @@ const Inventory = () => {
                 setStockMoveProduct(product as Product);
               }}
               onDeleteProduct={(product) => setDeletingProduct(product)}
+              onConsumoInterno={(product) => setConsumoInternoProduct(product)}
               canManage={canManage}
               searchQuery={search}
             />
@@ -1223,6 +1228,20 @@ const Inventory = () => {
                         >
                           <PackagePlus className="mr-2 h-4 w-4" />
                           Nueva Compra
+                        </Button>
+                      )}
+                      {/* Registrar consumo - only for internal area raw materials */}
+                      {isInternalArea && isRawMaterial && selectedStock > 0 && (
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-start"
+                          onClick={() => {
+                            setConsumoInternoProduct(selectedProduct);
+                            setSelectedProduct(null);
+                          }}
+                        >
+                          <ClipboardMinus className="mr-2 h-4 w-4" />
+                          Registrar consumo
                         </Button>
                       )}
                       {/* Granel: update sale price */}
@@ -1476,6 +1495,11 @@ const Inventory = () => {
         />
       )}
       <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
+      <ConsumoInternoModal
+        open={!!consumoInternoProduct}
+        onOpenChange={(o) => !o && setConsumoInternoProduct(null)}
+        material={consumoInternoProduct}
+      />
       {/* Stock Move Modal */}
       <StockMoveModal
         open={!!stockMoveProduct}
