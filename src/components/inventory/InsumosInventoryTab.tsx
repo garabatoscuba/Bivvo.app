@@ -444,7 +444,7 @@ const InsumosInventoryTab = ({
                         <PackagePlus className="h-3.5 w-3.5" />
                       </Button>
                       {(wStock > 0 || stock > 0) && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onTransfer?.(asProduct, wStock > 0 ? 'toSale' : 'toWarehouse'); }} title={wStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén'}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onTransfer?.(asProduct, wStock > 0 ? 'toSale' : 'toWarehouse'); }} title={wStock > 0 ? `Almacén → ${selectedArea?.name || 'Uso'}` : `${selectedArea?.name || 'Uso'} → Almacén`}>
                           <ArrowRightLeft className="h-3.5 w-3.5" />
                         </Button>
                       )}
