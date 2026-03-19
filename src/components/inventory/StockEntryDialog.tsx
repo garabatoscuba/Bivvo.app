@@ -295,8 +295,9 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
               <Input
                 type="number"
                 min={0}
+                step="0.01"
                 value={qtyForSale}
-                onChange={(e) => setQtyForSale(Math.max(0, parseInt(e.target.value) || 0))}
+                onChange={(e) => setQtyForSale(Math.max(0, parseFloat(e.target.value) || 0))}
               />
             </div>
 
