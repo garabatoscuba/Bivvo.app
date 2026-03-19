@@ -563,7 +563,8 @@ const InsumosInventoryTab = ({
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {areas.map((area: any) => {
-            const Icon = getIconComponent(area.icon);
+            const isInternal = !!area.is_internal;
+            const Icon = isInternal ? getIconComponent('Home') : getIconComponent(area.icon);
             const count = areaCountMap.get(area.id) || 0;
             return (
               <button
@@ -572,10 +573,10 @@ const InsumosInventoryTab = ({
                 className="group relative rounded-xl border bg-card p-4 text-left transition-all hover:shadow-md hover:border-primary/30"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <div className={`rounded-lg p-2 ${getAreaColorClass(area.color)} text-white`}>
+                  <div className={`rounded-lg p-2 ${isInternal ? 'bg-primary' : getAreaColorClass(area.color)} text-white`}>
                     <Icon className="h-5 w-5" />
                   </div>
-                  {canManage && (
+                  {canManage && !isInternal && (
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
                         type="button"
