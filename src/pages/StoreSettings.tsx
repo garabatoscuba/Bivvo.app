@@ -389,7 +389,7 @@ const StoreSettingsPage = () => {
                   />
                   <div className="flex-1 text-center sm:text-left space-y-1">
                     <p className="text-sm font-semibold text-foreground">¿Tu negocio necesita una identidad visual?</p>
-                    <p className="text-xs text-muted-foreground">Diseño de logos, branding completo y portales web personalizados. El estudio detrás de Bivoo.</p>
+                    <p className="text-xs text-muted-foreground">Diseño de logos, branding completo y portales web personalizados, fotografía, estrategias. El estudio detrás de Bivoo.</p>
                   </div>
                   <Button
                     variant="outline"
