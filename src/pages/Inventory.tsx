@@ -1307,7 +1307,7 @@ const Inventory = () => {
                     />
                   </div>
                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> {isIngredientSelected ? 'Uso' : 'Venta'} ({selectedDisplayStock})</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> {isIngredientSelected ? selectedAreaName : 'Venta'} ({selectedDisplayStock})</span>
                     <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground/30 inline-block" /> Almacén ({selectedWarehouseStock})</span>
                   </div>
                 </div>
