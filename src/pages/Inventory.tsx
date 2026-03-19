@@ -1534,8 +1534,7 @@ interface ProductRowProps {
   canManage: boolean;
   onDelete: () => void;
   onAddStock: () => void;
-  onTransferToSale: () => void;
-  onReturnToWarehouse: () => void;
+  onMoveStock: () => void;
   onOutflow: () => void;
   showBadges?: 'both' | 'sale' | 'warehouse';
   badgeColorClass?: string;
