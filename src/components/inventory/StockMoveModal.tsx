@@ -92,6 +92,7 @@ export const StockMoveModal = ({
   });
 
   const currentArea = areas?.find((area) => area.id === currentAreaId) || null;
+  const isCurrentAreaInternal = !!currentArea?.is_internal;
   const nonInternalAreas = (areas || []).filter((area) => !area.is_internal);
   const saleLabel = currentArea?.name || areaName || 'A la Venta';
 
@@ -101,7 +102,9 @@ export const StockMoveModal = ({
     if (effectiveIsRawMaterial) {
       if (saleStock > 0) {
         opts.push({
-          key: currentAreaId ? createAreaKey(currentAreaId) : 'sale',
+          key: isCurrentAreaInternal
+            ? 'uso_interno'
+            : (currentAreaId ? createAreaKey(currentAreaId) : 'sale'),
           label: saleLabel,
           stock: saleStock,
         });
@@ -115,7 +118,7 @@ export const StockMoveModal = ({
     if (saleStock > 0) opts.push({ key: 'sale', label: 'A la Venta', stock: saleStock });
     if (warehouseStock > 0) opts.push({ key: 'warehouse', label: 'Almacén', stock: warehouseStock });
     return dedupeOptions(opts);
-  }, [currentAreaId, effectiveIsRawMaterial, saleLabel, saleStock, warehouseStock]);
+  }, [currentAreaId, effectiveIsRawMaterial, isCurrentAreaInternal, saleLabel, saleStock, warehouseStock]);
 
   const toOptions = useMemo(() => {
     const opts: LocationOption[] = [];
@@ -213,7 +216,6 @@ export const StockMoveModal = ({
   };
 
   const handleRawMaterialMove = async (moveLabel: string) => {
-    const fromAreaId = getAreaIdFromKey(from);
     const toAreaId = getAreaIdFromKey(to);
 
     const { data: mat } = await supabase
@@ -227,6 +229,7 @@ export const StockMoveModal = ({
     const sellerStock = Number(mat.stock_vendedor) || 0;
     const warehouseQty = Number(mat.stock_almacen) || 0;
     const currentMatAreaId = mat.area_id || null;
+    const fromAreaId = from === 'uso_interno' ? currentMatAreaId : getAreaIdFromKey(from);
     const updates: Record<string, number | string | null> = {};
 
     if (from === 'warehouse') {
