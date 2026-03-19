@@ -2232,34 +2232,43 @@ export type Database = {
           branch_id: string
           created_at: string
           id: string
+          is_voided: boolean
           movement_type: Database["public"]["Enums"]["inventory_movement_type"]
           notes: string | null
           product_id: string
           quantity: number
           reference_id: string | null
           user_id: string | null
+          void_reason: string | null
+          voided_at: string | null
         }
         Insert: {
           branch_id: string
           created_at?: string
           id?: string
+          is_voided?: boolean
           movement_type: Database["public"]["Enums"]["inventory_movement_type"]
           notes?: string | null
           product_id: string
           quantity: number
           reference_id?: string | null
           user_id?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
         }
         Update: {
           branch_id?: string
           created_at?: string
           id?: string
+          is_voided?: boolean
           movement_type?: Database["public"]["Enums"]["inventory_movement_type"]
           notes?: string | null
           product_id?: string
           quantity?: number
           reference_id?: string | null
           user_id?: string | null
+          void_reason?: string | null
+          voided_at?: string | null
         }
         Relationships: [
           {
@@ -3901,6 +3910,7 @@ export type Database = {
           business_id: string
           created_at: string
           id: string
+          is_voided: boolean
           notes: string | null
           product_id: string
           purchase_unit: string | null
@@ -3911,12 +3921,15 @@ export type Database = {
           supplier: string | null
           unit_cost: number | null
           user_id: string
+          void_reason: string | null
+          voided_at: string | null
         }
         Insert: {
           branch_id: string
           business_id: string
           created_at?: string
           id?: string
+          is_voided?: boolean
           notes?: string | null
           product_id: string
           purchase_unit?: string | null
@@ -3927,12 +3940,15 @@ export type Database = {
           supplier?: string | null
           unit_cost?: number | null
           user_id: string
+          void_reason?: string | null
+          voided_at?: string | null
         }
         Update: {
           branch_id?: string
           business_id?: string
           created_at?: string
           id?: string
+          is_voided?: boolean
           notes?: string | null
           product_id?: string
           purchase_unit?: string | null
@@ -3943,6 +3959,8 @@ export type Database = {
           supplier?: string | null
           unit_cost?: number | null
           user_id?: string
+          void_reason?: string | null
+          voided_at?: string | null
         }
         Relationships: [
           {
@@ -4152,11 +4170,14 @@ export type Database = {
           created_at: string
           entry_type: string
           id: string
+          is_voided: boolean
           material_id: string
           nota: string | null
           purchase_unit: string | null
           resulting_avg_cost: number | null
           user_id: string
+          void_reason: string | null
+          voided_at: string | null
         }
         Insert: {
           branch_id?: string | null
@@ -4166,11 +4187,14 @@ export type Database = {
           created_at?: string
           entry_type?: string
           id?: string
+          is_voided?: boolean
           material_id: string
           nota?: string | null
           purchase_unit?: string | null
           resulting_avg_cost?: number | null
           user_id: string
+          void_reason?: string | null
+          voided_at?: string | null
         }
         Update: {
           branch_id?: string | null
@@ -4180,11 +4204,14 @@ export type Database = {
           created_at?: string
           entry_type?: string
           id?: string
+          is_voided?: boolean
           material_id?: string
           nota?: string | null
           purchase_unit?: string | null
           resulting_avg_cost?: number | null
           user_id?: string
+          void_reason?: string | null
+          voided_at?: string | null
         }
         Relationships: [
           {
