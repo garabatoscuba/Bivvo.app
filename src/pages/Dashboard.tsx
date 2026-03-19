@@ -443,6 +443,18 @@ const Dashboard = () => {
 
       </div>
 
+      {/* Onboarding Wizard for first-time users */}
+      {showWelcome && profile && (
+        <OnboardingWizard
+          open={showWelcome}
+          profile={{
+            user_id: profile.user_id,
+            business_id: profile.business_id,
+            country: profile.country,
+          }}
+        />
+      )}
+
       {/* Plan activated info popup */}
       <Dialog
         open={planInfoPopupOpen}
