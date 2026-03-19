@@ -418,43 +418,30 @@ const Dashboard = () => {
         {/* Performance Widget */}
         <PerformanceWidget />
 
+        {/* Estudio Garabatos promo */}
+        <Card className="border-amber-500/30 bg-gradient-to-br from-card to-amber-950/10">
+          <CardContent className="flex flex-col sm:flex-row items-center gap-4 p-5">
+            <img
+              src="https://estudiogarabatos.com/logo-completo-blanco.png"
+              alt="Estudio Garabatos"
+              className="h-14 w-auto object-contain shrink-0"
+            />
+            <div className="flex-1 text-center sm:text-left space-y-1">
+              <p className="text-sm font-semibold text-foreground">¿Tu negocio necesita una identidad visual?</p>
+              <p className="text-xs text-muted-foreground">Diseño de logos, branding completo y portales web personalizados, fotografía, estrategias y mucho más. El estudio detrás de Bivoo.</p>
+            </div>
+            <DialogButton
+              variant="outline"
+              size="sm"
+              className="border-amber-500/40 hover:bg-amber-500/10 shrink-0"
+              onClick={() => window.open('https://estudiogarabatos.com', '_blank')}
+            >
+              Conocer Estudio Garabatos
+            </DialogButton>
+          </CardContent>
+        </Card>
 
       </div>
-
-      {/* Onboarding Wizard for first-time users */}
-      {showWelcome && profile && (
-        <OnboardingWizard
-          open={showWelcome}
-          profile={{
-            user_id: profile.user_id,
-            business_id: profile.business_id,
-            country: profile.country,
-          }}
-        />
-      )}
-
-      {/* Estudio Garabatos promo */}
-      <Card className="border-amber-500/30 bg-gradient-to-br from-card to-amber-950/10">
-        <CardContent className="flex flex-col sm:flex-row items-center gap-4 p-5">
-          <img
-            src="https://estudiogarabatos.com/logo-completo-blanco.png"
-            alt="Estudio Garabatos"
-            className="h-14 w-auto object-contain shrink-0"
-          />
-          <div className="flex-1 text-center sm:text-left space-y-1">
-            <p className="text-sm font-semibold text-foreground">¿Tu negocio necesita una identidad visual?</p>
-            <p className="text-xs text-muted-foreground">Diseño de logos, branding completo y portales web personalizados, fotografía, estrategias y mucho más. El estudio detrás de Bivoo.</p>
-          </div>
-          <DialogButton
-            variant="outline"
-            size="sm"
-            className="border-amber-500/40 hover:bg-amber-500/10 shrink-0"
-            onClick={() => window.open('https://estudiogarabatos.com', '_blank')}
-          >
-            Conocer Estudio Garabatos
-          </DialogButton>
-        </CardContent>
-      </Card>
 
       {/* Plan activated info popup */}
       <Dialog
