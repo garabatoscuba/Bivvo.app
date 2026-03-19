@@ -1575,7 +1575,7 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
             <PackagePlus className="h-3.5 w-3.5" />
           </Button>
           {(warehouseStock > 0 || stock > 0) && (
-            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-7 sm:w-7" onClick={warehouseStock > 0 ? onTransferToSale : onReturnToWarehouse} title="Transferir stock">
+            <Button variant="ghost" size="icon" className="h-7 w-7 sm:h-7 sm:w-7" onClick={onMoveStock} title="Mover stock">
               <ArrowRightLeft className="h-3.5 w-3.5" />
             </Button>
           )}
