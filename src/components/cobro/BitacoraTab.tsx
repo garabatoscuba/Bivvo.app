@@ -30,6 +30,9 @@ const ACTION_LABELS: Record<string, string> = {
   employee_edited: 'Empleado editado',
   employee_deleted: 'Empleado eliminado',
   print_job_created: 'Trabajo de impresión',
+  anulacion_compra: 'Anulación de compra',
+  anulacion_entrada_insumo: 'Anulación de entrada insumo',
+  anulacion_movimiento: 'Anulación de movimiento',
 };
 
 const PAGE_SIZE = 50;
