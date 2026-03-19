@@ -26,9 +26,11 @@ const AREA_COLORS = [
   { value: 'red', label: 'Rojo', class: 'bg-red-500' },
   { value: 'yellow', label: 'Amarillo', class: 'bg-yellow-500' },
   { value: 'teal', label: 'Teal', class: 'bg-teal-500' },
+  { value: 'primary', label: 'Principal', class: 'bg-primary' },
 ];
 
 const getAreaColorClass = (color: string | null) => {
+  if (color === 'primary') return 'bg-primary';
   return AREA_COLORS.find(c => c.value === color)?.class || 'bg-muted-foreground';
 };
 
@@ -41,6 +43,7 @@ const AREA_COLOR_BADGE: Record<string, string> = {
   red: 'bg-red-500 text-white',
   yellow: 'bg-yellow-500 text-black',
   teal: 'bg-teal-500 text-white',
+  primary: 'bg-primary text-primary-foreground',
 };
 
 interface InsumosInventoryTabProps {

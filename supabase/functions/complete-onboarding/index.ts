@@ -106,15 +106,16 @@ Deno.serve(async (req) => {
         .from("insumo_areas")
         .select("id")
         .eq("business_id", profile.business_id)
-        .eq("name", "Uso Interno")
+        .eq("is_internal", true)
         .maybeSingle();
 
       if (!existingArea) {
         await admin.from("insumo_areas").insert({
           business_id: profile.business_id,
           name: "Uso Interno",
-          icon: "package",
-          color: "#9CA3AF",
+          icon: "Home",
+          color: "primary",
+          is_internal: true,
         });
       }
     }
