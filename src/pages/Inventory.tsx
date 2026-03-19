@@ -75,6 +75,7 @@ const AREA_COLOR_BADGE_MAP: Record<string, string> = {
   red: 'bg-red-500 text-white',
   yellow: 'bg-yellow-500 text-black',
   teal: 'bg-teal-500 text-white',
+  primary: 'bg-primary text-primary-foreground',
 };
 
 const colorDotMap: Record<string, string> = {
@@ -224,7 +225,7 @@ const Inventory = () => {
       if (!businessId) return [];
       const { data, error } = await supabase
         .from('insumo_areas')
-        .select('id, name, color')
+        .select('id, name, color, is_internal')
         .eq('business_id', businessId);
       if (error) throw error;
       return data || [];
@@ -235,7 +236,13 @@ const Inventory = () => {
 
   const areaColorMap = useMemo(() => {
     const map = new Map<string, string>();
-    insumoAreas.forEach((a: any) => { if (a.color) map.set(a.id, a.color); });
+    insumoAreas.forEach((a: any) => {
+      if (a.is_internal) {
+        map.set(a.id, 'primary');
+      } else if (a.color) {
+        map.set(a.id, a.color);
+      }
+    });
     return map;
   }, [insumoAreas]);
 
