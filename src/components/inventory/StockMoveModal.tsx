@@ -98,7 +98,7 @@ export const StockMoveModal = ({
   const fromOptions = useMemo(() => {
     const opts: LocationOption[] = [];
 
-    if (isRawMaterial) {
+    if (effectiveIsRawMaterial) {
       if (saleStock > 0) {
         opts.push({
           key: currentAreaId ? createAreaKey(currentAreaId) : 'sale',
@@ -115,12 +115,12 @@ export const StockMoveModal = ({
     if (saleStock > 0) opts.push({ key: 'sale', label: 'A la Venta', stock: saleStock });
     if (warehouseStock > 0) opts.push({ key: 'warehouse', label: 'Almacén', stock: warehouseStock });
     return dedupeOptions(opts);
-  }, [currentAreaId, isRawMaterial, saleLabel, saleStock, warehouseStock]);
+  }, [currentAreaId, effectiveIsRawMaterial, saleLabel, saleStock, warehouseStock]);
 
   const toOptions = useMemo(() => {
     const opts: LocationOption[] = [];
 
-    if (isRawMaterial) {
+    if (effectiveIsRawMaterial) {
       if (from !== 'warehouse') {
         opts.push({ key: 'warehouse', label: 'Almacén' });
       }
@@ -147,7 +147,7 @@ export const StockMoveModal = ({
     if (from !== 'warehouse') opts.push({ key: 'warehouse', label: 'Almacén' });
 
     return dedupeOptions(opts);
-  }, [from, isRawMaterial, nonInternalAreas]);
+  }, [from, effectiveIsRawMaterial, nonInternalAreas]);
 
   const maxQty = useMemo(() => {
     const selected = fromOptions.find((option) => option.key === from);
