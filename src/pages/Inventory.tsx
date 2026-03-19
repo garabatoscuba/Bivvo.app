@@ -281,6 +281,7 @@ const Inventory = () => {
         _stockVendedor: mat.stock_vendedor || 0,
         _stockAlmacen: mat.stock_almacen || 0,
         _areaColor: mat.area_id ? (areaColorMap.get(mat.area_id) || null) : null,
+        _areaName: mat.area_id ? (areaNameMap.get(mat.area_id) || 'Uso') : 'Uso',
       };
     }) as unknown as (Product & { category: Category | null })[];
   }, [rawMaterialsForProducts, areaColorMap]);
