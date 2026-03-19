@@ -53,17 +53,19 @@ const Caja = () => {
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList className="w-full flex flex-nowrap overflow-x-auto scrollbar-hide h-9">
-            {showCajasTab && (
-              <TabsTrigger value="cajas" className="shrink-0 text-xs">Cajas</TabsTrigger>
-            )}
-            <TabsTrigger value="activa" className="shrink-0 text-xs">Caja activa</TabsTrigger>
-            <TabsTrigger value="chica" className="shrink-0 text-xs">Caja chica</TabsTrigger>
-            <TabsTrigger value="historial" className="shrink-0 text-xs">Historial</TabsTrigger>
-            {isPrivileged && (
-              <TabsTrigger value="config" className="shrink-0 text-xs">Config</TabsTrigger>
-            )}
-          </TabsList>
+          <div className="w-full overflow-x-auto scrollbar-hide">
+            <TabsList className="inline-flex w-max min-w-full h-9">
+              {showCajasTab && (
+                <TabsTrigger value="cajas" className="shrink-0 text-xs px-3">Cajas</TabsTrigger>
+              )}
+              <TabsTrigger value="activa" className="shrink-0 text-xs px-3">Caja activa</TabsTrigger>
+              <TabsTrigger value="chica" className="shrink-0 text-xs px-3">Caja chica</TabsTrigger>
+              <TabsTrigger value="historial" className="shrink-0 text-xs px-3">Historial</TabsTrigger>
+              {isPrivileged && (
+                <TabsTrigger value="config" className="shrink-0 text-xs px-3">Config</TabsTrigger>
+              )}
+            </TabsList>
+          </div>
 
           {showCajasTab && (
             <TabsContent value="cajas">
