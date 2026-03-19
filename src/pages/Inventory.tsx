@@ -1240,7 +1240,7 @@ const Inventory = () => {
                         </Button>
                       )}
                       {/* Mover stock */}
-                      {(selectedProduct as any).tipo !== 'elaborado' && (selectedProduct as any).tipo !== 'granel' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
+                      {(selectedProduct as any).tipo !== 'elaborado' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
