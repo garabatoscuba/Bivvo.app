@@ -190,6 +190,7 @@ export const StockMoveModal = ({
     } else {
       if ((mat.stock_vendedor || 0) < parsedQty) throw new Error(`Stock insuficiente en ${saleLabel}`);
       updates.stock_vendedor = (mat.stock_vendedor || 0) - parsedQty;
+      // If moving FROM an internal area, treat destination logic the same as uso_interno deduction
     }
 
     // Add to destination (unless uso_interno)
