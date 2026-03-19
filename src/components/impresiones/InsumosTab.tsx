@@ -71,6 +71,19 @@ const InsumosTab = () => {
     });
   };
 
+  const handleUsage = () => {
+    if (!profile?.user_id) return;
+    internalUsage.mutate(
+      { ...usageForm, user_id: profile.user_id, fecha: usageForm.fecha || undefined },
+      {
+        onSuccess: () => {
+          setUsageOpen(false);
+          setUsageForm({ material_id: '', cantidad: 0, nota: '', fecha: '' });
+        },
+      }
+    );
+  };
+
   // Build per-employee stock lookup: { materialId: { employeeId: stock } }
   const getEmployeeStock = (materialId: string, employeeId: string): number => {
     const record = empStocks.find((s: any) => s.material_id === materialId && s.employee_id === employeeId);
