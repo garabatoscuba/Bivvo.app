@@ -287,6 +287,7 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
             <SelectItem value="return">Devolución</SelectItem>
             <SelectItem value="adjustment">Ajuste</SelectItem>
             <SelectItem value="void">Anulaciones</SelectItem>
+            <SelectItem value="consumo_interno">Consumo interno</SelectItem>
           </SelectContent>
         </Select>
       </div>
