@@ -368,7 +368,7 @@ const InsumosInventoryTab = ({
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            {(() => { const Icon = getIconComponent(selectedArea.icon); return <Icon className="h-5 w-5 shrink-0" />; })()}
+            {(() => { const Icon = selectedArea.is_internal ? getIconComponent('Home') : getIconComponent(selectedArea.icon); return <Icon className="h-5 w-5 shrink-0" />; })()}
             <h2 className="text-lg font-semibold truncate">{selectedArea.name}</h2>
             <Badge variant="secondary" className="text-xs">{areaProducts.length + areaRawMaterials.length}</Badge>
           </div>
