@@ -1298,7 +1298,7 @@ const Inventory = () => {
                     <div 
                       className="bg-primary transition-all" 
                       style={{ width: `${(selectedDisplayStock / selectedDisplayTotalStock) * 100}%` }} 
-                      title={`${isIngredientSelected ? 'Uso' : 'Venta'}: ${selectedDisplayStock}`}
+                      title={`${isIngredientSelected ? selectedAreaName : 'Venta'}: ${selectedDisplayStock}`}
                     />
                     <div 
                       className="bg-muted-foreground/30 transition-all" 
