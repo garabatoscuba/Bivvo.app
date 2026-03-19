@@ -1229,6 +1229,20 @@ const Inventory = () => {
                           Nueva Compra
                         </Button>
                       )}
+                      {/* Registrar consumo - only for internal area raw materials */}
+                      {isInternalArea && isRawMaterial && selectedStock > 0 && (
+                        <Button 
+                          variant="outline" 
+                          className="w-full justify-start"
+                          onClick={() => {
+                            setConsumoInternoProduct(selectedProduct);
+                            setSelectedProduct(null);
+                          }}
+                        >
+                          <ClipboardMinus className="mr-2 h-4 w-4" />
+                          Registrar consumo
+                        </Button>
+                      )}
                       {/* Granel: update sale price */}
                       {(selectedProduct as any).tipo === 'granel' && (
                         <Button 
