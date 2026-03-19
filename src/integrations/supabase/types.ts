@@ -4141,6 +4141,7 @@ export type Database = {
           cantidad: number
           costo_unitario: number
           created_at: string
+          entry_type: string
           id: string
           material_id: string
           nota: string | null
@@ -4152,6 +4153,7 @@ export type Database = {
           cantidad?: number
           costo_unitario?: number
           created_at?: string
+          entry_type?: string
           id?: string
           material_id: string
           nota?: string | null
@@ -4163,6 +4165,7 @@ export type Database = {
           cantidad?: number
           costo_unitario?: number
           created_at?: string
+          entry_type?: string
           id?: string
           material_id?: string
           nota?: string | null
