@@ -28,6 +28,7 @@ import { MermasTab } from '@/components/inventory/MermasTab';
 import { StockEntryDialog } from '@/components/inventory/StockEntryDialog';
 import { ProductionDialog } from '@/components/inventory/ProductionDialog';
 import { RecipeManager } from '@/components/inventory/RecipeManager';
+import { PurchaseHistory } from '@/components/inventory/PurchaseHistory';
 import InsumosInventoryTab from '@/components/inventory/InsumosInventoryTab';
 import { useProductionCapacity } from '@/hooks/useProductionCapacity';
 import { useProductionCapacities } from '@/hooks/useProductionCapacities';
