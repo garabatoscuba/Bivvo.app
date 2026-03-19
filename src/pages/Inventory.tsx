@@ -75,6 +75,7 @@ const AREA_COLOR_BADGE_MAP: Record<string, string> = {
   red: 'bg-red-500 text-white',
   yellow: 'bg-yellow-500 text-black',
   teal: 'bg-teal-500 text-white',
+  primary: 'bg-primary text-primary-foreground',
 };
 
 const colorDotMap: Record<string, string> = {
