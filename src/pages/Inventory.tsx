@@ -241,6 +241,12 @@ const Inventory = () => {
     return map;
   }, [insumoAreas]);
 
+  const areaNameMap = useMemo(() => {
+    const map = new Map<string, string>();
+    insumoAreas.forEach((a: any) => { if (a.name) map.set(a.id, a.name); });
+    return map;
+  }, [insumoAreas]);
+
   // Convert raw materials to Product-like objects for the products tab
   const rawMaterialsAsProducts = useMemo(() => {
     return rawMaterialsForProducts.map((mat: any) => {
@@ -275,9 +281,10 @@ const Inventory = () => {
         _stockVendedor: mat.stock_vendedor || 0,
         _stockAlmacen: mat.stock_almacen || 0,
         _areaColor: mat.area_id ? (areaColorMap.get(mat.area_id) || null) : null,
+        _areaName: mat.area_id ? (areaNameMap.get(mat.area_id) || 'Uso') : 'Uso',
       };
     }) as unknown as (Product & { category: Category | null })[];
-  }, [rawMaterialsForProducts, areaColorMap]);
+  }, [rawMaterialsForProducts, areaColorMap, areaNameMap]);
 
   const FREE_PRODUCT_LIMIT = 5;
   const FREE_CATEGORY_LIMIT = 2;
@@ -558,7 +565,8 @@ const Inventory = () => {
         queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       }
 
-      const label = (selectedProduct as any).tipo === 'ingrediente' ? 'Transferencia: almacén → uso' : 'Transferencia: almacén → venta';
+      const areaName = (selectedProduct as any)?._areaName || areaNameMap.get((selectedProduct as any)?.insumo_area_id) || 'Uso';
+      const label = (selectedProduct as any).tipo === 'ingrediente' ? `Transferencia: almacén → ${areaName.toLowerCase()}` : 'Transferencia: almacén → venta';
 
       // Register inventory movements
       await supabase.from('inventory_movements').insert([
@@ -613,7 +621,7 @@ const Inventory = () => {
           .single();
 
         if (!mat || (mat.stock_vendedor || 0) < transferQty) {
-          toast({ title: 'No hay suficientes unidades en uso', variant: 'destructive' });
+          toast({ title: `No hay suficientes unidades en ${(selectedProduct as any)?._areaName?.toLowerCase() || 'uso'}`, variant: 'destructive' });
           return;
         }
 
@@ -693,6 +701,7 @@ const Inventory = () => {
   // Product detail data
   const isRawMaterial = !!(selectedProduct as any)?._isRawMaterial;
   const isIngredientSelected = (selectedProduct as any)?.tipo === 'ingrediente';
+  const selectedAreaName = (selectedProduct as any)?._areaName || areaNameMap.get((selectedProduct as any)?.insumo_area_id) || 'Uso';
   const getRawMaterialStockValue = (
     product: any,
     primaryKey: 'stock_vendedor' | 'stock_almacen',
@@ -913,6 +922,7 @@ const Inventory = () => {
                         warehouseStock={getProductWarehouseStock(product)}
                         color={product.category?.color || 'blue'}
                         badgeColorClass={getProductBadgeColor(product)}
+                        areaName={(product as any)._isRawMaterial ? ((product as any)._areaName || 'Uso') : undefined}
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
@@ -935,6 +945,7 @@ const Inventory = () => {
                         warehouseStock={getProductWarehouseStock(product)}
                         color="blue"
                         badgeColorClass={getProductBadgeColor(product)}
+                        areaName={(product as any)._isRawMaterial ? ((product as any)._areaName || 'Uso') : undefined}
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
@@ -1260,7 +1271,7 @@ const Inventory = () => {
               {/* Key metrics */}
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard
-                  label={isIngredientSelected ? 'En uso' : 'En venta'}
+                  label={isIngredientSelected ? `En ${selectedAreaName.toLowerCase()}` : 'En venta'}
                   value={selectedDisplayStock.toString()}
                   sublabel={isIngredientSelected ? 'Disponible' : 'Disponible en POS'}
                   alert={selectedDisplayStock <= selectedProduct.min_stock}
@@ -1290,7 +1301,7 @@ const Inventory = () => {
                     <div 
                       className="bg-primary transition-all" 
                       style={{ width: `${(selectedDisplayStock / selectedDisplayTotalStock) * 100}%` }} 
-                      title={`${isIngredientSelected ? 'Uso' : 'Venta'}: ${selectedDisplayStock}`}
+                      title={`${isIngredientSelected ? selectedAreaName : 'Venta'}: ${selectedDisplayStock}`}
                     />
                     <div 
                       className="bg-muted-foreground/30 transition-all" 
@@ -1299,7 +1310,7 @@ const Inventory = () => {
                     />
                   </div>
                   <div className="flex justify-between text-[10px] text-muted-foreground">
-                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> {isIngredientSelected ? 'Uso' : 'Venta'} ({selectedDisplayStock})</span>
+                    <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-primary inline-block" /> {isIngredientSelected ? selectedAreaName : 'Venta'} ({selectedDisplayStock})</span>
                     <span className="flex items-center gap-1"><span className="h-2 w-2 rounded-full bg-muted-foreground/30 inline-block" /> Almacén ({selectedWarehouseStock})</span>
                   </div>
                 </div>
@@ -1311,7 +1322,7 @@ const Inventory = () => {
                   <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
                   <span>
                     {selectedDisplayStock <= 0 
-                      ? (isIngredientSelected ? 'Sin stock disponible en uso' : 'Sin stock disponible para venta')
+                      ? (isIngredientSelected ? `Sin stock disponible en ${selectedAreaName.toLowerCase()}` : 'Sin stock disponible para venta')
                       : `Stock bajo — mínimo recomendado: ${selectedProduct.min_stock}`
                     }
                     {selectedWarehouseStock > 0 && ' — Hay unidades en almacén'}
@@ -1431,7 +1442,7 @@ const Inventory = () => {
                         >
                           <ArrowRightLeft className="mr-2 h-4 w-4" />
                           {(selectedProduct as any).tipo === 'ingrediente'
-                            ? (selectedWarehouseStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén')
+                            ? (selectedWarehouseStock > 0 ? `Almacén → ${selectedAreaName}` : `${selectedAreaName} → Almacén`)
                             : (selectedWarehouseStock > 0 ? 'Almacén → Venta' : 'Venta → Almacén')}
                         </Button>
                       )}
@@ -1509,7 +1520,7 @@ const Inventory = () => {
                            <div className="flex items-center gap-2">
                              <p className="text-sm font-medium">
                                    {(selectedProduct as any)?.tipo === 'ingrediente'
-                                     ? (isToSale ? 'Almacén → Uso' : 'Uso → Almacén')
+                                     ? (isToSale ? `Almacén → ${selectedAreaName}` : `${selectedAreaName} → Almacén`)
                                      : (isToSale ? 'Almacén → Venta' : 'Venta → Almacén')}
                                 </p>
                                {canFlip && (
@@ -1721,9 +1732,10 @@ interface ProductRowProps {
   onOutflow: () => void;
   showBadges?: 'both' | 'sale' | 'warehouse';
   badgeColorClass?: string;
+  areaName?: string;
 }
 
-const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow, showBadges = 'both', badgeColorClass }: ProductRowProps) => {
+const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow, showBadges = 'both', badgeColorClass, areaName }: ProductRowProps) => {
   const bgColor = colorMap[color] || colorMap.blue;
   const isLow = stock <= product.min_stock;
 
@@ -1738,7 +1750,7 @@ const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage,
             <span className={cn(
               'inline-flex items-center justify-center h-7 sm:h-8 min-w-[1.75rem] sm:min-w-[2.2rem] px-1 sm:px-1.5 rounded-md text-[11px] sm:text-xs font-semibold',
               badgeColorClass || bgColor
-            )} title="En uso">
+            )} title={areaName || 'En venta'}>
               {stock}
             </span>
           )}

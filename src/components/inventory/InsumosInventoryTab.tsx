@@ -428,7 +428,7 @@ const InsumosInventoryTab = ({
                     onClick={() => onSelectProduct(asProduct)}
                   >
                     <div className="flex gap-1 flex-shrink-0">
-                      <span className={cn('inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold', badgeBg)} title="En uso">
+                      <span className={cn('inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold', badgeBg)} title={selectedArea?.name || 'En uso'}>
                         {stock}
                       </span>
                       <span className="inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground" title="Almacén">
@@ -444,7 +444,7 @@ const InsumosInventoryTab = ({
                         <PackagePlus className="h-3.5 w-3.5" />
                       </Button>
                       {(wStock > 0 || stock > 0) && (
-                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onTransfer?.(asProduct, wStock > 0 ? 'toSale' : 'toWarehouse'); }} title={wStock > 0 ? 'Almacén → Uso' : 'Uso → Almacén'}>
+                        <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => { e.stopPropagation(); onTransfer?.(asProduct, wStock > 0 ? 'toSale' : 'toWarehouse'); }} title={wStock > 0 ? `Almacén → ${selectedArea?.name || 'Uso'}` : `${selectedArea?.name || 'Uso'} → Almacén`}>
                           <ArrowRightLeft className="h-3.5 w-3.5" />
                         </Button>
                       )}
@@ -474,7 +474,7 @@ const InsumosInventoryTab = ({
                     onClick={() => onSelectProduct(product)}
                   >
                     <div className="flex gap-1 flex-shrink-0">
-                      <span className={cn('inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold', badgeBg)} title="En uso">
+                      <span className={cn('inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold', badgeBg)} title={selectedArea?.name || 'En uso'}>
                         {stock}
                       </span>
                       <span className="inline-flex items-center justify-center h-8 min-w-[2.2rem] px-1.5 rounded-md text-xs font-semibold bg-muted text-muted-foreground" title="Almacén">
