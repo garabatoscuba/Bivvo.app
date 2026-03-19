@@ -19,7 +19,8 @@ type AuditActionType =
   | 'print_job_created'
   | 'anulacion_compra'
   | 'anulacion_entrada_insumo'
-  | 'anulacion_movimiento';
+  | 'anulacion_movimiento'
+  | 'consumo_interno';
 
 interface AuditContext {
   userId: string;
