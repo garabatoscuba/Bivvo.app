@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
 import { useAuditLog } from '@/hooks/useAuditLog';
+import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import type { Product } from '@/types/database';
 
 interface StockMoveModalProps {
@@ -28,7 +29,27 @@ interface StockMoveModalProps {
   areaName?: string;
 }
 
-type LocationKey = 'sale' | 'warehouse' | 'uso_interno';
+type StaticLocationKey = 'sale' | 'warehouse' | 'uso_interno';
+type LocationKey = StaticLocationKey | `area:${string}`;
+
+type LocationOption = {
+  key: LocationKey;
+  label: string;
+  stock?: number;
+};
+
+const createAreaKey = (areaId: string): LocationKey => `area:${areaId}`;
+const getAreaIdFromKey = (value: LocationKey | '') =>
+  typeof value === 'string' && value.startsWith('area:') ? value.slice(5) : null;
+
+const dedupeOptions = <T extends LocationOption>(options: T[]) => {
+  const seen = new Set<string>();
+  return options.filter((option) => {
+    if (seen.has(option.key)) return false;
+    seen.add(option.key);
+    return true;
+  });
+};
 
 export const StockMoveModal = ({
   open,
@@ -41,6 +62,7 @@ export const StockMoveModal = ({
   areaName,
 }: StockMoveModalProps) => {
   const { profile } = useAuth();
+  const { businessId } = useResolvedBusinessId();
   const queryClient = useQueryClient();
   const auditLog = useAuditLog();
 
@@ -50,65 +72,83 @@ export const StockMoveModal = ({
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const isIngredient = (product as any)?.tipo === 'ingrediente';
-  const saleLabel = isIngredient ? (areaName || 'Área') : 'A la Venta';
+  const resolvedBusinessId = businessId || profile?.business_id || null;
+  const currentAreaId = ((product as any)?.insumo_area_id || (product as any)?.area_id || null) as string | null;
 
-  // Fetch business areas for raw materials
   const { data: areas } = useQuery({
-    queryKey: ['insumo-areas-move', profile?.business_id],
+    queryKey: ['insumo-areas-move', resolvedBusinessId],
     queryFn: async () => {
       const { data } = await supabase
         .from('insumo_areas')
         .select('id, name, is_internal')
-        .eq('business_id', profile!.business_id!)
-        .order('is_internal', { ascending: false });
+        .eq('business_id', resolvedBusinessId!)
+        .order('is_internal', { ascending: false })
+        .order('name');
       return data || [];
     },
-    enabled: !!profile?.business_id && open && isRawMaterial,
+    enabled: !!resolvedBusinessId && open && isRawMaterial,
   });
 
-  // Check if product's area is the internal one
-  const isCurrentAreaInternal = areas?.find(a => a.name === areaName)?.is_internal ?? false;
+  const currentArea = areas?.find((area) => area.id === currentAreaId) || null;
+  const nonInternalAreas = (areas || []).filter((area) => !area.is_internal);
+  const saleLabel = currentArea?.name || areaName || 'A la Venta';
 
-  // Build available locations based on stock
   const fromOptions = useMemo(() => {
-    const opts: { key: LocationKey; label: string; stock: number }[] = [];
-    if (saleStock > 0) opts.push({ key: 'sale', label: saleLabel, stock: saleStock });
-    if (warehouseStock > 0) opts.push({ key: 'warehouse', label: 'Almacén', stock: warehouseStock });
-    return opts;
-  }, [saleStock, warehouseStock, saleLabel]);
-
-  const toOptions = useMemo(() => {
-    const opts: { key: LocationKey; label: string }[] = [];
+    const opts: LocationOption[] = [];
 
     if (isRawMaterial) {
-      // For raw materials: show the product's own area (if not origin) + Almacén + Uso Interno area
-      if (from !== 'sale') {
-        opts.push({ key: 'sale', label: saleLabel });
+      if (saleStock > 0) {
+        opts.push({
+          key: currentAreaId ? createAreaKey(currentAreaId) : 'sale',
+          label: saleLabel,
+          stock: saleStock,
+        });
       }
+      if (warehouseStock > 0) {
+        opts.push({ key: 'warehouse', label: 'Almacén', stock: warehouseStock });
+      }
+      return dedupeOptions(opts);
+    }
+
+    if (saleStock > 0) opts.push({ key: 'sale', label: 'A la Venta', stock: saleStock });
+    if (warehouseStock > 0) opts.push({ key: 'warehouse', label: 'Almacén', stock: warehouseStock });
+    return dedupeOptions(opts);
+  }, [currentAreaId, isRawMaterial, saleLabel, saleStock, warehouseStock]);
+
+  const toOptions = useMemo(() => {
+    const opts: LocationOption[] = [];
+
+    if (isRawMaterial) {
       if (from !== 'warehouse') {
         opts.push({ key: 'warehouse', label: 'Almacén' });
       }
-      // Add "Uso Interno" only if the product's current area is NOT already Uso Interno
-      // (to avoid duplicate when from=warehouse and saleLabel="Uso Interno")
-      if (!isCurrentAreaInternal || from === 'sale') {
-        // Only add if not already present as saleLabel
-        const alreadyHasInternal = opts.some(o => o.label === 'Uso Interno');
-        if (!alreadyHasInternal) {
-          opts.push({ key: 'uso_interno', label: 'Uso Interno' });
+
+      nonInternalAreas.forEach((area) => {
+        const key = createAreaKey(area.id);
+        if (key !== from) {
+          opts.push({ key, label: area.name });
         }
+      });
+
+      if (!nonInternalAreas.length && from !== 'sale') {
+        opts.push({ key: 'sale', label: 'A la Venta' });
       }
-    } else {
-      // For products: A la Venta + Almacén, excluding origin
-      if (from !== 'sale') opts.push({ key: 'sale', label: 'A la Venta' });
-      if (from !== 'warehouse') opts.push({ key: 'warehouse', label: 'Almacén' });
+
+      if (from !== 'uso_interno') {
+        opts.push({ key: 'uso_interno', label: 'Uso Interno' });
+      }
+
+      return dedupeOptions(opts);
     }
 
-    return opts;
-  }, [from, saleLabel, isRawMaterial, isCurrentAreaInternal]);
+    if (from !== 'sale') opts.push({ key: 'sale', label: 'A la Venta' });
+    if (from !== 'warehouse') opts.push({ key: 'warehouse', label: 'Almacén' });
+
+    return dedupeOptions(opts);
+  }, [from, isRawMaterial, nonInternalAreas]);
 
   const maxQty = useMemo(() => {
-    const selected = fromOptions.find(o => o.key === from);
+    const selected = fromOptions.find((option) => option.key === from);
     return selected?.stock || 0;
   }, [from, fromOptions]);
 
@@ -127,7 +167,6 @@ export const StockMoveModal = ({
     onOpenChange(value);
   };
 
-  // Auto-select when only one from option
   const handleOpen = () => {
     if (fromOptions.length === 1) {
       setFrom(fromOptions[0].key);
@@ -139,8 +178,8 @@ export const StockMoveModal = ({
     setSubmitting(true);
 
     try {
-      const fromLabel = fromOptions.find(o => o.key === from)?.label || from;
-      const toLabel = toOptions.find(o => o.key === to)?.label || to;
+      const fromLabel = fromOptions.find((option) => option.key === from)?.label || from;
+      const toLabel = toOptions.find((option) => option.key === to)?.label || to;
       const moveLabel = `Mover stock: ${fromLabel} → ${toLabel}${notes ? ` | ${notes}` : ''}`;
 
       if (isRawMaterial) {
@@ -149,7 +188,6 @@ export const StockMoveModal = ({
         await handleProductMove(moveLabel);
       }
 
-      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
       queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
       queryClient.invalidateQueries({ queryKey: ['raw-materials-for-products'] });
@@ -173,48 +211,70 @@ export const StockMoveModal = ({
   };
 
   const handleRawMaterialMove = async (moveLabel: string) => {
+    const fromAreaId = getAreaIdFromKey(from);
+    const toAreaId = getAreaIdFromKey(to);
+
     const { data: mat } = await supabase
       .from('raw_materials')
-      .select('id, stock_almacen, stock_vendedor')
+      .select('id, area_id, stock_almacen, stock_vendedor')
       .eq('id', product!.id)
       .single();
 
     if (!mat) throw new Error('Insumo no encontrado');
 
-    const updates: any = {};
+    const sellerStock = Number(mat.stock_vendedor) || 0;
+    const warehouseQty = Number(mat.stock_almacen) || 0;
+    const currentMatAreaId = mat.area_id || null;
+    const updates: Record<string, number | string | null> = {};
 
-    // Deduct from source
     if (from === 'warehouse') {
-      if ((mat.stock_almacen || 0) < parsedQty) throw new Error('Stock insuficiente en almacén');
-      updates.stock_almacen = (mat.stock_almacen || 0) - parsedQty;
+      if (warehouseQty < parsedQty) throw new Error('Stock insuficiente en almacén');
+      updates.stock_almacen = warehouseQty - parsedQty;
     } else {
-      if ((mat.stock_vendedor || 0) < parsedQty) throw new Error(`Stock insuficiente en ${saleLabel}`);
-      updates.stock_vendedor = (mat.stock_vendedor || 0) - parsedQty;
-      // If moving FROM an internal area, treat destination logic the same as uso_interno deduction
+      if (sellerStock < parsedQty) throw new Error(`Stock insuficiente en ${saleLabel}`);
+      updates.stock_vendedor = sellerStock - parsedQty;
     }
 
-    // Add to destination (unless uso_interno)
     if (to === 'uso_interno') {
-      // Register as uso_interno in raw_material_entries
       await supabase.from('raw_material_entries').insert({
         material_id: product!.id,
         cantidad: -Math.abs(parsedQty),
         costo_unitario: 0,
         nota: notes || 'Salida por uso interno',
         user_id: profile!.user_id,
-        business_id: profile!.business_id,
+        business_id: resolvedBusinessId,
         branch_id: branchId,
         entry_type: 'uso_interno',
       } as any);
     } else if (to === 'warehouse') {
-      updates.stock_almacen = (updates.stock_almacen ?? mat.stock_almacen ?? 0) + parsedQty;
+      updates.stock_almacen = (Number(updates.stock_almacen ?? warehouseQty) || 0) + parsedQty;
     } else {
-      updates.stock_vendedor = (updates.stock_vendedor ?? mat.stock_vendedor ?? 0) + parsedQty;
+      if (toAreaId) {
+        const movingBetweenAreas = !!fromAreaId && fromAreaId !== toAreaId;
+        const partialAreaReassignment = movingBetweenAreas && parsedQty < sellerStock;
+        const partialGenericSaleReassignment = from === 'sale' && sellerStock > parsedQty;
+        const conflictingSaleLocation =
+          from === 'warehouse' &&
+          sellerStock > 0 &&
+          currentMatAreaId !== toAreaId;
+
+        if (partialAreaReassignment || partialGenericSaleReassignment) {
+          throw new Error('Para mover entre áreas debes mover todo el stock disponible de esa ubicación');
+        }
+
+        if (conflictingSaleLocation) {
+          throw new Error('Este insumo ya tiene stock en otra área. Muévelo primero desde esa área o vacíala antes de enviarlo a otra');
+        }
+
+        updates.stock_vendedor = (Number(updates.stock_vendedor ?? sellerStock) || 0) + parsedQty;
+        updates.area_id = toAreaId;
+      } else {
+        updates.stock_vendedor = (Number(updates.stock_vendedor ?? sellerStock) || 0) + parsedQty;
+      }
     }
 
-    await supabase.from('raw_materials').update(updates).eq('id', mat.id);
+    await supabase.from('raw_materials').update(updates as any).eq('id', mat.id);
 
-    // Register inventory movement
     await supabase.from('inventory_movements').insert({
       branch_id: branchId,
       product_id: product!.id,
@@ -237,16 +297,14 @@ export const StockMoveModal = ({
 
     const updates: any = {};
 
-    // Deduct from source
     if (from === 'warehouse') {
       if ((existing.warehouse_quantity || 0) < parsedQty) throw new Error('Stock insuficiente en almacén');
       updates.warehouse_quantity = (existing.warehouse_quantity || 0) - parsedQty;
     } else {
-      if (existing.quantity < parsedQty) throw new Error(`Stock insuficiente en ${saleLabel}`);
+      if (existing.quantity < parsedQty) throw new Error('Stock insuficiente en A la Venta');
       updates.quantity = existing.quantity - parsedQty;
     }
 
-    // Add to destination (unless uso_interno)
     if (to === 'uso_interno') {
       // No stock added, just deducted
     } else if (to === 'warehouse') {
@@ -257,7 +315,6 @@ export const StockMoveModal = ({
 
     await supabase.from('branch_stock').update(updates).eq('id', existing.id);
 
-    // Register inventory movements
     await supabase.from('inventory_movements').insert([
       {
         branch_id: branchId,
@@ -267,14 +324,16 @@ export const StockMoveModal = ({
         quantity: parsedQty,
         notes: moveLabel,
       },
-      ...(to !== 'uso_interno' ? [{
-        branch_id: branchId,
-        product_id: product!.id,
-        user_id: profile!.user_id,
-        movement_type: 'transfer_in' as const,
-        quantity: parsedQty,
-        notes: moveLabel,
-      }] : []),
+      ...(to !== 'uso_interno'
+        ? [{
+            branch_id: branchId,
+            product_id: product!.id,
+            user_id: profile!.user_id,
+            movement_type: 'transfer_in' as const,
+            quantity: parsedQty,
+            notes: moveLabel,
+          }]
+        : []),
     ]);
   };
 
@@ -313,7 +372,7 @@ export const StockMoveModal = ({
           {from && (
             <div className="space-y-1.5">
               <Label>A (destino)</Label>
-              <Select value={to} onValueChange={(v) => setTo(v as any)}>
+              <Select value={to} onValueChange={(v) => setTo(v as LocationKey)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Selecciona destino" />
                 </SelectTrigger>
