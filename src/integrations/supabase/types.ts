@@ -2128,6 +2128,7 @@ export type Database = {
           created_at: string | null
           icon: string | null
           id: string
+          is_internal: boolean
           name: string
         }
         Insert: {
@@ -2136,6 +2137,7 @@ export type Database = {
           created_at?: string | null
           icon?: string | null
           id?: string
+          is_internal?: boolean
           name: string
         }
         Update: {
@@ -2144,6 +2146,7 @@ export type Database = {
           created_at?: string | null
           icon?: string | null
           id?: string
+          is_internal?: boolean
           name?: string
         }
         Relationships: [
