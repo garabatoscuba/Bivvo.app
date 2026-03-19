@@ -1319,7 +1319,7 @@ const Inventory = () => {
                   <AlertTriangle className="h-4 w-4 text-destructive flex-shrink-0" />
                   <span>
                     {selectedDisplayStock <= 0 
-                      ? (isIngredientSelected ? 'Sin stock disponible en uso' : 'Sin stock disponible para venta')
+                      ? (isIngredientSelected ? `Sin stock disponible en ${selectedAreaName.toLowerCase()}` : 'Sin stock disponible para venta')
                       : `Stock bajo — mínimo recomendado: ${selectedProduct.min_stock}`
                     }
                     {selectedWarehouseStock > 0 && ' — Hay unidades en almacén'}
