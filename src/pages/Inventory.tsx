@@ -1322,6 +1322,14 @@ const Inventory = () => {
                 </div>
               )}
 
+              {/* Purchase History */}
+              {(selectedProduct as any).tipo !== 'elaborado' && (selectedProduct as any).tipo !== 'granel' && (
+                <PurchaseHistory 
+                  productId={selectedProduct.id} 
+                  isRawMaterial={isRawMaterial} 
+                />
+              )}
+
               {/* Actions */}
               {canManage && (
                 <div className="flex gap-3 pt-2">
