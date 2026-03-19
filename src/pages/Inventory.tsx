@@ -1199,7 +1199,7 @@ const Inventory = () => {
               {/* Transfer warehouse → sale */}
               {canManage && (
                 <div className="space-y-2">
-                {!showTransfer && !showGranelPriceEdit ? (
+                {!showGranelPriceEdit ? (
                     <div className="flex flex-col gap-2">
                       {/* Nueva Compra - only for reventa and ingrediente (not elaborado, not granel) */}
                       {(selectedProduct as any).tipo !== 'elaborado' && (selectedProduct as any).tipo !== 'granel' && (
@@ -1231,24 +1231,22 @@ const Inventory = () => {
                           Actualizar precio de venta
                         </Button>
                       )}
+                      {/* Mover stock */}
                       {(selectedProduct as any).tipo !== 'elaborado' && (selectedProduct as any).tipo !== 'granel' && (selectedWarehouseStock > 0 || selectedStock > 0) && (
                         <Button 
                           variant="outline" 
                           className="w-full justify-start"
                           onClick={() => {
                             if (guardDowngrade()) return;
-                            const dir = selectedWarehouseStock > 0 ? 'toSale' : 'toWarehouse';
-                            setTransferDirection(dir);
-                            setShowTransfer(true);
-                            setTransferQty(1);
+                            setStockMoveProduct(selectedProduct);
+                            setSelectedProduct(null);
                           }}
                         >
                           <ArrowRightLeft className="mr-2 h-4 w-4" />
-                          {(selectedProduct as any).tipo === 'ingrediente'
-                            ? (selectedWarehouseStock > 0 ? `Almacén → ${selectedAreaName}` : `${selectedAreaName} → Almacén`)
-                            : (selectedWarehouseStock > 0 ? 'Almacén → Venta' : 'Venta → Almacén')}
+                          Mover stock
                         </Button>
                       )}
+                      {/* Salida almacén */}
                       {(selectedProduct as any).tipo !== 'granel' && selectedWarehouseStock > 0 && (
                         <Button 
                           variant="outline" 
@@ -1264,7 +1262,7 @@ const Inventory = () => {
                          </Button>
                        )}
                      </div>
-                  ) : showGranelPriceEdit ? (
+                  ) : (
                     <div className="rounded-lg border p-3 space-y-3">
                       <p className="text-sm font-medium">Actualizar precio de venta</p>
                       <div className="space-y-1.5">
@@ -1312,60 +1310,6 @@ const Inventory = () => {
                         </Button>
                       </div>
                     </div>
-                  ) : (
-                     (() => {
-                       const isToSale = transferDirection === 'toSale';
-                       const maxQty = isToSale ? selectedWarehouseStock : selectedStock;
-                       const canFlip = isToSale ? selectedStock > 0 : selectedWarehouseStock > 0;
-                       return (
-                         <div className="rounded-lg border p-3 space-y-3">
-                           <div className="flex items-center justify-between">
-                           <div className="flex items-center gap-2">
-                             <p className="text-sm font-medium">
-                                   {(selectedProduct as any)?.tipo === 'ingrediente'
-                                     ? (isToSale ? `Almacén → ${selectedAreaName}` : `${selectedAreaName} → Almacén`)
-                                     : (isToSale ? 'Almacén → Venta' : 'Venta → Almacén')}
-                                </p>
-                               {canFlip && (
-                                 <Button
-                                   variant="ghost"
-                                   size="icon"
-                                   className="h-6 w-6"
-                                   onClick={() => {
-                                     setTransferDirection(isToSale ? 'toWarehouse' : 'toSale');
-                                     setTransferQty(1);
-                                   }}
-                                   title="Cambiar dirección"
-                                 >
-                                   <ArrowRightLeft className="h-3.5 w-3.5" />
-                                 </Button>
-                               )}
-                             </div>
-                             <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setShowTransfer(false)}>
-                               <X className="h-3.5 w-3.5" />
-                             </Button>
-                           </div>
-                           <div className="flex items-center gap-3">
-                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setTransferQty(Math.max(1, transferQty - 1))} disabled={transferQty <= 1}>
-                               <span className="text-lg leading-none">−</span>
-                             </Button>
-                             <Input type="number" min={1} max={maxQty} value={transferQty} onChange={(e) => setTransferQty(Math.min(maxQty, Math.max(1, parseInt(e.target.value) || 1)))} className="w-20 text-center" />
-                             <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => setTransferQty(Math.min(maxQty, transferQty + 1))} disabled={transferQty >= maxQty}>
-                               <span className="text-lg leading-none">+</span>
-                             </Button>
-                             <span className="text-xs text-muted-foreground">/ {maxQty}</span>
-                           </div>
-                           <Button
-                             className="w-full"
-                             onClick={isToSale ? handleTransferToSale : handleReturnToWarehouse}
-                             disabled={transferring || transferQty <= 0 || transferQty > maxQty}
-                           >
-                             {transferring && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                             {isToSale ? 'Transferir' : 'Devolver'} {transferQty} unidad{transferQty !== 1 ? 'es' : ''}
-                           </Button>
-                         </div>
-                       );
-                     })()
                   )}
                 </div>
               )}
