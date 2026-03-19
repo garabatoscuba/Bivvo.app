@@ -224,7 +224,7 @@ const Inventory = () => {
       if (!businessId) return [];
       const { data, error } = await supabase
         .from('insumo_areas')
-        .select('id, name, color')
+        .select('id, name, color, is_internal')
         .eq('business_id', businessId);
       if (error) throw error;
       return data || [];
