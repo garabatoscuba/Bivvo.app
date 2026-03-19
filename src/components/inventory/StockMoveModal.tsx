@@ -74,6 +74,8 @@ export const StockMoveModal = ({
 
   const resolvedBusinessId = businessId || profile?.business_id || null;
   const currentAreaId = ((product as any)?.insumo_area_id || (product as any)?.area_id || null) as string | null;
+  const isIngrediente = (product as any)?.tipo === 'ingrediente';
+  const effectiveIsRawMaterial = isRawMaterial || (isIngrediente && !!currentAreaId);
 
   const { data: areas } = useQuery({
     queryKey: ['insumo-areas-move', resolvedBusinessId],
@@ -86,7 +88,7 @@ export const StockMoveModal = ({
         .order('name');
       return data || [];
     },
-    enabled: !!resolvedBusinessId && open && isRawMaterial,
+    enabled: !!resolvedBusinessId && open && effectiveIsRawMaterial,
   });
 
   const currentArea = areas?.find((area) => area.id === currentAreaId) || null;
@@ -96,7 +98,7 @@ export const StockMoveModal = ({
   const fromOptions = useMemo(() => {
     const opts: LocationOption[] = [];
 
-    if (isRawMaterial) {
+    if (effectiveIsRawMaterial) {
       if (saleStock > 0) {
         opts.push({
           key: currentAreaId ? createAreaKey(currentAreaId) : 'sale',
@@ -113,12 +115,12 @@ export const StockMoveModal = ({
     if (saleStock > 0) opts.push({ key: 'sale', label: 'A la Venta', stock: saleStock });
     if (warehouseStock > 0) opts.push({ key: 'warehouse', label: 'Almacén', stock: warehouseStock });
     return dedupeOptions(opts);
-  }, [currentAreaId, isRawMaterial, saleLabel, saleStock, warehouseStock]);
+  }, [currentAreaId, effectiveIsRawMaterial, saleLabel, saleStock, warehouseStock]);
 
   const toOptions = useMemo(() => {
     const opts: LocationOption[] = [];
 
-    if (isRawMaterial) {
+    if (effectiveIsRawMaterial) {
       if (from !== 'warehouse') {
         opts.push({ key: 'warehouse', label: 'Almacén' });
       }
@@ -145,7 +147,7 @@ export const StockMoveModal = ({
     if (from !== 'warehouse') opts.push({ key: 'warehouse', label: 'Almacén' });
 
     return dedupeOptions(opts);
-  }, [from, isRawMaterial, nonInternalAreas]);
+  }, [from, effectiveIsRawMaterial, nonInternalAreas]);
 
   const maxQty = useMemo(() => {
     const selected = fromOptions.find((option) => option.key === from);
