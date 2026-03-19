@@ -522,6 +522,8 @@ const Inventory = () => {
   const isRawMaterial = !!(selectedProduct as any)?._isRawMaterial;
   const isIngredientSelected = (selectedProduct as any)?.tipo === 'ingrediente';
   const selectedAreaName = (selectedProduct as any)?._areaName || areaNameMap.get((selectedProduct as any)?.insumo_area_id) || 'Uso';
+  const selectedAreaId = (selectedProduct as any)?.insumo_area_id || (selectedProduct as any)?.area_id;
+  const isInternalArea = isIngredientSelected && !!insumoAreas.find((a: any) => a.id === selectedAreaId && a.is_internal);
   const getRawMaterialStockValue = (
     product: any,
     primaryKey: 'stock_vendedor' | 'stock_almacen',
