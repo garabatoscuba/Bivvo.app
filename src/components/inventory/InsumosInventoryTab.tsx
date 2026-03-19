@@ -418,6 +418,8 @@ const InsumosInventoryTab = ({
                 brand: mat.brand || null,
                 category: null,
                 _isRawMaterial: true,
+                _stockVendedor: stock,
+                _stockAlmacen: wStock,
                 stock_vendedor: stock,
                 stock_almacen: wStock,
               } as unknown as Product & { category: Category | null };
