@@ -284,7 +284,7 @@ const Inventory = () => {
         _areaName: mat.area_id ? (areaNameMap.get(mat.area_id) || 'Uso') : 'Uso',
       };
     }) as unknown as (Product & { category: Category | null })[];
-  }, [rawMaterialsForProducts, areaColorMap]);
+  }, [rawMaterialsForProducts, areaColorMap, areaNameMap]);
 
   const FREE_PRODUCT_LIMIT = 5;
   const FREE_CATEGORY_LIMIT = 2;
