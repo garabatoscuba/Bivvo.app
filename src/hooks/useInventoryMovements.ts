@@ -97,7 +97,7 @@ export const useInventoryMovements = (branchId?: string) => {
         branch_id: r.branch_id || branchId,
         product_id: r.material_id,
         user_id: r.user_id || '',
-        movement_type: 'purchase',
+        movement_type: r.entry_type === 'consumo_interno' ? 'consumo_interno' : (r.entry_type === 'uso_interno' ? 'transfer_out' : 'purchase'),
         quantity: r.cantidad,
         notes: r.nota || null,
         reference_id: null,
