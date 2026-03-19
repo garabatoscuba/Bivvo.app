@@ -2,10 +2,17 @@ import { useState } from 'react';
 import { useInventoryMovements } from '@/hooks/useInventoryMovements';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Search, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, PackageX, RotateCcw, Wrench, Calendar, User, Filter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
+import { Loader2, Search, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, PackageX, RotateCcw, Wrench, Calendar, User, Filter, Ban } from 'lucide-react';
 import { format, isToday, isThisWeek, isThisMonth, subDays, subWeeks, subMonths, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from '@/hooks/use-toast';
 import {
   Select,
   SelectContent,
@@ -13,13 +20,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from '@/components/ui/alert-dialog';
 
 interface MovementsLogProps {
   branchId: string;
 }
 
 // Only warehouse-relevant movement types (no sales)
-const ALLOWED_TYPES = ['purchase', 'transfer_in', 'transfer_out', 'loss', 'adjustment', 'return'];
+const ALLOWED_TYPES = ['purchase', 'transfer_in', 'transfer_out', 'loss', 'adjustment', 'return', 'void'];
 
 const movementConfig: Record<string, { label: string; icon: React.ElementType; className: string }> = {
   purchase: { label: 'Compra / Entrada', icon: ArrowDownCircle, className: 'bg-success/15 text-success' },
@@ -28,6 +45,7 @@ const movementConfig: Record<string, { label: string; icon: React.ElementType; c
   loss: { label: 'Pérdida', icon: PackageX, className: 'bg-destructive/15 text-destructive' },
   adjustment: { label: 'Ajuste', icon: Wrench, className: 'bg-muted text-muted-foreground' },
   return: { label: 'Devolución', icon: RotateCcw, className: 'bg-accent text-accent-foreground' },
+  void: { label: 'Anulación', icon: Ban, className: 'bg-destructive/15 text-destructive' },
 };
 
 type DateFilter = 'all' | 'today' | '3days' | '7days' | 'month' | '3months';
@@ -56,12 +74,29 @@ const filterByDate = (dateStr: string, filter: DateFilter): boolean => {
 
 export const MovementsLog = ({ branchId }: MovementsLogProps) => {
   const { data: movements, isLoading } = useInventoryMovements(branchId);
+  const { roles } = useAuth();
+  const auditLog = useAuditLog();
+  const queryClient = useQueryClient();
+  const canVoid = roles.includes('owner') || roles.includes('super_admin') || roles.includes('manager');
+
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const [voidTarget, setVoidTarget] = useState<any>(null);
+  const [voidReason, setVoidReason] = useState('');
+  const [voiding, setVoiding] = useState(false);
 
   const filtered = (movements || []).filter(m => {
-    // Exclude sales entirely
+    // Show voided movements when filter is 'void'
+    if (typeFilter === 'void') {
+      return (m as any).is_voided && filterByDate(m.created_at, dateFilter) && (
+        !search ||
+        m.product?.name?.toLowerCase().includes(search.toLowerCase()) ||
+        m.notes?.toLowerCase().includes(search.toLowerCase())
+      );
+    }
+    // Exclude voided and sales
+    if ((m as any).is_voided) return false;
     if (!ALLOWED_TYPES.includes(m.movement_type)) return false;
     const matchesSearch = !search ||
       m.product?.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -81,6 +116,58 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
     arr.push(m);
     grouped.set(dateKey, arr);
   });
+
+  const handleVoidMovement = async () => {
+    if (!voidTarget || !voidReason.trim()) return;
+    setVoiding(true);
+    try {
+      // Mark as voided
+      await supabase
+        .from('inventory_movements')
+        .update({ is_voided: true, voided_at: new Date().toISOString(), void_reason: voidReason.trim() } as any)
+        .eq('id', voidTarget.id);
+
+      // Revert stock: if it was an inflow, subtract; if outflow, add back
+      const isInflow = ['purchase', 'transfer_in', 'return'].includes(voidTarget.movement_type);
+      const revertQty = voidTarget.quantity;
+
+      const { data: stock } = await supabase
+        .from('branch_stock')
+        .select('id, quantity, warehouse_quantity')
+        .eq('branch_id', branchId)
+        .eq('product_id', voidTarget.product_id)
+        .maybeSingle();
+
+      if (stock) {
+        if (isInflow) {
+          await supabase.from('branch_stock').update({
+            quantity: Math.max(0, stock.quantity - revertQty),
+          }).eq('id', stock.id);
+        } else {
+          await supabase.from('branch_stock').update({
+            quantity: stock.quantity + revertQty,
+          }).eq('id', stock.id);
+        }
+      }
+
+      auditLog(
+        'anulacion_movimiento' as any,
+        `Anulación de movimiento (${movementConfig[voidTarget.movement_type]?.label || voidTarget.movement_type}): ${voidReason.trim()}`,
+        voidTarget.id,
+        'inventory_movement'
+      );
+
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
+      toast({ title: 'Movimiento anulado correctamente' });
+      setVoidTarget(null);
+      setVoidReason('');
+    } catch (err: any) {
+      toast({ title: 'Error al anular', description: err.message, variant: 'destructive' });
+    } finally {
+      setVoiding(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -135,6 +222,7 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
             <SelectItem value="loss">Pérdida</SelectItem>
             <SelectItem value="adjustment">Ajuste</SelectItem>
             <SelectItem value="return">Devolución</SelectItem>
+            <SelectItem value="void">Anulaciones</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -165,14 +253,18 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
               </div>
               <div className="space-y-1">
                 {dayMovements.map(m => {
-                  const config = movementConfig[m.movement_type] || movementConfig.adjustment;
+                  const isVoided = !!(m as any).is_voided;
+                  const config = isVoided ? movementConfig.void : (movementConfig[m.movement_type] || movementConfig.adjustment);
                   const Icon = config.icon;
                   const time = format(new Date(m.created_at), 'HH:mm', { locale: es });
 
                   return (
                     <div
                       key={m.id}
-                      className="flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/30 transition-colors"
+                      className={cn(
+                        'flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/30 transition-colors',
+                        isVoided && 'opacity-60 border-destructive/30'
+                      )}
                     >
                       {/* Icon */}
                       <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg flex-shrink-0', config.className)}>
@@ -182,10 +274,13 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium truncate">{m.product?.name || 'Producto eliminado'}</span>
+                          <span className={cn('text-sm font-medium truncate', isVoided && 'line-through')}>{m.product?.name || 'Producto eliminado'}</span>
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 flex-shrink-0">
                             {m.product?.code || '—'}
                           </Badge>
+                          {isVoided && (
+                            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Anulado</Badge>
+                          )}
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground flex-wrap">
                           <span className="flex items-center gap-1">
@@ -194,29 +289,47 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
                           </span>
                           <span>{time}</span>
                         </div>
-                        {m.movement_type === 'purchase' && m.notes && (
+                        {isVoided && (m as any).void_reason && (
+                          <p className="mt-0.5 text-[11px] text-destructive">
+                            Motivo: {(m as any).void_reason}
+                          </p>
+                        )}
+                        {!isVoided && m.movement_type === 'purchase' && m.notes && (
                           <div className="mt-1 text-[11px] text-muted-foreground space-x-2">
                             {m.notes.split(' | ').map((part, i) => (
                               <span key={i} className="inline-block">{part}</span>
                             ))}
                           </div>
                         )}
-                        {m.movement_type !== 'purchase' && m.notes && (
+                        {!isVoided && m.movement_type !== 'purchase' && m.notes && (
                           <p className="mt-0.5 text-[11px] text-muted-foreground truncate max-w-[300px]" title={m.notes}>
                             {m.notes}
                           </p>
                         )}
                       </div>
 
-                      {/* Quantity & Type */}
-                      <div className="flex flex-col items-end flex-shrink-0">
+                      {/* Quantity & Type + Void button */}
+                      <div className="flex flex-col items-end flex-shrink-0 gap-1">
                         <span className={cn(
                           'text-sm font-bold tabular-nums',
-                          ['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? 'text-success' : 'text-destructive'
+                          isVoided ? 'text-destructive line-through' : (
+                            ['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? 'text-success' : 'text-destructive'
+                          )
                         )}>
                           {['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? '+' : '−'}{m.quantity} {m.product?.unit_of_measure || 'uds'}
                         </span>
-                        <span className="text-[10px] text-muted-foreground">{config.label}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {isVoided ? 'Anulado' : config.label}
+                        </span>
+                        {canVoid && !isVoided && (
+                          <button
+                            onClick={() => setVoidTarget(m)}
+                            className="text-muted-foreground hover:text-destructive transition-colors"
+                            title="Anular movimiento"
+                          >
+                            <Ban className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                     </div>
                   );
@@ -226,6 +339,35 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
           ))}
         </div>
       )}
+
+      {/* Void confirmation dialog */}
+      <AlertDialog open={!!voidTarget} onOpenChange={(open) => { if (!open) { setVoidTarget(null); setVoidReason(''); } }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Anular movimiento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción revertirá el stock afectado por este movimiento. Escribe el motivo de la anulación.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            placeholder="Motivo de la anulación (obligatorio)"
+            value={voidReason}
+            onChange={(e) => setVoidReason(e.target.value)}
+            rows={3}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={voiding}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleVoidMovement}
+              disabled={!voidReason.trim() || voiding}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {voiding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Confirmar anulación
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

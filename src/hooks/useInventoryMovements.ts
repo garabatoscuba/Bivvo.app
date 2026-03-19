@@ -12,6 +12,9 @@ export interface InventoryMovementRecord {
   notes: string | null;
   reference_id: string | null;
   created_at: string;
+  is_voided: boolean;
+  voided_at: string | null;
+  void_reason: string | null;
   product: { name: string; code: string; unit_of_measure?: string | null } | null;
   user_profile: { full_name: string } | null;
   branch: { name: string } | null;
