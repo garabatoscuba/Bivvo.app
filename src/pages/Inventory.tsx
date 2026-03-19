@@ -1517,7 +1517,7 @@ const Inventory = () => {
                            <div className="flex items-center gap-2">
                              <p className="text-sm font-medium">
                                    {(selectedProduct as any)?.tipo === 'ingrediente'
-                                     ? (isToSale ? 'Almacén → Uso' : 'Uso → Almacén')
+                                     ? (isToSale ? `Almacén → ${selectedAreaName}` : `${selectedAreaName} → Almacén`)
                                      : (isToSale ? 'Almacén → Venta' : 'Venta → Almacén')}
                                 </p>
                                {canFlip && (
