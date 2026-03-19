@@ -700,6 +700,7 @@ const Inventory = () => {
   // Product detail data
   const isRawMaterial = !!(selectedProduct as any)?._isRawMaterial;
   const isIngredientSelected = (selectedProduct as any)?.tipo === 'ingrediente';
+  const selectedAreaName = (selectedProduct as any)?._areaName || areaNameMap.get((selectedProduct as any)?.insumo_area_id) || 'Uso';
   const getRawMaterialStockValue = (
     product: any,
     primaryKey: 'stock_vendedor' | 'stock_almacen',
