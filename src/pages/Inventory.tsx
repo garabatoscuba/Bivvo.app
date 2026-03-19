@@ -1541,7 +1541,7 @@ interface ProductRowProps {
   areaName?: string;
 }
 
-const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onTransferToSale, onReturnToWarehouse, onOutflow, showBadges = 'both', badgeColorClass, areaName }: ProductRowProps) => {
+const ProductRow = ({ product, stock, warehouseStock, color, onClick, canManage, onDelete, onAddStock, onMoveStock, onOutflow, showBadges = 'both', badgeColorClass, areaName }: ProductRowProps) => {
   const bgColor = colorMap[color] || colorMap.blue;
   const isLow = stock <= product.min_stock;
 
