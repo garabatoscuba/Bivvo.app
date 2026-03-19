@@ -1494,6 +1494,11 @@ const Inventory = () => {
         />
       )}
       <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
+      <ConsumoInternoModal
+        open={!!consumoInternoProduct}
+        onOpenChange={(o) => !o && setConsumoInternoProduct(null)}
+        material={consumoInternoProduct}
+      />
       {/* Stock Move Modal */}
       <StockMoveModal
         open={!!stockMoveProduct}
