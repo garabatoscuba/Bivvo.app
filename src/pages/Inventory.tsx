@@ -1016,10 +1016,7 @@ const Inventory = () => {
               onOutflow={(product) => { if (!guardDowngrade()) setOutflowProduct(product); }}
               onTransfer={(product, direction) => {
                 if (guardDowngrade()) return;
-                setSelectedProduct(product as Product & { category: Category | null });
-                setShowTransfer(true);
-                setTransferDirection(direction);
-                setTransferQty(1);
+                setStockMoveProduct(product as Product);
               }}
               onDeleteProduct={(product) => setDeletingProduct(product)}
               canManage={canManage}
