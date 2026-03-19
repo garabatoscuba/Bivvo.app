@@ -3903,6 +3903,7 @@ export type Database = {
           id: string
           notes: string | null
           product_id: string
+          purchase_unit: string | null
           quantity: number
           reason: string | null
           resulting_avg_cost: number | null
@@ -3918,6 +3919,7 @@ export type Database = {
           id?: string
           notes?: string | null
           product_id: string
+          purchase_unit?: string | null
           quantity?: number
           reason?: string | null
           resulting_avg_cost?: number | null
@@ -3933,6 +3935,7 @@ export type Database = {
           id?: string
           notes?: string | null
           product_id?: string
+          purchase_unit?: string | null
           quantity?: number
           reason?: string | null
           resulting_avg_cost?: number | null
@@ -4151,6 +4154,7 @@ export type Database = {
           id: string
           material_id: string
           nota: string | null
+          purchase_unit: string | null
           resulting_avg_cost: number | null
           user_id: string
         }
@@ -4164,6 +4168,7 @@ export type Database = {
           id?: string
           material_id: string
           nota?: string | null
+          purchase_unit?: string | null
           resulting_avg_cost?: number | null
           user_id: string
         }
@@ -4177,6 +4182,7 @@ export type Database = {
           id?: string
           material_id?: string
           nota?: string | null
+          purchase_unit?: string | null
           resulting_avg_cost?: number | null
           user_id?: string
         }
