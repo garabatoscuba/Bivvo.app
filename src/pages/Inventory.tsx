@@ -1326,7 +1326,8 @@ const Inventory = () => {
               {(selectedProduct as any).tipo !== 'elaborado' && (selectedProduct as any).tipo !== 'granel' && (
                 <PurchaseHistory 
                   productId={selectedProduct.id} 
-                  isRawMaterial={isRawMaterial} 
+                  isRawMaterial={isRawMaterial}
+                  usageUnit={(selectedProduct as any).unit_of_measure || (selectedProduct as any).unit_use || 'Pieza'}
                 />
               )}
 
