@@ -100,6 +100,23 @@ Deno.serve(async (req) => {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+
+      // Create default "Uso Interno" insumo area if it doesn't exist
+      const { data: existingArea } = await admin
+        .from("insumo_areas")
+        .select("id")
+        .eq("business_id", profile.business_id)
+        .eq("name", "Uso Interno")
+        .maybeSingle();
+
+      if (!existingArea) {
+        await admin.from("insumo_areas").insert({
+          business_id: profile.business_id,
+          name: "Uso Interno",
+          icon: "package",
+          color: "#9CA3AF",
+        });
+      }
     }
 
     return new Response(

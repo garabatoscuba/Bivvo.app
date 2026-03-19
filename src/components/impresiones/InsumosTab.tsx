@@ -5,6 +5,7 @@ import {
   useSaveRawMaterial,
   useCreateMaterialEntry,
   useEmployeesForTransfer,
+  useInternalUsageEntry,
 } from '@/hooks/usePrintData';
 import { useEmployeeMaterialStock, useTransferToEmployee } from '@/hooks/useEmployeeMaterialStock';
 import { useAuth } from '@/contexts/AuthContext';
@@ -16,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Plus, PackagePlus, Send, Loader2, AlertTriangle, Pencil } from 'lucide-react';
+import { Plus, PackagePlus, Send, Loader2, AlertTriangle, Pencil, PackageMinus } from 'lucide-react';
 
 const InsumosTab = () => {
   const { data: materials = [], isLoading } = useRawMaterials();
@@ -26,6 +27,7 @@ const InsumosTab = () => {
   const saveMaterial = useSaveRawMaterial();
   const createEntry = useCreateMaterialEntry();
   const transferToEmployee = useTransferToEmployee();
+  const internalUsage = useInternalUsageEntry();
   const { profile } = useAuth();
 
   const [newOpen, setNewOpen] = useState(false);
@@ -36,6 +38,9 @@ const InsumosTab = () => {
 
   const [transferOpen, setTransferOpen] = useState(false);
   const [transferForm, setTransferForm] = useState({ material_id: '', cantidad: 0, employee_id: '', nota: '' });
+
+  const [usageOpen, setUsageOpen] = useState(false);
+  const [usageForm, setUsageForm] = useState({ material_id: '', cantidad: 0, nota: '', fecha: '' });
 
   const handleSaveMaterial = () => {
     saveMaterial.mutate(matForm, {
@@ -66,6 +71,19 @@ const InsumosTab = () => {
     });
   };
 
+  const handleUsage = () => {
+    if (!profile?.user_id) return;
+    internalUsage.mutate(
+      { ...usageForm, user_id: profile.user_id, fecha: usageForm.fecha || undefined },
+      {
+        onSuccess: () => {
+          setUsageOpen(false);
+          setUsageForm({ material_id: '', cantidad: 0, nota: '', fecha: '' });
+        },
+      }
+    );
+  };
+
   // Build per-employee stock lookup: { materialId: { employeeId: stock } }
   const getEmployeeStock = (materialId: string, employeeId: string): number => {
     const record = empStocks.find((s: any) => s.material_id === materialId && s.employee_id === employeeId);
@@ -79,7 +97,8 @@ const InsumosTab = () => {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-lg font-semibold">Insumos</h2>
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" onClick={() => setEntryOpen(true)}><PackagePlus className="h-4 w-4 mr-1" />Dar entrada</Button>
+          <Button size="sm" variant="outline" onClick={() => setEntryOpen(true)}><PackagePlus className="h-4 w-4 mr-1" />Nueva compra</Button>
+          <Button size="sm" variant="outline" onClick={() => setUsageOpen(true)}><PackageMinus className="h-4 w-4 mr-1" />Salida por uso</Button>
           <Button size="sm" variant="outline" onClick={() => setTransferOpen(true)}><Send className="h-4 w-4 mr-1" />Entregar a empleado</Button>
           <Button size="sm" onClick={() => setNewOpen(true)}><Plus className="h-4 w-4 mr-1" />Nuevo insumo</Button>
         </div>
@@ -267,6 +286,46 @@ const InsumosTab = () => {
             <Button variant="outline" onClick={() => setTransferOpen(false)}>Cancelar</Button>
             <Button onClick={handleTransfer} disabled={!transferForm.material_id || !transferForm.cantidad || !transferForm.employee_id || transferToEmployee.isPending}>
               {transferToEmployee.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Entregar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Internal Usage Dialog */}
+      <Dialog open={usageOpen} onOpenChange={setUsageOpen}>
+        <DialogContent className="max-w-sm max-h-[90vh] flex flex-col">
+          <DialogHeader><DialogTitle>Salida por uso interno</DialogTitle></DialogHeader>
+          <div className="space-y-3 overflow-y-auto flex-1 pr-1">
+            <div>
+              <Label>Insumo</Label>
+              <Select value={usageForm.material_id} onValueChange={v => setUsageForm(f => ({ ...f, material_id: v }))}>
+                <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
+                <SelectContent>
+                  {materials.map((m: any) => (
+                    <SelectItem key={m.id} value={m.id}>{m.name} (Stock: {m.stock_almacen})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label>Cantidad</Label>
+                <Input type="number" min={0.01} step="0.01" value={usageForm.cantidad || ''} onChange={e => setUsageForm(f => ({ ...f, cantidad: parseFloat(e.target.value) || 0 }))} />
+              </div>
+              <div>
+                <Label>Fecha (opcional)</Label>
+                <Input type="date" value={usageForm.fecha} onChange={e => setUsageForm(f => ({ ...f, fecha: e.target.value }))} />
+              </div>
+            </div>
+            <div>
+              <Label>Motivo (opcional)</Label>
+              <Textarea value={usageForm.nota} onChange={e => setUsageForm(f => ({ ...f, nota: e.target.value }))} rows={2} placeholder="Ej: Limpieza, comida empleados..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setUsageOpen(false)}>Cancelar</Button>
+            <Button onClick={handleUsage} disabled={!usageForm.material_id || !usageForm.cantidad || internalUsage.isPending}>
+              {internalUsage.isPending && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}Registrar salida
             </Button>
           </DialogFooter>
         </DialogContent>

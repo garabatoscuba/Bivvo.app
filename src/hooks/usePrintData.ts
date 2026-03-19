@@ -201,6 +201,41 @@ export const useCreateMaterialEntry = () => {
   });
 };
 
+export const useInternalUsageEntry = () => {
+  const qc = useQueryClient();
+  const { businessId, branchId } = useResolvedBusinessId();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (values: { material_id: string; cantidad: number; nota?: string; user_id: string; fecha?: string }) => {
+      const { error } = await supabase.from('raw_material_entries').insert({
+        material_id: values.material_id,
+        cantidad: -Math.abs(values.cantidad),
+        costo_unitario: 0,
+        nota: values.nota || 'Salida por uso interno',
+        user_id: values.user_id,
+        business_id: businessId,
+        branch_id: branchId,
+        entry_type: 'uso_interno',
+        ...(values.fecha ? { created_at: values.fecha } : {}),
+      } as any);
+      if (error) throw error;
+      // Deduct from stock
+      const { data: mat } = await supabase.from('raw_materials').select('stock_almacen').eq('id', values.material_id).single();
+      if (mat) {
+        await supabase.from('raw_materials').update({
+          stock_almacen: Math.max(0, mat.stock_almacen - Math.abs(values.cantidad)),
+        }).eq('id', values.material_id);
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['raw-materials'] });
+      toast({ title: 'Salida por uso registrada' });
+    },
+    onError: (e: any) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+};
+
 export const useCreateMaterialTransfer = () => {
   const qc = useQueryClient();
   const { businessId, branchId } = useResolvedBusinessId();

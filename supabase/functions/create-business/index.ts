@@ -114,6 +114,14 @@ Deno.serve(async (req) => {
       });
     }
 
+    // 5. Create default "Uso Interno" insumo area
+    await admin.from("insumo_areas").insert({
+      business_id: biz.id,
+      name: "Uso Interno",
+      icon: "package",
+      color: "#9CA3AF",
+    });
+
     return new Response(
       JSON.stringify({ business: biz, branch }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }

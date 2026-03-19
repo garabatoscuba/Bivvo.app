@@ -1,0 +1,1 @@
+ALTER TABLE public.raw_material_entries ADD COLUMN entry_type text NOT NULL DEFAULT 'compra';
