@@ -236,7 +236,13 @@ const Inventory = () => {
 
   const areaColorMap = useMemo(() => {
     const map = new Map<string, string>();
-    insumoAreas.forEach((a: any) => { if (a.color) map.set(a.id, a.color); });
+    insumoAreas.forEach((a: any) => {
+      if (a.is_internal) {
+        map.set(a.id, 'primary');
+      } else if (a.color) {
+        map.set(a.id, a.color);
+      }
+    });
     return map;
   }, [insumoAreas]);
 
