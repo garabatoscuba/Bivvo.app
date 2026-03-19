@@ -19,7 +19,6 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
-  AlertDialogAction,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 
@@ -334,7 +333,7 @@ export const PurchaseHistory = ({ productId, isRawMaterial, usageUnit }: Purchas
       </div>
 
       {/* Void confirmation dialog */}
-      <AlertDialog open={!!voidTarget} onOpenChange={(open) => { if (!open) { setVoidTarget(null); setVoidReason(''); } }}>
+      <AlertDialog open={!!voidTarget} onOpenChange={(open) => { if (!open && !voiding) { setVoidTarget(null); setVoidReason(''); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Anular entrada</AlertDialogTitle>
@@ -350,14 +349,14 @@ export const PurchaseHistory = ({ productId, isRawMaterial, usageUnit }: Purchas
           />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={voiding}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleVoid}
+            <Button
+              variant="destructive"
+              onClick={(e) => { e.preventDefault(); handleVoid(); }}
               disabled={!voidReason.trim() || voiding}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {voiding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Confirmar anulación
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

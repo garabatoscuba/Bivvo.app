@@ -28,7 +28,6 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogCancel,
-  AlertDialogAction,
 } from '@/components/ui/alert-dialog';
 
 interface MovementsLogProps {
@@ -341,7 +340,7 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
       )}
 
       {/* Void confirmation dialog */}
-      <AlertDialog open={!!voidTarget} onOpenChange={(open) => { if (!open) { setVoidTarget(null); setVoidReason(''); } }}>
+      <AlertDialog open={!!voidTarget} onOpenChange={(open) => { if (!open && !voiding) { setVoidTarget(null); setVoidReason(''); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Anular movimiento</AlertDialogTitle>
@@ -357,14 +356,14 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
           />
           <AlertDialogFooter>
             <AlertDialogCancel disabled={voiding}>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleVoidMovement}
+            <Button
+              variant="destructive"
+              onClick={(e) => { e.preventDefault(); handleVoidMovement(); }}
               disabled={!voidReason.trim() || voiding}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {voiding ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
               Confirmar anulación
-            </AlertDialogAction>
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
