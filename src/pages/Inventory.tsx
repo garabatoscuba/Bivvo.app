@@ -134,10 +134,7 @@ const Inventory = () => {
   const [productTypeTab, setProductTypeTab] = useState<'reventa' | 'cocina'>('reventa');
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [stockEntryProduct, setStockEntryProduct] = useState<Product | null>(null);
-  const [transferQty, setTransferQty] = useState(0);
-  const [transferring, setTransferring] = useState(false);
-  const [showTransfer, setShowTransfer] = useState(false);
-  const [transferDirection, setTransferDirection] = useState<'toSale' | 'toWarehouse'>('toSale');
+  const [stockMoveProduct, setStockMoveProduct] = useState<Product | null>(null);
   const [outflowProduct, setOutflowProduct] = useState<Product | null>(null);
   
   const [mermaOpen, setMermaOpen] = useState(false);
