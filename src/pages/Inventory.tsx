@@ -1027,6 +1027,7 @@ const Inventory = () => {
                 setStockMoveProduct(product as Product);
               }}
               onDeleteProduct={(product) => setDeletingProduct(product)}
+              onConsumoInterno={(product) => setConsumoInternoProduct(product)}
               canManage={canManage}
               searchQuery={search}
             />
