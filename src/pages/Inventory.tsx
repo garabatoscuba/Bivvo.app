@@ -945,6 +945,7 @@ const Inventory = () => {
                         warehouseStock={getProductWarehouseStock(product)}
                         color="blue"
                         badgeColorClass={getProductBadgeColor(product)}
+                        areaName={(product as any)._isRawMaterial ? ((product as any)._areaName || 'Uso') : undefined}
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
