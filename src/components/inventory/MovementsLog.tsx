@@ -4,8 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Loader2, Search, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, PackageX, RotateCcw, Wrench, Calendar, User, Filter, Ban } from 'lucide-react';
-import { format, isToday, isThisWeek, isThisMonth, subDays, subWeeks, subMonths, isAfter } from 'date-fns';
+import { Loader2, Search, ArrowDownCircle, ArrowUpCircle, ArrowRightLeft, PackageX, RotateCcw, Wrench, Calendar, User, Filter, Ban, DollarSign } from 'lucide-react';
+import { format, isToday, isThisMonth, subDays, subMonths, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -34,14 +34,14 @@ interface MovementsLogProps {
   branchId: string;
 }
 
-// Only warehouse-relevant movement types (no sales)
-const ALLOWED_TYPES = ['purchase', 'transfer_in', 'transfer_out', 'loss', 'adjustment', 'return', 'void'];
+// Allowed movement types (no direct sales)
+const ALLOWED_TYPES = ['purchase', 'transfer_in', 'transfer_out', 'loss', 'adjustment', 'return'];
 
 const movementConfig: Record<string, { label: string; icon: React.ElementType; className: string }> = {
   purchase: { label: 'Compra / Entrada', icon: ArrowDownCircle, className: 'bg-success/15 text-success' },
-  transfer_in: { label: 'Transferencia entrada', icon: ArrowDownCircle, className: 'bg-info/15 text-info' },
-  transfer_out: { label: 'Transferencia salida', icon: ArrowUpCircle, className: 'bg-warning/15 text-warning' },
-  loss: { label: 'Pérdida', icon: PackageX, className: 'bg-destructive/15 text-destructive' },
+  transfer_in: { label: 'Mover stock', icon: ArrowRightLeft, className: 'bg-info/15 text-info' },
+  transfer_out: { label: 'Mover stock', icon: ArrowRightLeft, className: 'bg-warning/15 text-warning' },
+  loss: { label: 'Merma / Pérdida', icon: PackageX, className: 'bg-destructive/15 text-destructive' },
   adjustment: { label: 'Ajuste', icon: Wrench, className: 'bg-muted text-muted-foreground' },
   return: { label: 'Devolución', icon: RotateCcw, className: 'bg-accent text-accent-foreground' },
   void: { label: 'Anulación', icon: Ban, className: 'bg-destructive/15 text-destructive' },
@@ -64,7 +64,7 @@ const filterByDate = (dateStr: string, filter: DateFilter): boolean => {
   switch (filter) {
     case 'today': return isToday(date);
     case '3days': return isAfter(date, subDays(new Date(), 3));
-    case '7days': return isAfter(date, subWeeks(new Date(), 1));
+    case '7days': return isAfter(date, subDays(new Date(), 7));
     case 'month': return isThisMonth(date);
     case '3months': return isAfter(date, subMonths(new Date(), 3));
     default: return true;
@@ -88,21 +88,31 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
   const filtered = (movements || []).filter(m => {
     // Show voided movements when filter is 'void'
     if (typeFilter === 'void') {
-      return (m as any).is_voided && filterByDate(m.created_at, dateFilter) && (
+      return m.is_voided && filterByDate(m.created_at, dateFilter) && (
         !search ||
         m.product?.name?.toLowerCase().includes(search.toLowerCase()) ||
         m.notes?.toLowerCase().includes(search.toLowerCase())
       );
     }
     // Exclude voided and sales
-    if ((m as any).is_voided) return false;
+    if (m.is_voided) return false;
     if (!ALLOWED_TYPES.includes(m.movement_type)) return false;
     const matchesSearch = !search ||
       m.product?.name?.toLowerCase().includes(search.toLowerCase()) ||
       m.product?.code?.toLowerCase().includes(search.toLowerCase()) ||
       m.user_profile?.full_name?.toLowerCase().includes(search.toLowerCase()) ||
       m.notes?.toLowerCase().includes(search.toLowerCase());
-    const matchesType = typeFilter === 'all' || m.movement_type === typeFilter;
+
+    // "move_stock" filter matches both transfer_in and transfer_out
+    let matchesType = false;
+    if (typeFilter === 'all') {
+      matchesType = true;
+    } else if (typeFilter === 'move_stock') {
+      matchesType = m.movement_type === 'transfer_in' || m.movement_type === 'transfer_out';
+    } else {
+      matchesType = m.movement_type === typeFilter;
+    }
+
     const matchesDate = filterByDate(m.created_at, dateFilter);
     return matchesSearch && matchesType && matchesDate;
   });
@@ -120,45 +130,100 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
     if (!voidTarget || !voidReason.trim()) return;
     setVoiding(true);
     try {
-      // Mark as voided
-      await supabase
-        .from('inventory_movements')
-        .update({ is_voided: true, voided_at: new Date().toISOString(), void_reason: voidReason.trim() } as any)
-        .eq('id', voidTarget.id);
+      const isRawEntry = voidTarget.source === 'raw_material_entry';
 
-      // Revert stock: if it was an inflow, subtract; if outflow, add back
-      const isInflow = ['purchase', 'transfer_in', 'return'].includes(voidTarget.movement_type);
-      const revertQty = voidTarget.quantity;
+      if (isRawEntry) {
+        // Mark raw_material_entry as voided
+        await supabase
+          .from('raw_material_entries')
+          .update({ is_voided: true, voided_at: new Date().toISOString(), void_reason: voidReason.trim() } as any)
+          .eq('id', voidTarget.id);
 
-      const { data: stock } = await supabase
-        .from('branch_stock')
-        .select('id, quantity, warehouse_quantity')
-        .eq('branch_id', branchId)
-        .eq('product_id', voidTarget.product_id)
-        .maybeSingle();
-
-      if (stock) {
-        if (isInflow) {
-          await supabase.from('branch_stock').update({
-            quantity: Math.max(0, stock.quantity - revertQty),
-          }).eq('id', stock.id);
-        } else {
-          await supabase.from('branch_stock').update({
-            quantity: stock.quantity + revertQty,
-          }).eq('id', stock.id);
+        // Revert raw material stock
+        const { data: mat } = await supabase
+          .from('raw_materials')
+          .select('stock_vendedor, stock_almacen')
+          .eq('id', voidTarget.product_id)
+          .single();
+        if (mat) {
+          let remaining = voidTarget.quantity;
+          let newVendedor = mat.stock_vendedor || 0;
+          let newAlmacen = mat.stock_almacen || 0;
+          const fromVendedor = Math.min(remaining, newVendedor);
+          newVendedor -= fromVendedor;
+          remaining -= fromVendedor;
+          if (remaining > 0) {
+            newAlmacen = Math.max(0, newAlmacen - remaining);
+          }
+          await supabase
+            .from('raw_materials')
+            .update({ stock_vendedor: newVendedor, stock_almacen: newAlmacen })
+            .eq('id', voidTarget.product_id);
         }
-      }
 
-      auditLog(
-        'anulacion_movimiento' as any,
-        `Anulación de movimiento (${movementConfig[voidTarget.movement_type]?.label || voidTarget.movement_type}): ${voidReason.trim()}`,
-        voidTarget.id,
-        'inventory_movement'
-      );
+        // Recalculate average cost
+        const { data: validEntries } = await supabase
+          .from('raw_material_entries')
+          .select('cantidad, costo_unitario')
+          .eq('material_id', voidTarget.product_id)
+          .eq('is_voided', false)
+          .gt('cantidad', 0);
+        let totalQty = 0, totalCost = 0;
+        (validEntries || []).forEach((e: any) => {
+          totalQty += e.cantidad;
+          totalCost += e.cantidad * (e.costo_unitario || 0);
+        });
+        const newAvg = totalQty > 0 ? Math.round((totalCost / totalQty) * 10000) / 10000 : 0;
+        await supabase.from('raw_materials').update({ costo_unitario: newAvg }).eq('id', voidTarget.product_id);
+
+        auditLog(
+          'anulacion_entrada_insumo' as any,
+          `Anulación de entrada de insumo: ${voidReason.trim()}`,
+          voidTarget.id,
+          'raw_material_entry'
+        );
+      } else {
+        // Mark inventory_movement as voided
+        await supabase
+          .from('inventory_movements')
+          .update({ is_voided: true, voided_at: new Date().toISOString(), void_reason: voidReason.trim() } as any)
+          .eq('id', voidTarget.id);
+
+        // Revert stock
+        const isInflow = ['purchase', 'transfer_in', 'return'].includes(voidTarget.movement_type);
+        const revertQty = voidTarget.quantity;
+
+        const { data: stock } = await supabase
+          .from('branch_stock')
+          .select('id, quantity, warehouse_quantity')
+          .eq('branch_id', branchId)
+          .eq('product_id', voidTarget.product_id)
+          .maybeSingle();
+
+        if (stock) {
+          if (isInflow) {
+            await supabase.from('branch_stock').update({
+              quantity: Math.max(0, stock.quantity - revertQty),
+            }).eq('id', stock.id);
+          } else {
+            await supabase.from('branch_stock').update({
+              quantity: stock.quantity + revertQty,
+            }).eq('id', stock.id);
+          }
+        }
+
+        auditLog(
+          'anulacion_movimiento' as any,
+          `Anulación de movimiento (${movementConfig[voidTarget.movement_type]?.label || voidTarget.movement_type}): ${voidReason.trim()}`,
+          voidTarget.id,
+          'inventory_movement'
+        );
+      }
 
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['branch-stock'] });
-      toast({ title: 'Movimiento anulado correctamente' });
+      queryClient.invalidateQueries({ queryKey: ['raw-materials'] });
+      toast({ title: isRawEntry ? 'Entrada de insumo anulada' : 'Movimiento anulado correctamente' });
       setVoidTarget(null);
       setVoidReason('');
     } catch (err: any) {
@@ -202,25 +267,24 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Buscar producto, persona..."
+            placeholder="Buscar producto, insumo, persona..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10"
           />
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-40">
+          <SelectTrigger className="w-44">
             <Filter className="h-3.5 w-3.5 mr-1.5" />
             <SelectValue placeholder="Tipo" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todos</SelectItem>
             <SelectItem value="purchase">Compra / Entrada</SelectItem>
-            <SelectItem value="transfer_in">Almacén → Venta</SelectItem>
-            <SelectItem value="transfer_out">Salida almacén</SelectItem>
-            <SelectItem value="loss">Pérdida</SelectItem>
-            <SelectItem value="adjustment">Ajuste</SelectItem>
+            <SelectItem value="move_stock">Mover stock</SelectItem>
+            <SelectItem value="loss">Merma / Pérdida</SelectItem>
             <SelectItem value="return">Devolución</SelectItem>
+            <SelectItem value="adjustment">Ajuste</SelectItem>
             <SelectItem value="void">Anulaciones</SelectItem>
           </SelectContent>
         </Select>
@@ -252,14 +316,16 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
               </div>
               <div className="space-y-1">
                 {dayMovements.map(m => {
-                  const isVoided = !!(m as any).is_voided;
+                  const isVoided = m.is_voided;
                   const config = isVoided ? movementConfig.void : (movementConfig[m.movement_type] || movementConfig.adjustment);
                   const Icon = config.icon;
                   const time = format(new Date(m.created_at), 'HH:mm', { locale: es });
+                  const isRawEntry = m.source === 'raw_material_entry';
+                  const unitLabel = m.product?.unit_of_measure || 'uds';
 
                   return (
                     <div
-                      key={m.id}
+                      key={`${m.source}-${m.id}`}
                       className={cn(
                         'flex items-center gap-3 rounded-lg border p-3 hover:bg-muted/30 transition-colors',
                         isVoided && 'opacity-60 border-destructive/30'
@@ -273,10 +339,18 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className={cn('text-sm font-medium truncate', isVoided && 'line-through')}>{m.product?.name || 'Producto eliminado'}</span>
-                          <Badge variant="outline" className="text-[10px] px-1.5 py-0 flex-shrink-0">
-                            {m.product?.code || '—'}
-                          </Badge>
+                          <span className={cn('text-sm font-medium truncate', isVoided && 'line-through')}>
+                            {m.product?.name || 'Producto eliminado'}
+                          </span>
+                          {m.product?.code ? (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 flex-shrink-0">
+                              {m.product.code}
+                            </Badge>
+                          ) : isRawEntry ? (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 flex-shrink-0">
+                              Insumo
+                            </Badge>
+                          ) : null}
                           {isVoided && (
                             <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Anulado</Badge>
                           )}
@@ -287,10 +361,16 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
                             {m.user_profile?.full_name || 'Usuario'}
                           </span>
                           <span>{time}</span>
+                          {m.unit_cost != null && m.unit_cost > 0 && !isVoided && (
+                            <span className="flex items-center gap-0.5">
+                              <DollarSign className="h-3 w-3" />
+                              ${Number(m.unit_cost).toFixed(2)}/u
+                            </span>
+                          )}
                         </div>
-                        {isVoided && (m as any).void_reason && (
+                        {isVoided && m.void_reason && (
                           <p className="mt-0.5 text-[11px] text-destructive">
-                            Motivo: {(m as any).void_reason}
+                            Motivo: {m.void_reason}
                           </p>
                         )}
                         {!isVoided && m.movement_type === 'purchase' && m.notes && (
@@ -315,7 +395,7 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
                             ['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? 'text-success' : 'text-destructive'
                           )
                         )}>
-                          {['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? '+' : '−'}{m.quantity} {m.product?.unit_of_measure || 'uds'}
+                          {['purchase', 'transfer_in', 'return'].includes(m.movement_type) ? '+' : '−'}{m.quantity} {unitLabel}
                         </span>
                         <span className="text-[10px] text-muted-foreground">
                           {isVoided ? 'Anulado' : config.label}
@@ -343,9 +423,9 @@ export const MovementsLog = ({ branchId }: MovementsLogProps) => {
       <AlertDialog open={!!voidTarget} onOpenChange={(open) => { if (!open && !voiding) { setVoidTarget(null); setVoidReason(''); } }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Anular movimiento</AlertDialogTitle>
+            <AlertDialogTitle>Anular {voidTarget?.source === 'raw_material_entry' ? 'entrada de insumo' : 'movimiento'}</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción revertirá el stock afectado por este movimiento. Escribe el motivo de la anulación.
+              Esta acción revertirá el stock afectado. Escribe el motivo de la anulación.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
