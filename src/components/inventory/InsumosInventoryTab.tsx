@@ -420,8 +420,10 @@ const InsumosInventoryTab = ({
                 _isRawMaterial: true,
                 _stockVendedor: stock,
                 _stockAlmacen: wStock,
+                _areaName: selectedArea?.name || undefined,
                 stock_vendedor: stock,
                 stock_almacen: wStock,
+                area_id: mat.area_id,
               } as unknown as Product & { category: Category | null };
 
               const areaColor = selectedArea?.color || 'blue';
