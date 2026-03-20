@@ -186,7 +186,7 @@ const AdminPartners = () => {
     setCode('');
     setDiscountType('percentage');
     setDiscountValue('10');
-    setAppliesToPlans(['basic']);
+    setAppliesToPlans(['professional']);
     setUserLimit('');
     setExpiresAt('');
     setCommissionPercent('10');
