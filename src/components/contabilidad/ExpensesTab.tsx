@@ -101,11 +101,12 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const [formDescription, setFormDescription] = useState("");
   const [formDueDate, setFormDueDate] = useState("");
   const [formFile, setFormFile] = useState<File | null>(null);
+  const [formTipo, setFormTipo] = useState<"directo" | "indirecto" | "imprevisto">("directo");
 
   const resetForm = () => {
     setFormName(""); setFormAmount(""); setFormFrequency("monthly");
     setFormCategoryId(""); setFormDescription(""); setFormDueDate("");
-    setFormFile(null); setEditingExpense(null);
+    setFormFile(null); setEditingExpense(null); setFormTipo("directo");
   };
 
   // ── Queries ──
