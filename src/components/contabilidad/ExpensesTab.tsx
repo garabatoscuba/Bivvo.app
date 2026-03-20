@@ -263,7 +263,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     });
   }, [expenses, range]);
 
-  const fixedExpenses = useMemo(() => expenses.filter((e) => e.expense_type === "fixed"), [expenses]);
+  const fixedExpenses = useMemo(() => expenses.filter((e) => e.expense_type === "fixed" || e.expense_type === "indirect"), [expenses]);
   const unexpectedExpenses = useMemo(() => filteredExpenses.filter((e) => e.expense_type === "unexpected"), [filteredExpenses]);
 
   // Unified & sorted list
