@@ -317,8 +317,8 @@ const AdminOffersTab = () => {
             <div className="space-y-1.5">
               <Label>Aplica a planes</Label>
               <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.applies_to_plans.includes('basic')} onCheckedChange={() => togglePlan('basic')} /> Básico</label>
                 <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.applies_to_plans.includes('professional')} onCheckedChange={() => togglePlan('professional')} /> Profesional</label>
+                <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.applies_to_plans.includes('enterprise')} onCheckedChange={() => togglePlan('enterprise')} /> Enterprise</label>
               </div>
             </div>
             <div className="space-y-1.5">
