@@ -806,10 +806,37 @@ const AdminRequests = () => {
                   {detailBizReq.status === 'pending' && (
                     <>
                       <Separator />
+
+                      {/* Courtesy switch */}
+                      <div className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+                        <div className="flex items-center gap-2">
+                          <Gift className="h-4 w-4 text-muted-foreground" />
+                          <Label htmlFor="sheet-courtesy-biz" className="text-sm font-medium cursor-pointer">Cortesía (gratis)</Label>
+                        </div>
+                        <Switch id="sheet-courtesy-biz" checked={approveIsFree} onCheckedChange={setApproveIsFree} />
+                      </div>
+                      {approveIsFree && (
+                        <p className="text-[11px] text-muted-foreground -mt-2 pl-1">
+                          Se aprueba sin cargo
+                        </p>
+                      )}
+
+                      {/* Admin notes */}
+                      <div className="space-y-1.5">
+                        <Label htmlFor="sheet-notes-biz" className="text-xs text-muted-foreground">Notas internas (opcional)</Label>
+                        <Textarea
+                          id="sheet-notes-biz"
+                          placeholder="Agregar nota interna..."
+                          value={approveNotes}
+                          onChange={(e) => setApproveNotes(e.target.value)}
+                          className="min-h-[60px] text-sm resize-none"
+                        />
+                      </div>
+
                       <div className="flex gap-2">
                         <Button
                           className="flex-1 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                          onClick={() => openApproveModal(detailBizReq, 'business')}
+                          onClick={() => approveBizRequestMutation.mutate({ requestId: detailBizReq.id, action: 'approved', isFree: approveIsFree, adminNotes: approveNotes })}
                           disabled={approveBizRequestMutation.isPending}
                         >
                           <Check className="h-4 w-4" /> Aprobar
