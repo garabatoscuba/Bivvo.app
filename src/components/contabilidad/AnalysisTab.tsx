@@ -149,13 +149,6 @@ export default function AnalysisTab({ businessId, branchId }: Props) {
     return data || [];
   };
 
-  const fetchPendingFixed = async () => {
-    const now = new Date();
-    const mStart = startOfMonth(now).toISOString();
-    const mEnd = endOfMonth(now).toISOString();
-    const { data } = await supabase.from("accounting_expenses").select("amount").eq("business_id", businessId).eq("expense_type", "fixed").eq("status", "pending").gte("due_date", mStart).lte("due_date", mEnd);
-    return (data || []).reduce((s, e) => s + Number(e.amount), 0);
-  };
 
   // ─── Current period data ───
   const { data: currentData, isLoading } = useQuery({
