@@ -579,6 +579,7 @@ const Plans = () => {
                 className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="professional">Profesional ($10/mes/sucursal)</option>
+                <option value="enterprise">Enterprise ($20/mes/sucursal)</option>
               </select>
             </div>
 
