@@ -329,7 +329,7 @@ const Plans = () => {
 
             {(status === 'blocked' || status === 'expiring') && planType !== 'free' && (
               <div className="mt-4 flex justify-center">
-                <Button className="gap-2" onClick={() => openRequest(planType === 'basic' || planType === 'professional' ? planType : 'basic')}>
+                <Button className="gap-2" onClick={() => openRequest(planType === 'professional' || planType === 'enterprise' ? planType : 'professional')}>
                   <Send className="h-4 w-4" /> Renovar plan
                 </Button>
               </div>
