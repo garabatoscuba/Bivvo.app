@@ -47,7 +47,7 @@ const EMPTY_FORM: {
   starts_at: string; expires_at: string; is_active: boolean;
 } = {
   name: '', description: '', discount_type: 'percentage',
-  discount_value: 0, discount_duration_months: '', applies_to_plans: ['basic', 'professional'],
+  discount_value: 0, discount_duration_months: '', applies_to_plans: ['professional', 'enterprise'],
   target_type: 'all', target_user_ids: '',
   starts_at: new Date().toISOString().slice(0, 16), expires_at: '', is_active: true,
 };

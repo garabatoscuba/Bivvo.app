@@ -551,8 +551,8 @@ const AdminPartners = () => {
                 <div className="flex items-center gap-4 mt-1">
                   {[
                     { value: 'free', label: 'Gratuito' },
-                    { value: 'basic', label: 'Básico' },
                     { value: 'professional', label: 'Profesional' },
+                    { value: 'enterprise', label: 'Enterprise' },
                   ].map(plan => (
                     <label key={plan.value} className="flex items-center gap-1.5 text-sm cursor-pointer">
                       <Checkbox

@@ -555,10 +555,10 @@ const Plans = () => {
               <select
                 id="plan-select"
                 value={selectedPlan}
-                onChange={(e) => setSelectedPlan(e.target.value as 'basic' | 'professional')}
+                onChange={(e) => setSelectedPlan(e.target.value as 'professional' | 'enterprise')}
                 className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
-                <option value="basic">Básico ($10/mes/sucursal)</option>
+                <option value="professional">Profesional ($10/mes/sucursal)</option>
               </select>
             </div>
 
