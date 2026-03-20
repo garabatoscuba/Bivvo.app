@@ -16,7 +16,7 @@ import {
   subMonths, subYears,
 } from "date-fns";
 import { es } from "date-fns/locale";
-import { TrendingUp, TrendingDown, Target, RotateCcw, ShieldCheck, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, Target, RotateCcw } from "lucide-react";
 
 type Period = "today" | "week" | "month" | "year";
 
