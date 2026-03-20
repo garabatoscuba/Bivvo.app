@@ -12,6 +12,7 @@ import { PWAInstallProvider } from "@/contexts/PWAInstallContext";
 import { SyncGate } from "@/components/layout/SyncGate";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { usePWAUpdate } from "@/hooks/usePWAUpdate";
+import { useSessionKeepAlive } from "@/hooks/useSessionKeepAlive";
 import { Loader2 } from "lucide-react";
 
 // Eagerly loaded (critical path)
