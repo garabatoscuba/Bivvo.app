@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt, Droplets } from "lucide-react";
+import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt, Droplets, ArrowUpDown } from "lucide-react";
 
 // ── Types ──
 type Expense = {
