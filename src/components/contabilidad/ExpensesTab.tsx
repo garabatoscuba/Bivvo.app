@@ -641,14 +641,9 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
       <div className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h3 className="font-semibold">Todos los Gastos</h3>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => { resetForm(); setFixedDialog(true); }}>
-              <Plus className="h-4 w-4 mr-1" /> Gasto Fijo
-            </Button>
-            <Button size="sm" onClick={() => { resetForm(); setUnexpectedDialog(true); }}>
-              <Plus className="h-4 w-4 mr-1" /> Gasto Imprevisto
-            </Button>
-          </div>
+          <Button size="sm" onClick={() => { resetForm(); setExpenseDialog(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Nuevo Gasto
+          </Button>
         </div>
         <Card>
           <div className="overflow-auto">
