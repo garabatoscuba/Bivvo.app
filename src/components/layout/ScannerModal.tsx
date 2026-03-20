@@ -88,10 +88,7 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     }
   };
 
-  const startAutoFocus = () => {
-    if (focusIntervalRef.current) clearInterval(focusIntervalRef.current);
-    focusIntervalRef.current = setInterval(() => applyFocus(), 2500);
-  };
+  // Auto-focus removed — only manual tap-to-focus is used
 
   const stopScanner = () => {
     controlsRef.current?.stop();
