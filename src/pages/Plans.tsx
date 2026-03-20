@@ -526,9 +526,22 @@ const Plans = () => {
               {planType === 'enterprise' && status !== 'blocked' ? (
                 <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
               ) : (
-                <Badge variant="secondary" className="w-full justify-center py-2 text-muted-foreground">
-                  🚧 Próximamente
-                </Badge>
+                <>
+                  <Button className="w-full gap-2" onClick={() => openRequest('enterprise')}>
+                    <Send className="h-4 w-4" /> Solicitar plan
+                  </Button>
+                  {planType === 'free' && (
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => trialMutation.mutate('enterprise')}
+                      disabled={trialMutation.isPending}
+                    >
+                      {trialMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
+                      Probar 7 días gratis
+                    </Button>
+                  )}
+                </>
               )}
             </CardFooter>
           </Card>
