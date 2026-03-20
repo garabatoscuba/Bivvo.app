@@ -17,7 +17,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt, Droplets } from "lucide-react";
+import { Plus, AlertTriangle, Check, Pencil, Trash2, Upload, Receipt, Droplets, ArrowUpDown } from "lucide-react";
 
 // ── Types ──
 type Expense = {
@@ -91,6 +91,8 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<string>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Form state
   const [formName, setFormName] = useState("");
@@ -263,6 +265,38 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
 
   const fixedExpenses = useMemo(() => expenses.filter((e) => e.expense_type === "fixed"), [expenses]);
   const unexpectedExpenses = useMemo(() => filteredExpenses.filter((e) => e.expense_type === "unexpected"), [filteredExpenses]);
+
+  // Unified & sorted list
+  const getExpenseTipo = (e: Expense): string => {
+    if (e.expense_type === "unexpected") return "Imprevisto";
+    return "Directo";
+  };
+
+  const allExpensesUnified = useMemo(() => {
+    const combined = [...fixedExpenses, ...unexpectedExpenses];
+    const col = sortColumn;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return combined.sort((a, b) => {
+      let va: any, vb: any;
+      switch (col) {
+        case "name": va = a.name.toLowerCase(); vb = b.name.toLowerCase(); break;
+        case "amount": va = a.amount; vb = b.amount; break;
+        case "frequency": va = a.frequency || ""; vb = b.frequency || ""; break;
+        case "tipo": va = getExpenseTipo(a); vb = getExpenseTipo(b); break;
+        case "due_date": va = a.due_date || "9999"; vb = b.due_date || "9999"; break;
+        case "status": va = a.status; vb = b.status; break;
+        default: va = a.name; vb = b.name;
+      }
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }, [fixedExpenses, unexpectedExpenses, sortColumn, sortDir]);
+
+  const toggleSort = (col: string) => {
+    if (sortColumn === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortColumn(col); setSortDir("asc"); }
+  };
 
   // ── Summary ──
   const summary = useMemo(() => {
@@ -600,104 +634,83 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
       )}
 
 
-      {/* ── FIXED EXPENSES ── */}
+      {/* ── UNIFIED EXPENSES TABLE ── */}
       <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Gastos Fijos</h3>
-          <Button size="sm" onClick={() => { resetForm(); setFixedDialog(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Agregar
-          </Button>
-        </div>
-        <Card>
-          <div className="overflow-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                  <TableHead>Frecuencia</TableHead>
-                  <TableHead>Próximo venc.</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {fixedExpenses.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin gastos fijos</TableCell></TableRow>
-                ) : fixedExpenses.map((e) => (
-                  <TableRow key={e.id} className={e.status === "overdue" ? "bg-destructive/5" : ""}>
-                    <TableCell className="font-medium">{e.name}</TableCell>
-                    <TableCell className="text-right">${e.amount.toLocaleString()}</TableCell>
-                    <TableCell>{freqLabel(e.frequency)}</TableCell>
-                    <TableCell>{e.due_date ? format(parseISO(e.due_date), "dd MMM yyyy", { locale: es }) : "—"}</TableCell>
-                    <TableCell>{statusBadge(e.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {e.status !== "paid" && (
-                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markPaidMutation.mutate(e)} title="Marcar pagado">
-                            <Check className="h-4 w-4 text-green-600" />
-                          </Button>
-                        )}
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditFixed(e)} title="Editar">
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(e.id)} title="Eliminar">
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <h3 className="font-semibold">Todos los Gastos</h3>
+          <div className="flex gap-2">
+            <Button size="sm" variant="outline" onClick={() => { resetForm(); setFixedDialog(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Gasto Fijo
+            </Button>
+            <Button size="sm" onClick={() => { resetForm(); setUnexpectedDialog(true); }}>
+              <Plus className="h-4 w-4 mr-1" /> Gasto Imprevisto
+            </Button>
           </div>
-        </Card>
-      </div>
-
-      {/* ── UNEXPECTED EXPENSES ── */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="font-semibold">Gastos Imprevistos</h3>
-          <Button size="sm" onClick={() => { resetForm(); setUnexpectedDialog(true); }}>
-            <Plus className="h-4 w-4 mr-1" /> Agregar
-          </Button>
         </div>
         <Card>
           <div className="overflow-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead className="text-right">Monto</TableHead>
-                  <TableHead>Fecha</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Comprobante</TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("name")}>
+                    <span className="inline-flex items-center gap-1">Nombre <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="text-right cursor-pointer select-none" onClick={() => toggleSort("amount")}>
+                    <span className="inline-flex items-center gap-1 justify-end">Monto <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("frequency")}>
+                    <span className="inline-flex items-center gap-1">Frecuencia <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("tipo")}>
+                    <span className="inline-flex items-center gap-1">Tipo <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("due_date")}>
+                    <span className="inline-flex items-center gap-1">Próximo venc. <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
+                  <TableHead className="cursor-pointer select-none" onClick={() => toggleSort("status")}>
+                    <span className="inline-flex items-center gap-1">Estado <ArrowUpDown className="h-3 w-3 text-muted-foreground" /></span>
+                  </TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {unexpectedExpenses.length === 0 ? (
-                  <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">Sin gastos imprevistos</TableCell></TableRow>
-                ) : unexpectedExpenses.map((e) => (
-                  <TableRow key={e.id}>
-                    <TableCell className="font-medium max-w-[200px] truncate">{e.name}</TableCell>
-                    <TableCell className="text-right">${e.amount.toLocaleString()}</TableCell>
-                    <TableCell>{e.paid_at ? format(parseISO(e.paid_at), "dd MMM yyyy", { locale: es }) : "—"}</TableCell>
-                    <TableCell>{getCategoryName(e.category_id)}</TableCell>
-                    <TableCell>
-                      {e.receipt_url ? (
-                        <a href={e.receipt_url} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1 text-xs">
-                          <Receipt className="h-3.5 w-3.5" /> Ver
-                        </a>
-                      ) : "—"}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(e.id)} title="Eliminar">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {allExpensesUnified.length === 0 ? (
+                  <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">Sin gastos registrados</TableCell></TableRow>
+                ) : allExpensesUnified.map((e) => {
+                  const tipo = getExpenseTipo(e);
+                  const tipoBadgeClass = tipo === "Imprevisto"
+                    ? "bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30"
+                    : tipo === "Indirecto"
+                    ? "bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30"
+                    : "bg-muted text-foreground";
+                  return (
+                    <TableRow key={e.id} className={e.status === "overdue" ? "bg-destructive/5" : ""}>
+                      <TableCell className="font-medium max-w-[200px] truncate">{e.name}</TableCell>
+                      <TableCell className="text-right">${e.amount.toLocaleString()}</TableCell>
+                      <TableCell>{freqLabel(e.frequency)}</TableCell>
+                      <TableCell><Badge className={tipoBadgeClass}>{tipo}</Badge></TableCell>
+                      <TableCell>{e.due_date ? format(parseISO(e.due_date), "dd MMM yyyy", { locale: es }) : "—"}</TableCell>
+                      <TableCell>{statusBadge(e.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {e.status !== "paid" && e.expense_type === "fixed" && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markPaidMutation.mutate(e)} title="Marcar pagado">
+                              <Check className="h-4 w-4 text-green-600" />
+                            </Button>
+                          )}
+                          {e.expense_type === "fixed" && (
+                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditFixed(e)} title="Editar">
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(e.id)} title="Eliminar">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
