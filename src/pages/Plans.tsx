@@ -228,25 +228,32 @@ const Plans = () => {
   };
 
   const freePlanFeatures = [
-    'Inventario limitado (5 productos, 2 categorías)',
+    'Inventario limitado (5 productos)',
     'Punto de Venta (POS) completo',
-    'Gráficas de desempeño',
-    'Configuración inicial guiada del negocio',
+    'Servicios',
+    'Caja',
+    'Empleados y Nómina',
+    'Reportes: Resumen e Historial',
+    'Contabilidad: Balance, Gastos y Análisis básico',
     'Sin límite de tiempo',
   ];
 
   const professionalFeatures = [
     'Inventario ilimitado',
     'Punto de Venta (POS) completo',
-    'Módulo de Clientes y Afiliación',
-    'Módulo de negocio a elegir',
-    'Gráficas de desempeño',
+    'Servicios ilimitados',
+    'Insumos y Ficha de Costo',
+    'Empleados y Nómina completa',
+    'Reportes: Resumen e Historial',
+    'Contabilidad: Balance, Gastos y Análisis',
     'Soporte por WhatsApp',
   ];
 
   const enterpriseFeatures = [
     'Todo lo del Plan Profesional',
-    'Contabilidad completa',
+    'Reportes completos (Por Empleado, Comparativa, Ventas vs Serv., Bitácora)',
+    'Contabilidad completa (Activos, Análisis avanzado, Documentos)',
+    'Contabilidad Avanzada (Cuentas T, Libro Diario)',
     'Portales públicos personalizables',
     'Enlace entre negocios',
     'Soporte prioritario',
