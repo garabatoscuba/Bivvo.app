@@ -21,14 +21,14 @@ const WHATSAPP_URL = (msg: string) => `https://wa.me/${WHATSAPP_NUMBER}?text=${e
 
 const PLAN_LABELS: Record<PlanType, string> = {
   free: 'Gratuito',
-  basic: 'Básico',
   professional: 'Profesional',
+  enterprise: 'Enterprise',
 };
 
 const PRICE_PER_BRANCH: Record<PlanType, number> = {
   free: 0,
-  basic: 10,
-  professional: 20,
+  professional: 10,
+  enterprise: 20,
 };
 
 const DURATION_OPTIONS = [
