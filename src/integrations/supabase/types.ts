@@ -966,6 +966,7 @@ export type Database = {
           business_type: string | null
           created_at: string
           id: string
+          is_free: boolean
           request_type: string
           status: string
           updated_at: string
@@ -981,6 +982,7 @@ export type Database = {
           business_type?: string | null
           created_at?: string
           id?: string
+          is_free?: boolean
           request_type?: string
           status?: string
           updated_at?: string
@@ -996,6 +998,7 @@ export type Database = {
           business_type?: string | null
           created_at?: string
           id?: string
+          is_free?: boolean
           request_type?: string
           status?: string
           updated_at?: string
@@ -2823,6 +2826,7 @@ export type Database = {
           custom_end_date: string | null
           discount_percent: number
           id: string
+          is_free: boolean
           months: number
           partner_id: string | null
           plan_type: string
@@ -2841,6 +2845,7 @@ export type Database = {
           custom_end_date?: string | null
           discount_percent?: number
           id?: string
+          is_free?: boolean
           months: number
           partner_id?: string | null
           plan_type: string
@@ -2859,6 +2864,7 @@ export type Database = {
           custom_end_date?: string | null
           discount_percent?: number
           id?: string
+          is_free?: boolean
           months?: number
           partner_id?: string | null
           plan_type?: string
