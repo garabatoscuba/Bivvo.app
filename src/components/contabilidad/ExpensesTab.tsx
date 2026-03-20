@@ -266,6 +266,39 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const fixedExpenses = useMemo(() => expenses.filter((e) => e.expense_type === "fixed"), [expenses]);
   const unexpectedExpenses = useMemo(() => filteredExpenses.filter((e) => e.expense_type === "unexpected"), [filteredExpenses]);
 
+  // Unified & sorted list
+  const getExpenseTipo = (e: Expense) => {
+    if (e.expense_type === "unexpected") return "Imprevisto";
+    // For fixed expenses, default to "Directo" — could be extended with a DB column later
+    return "Directo";
+  };
+
+  const allExpensesUnified = useMemo(() => {
+    const combined = [...fixedExpenses, ...unexpectedExpenses];
+    const col = sortColumn;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return combined.sort((a, b) => {
+      let va: any, vb: any;
+      switch (col) {
+        case "name": va = a.name.toLowerCase(); vb = b.name.toLowerCase(); break;
+        case "amount": va = a.amount; vb = b.amount; break;
+        case "frequency": va = a.frequency || ""; vb = b.frequency || ""; break;
+        case "tipo": va = getExpenseTipo(a); vb = getExpenseTipo(b); break;
+        case "due_date": va = a.due_date || "9999"; vb = b.due_date || "9999"; break;
+        case "status": va = a.status; vb = b.status; break;
+        default: va = a.name; vb = b.name;
+      }
+      if (va < vb) return -1 * dir;
+      if (va > vb) return 1 * dir;
+      return 0;
+    });
+  }, [fixedExpenses, unexpectedExpenses, sortColumn, sortDir]);
+
+  const toggleSort = (col: string) => {
+    if (sortColumn === col) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortColumn(col); setSortDir("asc"); }
+  };
+
   // ── Summary ──
   const summary = useMemo(() => {
     const inRange = filteredExpenses;
