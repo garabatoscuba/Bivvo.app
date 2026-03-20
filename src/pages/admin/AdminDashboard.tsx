@@ -98,7 +98,7 @@ const AdminDashboard = () => {
         });
 
       // Plan distribution
-      const planCounts: Record<string, number> = { free: 0, basic: 0, professional: 0 };
+      const planCounts: Record<string, number> = { free: 0, professional: 0, enterprise: 0 };
       allProfiles.forEach(p => {
         const plan = p.plan_type || 'free';
         if (plan in planCounts) planCounts[plan]++;
