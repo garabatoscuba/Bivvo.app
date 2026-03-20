@@ -15,6 +15,7 @@ import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useIsDowngraded } from '@/hooks/useIsDowngraded';
 import DowngradeModal from '@/components/DowngradeModal';
+import PlanGateModal from '@/components/PlanGateModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
