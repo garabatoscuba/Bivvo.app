@@ -86,8 +86,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const qc = useQueryClient();
   const auditLog = useAuditLog();
   const [period, setPeriod] = useState<PeriodKey>("month");
-  const [fixedDialog, setFixedDialog] = useState(false);
-  const [unexpectedDialog, setUnexpectedDialog] = useState(false);
+  const [expenseDialog, setExpenseDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
