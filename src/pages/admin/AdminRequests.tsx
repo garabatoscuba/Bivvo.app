@@ -7,15 +7,19 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import {
   Search, Loader2, Building2, FileText, Check, X,
   ArrowUp, ArrowDown, ArrowUpDown, Clock, CheckCircle2,
-  DollarSign, AlertCircle, Calendar, Mail, User,
+  DollarSign, AlertCircle, Calendar, Mail, User, Gift,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -134,6 +138,23 @@ const AdminRequests = () => {
   const [selectedBizIds, setSelectedBizIds] = useState<Set<string>>(new Set());
   const [detailBizReq, setDetailBizReq] = useState<any>(null);
 
+  // Approval confirmation modal state
+  const [approveModal, setApproveModal] = useState<{ request: any; type: 'plan' | 'business' } | null>(null);
+  const [approveIsFree, setApproveIsFree] = useState(false);
+  const [approveNotes, setApproveNotes] = useState('');
+
+  const openApproveModal = (request: any, type: 'plan' | 'business') => {
+    setApproveModal({ request, type });
+    setApproveIsFree(false);
+    setApproveNotes('');
+  };
+
+  const closeApproveModal = () => {
+    setApproveModal(null);
+    setApproveIsFree(false);
+    setApproveNotes('');
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ['admin-requests-page'],
     queryFn: async () => {
@@ -188,10 +209,13 @@ const AdminRequests = () => {
   });
 
   const approveMutation = useMutation({
-    mutationFn: async ({ requestId, action }: { requestId: string; action: 'approved' | 'rejected' }) => {
+    mutationFn: async ({ requestId, action, isFree, adminNotes }: { requestId: string; action: 'approved' | 'rejected'; isFree?: boolean; adminNotes?: string }) => {
       const request = data?.planRequests?.find((r: any) => r.id === requestId);
       if (!request) throw new Error('Solicitud no encontrada');
       const updates: any = { status: action, approved_at: new Date().toISOString() };
+      if (isFree !== undefined) updates.is_free = isFree;
+      if (adminNotes) updates.admin_notes = adminNotes;
+      if (isFree && action === 'approved') updates.total_amount = 0;
       const { error: reqError } = await supabase.from('plan_requests').update(updates).eq('id', requestId);
       if (reqError) throw reqError;
       if (action === 'approved') {
@@ -207,12 +231,20 @@ const AdminRequests = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-requests-page'] });
       toast({ title: 'Solicitud procesada' });
       setDetailPlanReq(null);
+      closeApproveModal();
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
   const approveBizRequestMutation = useMutation({
-    mutationFn: async ({ requestId, action }: { requestId: string; action: 'approved' | 'rejected' }) => {
+    mutationFn: async ({ requestId, action, isFree, adminNotes }: { requestId: string; action: 'approved' | 'rejected'; isFree?: boolean; adminNotes?: string }) => {
+      // Update is_free and admin_notes on the request before calling the edge function
+      if (action === 'approved' && (isFree || adminNotes)) {
+        const updates: any = {};
+        if (isFree !== undefined) updates.is_free = isFree;
+        if (adminNotes) updates.admin_notes = adminNotes;
+        await supabase.from('business_requests').update(updates).eq('id', requestId);
+      }
       const { data, error } = await supabase.functions.invoke('approve-business-request', { body: { request_id: requestId, action } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -221,6 +253,7 @@ const AdminRequests = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-requests-page'] });
       toast({ title: 'Solicitud procesada' });
       setDetailBizReq(null);
+      closeApproveModal();
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
@@ -406,7 +439,7 @@ const AdminRequests = () => {
                             <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                               {r.status === 'pending' && (
                                 <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'approved' })}><Check className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => openApproveModal(r, 'plan')}><Check className="h-4 w-4" /></Button>
                                   <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'rejected' })}><X className="h-4 w-4" /></Button>
                                 </div>
                               )}
@@ -476,7 +509,7 @@ const AdminRequests = () => {
                             <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                               {r.status === 'pending' && (
                                 <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'approved' })} disabled={approveBizRequestMutation.isPending}><Check className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => openApproveModal(r, 'business')} disabled={approveBizRequestMutation.isPending}><Check className="h-4 w-4" /></Button>
                                   <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveBizRequestMutation.mutate({ requestId: r.id, action: 'rejected' })} disabled={approveBizRequestMutation.isPending}><X className="h-4 w-4" /></Button>
                                 </div>
                               )}
@@ -638,7 +671,7 @@ const AdminRequests = () => {
                       <div className="flex gap-2">
                         <Button
                           className="flex-1 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                          onClick={() => approveMutation.mutate({ requestId: detailPlanReq.id, action: 'approved' })}
+                          onClick={() => openApproveModal(detailPlanReq, 'plan')}
                           disabled={approveMutation.isPending}
                         >
                           <Check className="h-4 w-4" /> Aprobar
@@ -749,7 +782,7 @@ const AdminRequests = () => {
                       <div className="flex gap-2">
                         <Button
                           className="flex-1 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                          onClick={() => approveBizRequestMutation.mutate({ requestId: detailBizReq.id, action: 'approved' })}
+                          onClick={() => openApproveModal(detailBizReq, 'business')}
                           disabled={approveBizRequestMutation.isPending}
                         >
                           <Check className="h-4 w-4" /> Aprobar
@@ -770,6 +803,123 @@ const AdminRequests = () => {
             )}
           </SheetContent>
         </Sheet>
+
+        {/* Approval Confirmation Modal */}
+        <Dialog open={!!approveModal} onOpenChange={(open) => !open && closeApproveModal()}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-primary" />
+                Confirmar aprobación
+              </DialogTitle>
+              <DialogDescription>Revisa los detalles antes de aprobar esta solicitud.</DialogDescription>
+            </DialogHeader>
+
+            {approveModal && (
+              <div className="space-y-4">
+                {/* Summary */}
+                <div className="rounded-lg border border-border/60 p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground">Usuario</span>
+                    <span className="text-sm font-medium">{approveModal.request.user_name}</span>
+                  </div>
+                  {approveModal.type === 'plan' ? (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Plan</span>
+                        <Badge variant="outline" className="text-[11px]">{getPlanLabel(approveModal.request.plan_type)}</Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Duración</span>
+                        <span className="text-sm">{approveModal.request.months} mes{approveModal.request.months !== 1 ? 'es' : ''}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Total</span>
+                        <span className={`text-sm font-semibold ${approveIsFree ? 'line-through text-muted-foreground' : ''}`}>
+                          ${Number(approveModal.request.total_amount).toFixed(2)}
+                        </span>
+                      </div>
+                      {approveIsFree && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Cobro</span>
+                          <Badge className="bg-emerald-600 text-white text-[11px]">$0.00 — Cortesía</Badge>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Tipo</span>
+                        <Badge variant="outline" className="text-[11px]">
+                          {approveModal.request.request_type === 'business' ? '🏪 Negocio' : '📍 Sucursal'}
+                        </Badge>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">Nombre</span>
+                        <span className="text-sm font-medium">{approveModal.request.business_name || approveModal.request.branch_name || '—'}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Courtesy switch */}
+                <div className="flex items-center justify-between rounded-lg border border-border/60 p-3">
+                  <div className="flex items-center gap-2">
+                    <Gift className="h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor="courtesy-switch" className="text-sm font-medium cursor-pointer">Cortesía (gratis)</Label>
+                  </div>
+                  <Switch id="courtesy-switch" checked={approveIsFree} onCheckedChange={setApproveIsFree} />
+                </div>
+                {approveIsFree && (
+                  <p className="text-[11px] text-muted-foreground -mt-2 pl-1">
+                    Se aprobará sin cargo. No afecta el total facturado.
+                  </p>
+                )}
+
+                {/* Admin notes */}
+                <div className="space-y-1.5">
+                  <Label htmlFor="approve-notes" className="text-xs text-muted-foreground">Notas del admin (opcional)</Label>
+                  <Textarea
+                    id="approve-notes"
+                    placeholder="Agregar nota interna..."
+                    value={approveNotes}
+                    onChange={(e) => setApproveNotes(e.target.value)}
+                    className="min-h-[60px] text-sm resize-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button variant="outline" onClick={closeApproveModal}>Cancelar</Button>
+              <Button
+                className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
+                disabled={approveMutation.isPending || approveBizRequestMutation.isPending}
+                onClick={() => {
+                  if (!approveModal) return;
+                  if (approveModal.type === 'plan') {
+                    approveMutation.mutate({
+                      requestId: approveModal.request.id,
+                      action: 'approved',
+                      isFree: approveIsFree,
+                      adminNotes: approveNotes || undefined,
+                    });
+                  } else {
+                    approveBizRequestMutation.mutate({
+                      requestId: approveModal.request.id,
+                      action: 'approved',
+                      isFree: approveIsFree,
+                      adminNotes: approveNotes || undefined,
+                    });
+                  }
+                }}
+              >
+                {(approveMutation.isPending || approveBizRequestMutation.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
+                <Check className="h-4 w-4" /> Aprobar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
