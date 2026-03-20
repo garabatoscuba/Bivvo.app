@@ -489,7 +489,7 @@ const AdminRequests = () => {
                           <TableRow
                             key={r.id}
                             className={`cursor-pointer ${selectedBizIds.has(r.id) ? 'bg-primary/5' : ''}`}
-                            onClick={() => setDetailBizReq(r)}
+                            onClick={() => { setDetailBizReq(r); setApproveIsFree(false); setApproveNotes(''); }}
                           >
                             <TableCell className="w-10" onClick={e => e.stopPropagation()}>
                               <Checkbox checked={selectedBizIds.has(r.id)} onCheckedChange={() => toggleBizSelect(r.id)} />
