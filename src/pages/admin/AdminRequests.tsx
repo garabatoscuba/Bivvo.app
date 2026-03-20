@@ -209,10 +209,13 @@ const AdminRequests = () => {
   });
 
   const approveMutation = useMutation({
-    mutationFn: async ({ requestId, action }: { requestId: string; action: 'approved' | 'rejected' }) => {
+    mutationFn: async ({ requestId, action, isFree, adminNotes }: { requestId: string; action: 'approved' | 'rejected'; isFree?: boolean; adminNotes?: string }) => {
       const request = data?.planRequests?.find((r: any) => r.id === requestId);
       if (!request) throw new Error('Solicitud no encontrada');
       const updates: any = { status: action, approved_at: new Date().toISOString() };
+      if (isFree !== undefined) updates.is_free = isFree;
+      if (adminNotes) updates.admin_notes = adminNotes;
+      if (isFree && action === 'approved') updates.total_amount = 0;
       const { error: reqError } = await supabase.from('plan_requests').update(updates).eq('id', requestId);
       if (reqError) throw reqError;
       if (action === 'approved') {
@@ -228,12 +231,20 @@ const AdminRequests = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-requests-page'] });
       toast({ title: 'Solicitud procesada' });
       setDetailPlanReq(null);
+      closeApproveModal();
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
   const approveBizRequestMutation = useMutation({
-    mutationFn: async ({ requestId, action }: { requestId: string; action: 'approved' | 'rejected' }) => {
+    mutationFn: async ({ requestId, action, isFree, adminNotes }: { requestId: string; action: 'approved' | 'rejected'; isFree?: boolean; adminNotes?: string }) => {
+      // Update is_free and admin_notes on the request before calling the edge function
+      if (action === 'approved' && (isFree || adminNotes)) {
+        const updates: any = {};
+        if (isFree !== undefined) updates.is_free = isFree;
+        if (adminNotes) updates.admin_notes = adminNotes;
+        await supabase.from('business_requests').update(updates).eq('id', requestId);
+      }
       const { data, error } = await supabase.functions.invoke('approve-business-request', { body: { request_id: requestId, action } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -242,6 +253,7 @@ const AdminRequests = () => {
       queryClient.invalidateQueries({ queryKey: ['admin-requests-page'] });
       toast({ title: 'Solicitud procesada' });
       setDetailBizReq(null);
+      closeApproveModal();
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
