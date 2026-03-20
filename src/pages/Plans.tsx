@@ -459,7 +459,7 @@ const Plans = () => {
             </CardHeader>
             <CardContent className="flex-1">
               <p className="text-3xl font-bold">$10 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
-              <p className="text-sm text-muted-foreground">7 días gratis · Sin tarjeta</p>
+              {planType === 'free' && <p className="text-sm text-muted-foreground">7 días gratis · Sin tarjeta</p>}
               <ul className="mt-4 space-y-2">
                 {professionalFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
@@ -509,7 +509,6 @@ const Plans = () => {
             </CardHeader>
             <CardContent className="flex-1">
               <p className="text-3xl font-bold">$20 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
-              <p className="text-sm text-muted-foreground">7 días gratis · Sin tarjeta</p>
               <ul className="mt-4 space-y-2">
                 {enterpriseFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
@@ -523,22 +522,9 @@ const Plans = () => {
               {planType === 'enterprise' && status !== 'blocked' ? (
                 <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
               ) : (
-                <>
-                  <Button className="w-full gap-2" onClick={() => openRequest('enterprise')}>
-                    <Send className="h-4 w-4" /> Solicitar plan
-                  </Button>
-                  {planType === 'free' && (
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2"
-                      onClick={() => trialMutation.mutate('enterprise')}
-                      disabled={trialMutation.isPending}
-                    >
-                      {trialMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
-                      Probar 7 días gratis
-                    </Button>
-                  )}
-                </>
+                <Button className="w-full gap-2" onClick={() => openRequest('enterprise')}>
+                  <Send className="h-4 w-4" /> Solicitar plan
+                </Button>
               )}
             </CardFooter>
           </Card>
