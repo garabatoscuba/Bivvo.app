@@ -228,25 +228,32 @@ const Plans = () => {
   };
 
   const freePlanFeatures = [
-    'Inventario limitado (5 productos, 2 categorías)',
+    'Inventario limitado (5 productos)',
     'Punto de Venta (POS) completo',
-    'Gráficas de desempeño',
-    'Configuración inicial guiada del negocio',
+    'Servicios',
+    'Caja',
+    'Empleados y Nómina',
+    'Reportes: Resumen e Historial',
+    'Contabilidad: Balance, Gastos y Análisis básico',
     'Sin límite de tiempo',
   ];
 
   const professionalFeatures = [
     'Inventario ilimitado',
     'Punto de Venta (POS) completo',
-    'Módulo de Clientes y Afiliación',
-    'Módulo de negocio a elegir',
-    'Gráficas de desempeño',
+    'Servicios ilimitados',
+    'Insumos y Ficha de Costo',
+    'Empleados y Nómina completa',
+    'Reportes: Resumen e Historial',
+    'Contabilidad: Balance, Gastos y Análisis',
     'Soporte por WhatsApp',
   ];
 
   const enterpriseFeatures = [
     'Todo lo del Plan Profesional',
-    'Contabilidad completa',
+    'Reportes completos (Por Empleado, Comparativa, Ventas vs Serv., Bitácora)',
+    'Contabilidad completa (Activos, Análisis avanzado, Documentos)',
+    'Contabilidad Avanzada (Cuentas T, Libro Diario)',
     'Portales públicos personalizables',
     'Enlace entre negocios',
     'Soporte prioritario',
@@ -451,7 +458,7 @@ const Plans = () => {
             </div>
             <CardHeader className="pt-2">
               <CardTitle className="text-lg">Plan Profesional</CardTitle>
-              <CardDescription>Inventario y clientes sin límites</CardDescription>
+              <CardDescription>Todo lo del Gratuito sin límites</CardDescription>
             </CardHeader>
             <CardContent className="flex-1">
               <p className="text-3xl font-bold">$10 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
@@ -505,7 +512,7 @@ const Plans = () => {
             </CardHeader>
             <CardContent className="flex-1">
               <p className="text-3xl font-bold">$20 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
-              <p className="text-sm text-muted-foreground">En construcción · Disponible pronto</p>
+              <p className="text-sm text-muted-foreground">7 días gratis · Sin tarjeta</p>
               <ul className="mt-4 space-y-2">
                 {enterpriseFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
@@ -519,9 +526,22 @@ const Plans = () => {
               {planType === 'enterprise' && status !== 'blocked' ? (
                 <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
               ) : (
-                <Badge variant="secondary" className="w-full justify-center py-2 text-muted-foreground">
-                  🚧 Próximamente
-                </Badge>
+                <>
+                  <Button className="w-full gap-2" onClick={() => openRequest('enterprise')}>
+                    <Send className="h-4 w-4" /> Solicitar plan
+                  </Button>
+                  {planType === 'free' && (
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => trialMutation.mutate('enterprise')}
+                      disabled={trialMutation.isPending}
+                    >
+                      {trialMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
+                      Probar 7 días gratis
+                    </Button>
+                  )}
+                </>
               )}
             </CardFooter>
           </Card>
@@ -559,6 +579,7 @@ const Plans = () => {
                 className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="professional">Profesional ($10/mes/sucursal)</option>
+                <option value="enterprise">Enterprise ($20/mes/sucursal)</option>
               </select>
             </div>
 
