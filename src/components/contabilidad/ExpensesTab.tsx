@@ -91,6 +91,8 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [sortColumn, setSortColumn] = useState<string>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
   // Form state
   const [formName, setFormName] = useState("");
