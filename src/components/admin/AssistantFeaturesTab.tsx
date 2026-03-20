@@ -13,8 +13,8 @@ import { getIconComponent } from '@/components/services/IconSelector';
 
 const PLAN_TYPES = [
   { value: 'free', label: 'Gratuito' },
-  { value: 'basic', label: 'Básico' },
   { value: 'professional', label: 'Profesional' },
+  { value: 'enterprise', label: 'Enterprise' },
 ];
 
 const AVAILABILITY_OPTIONS = [

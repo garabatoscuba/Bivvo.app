@@ -27,8 +27,8 @@ interface BusinessDetailSheetProps {
 
 const PLAN_LABELS: Record<string, string> = {
   free: 'Gratuito',
-  basic: 'Básico',
   professional: 'Profesional',
+  enterprise: 'Enterprise',
 };
 
 type HealthLevel = 'healthy' | 'warning' | 'critical';

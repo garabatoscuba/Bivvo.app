@@ -40,8 +40,8 @@ const TARGET_TYPES = [
 
 const PLAN_OPTIONS = [
   { value: 'free', label: 'Gratuito' },
-  { value: 'basic', label: 'Básico' },
   { value: 'professional', label: 'Profesional' },
+  { value: 'enterprise', label: 'Enterprise' },
 ];
 
 const ROLE_OPTIONS = [

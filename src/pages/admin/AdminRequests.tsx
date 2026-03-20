@@ -106,8 +106,8 @@ const StatusTabs = ({ value, onChange, counts }: { value: string; onChange: (v: 
 );
 
 const getPlanLabel = (plan: string | null) => {
+  if (plan === 'enterprise') return 'Enterprise';
   if (plan === 'professional') return 'Profesional';
-  if (plan === 'basic') return 'Básico';
   return 'Gratuito';
 };
 
