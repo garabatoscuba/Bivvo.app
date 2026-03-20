@@ -221,7 +221,7 @@ const Plans = () => {
     },
   });
 
-  const openRequest = (plan: 'basic' | 'professional') => {
+  const openRequest = (plan: 'professional' | 'enterprise') => {
     setSelectedPlan(plan);
     setSelectedMonths('1');
     setRequestOpen(true);
