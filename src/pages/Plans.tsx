@@ -235,7 +235,7 @@ const Plans = () => {
     'Sin límite de tiempo',
   ];
 
-  const basicFeatures = [
+  const professionalFeatures = [
     'Inventario ilimitado',
     'Punto de Venta (POS) completo',
     'Módulo de Clientes y Afiliación',
