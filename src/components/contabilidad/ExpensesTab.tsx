@@ -86,8 +86,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const qc = useQueryClient();
   const auditLog = useAuditLog();
   const [period, setPeriod] = useState<PeriodKey>("month");
-  const [fixedDialog, setFixedDialog] = useState(false);
-  const [unexpectedDialog, setUnexpectedDialog] = useState(false);
+  const [expenseDialog, setExpenseDialog] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [uploading, setUploading] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -102,11 +101,12 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const [formDescription, setFormDescription] = useState("");
   const [formDueDate, setFormDueDate] = useState("");
   const [formFile, setFormFile] = useState<File | null>(null);
+  const [formTipo, setFormTipo] = useState<"directo" | "indirecto" | "imprevisto">("directo");
 
   const resetForm = () => {
     setFormName(""); setFormAmount(""); setFormFrequency("monthly");
     setFormCategoryId(""); setFormDescription(""); setFormDueDate("");
-    setFormFile(null); setEditingExpense(null);
+    setFormFile(null); setEditingExpense(null); setFormTipo("directo");
   };
 
   // ── Queries ──
@@ -263,12 +263,13 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     });
   }, [expenses, range]);
 
-  const fixedExpenses = useMemo(() => expenses.filter((e) => e.expense_type === "fixed"), [expenses]);
+  const fixedExpenses = useMemo(() => expenses.filter((e) => e.expense_type === "fixed" || e.expense_type === "indirect"), [expenses]);
   const unexpectedExpenses = useMemo(() => filteredExpenses.filter((e) => e.expense_type === "unexpected"), [filteredExpenses]);
 
   // Unified & sorted list
   const getExpenseTipo = (e: Expense): string => {
     if (e.expense_type === "unexpected") return "Imprevisto";
+    if (e.expense_type === "indirect") return "Indirecto";
     return "Directo";
   };
 
@@ -327,7 +328,9 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
 
   // ── Mutations ──
   const saveMutation = useMutation({
-    mutationFn: async (type: "fixed" | "unexpected") => {
+    mutationFn: async () => {
+      const isUnexpected = formTipo === "imprevisto";
+      const expenseType = isUnexpected ? "unexpected" : formTipo === "indirecto" ? "indirect" : "fixed";
       let receiptUrl: string | null = null;
 
       if (formFile) {
@@ -346,14 +349,14 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
       const row: any = {
         business_id: businessId,
         branch_id: branchId,
-        name: type === "fixed" ? formName : formDescription || "Gasto imprevisto",
+        name: formName || formDescription || "Gasto",
         amount: parseFloat(formAmount) || 0,
-        expense_type: type,
-        frequency: type === "fixed" ? formFrequency : null,
+        expense_type: expenseType,
+        frequency: !isUnexpected ? formFrequency : null,
         category_id: formCategoryId && formCategoryId !== "none" ? formCategoryId : null,
-        status: type === "unexpected" ? "paid" : "pending",
-        due_date: type === "fixed" ? (formDueDate || getNextDueDate(null, formFrequency)) : (formDueDate || new Date().toISOString()),
-        paid_at: type === "unexpected" ? new Date().toISOString() : null,
+        status: isUnexpected ? "paid" : "pending",
+        due_date: !isUnexpected ? (formDueDate || getNextDueDate(null, formFrequency)) : (formDueDate || new Date().toISOString()),
+        paid_at: isUnexpected ? new Date().toISOString() : null,
         description: formDescription || null,
         receipt_url: receiptUrl,
         created_by: user?.id ?? null,
@@ -367,7 +370,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
         if (error) throw error;
 
         // Auto-create treasury movement for unexpected expenses
-        if (type === "unexpected" && user) {
+        if (isUnexpected && user) {
           const { error: tmErr } = await supabase.from("treasury_movements" as any).insert({
             business_id: businessId,
             branch_id: branchId,
@@ -389,8 +392,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
       toast.success(editingExpense ? "Gasto actualizado" : "Gasto registrado");
       qc.invalidateQueries({ queryKey: ["accounting-expenses"] });
       qc.invalidateQueries({ queryKey: ["treasury-movements"] });
-      setFixedDialog(false);
-      setUnexpectedDialog(false);
+      setExpenseDialog(false);
       resetForm();
     },
     onError: (err: any) => toast.error(err.message || "Error al guardar"),
@@ -470,7 +472,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     onError: (err: any) => toast.error(err.message),
   });
 
-  const openEditFixed = (e: Expense) => {
+  const openEditExpense = (e: Expense) => {
     setEditingExpense(e);
     setFormName(e.name);
     setFormAmount(String(e.amount));
@@ -478,7 +480,8 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     setFormCategoryId(e.category_id || "");
     setFormDescription(e.description || "");
     setFormDueDate(e.due_date ? format(parseISO(e.due_date), "yyyy-MM-dd") : "");
-    setFixedDialog(true);
+    setFormTipo(e.expense_type === "unexpected" ? "imprevisto" : e.expense_type === "indirect" ? "indirecto" : "directo");
+    setExpenseDialog(true);
   };
 
   const statusBadge = (status: string) => {
@@ -638,14 +641,9 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
       <div className="space-y-3">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <h3 className="font-semibold">Todos los Gastos</h3>
-          <div className="flex gap-2">
-            <Button size="sm" variant="outline" onClick={() => { resetForm(); setFixedDialog(true); }}>
-              <Plus className="h-4 w-4 mr-1" /> Gasto Fijo
-            </Button>
-            <Button size="sm" onClick={() => { resetForm(); setUnexpectedDialog(true); }}>
-              <Plus className="h-4 w-4 mr-1" /> Gasto Imprevisto
-            </Button>
-          </div>
+          <Button size="sm" onClick={() => { resetForm(); setExpenseDialog(true); }}>
+            <Plus className="h-4 w-4 mr-1" /> Nuevo Gasto
+          </Button>
         </div>
         <Card>
           <div className="overflow-auto">
@@ -693,16 +691,14 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
                       <TableCell>{statusBadge(e.status)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {e.status !== "paid" && e.expense_type === "fixed" && (
+                          {e.status !== "paid" && e.expense_type !== "unexpected" && (
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markPaidMutation.mutate(e)} title="Marcar pagado">
                               <Check className="h-4 w-4 text-green-600" />
                             </Button>
                           )}
-                          {e.expense_type === "fixed" && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditFixed(e)} title="Editar">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditExpense(e)} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(e.id)} title="Eliminar">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -717,77 +713,67 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
         </Card>
       </div>
 
-      {/* ── Fixed Expense Dialog ── */}
-      <Dialog open={fixedDialog} onOpenChange={(o) => { if (!o) resetForm(); setFixedDialog(o); }}>
+      {/* ── Unified Expense Dialog ── */}
+      <Dialog open={expenseDialog} onOpenChange={(o) => { if (!o) resetForm(); setExpenseDialog(o); }}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingExpense ? "Editar Gasto Fijo" : "Nuevo Gasto Fijo"}</DialogTitle>
+            <DialogTitle>{editingExpense ? "Editar Gasto" : "Nuevo Gasto"}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Nombre</Label>
-              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Ej: Internet" />
-            </div>
-            <div>
-              <Label>Monto</Label>
-              <Input type="number" min="0" step="0.01" value={formAmount} onChange={(e) => setFormAmount(e.target.value)} placeholder="0.00" />
-            </div>
-            <div>
-              <Label>Frecuencia</Label>
-              <Select value={formFrequency} onValueChange={setFormFrequency}>
+              <Label>Tipo <span className="text-destructive">*</span></Label>
+              <Select value={formTipo} onValueChange={(v) => setFormTipo(v as "directo" | "indirecto" | "imprevisto")}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  {FREQUENCIES.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                  <SelectItem value="directo">Directo</SelectItem>
+                  <SelectItem value="indirecto">Indirecto</SelectItem>
+                  <SelectItem value="imprevisto">Imprevisto</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Próximo vencimiento</Label>
-              <Input type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => { setFixedDialog(false); resetForm(); }}>Cancelar</Button>
-            <Button disabled={!formName || !formAmount || saveMutation.isPending} onClick={() => saveMutation.mutate("fixed")}>
-              {saveMutation.isPending ? "Guardando..." : editingExpense ? "Actualizar" : "Guardar"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* ── Unexpected Expense Dialog ── */}
-      <Dialog open={unexpectedDialog} onOpenChange={(o) => { if (!o) resetForm(); setUnexpectedDialog(o); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Nuevo Gasto Imprevisto</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Descripción</Label>
-              <Textarea value={formDescription} onChange={(e) => setFormDescription(e.target.value)} placeholder="Describe el gasto..." />
+              <Label>{formTipo === "imprevisto" ? "Descripción" : "Nombre"}</Label>
+              {formTipo === "imprevisto" ? (
+                <Textarea value={formDescription || formName} onChange={(e) => { setFormDescription(e.target.value); setFormName(e.target.value); }} placeholder="Describe el gasto..." />
+              ) : (
+                <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Ej: Internet" />
+              )}
             </div>
             <div>
               <Label>Monto</Label>
               <Input type="number" min="0" step="0.01" value={formAmount} onChange={(e) => setFormAmount(e.target.value)} placeholder="0.00" />
             </div>
+            {formTipo !== "imprevisto" && (
+              <div>
+                <Label>Frecuencia</Label>
+                <Select value={formFrequency} onValueChange={setFormFrequency}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {FREQUENCIES.map((f) => <SelectItem key={f.value} value={f.value}>{f.label}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
-              <Label>Fecha</Label>
+              <Label>{formTipo === "imprevisto" ? "Fecha" : "Próximo vencimiento"}</Label>
               <Input type="date" value={formDueDate} onChange={(e) => setFormDueDate(e.target.value)} />
             </div>
-            <div>
-              <Label>Comprobante (opcional)</Label>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="gap-1" onClick={() => document.getElementById("receipt-input")?.click()}>
-                  <Upload className="h-4 w-4" /> {formFile ? formFile.name : "Adjuntar archivo"}
-                </Button>
-                <input id="receipt-input" type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => setFormFile(e.target.files?.[0] || null)} />
+            {formTipo === "imprevisto" && (
+              <div>
+                <Label>Comprobante (opcional)</Label>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="gap-1" onClick={() => document.getElementById("receipt-input")?.click()}>
+                    <Upload className="h-4 w-4" /> {formFile ? formFile.name : "Adjuntar archivo"}
+                  </Button>
+                  <input id="receipt-input" type="file" accept="image/*,.pdf" className="hidden" onChange={(e) => setFormFile(e.target.files?.[0] || null)} />
+                </div>
               </div>
-            </div>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setUnexpectedDialog(false); resetForm(); }}>Cancelar</Button>
-            <Button disabled={!formAmount || saveMutation.isPending || uploading} onClick={() => saveMutation.mutate("unexpected")}>
-              {uploading ? "Subiendo..." : saveMutation.isPending ? "Guardando..." : "Registrar"}
+            <Button variant="outline" onClick={() => { setExpenseDialog(false); resetForm(); }}>Cancelar</Button>
+            <Button disabled={!(formName || formDescription) || !formAmount || saveMutation.isPending || uploading} onClick={() => saveMutation.mutate()}>
+              {uploading ? "Subiendo..." : saveMutation.isPending ? "Guardando..." : editingExpense ? "Actualizar" : "Guardar"}
             </Button>
           </DialogFooter>
         </DialogContent>
