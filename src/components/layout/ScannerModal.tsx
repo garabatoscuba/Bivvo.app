@@ -284,7 +284,7 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
       handleScanResult(result.getText());
     });
 
-    startAutoFocus();
+    // Manual tap-to-focus only
     startScanLine();
   };
 
