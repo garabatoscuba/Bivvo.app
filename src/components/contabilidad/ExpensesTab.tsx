@@ -691,16 +691,14 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
                       <TableCell>{statusBadge(e.status)}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {e.status !== "paid" && e.expense_type === "fixed" && (
+                          {e.status !== "paid" && e.expense_type !== "unexpected" && (
                             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => markPaidMutation.mutate(e)} title="Marcar pagado">
                               <Check className="h-4 w-4 text-green-600" />
                             </Button>
                           )}
-                          {e.expense_type === "fixed" && (
-                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditFixed(e)} title="Editar">
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          )}
+                          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEditExpense(e)} title="Editar">
+                            <Pencil className="h-4 w-4" />
+                          </Button>
                           <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setDeleteConfirmId(e.id)} title="Eliminar">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
