@@ -246,7 +246,6 @@ const Plans = () => {
     'Empleados y Nómina completa',
     'Reportes: Resumen e Historial',
     'Contabilidad: Balance, Gastos y Análisis',
-    'Soporte por WhatsApp',
   ];
 
   const enterpriseFeatures = [
@@ -254,8 +253,6 @@ const Plans = () => {
     'Reportes completos (Por Empleado, Comparativa, Ventas vs Serv., Bitácora)',
     'Contabilidad completa (Activos, Análisis avanzado, Documentos)',
     'Contabilidad Avanzada (Cuentas T, Libro Diario)',
-    'Portales públicos personalizables',
-    'Enlace entre negocios',
     'Soporte prioritario',
   ];
 
