@@ -265,6 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    clearOfflineSession();
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
