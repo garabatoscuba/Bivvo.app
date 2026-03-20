@@ -244,8 +244,8 @@ const Plans = () => {
     'Soporte por WhatsApp',
   ];
 
-  const professionalFeatures = [
-    'Todo lo del Plan Básico',
+  const enterpriseFeatures = [
+    'Todo lo del Plan Profesional',
     'Contabilidad completa',
     'Portales públicos personalizables',
     'Enlace entre negocios',
