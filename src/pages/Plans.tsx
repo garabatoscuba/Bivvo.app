@@ -56,7 +56,7 @@ const Plans = () => {
   // Auto-open purchase dialog when coming from banner with ?buy=true
   useEffect(() => {
     if (searchParams.get('buy') === 'true') {
-      setSelectedPlan('basic');
+      setSelectedPlan('professional');
       setSelectedMonths('1');
       setRequestOpen(true);
       // Clean up URL without full reload
