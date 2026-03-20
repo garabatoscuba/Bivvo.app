@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
+import { saveOfflineSession, loadOfflineSession, clearOfflineSession } from '@/lib/offlineSession';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -139,6 +140,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
             setProfile(p);
             setRoles(r);
+            // Save session for offline use
+            saveOfflineSession({ user: newSession.user, session: newSession, profile: p, roles: r });
             // Fire-and-forget: track last login
             if (event === 'SIGNED_IN') {
               supabase.from('profiles').update({ last_login_at: new Date().toISOString() } as any).eq('user_id', newSession.user.id).then();
@@ -147,6 +150,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         } else {
           setProfile(null);
           setRoles([]);
+          clearOfflineSession();
         }
       }
     );
@@ -172,9 +176,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
           setProfile(p);
           setRoles(r);
+          // Save for offline
+          saveOfflineSession({ user: existingSession.user, session: existingSession, profile: p, roles: r });
         }
       } catch (err) {
-        console.error('Auth initialization error:', err);
+        console.warn('Auth initialization error (possibly offline):', err);
+        // Fallback to offline session
+        if (!mountedRef.current) return;
+        const cached = loadOfflineSession();
+        if (cached) {
+          console.info('[Auth] Using cached offline session');
+          setUser(cached.user);
+          setSession(cached.session);
+          setProfile(cached.profile);
+          setRoles(cached.roles as AppRole[]);
+
+          // When back online, verify in background
+          const handleOnline = async () => {
+            window.removeEventListener('online', handleOnline);
+            try {
+              const { data: { session: freshSession } } = await supabase.auth.getSession();
+              if (!mountedRef.current) return;
+              if (freshSession?.user) {
+                const [p, r] = await Promise.all([
+                  fetchProfile(freshSession.user.id),
+                  fetchRoles(freshSession.user.id),
+                ]);
+                if (!mountedRef.current) return;
+                if (p) {
+                  setUser(freshSession.user);
+                  setSession(freshSession);
+                  setProfile(p);
+                  setRoles(r);
+                  saveOfflineSession({ user: freshSession.user, session: freshSession, profile: p, roles: r });
+                }
+              }
+            } catch {
+              // silent
+            }
+          };
+          if (navigator.onLine) {
+            handleOnline();
+          } else {
+            window.addEventListener('online', handleOnline);
+          }
+        }
       } finally {
         if (mountedRef.current) {
           setLoading(false);
@@ -219,6 +265,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    clearOfflineSession();
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
