@@ -138,6 +138,23 @@ const AdminRequests = () => {
   const [selectedBizIds, setSelectedBizIds] = useState<Set<string>>(new Set());
   const [detailBizReq, setDetailBizReq] = useState<any>(null);
 
+  // Approval confirmation modal state
+  const [approveModal, setApproveModal] = useState<{ request: any; type: 'plan' | 'business' } | null>(null);
+  const [approveIsFree, setApproveIsFree] = useState(false);
+  const [approveNotes, setApproveNotes] = useState('');
+
+  const openApproveModal = (request: any, type: 'plan' | 'business') => {
+    setApproveModal({ request, type });
+    setApproveIsFree(false);
+    setApproveNotes('');
+  };
+
+  const closeApproveModal = () => {
+    setApproveModal(null);
+    setApproveIsFree(false);
+    setApproveNotes('');
+  };
+
   const { data, isLoading } = useQuery({
     queryKey: ['admin-requests-page'],
     queryFn: async () => {
