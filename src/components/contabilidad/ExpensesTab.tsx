@@ -267,9 +267,8 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const unexpectedExpenses = useMemo(() => filteredExpenses.filter((e) => e.expense_type === "unexpected"), [filteredExpenses]);
 
   // Unified & sorted list
-  const getExpenseTipo = (e: Expense) => {
+  const getExpenseTipo = (e: Expense): string => {
     if (e.expense_type === "unexpected") return "Imprevisto";
-    // For fixed expenses, default to "Directo" — could be extended with a DB column later
     return "Directo";
   };
 
