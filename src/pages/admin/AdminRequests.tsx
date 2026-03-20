@@ -782,7 +782,7 @@ const AdminRequests = () => {
                       <div className="flex gap-2">
                         <Button
                           className="flex-1 gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white"
-                          onClick={() => approveBizRequestMutation.mutate({ requestId: detailBizReq.id, action: 'approved' })}
+                          onClick={() => openApproveModal(detailBizReq, 'business')}
                           disabled={approveBizRequestMutation.isPending}
                         >
                           <Check className="h-4 w-4" /> Aprobar
