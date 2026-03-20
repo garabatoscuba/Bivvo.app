@@ -44,7 +44,7 @@ const Plans = () => {
   const { toast } = useToast();
 
   const [requestOpen, setRequestOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'professional'>('basic');
+  const [selectedPlan, setSelectedPlan] = useState<'professional' | 'enterprise'>('professional');
   const [selectedMonths, setSelectedMonths] = useState('1');
   const [manualCode, setManualCode] = useState(() => {
     return (profile as any)?.referral_code || sessionStorage.getItem('referral_code') || '';
