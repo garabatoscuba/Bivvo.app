@@ -512,7 +512,7 @@ const Plans = () => {
             </CardHeader>
             <CardContent className="flex-1">
               <p className="text-3xl font-bold">$20 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
-              <p className="text-sm text-muted-foreground">En construcción · Disponible pronto</p>
+              <p className="text-sm text-muted-foreground">7 días gratis · Sin tarjeta</p>
               <ul className="mt-4 space-y-2">
                 {enterpriseFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
