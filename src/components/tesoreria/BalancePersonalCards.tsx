@@ -532,3 +532,53 @@ function MiniCard({ icon, label, value, muted, subtitle }: { icon: React.ReactNo
     </div>
   );
 }
+
+function LiquidityBlock({ businessId, disponible, fmt }: { businessId: string; disponible: number; fmt: (n: number) => string }) {
+  const { data: pendingFixed = 0 } = useQuery({
+    queryKey: ["liquidity-pending-fixed", businessId],
+    queryFn: async () => {
+      const now = new Date();
+      const mStart = startOfMonth(now).toISOString();
+      const mEnd = endOfMonth(now).toISOString();
+      const { data } = await supabase
+        .from("accounting_expenses")
+        .select("amount")
+        .eq("business_id", businessId)
+        .eq("expense_type", "fixed")
+        .eq("status", "pending")
+        .gte("due_date", mStart)
+        .lte("due_date", mEnd);
+      return (data || []).reduce((s, e) => s + Number(e.amount), 0);
+    },
+    enabled: !!businessId,
+  });
+
+  return (
+    <Card>
+      <CardContent className="p-4 space-y-3">
+        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">Liquidez</h3>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Dinero disponible</p>
+            <p className={`text-xl font-bold ${disponible >= 0 ? "text-green-600" : "text-red-600"}`}>{fmt(disponible)}</p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs text-muted-foreground">Gastos fijos pendientes (mes)</p>
+            <p className="text-xl font-bold text-foreground">{fmt(pendingFixed)}</p>
+          </div>
+        </div>
+        {disponible >= pendingFixed ? (
+          <div className="flex items-center gap-2 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/20 rounded-lg p-3">
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            <p className="text-xs font-medium">Puedes cubrir tus gastos fijos pendientes</p>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/20 rounded-lg p-3">
+            <AlertTriangle className="h-4 w-4 shrink-0" />
+            <p className="text-xs font-medium">Atención: gastos pendientes superan tu disponible</p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

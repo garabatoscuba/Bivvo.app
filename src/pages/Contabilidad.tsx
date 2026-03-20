@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useBranches } from "@/hooks/useBranches";
 import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
-import { Lock } from "lucide-react";
+import { Lock, FileText } from "lucide-react";
 
 import {
   Select,
@@ -18,12 +18,15 @@ import AssetsTab from "@/components/contabilidad/AssetsTab";
 import AnalysisTab from "@/components/contabilidad/AnalysisTab";
 import { usePlanFeatures, type PlanFeatureKey } from "@/hooks/usePlanFeatures";
 import PlanGateModal from "@/components/PlanGateModal";
+import { Card, CardContent } from "@/components/ui/card";
 
 const TAB_FEATURE_MAP: Record<string, PlanFeatureKey | null> = {
   balance: null,
   gastos: null,
   activos: 'contabilidad_activos',
   analisis: 'contabilidad_analisis',
+  avanzado: 'contabilidad_avanzado',
+  documentos: 'contabilidad_documentos',
 };
 
 const TAB_LABELS: Record<string, string> = {
@@ -31,6 +34,8 @@ const TAB_LABELS: Record<string, string> = {
   gastos: "Gastos",
   activos: "Activos",
   analisis: "Análisis",
+  avanzado: "Avanzado",
+  documentos: "Documentos",
 };
 
 const Contabilidad = () => {
@@ -88,8 +93,8 @@ const Contabilidad = () => {
         </div>
 
         <div className="flex">
-          <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full">
-            {(["balance", "gastos", "activos", "analisis"] as const).map((tab) => {
+          <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full overflow-x-auto">
+            {(["balance", "gastos", "activos", "analisis", "avanzado", "documentos"] as const).map((tab) => {
               const featureKey = TAB_FEATURE_MAP[tab];
               const locked = featureKey ? !hasFeature(featureKey) : false;
               return (
@@ -129,6 +134,52 @@ const Contabilidad = () => {
 
         {activeTab === "analisis" && hasFeature('contabilidad_analisis') && profile?.business_id && (
           <AnalysisTab businessId={profile.business_id} branchId={filterBranchId} />
+        )}
+
+        {activeTab === "avanzado" && hasFeature('contabilidad_avanzado') && (
+          <div className="space-y-4">
+            <Card>
+              <CardContent className="p-8 text-center space-y-3">
+                <div className="rounded-full bg-primary/10 p-3 mx-auto w-fit">
+                  <Lock className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold">Contabilidad Avanzada</h3>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Cuentas T y Libro Diario estarán disponibles próximamente para el Plan Enterprise.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {activeTab === "documentos" && hasFeature('contabilidad_documentos') && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { title: "IPV", desc: "Informe de Producción y Ventas" },
+                { title: "Conduce", desc: "Documento de traslado de mercancías" },
+                { title: "Orden de Compra", desc: "Solicitud formal de adquisición" },
+                { title: "Factura de Venta", desc: "Documento comercial de venta" },
+              ].map((doc) => (
+                <Card key={doc.title} className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardContent className="p-4 text-center space-y-2">
+                    <div className="rounded-full bg-muted p-2.5 mx-auto w-fit">
+                      <FileText className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                    <h4 className="text-sm font-semibold">{doc.title}</h4>
+                    <p className="text-[11px] text-muted-foreground leading-snug">{doc.desc}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <Card>
+              <CardContent className="p-6 text-center">
+                <p className="text-sm text-muted-foreground">
+                  Selecciona un tipo de documento para generar o consultar.
+                </p>
+              </CardContent>
+            </Card>
+          </div>
         )}
       </div>
 
