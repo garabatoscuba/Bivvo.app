@@ -641,7 +641,7 @@ const Inventory = () => {
                       e.stopPropagation();
                       if (guardDowngrade()) return;
                       if (!canCreateProduct) {
-                        toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos. Mejora tu plan para agregar más.`, variant: 'destructive' });
+                        setPlanGateOpen(true);
                         return;
                       }
                       setEditingProduct(null);
