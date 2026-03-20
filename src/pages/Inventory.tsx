@@ -15,6 +15,7 @@ import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useIsDowngraded } from '@/hooks/useIsDowngraded';
 import DowngradeModal from '@/components/DowngradeModal';
+import PlanGateModal from '@/components/PlanGateModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { toast } from '@/hooks/use-toast';
@@ -149,6 +150,7 @@ const Inventory = () => {
   const [granelPriceUpdating, setGranelPriceUpdating] = useState(false);
   const { isDowngraded } = useIsDowngraded();
   const [consumoInternoProduct, setConsumoInternoProduct] = useState<any>(null);
+  const [planGateOpen, setPlanGateOpen] = useState(false);
 
   const effectiveBranchId = selectedBranch || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(effectiveBranchId);
@@ -639,7 +641,7 @@ const Inventory = () => {
                       e.stopPropagation();
                       if (guardDowngrade()) return;
                       if (!canCreateProduct) {
-                        toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos. Mejora tu plan para agregar más.`, variant: 'destructive' });
+                        setPlanGateOpen(true);
                         return;
                       }
                       setEditingProduct(null);
@@ -722,7 +724,7 @@ const Inventory = () => {
                   <Button className="mt-4" onClick={() => {
                     if (guardDowngrade()) return;
                     if (!canCreateProduct) {
-                      toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos.`, variant: 'destructive' });
+                      setPlanGateOpen(true);
                       return;
                     }
                     setProductFormOpen(true);
@@ -1495,6 +1497,11 @@ const Inventory = () => {
         />
       )}
       <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
+      <PlanGateModal
+        open={planGateOpen}
+        onOpenChange={setPlanGateOpen}
+        requiredPlan="Profesional"
+      />
       <ConsumoInternoModal
         open={!!consumoInternoProduct}
         onOpenChange={(o) => !o && setConsumoInternoProduct(null)}
