@@ -328,7 +328,9 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
 
   // ── Mutations ──
   const saveMutation = useMutation({
-    mutationFn: async (type: "fixed" | "unexpected") => {
+    mutationFn: async () => {
+      const isUnexpected = formTipo === "imprevisto";
+      const expenseType = isUnexpected ? "unexpected" : formTipo === "indirecto" ? "indirect" : "fixed";
       let receiptUrl: string | null = null;
 
       if (formFile) {
@@ -347,14 +349,14 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
       const row: any = {
         business_id: businessId,
         branch_id: branchId,
-        name: type === "fixed" ? formName : formDescription || "Gasto imprevisto",
+        name: formName || formDescription || "Gasto",
         amount: parseFloat(formAmount) || 0,
-        expense_type: type,
-        frequency: type === "fixed" ? formFrequency : null,
+        expense_type: expenseType,
+        frequency: !isUnexpected ? formFrequency : null,
         category_id: formCategoryId && formCategoryId !== "none" ? formCategoryId : null,
-        status: type === "unexpected" ? "paid" : "pending",
-        due_date: type === "fixed" ? (formDueDate || getNextDueDate(null, formFrequency)) : (formDueDate || new Date().toISOString()),
-        paid_at: type === "unexpected" ? new Date().toISOString() : null,
+        status: isUnexpected ? "paid" : "pending",
+        due_date: !isUnexpected ? (formDueDate || getNextDueDate(null, formFrequency)) : (formDueDate || new Date().toISOString()),
+        paid_at: isUnexpected ? new Date().toISOString() : null,
         description: formDescription || null,
         receipt_url: receiptUrl,
         created_by: user?.id ?? null,
@@ -368,7 +370,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
         if (error) throw error;
 
         // Auto-create treasury movement for unexpected expenses
-        if (type === "unexpected" && user) {
+        if (isUnexpected && user) {
           const { error: tmErr } = await supabase.from("treasury_movements" as any).insert({
             business_id: businessId,
             branch_id: branchId,
@@ -390,8 +392,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
       toast.success(editingExpense ? "Gasto actualizado" : "Gasto registrado");
       qc.invalidateQueries({ queryKey: ["accounting-expenses"] });
       qc.invalidateQueries({ queryKey: ["treasury-movements"] });
-      setFixedDialog(false);
-      setUnexpectedDialog(false);
+      setExpenseDialog(false);
       resetForm();
     },
     onError: (err: any) => toast.error(err.message || "Error al guardar"),
