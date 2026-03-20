@@ -115,7 +115,7 @@ const Dashboard = () => {
     setPlanInfoPopupOpen(false);
   };
 
-  const planLabel = planType === 'professional' ? 'Profesional' : planType === 'basic' ? 'Básico' : 'Gratuito';
+  const planLabel = planType === 'enterprise' ? 'Enterprise' : planType === 'professional' ? 'Profesional' : 'Gratuito';
 
   const lowStockProducts = branchStock?.filter((bs: any) => {
     const product = products.find((p) => p.id === bs.product_id);

@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export type PlanType = 'free' | 'basic' | 'professional';
+export type PlanType = 'free' | 'professional' | 'enterprise';
 export type SubscriptionState = 'active' | 'trial' | 'expiring' | 'blocked';
 
 interface SubscriptionInfo {
@@ -68,7 +68,7 @@ export const useSubscription = (): SubscriptionInfo => {
   if (authLoading || branchLoading || serverTimeLoading || !profile || !serverNow) return defaults;
 
   const plan = (profile.plan_type || 'free') as PlanType;
-  const pricePerBranch = plan === 'professional' ? 20 : plan === 'basic' ? 10 : 0;
+  const pricePerBranch = plan === 'enterprise' ? 20 : plan === 'professional' ? 10 : 0;
   const totalBranches = Math.max(1, branchCount);
   const totalMonthly = pricePerBranch * totalBranches;
 

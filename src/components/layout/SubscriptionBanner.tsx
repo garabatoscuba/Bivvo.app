@@ -15,7 +15,7 @@ const SubscriptionBanner = () => {
     return (
       <div className="flex items-center gap-2 bg-info px-4 py-2 text-sm text-info-foreground">
         <Clock className="h-4 w-4 shrink-0" />
-        <span>Te quedan <strong>{daysLeft}</strong> días de prueba del plan {planType === 'professional' ? 'Profesional' : 'Básico'}.</span>
+        <span>Te quedan <strong>{daysLeft}</strong> días de prueba del plan {planType === 'enterprise' ? 'Enterprise' : 'Profesional'}.</span>
         <Button
           size="sm"
           variant="secondary"

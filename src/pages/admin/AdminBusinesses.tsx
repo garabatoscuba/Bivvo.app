@@ -223,8 +223,8 @@ const AdminBusinesses = () => {
   });
 
   const getPlanLabel = (plan: string | null) => {
+    if (plan === 'enterprise') return 'Enterprise';
     if (plan === 'professional') return 'Profesional';
-    if (plan === 'basic') return 'Básico';
     return 'Gratuito';
   };
 
@@ -291,8 +291,8 @@ const AdminBusinesses = () => {
                 <SelectContent>
                   <SelectItem value="all">Plan: Todos</SelectItem>
                   <SelectItem value="free">Gratuito</SelectItem>
-                  <SelectItem value="basic">Básico</SelectItem>
                   <SelectItem value="professional">Profesional</SelectItem>
+                  <SelectItem value="enterprise">Enterprise</SelectItem>
                 </SelectContent>
               </Select>
               <ResultCount count={filteredBiz.length} />

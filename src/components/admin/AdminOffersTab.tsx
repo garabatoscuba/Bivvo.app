@@ -47,7 +47,7 @@ const EMPTY_FORM: {
   starts_at: string; expires_at: string; is_active: boolean;
 } = {
   name: '', description: '', discount_type: 'percentage',
-  discount_value: 0, discount_duration_months: '', applies_to_plans: ['basic', 'professional'],
+  discount_value: 0, discount_duration_months: '', applies_to_plans: ['professional', 'enterprise'],
   target_type: 'all', target_user_ids: '',
   starts_at: new Date().toISOString().slice(0, 16), expires_at: '', is_active: true,
 };
@@ -242,7 +242,7 @@ const AdminOffersTab = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          {offer.applies_to_plans.map(p => <Badge key={p} variant="outline" className="text-[10px]">{p === 'basic' ? 'Básico' : 'Pro'}</Badge>)}
+                          {offer.applies_to_plans.map(p => <Badge key={p} variant="outline" className="text-[10px]">{p === 'professional' ? 'Profesional' : p === 'enterprise' ? 'Enterprise' : p}</Badge>)}
                         </div>
                       </TableCell>
                       <TableCell>
@@ -317,8 +317,8 @@ const AdminOffersTab = () => {
             <div className="space-y-1.5">
               <Label>Aplica a planes</Label>
               <div className="flex gap-4">
-                <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.applies_to_plans.includes('basic')} onCheckedChange={() => togglePlan('basic')} /> Básico</label>
                 <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.applies_to_plans.includes('professional')} onCheckedChange={() => togglePlan('professional')} /> Profesional</label>
+                <label className="flex items-center gap-2 text-sm"><Checkbox checked={form.applies_to_plans.includes('enterprise')} onCheckedChange={() => togglePlan('enterprise')} /> Enterprise</label>
               </div>
             </div>
             <div className="space-y-1.5">

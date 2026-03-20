@@ -21,14 +21,14 @@ const WHATSAPP_URL = (msg: string) => `https://wa.me/${WHATSAPP_NUMBER}?text=${e
 
 const PLAN_LABELS: Record<PlanType, string> = {
   free: 'Gratuito',
-  basic: 'Básico',
   professional: 'Profesional',
+  enterprise: 'Enterprise',
 };
 
 const PRICE_PER_BRANCH: Record<PlanType, number> = {
   free: 0,
-  basic: 10,
-  professional: 20,
+  professional: 10,
+  enterprise: 20,
 };
 
 const DURATION_OPTIONS = [
@@ -44,7 +44,7 @@ const Plans = () => {
   const { toast } = useToast();
 
   const [requestOpen, setRequestOpen] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<'basic' | 'professional'>('basic');
+  const [selectedPlan, setSelectedPlan] = useState<'professional' | 'enterprise'>('professional');
   const [selectedMonths, setSelectedMonths] = useState('1');
   const [manualCode, setManualCode] = useState(() => {
     return (profile as any)?.referral_code || sessionStorage.getItem('referral_code') || '';
@@ -56,7 +56,7 @@ const Plans = () => {
   // Auto-open purchase dialog when coming from banner with ?buy=true
   useEffect(() => {
     if (searchParams.get('buy') === 'true') {
-      setSelectedPlan('basic');
+      setSelectedPlan('professional');
       setSelectedMonths('1');
       setRequestOpen(true);
       // Clean up URL without full reload
@@ -159,7 +159,7 @@ const Plans = () => {
 
   // Trial activation
   const trialMutation = useMutation({
-    mutationFn: async (plan: 'basic' | 'professional') => {
+    mutationFn: async (plan: 'professional' | 'enterprise') => {
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 7);
       const { error } = await supabase
@@ -221,7 +221,7 @@ const Plans = () => {
     },
   });
 
-  const openRequest = (plan: 'basic' | 'professional') => {
+  const openRequest = (plan: 'professional' | 'enterprise') => {
     setSelectedPlan(plan);
     setSelectedMonths('1');
     setRequestOpen(true);
@@ -235,7 +235,7 @@ const Plans = () => {
     'Sin límite de tiempo',
   ];
 
-  const basicFeatures = [
+  const professionalFeatures = [
     'Inventario ilimitado',
     'Punto de Venta (POS) completo',
     'Módulo de Clientes y Afiliación',
@@ -244,8 +244,8 @@ const Plans = () => {
     'Soporte por WhatsApp',
   ];
 
-  const professionalFeatures = [
-    'Todo lo del Plan Básico',
+  const enterpriseFeatures = [
+    'Todo lo del Plan Profesional',
     'Contabilidad completa',
     'Portales públicos personalizables',
     'Enlace entre negocios',
@@ -329,7 +329,7 @@ const Plans = () => {
 
             {(status === 'blocked' || status === 'expiring') && planType !== 'free' && (
               <div className="mt-4 flex justify-center">
-                <Button className="gap-2" onClick={() => openRequest(planType === 'basic' || planType === 'professional' ? planType : 'basic')}>
+                <Button className="gap-2" onClick={() => openRequest(planType === 'professional' || planType === 'enterprise' ? planType : 'professional')}>
                   <Send className="h-4 w-4" /> Renovar plan
                 </Button>
               </div>
@@ -439,60 +439,10 @@ const Plans = () => {
             </CardFooter>
           </Card>
 
-          {/* Basic */}
-          <Card className={`flex flex-col relative ${planType === 'basic' && status !== 'blocked' ? 'border-primary' : 'border-primary'}`}>
+          {/* Professional */}
+          <Card className={`flex flex-col relative ${planType === 'professional' && status !== 'blocked' ? 'border-primary' : 'border-primary'}`}>
             <div className="flex items-center justify-between px-4 pt-3">
               <Badge className="gap-1"><Star className="h-3 w-3" /> Popular</Badge>
-              {status === 'trial' && planType === 'basic' && (
-                <Badge variant="secondary" className="gap-1 text-[10px]">
-                  <Clock className="h-3 w-3" /> PRUEBA
-                </Badge>
-              )}
-            </div>
-            <CardHeader className="pt-2">
-              <CardTitle className="text-lg">Plan Básico</CardTitle>
-              <CardDescription>Inventario y clientes sin límites</CardDescription>
-            </CardHeader>
-            <CardContent className="flex-1">
-              <p className="text-3xl font-bold">$10 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
-              <p className="text-sm text-muted-foreground">7 días gratis · Sin tarjeta</p>
-              <ul className="mt-4 space-y-2">
-                {basicFeatures.map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-green-600 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-            <CardFooter className="flex-col gap-2">
-              {planType === 'basic' && status !== 'blocked' ? (
-                <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
-              ) : (
-                <>
-                  <Button className="w-full gap-2" onClick={() => openRequest('basic')}>
-                    <Send className="h-4 w-4" /> Solicitar plan
-                  </Button>
-                  {planType === 'free' && (
-                    <Button
-                      variant="outline"
-                      className="w-full gap-2"
-                      onClick={() => trialMutation.mutate('basic')}
-                      disabled={trialMutation.isPending}
-                    >
-                      {trialMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
-                      Probar 7 días gratis
-                    </Button>
-                  )}
-                </>
-              )}
-            </CardFooter>
-          </Card>
-
-          {/* Professional */}
-          <Card className="flex flex-col relative">
-            <div className="flex items-center justify-between px-4 pt-3">
-              <Badge variant="secondary" className="gap-1"><Crown className="h-3 w-3" /> Pro</Badge>
               {status === 'trial' && planType === 'professional' && (
                 <Badge variant="secondary" className="gap-1 text-[10px]">
                   <Clock className="h-3 w-3" /> PRUEBA
@@ -501,11 +451,11 @@ const Plans = () => {
             </div>
             <CardHeader className="pt-2">
               <CardTitle className="text-lg">Plan Profesional</CardTitle>
-              <CardDescription>Todo para escalar tu negocio</CardDescription>
+              <CardDescription>Inventario y clientes sin límites</CardDescription>
             </CardHeader>
             <CardContent className="flex-1">
-              <p className="text-3xl font-bold">$20 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
-              <p className="text-sm text-muted-foreground">En construcción · Disponible pronto</p>
+              <p className="text-3xl font-bold">$10 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
+              <p className="text-sm text-muted-foreground">7 días gratis · Sin tarjeta</p>
               <ul className="mt-4 space-y-2">
                 {professionalFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
@@ -517,6 +467,56 @@ const Plans = () => {
             </CardContent>
             <CardFooter className="flex-col gap-2">
               {planType === 'professional' && status !== 'blocked' ? (
+                <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
+              ) : (
+                <>
+                  <Button className="w-full gap-2" onClick={() => openRequest('professional')}>
+                    <Send className="h-4 w-4" /> Solicitar plan
+                  </Button>
+                  {planType === 'free' && (
+                    <Button
+                      variant="outline"
+                      className="w-full gap-2"
+                      onClick={() => trialMutation.mutate('professional')}
+                      disabled={trialMutation.isPending}
+                    >
+                      {trialMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarDays className="h-4 w-4" />}
+                      Probar 7 días gratis
+                    </Button>
+                  )}
+                </>
+              )}
+            </CardFooter>
+          </Card>
+
+          {/* Enterprise */}
+          <Card className="flex flex-col relative">
+            <div className="flex items-center justify-between px-4 pt-3">
+              <Badge variant="secondary" className="gap-1"><Crown className="h-3 w-3" /> Pro</Badge>
+              {status === 'trial' && planType === 'enterprise' && (
+                <Badge variant="secondary" className="gap-1 text-[10px]">
+                  <Clock className="h-3 w-3" /> PRUEBA
+                </Badge>
+              )}
+            </div>
+            <CardHeader className="pt-2">
+              <CardTitle className="text-lg">Plan Enterprise</CardTitle>
+              <CardDescription>Todo para escalar tu negocio</CardDescription>
+            </CardHeader>
+            <CardContent className="flex-1">
+              <p className="text-3xl font-bold">$20 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
+              <p className="text-sm text-muted-foreground">En construcción · Disponible pronto</p>
+              <ul className="mt-4 space-y-2">
+                {enterpriseFeatures.map(f => (
+                  <li key={f} className="flex items-center gap-2 text-sm">
+                    <Check className="h-4 w-4 text-green-600 shrink-0" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+            <CardFooter className="flex-col gap-2">
+              {planType === 'enterprise' && status !== 'blocked' ? (
                 <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
               ) : (
                 <Badge variant="secondary" className="w-full justify-center py-2 text-muted-foreground">
@@ -546,7 +546,7 @@ const Plans = () => {
       <Dialog open={requestOpen} onOpenChange={setRequestOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Solicitar Plan {selectedPlan === 'basic' ? 'Básico' : 'Profesional'}</DialogTitle>
+            <DialogTitle>Solicitar Plan {selectedPlan === 'professional' ? 'Profesional' : 'Enterprise'}</DialogTitle>
             <DialogDescription>Elige la duración y revisa el total antes de enviar.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
@@ -555,10 +555,10 @@ const Plans = () => {
               <select
                 id="plan-select"
                 value={selectedPlan}
-                onChange={(e) => setSelectedPlan(e.target.value as 'basic' | 'professional')}
+                onChange={(e) => setSelectedPlan(e.target.value as 'professional' | 'enterprise')}
                 className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
-                <option value="basic">Básico ($10/mes/sucursal)</option>
+                <option value="professional">Profesional ($10/mes/sucursal)</option>
               </select>
             </div>
 
