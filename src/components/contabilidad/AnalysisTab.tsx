@@ -217,12 +217,6 @@ export default function AnalysisTab({ businessId, branchId }: Props) {
     enabled: !!businessId && branchIds.length > 0,
   });
 
-  // ─── Pending fixed expenses ───
-  const { data: pendingFixed = 0 } = useQuery({
-    queryKey: ["analysis-pending-fixed", businessId],
-    queryFn: fetchPendingFixed,
-    enabled: !!businessId,
-  });
 
   // ─── Inventory rotation ───
   const { data: inventoryRotation } = useQuery({
