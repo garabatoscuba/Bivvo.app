@@ -17,20 +17,20 @@ import {
 
 const PLAN_COLORS: Record<string, string> = {
   free: 'hsl(var(--muted-foreground))',
-  basic: 'hsl(var(--primary) / 0.6)',
-  professional: 'hsl(var(--primary))',
+  professional: 'hsl(var(--primary) / 0.6)',
+  enterprise: 'hsl(var(--primary))',
 };
 
 const PLAN_LABELS: Record<string, string> = {
   free: 'Gratuito',
-  basic: 'Básico',
   professional: 'Profesional',
+  enterprise: 'Enterprise',
 };
 
 const PLAN_PRICES: Record<string, number> = {
   free: 0,
-  basic: 10,
-  professional: 20,
+  professional: 10,
+  enterprise: 20,
 };
 
 const AdminDashboard = () => {
