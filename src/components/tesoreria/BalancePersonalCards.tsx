@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { startOfMonth, endOfMonth } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
-import { TrendingUp, TrendingDown, Wallet, ShoppingCart, Wrench, ArrowDownToLine, Package, Users, ArrowUpFromLine, ReceiptText, FileText, Printer, Droplets, ScrollText } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, ShoppingCart, Wrench, ArrowDownToLine, Package, Users, ArrowUpFromLine, ReceiptText, FileText, Printer, Droplets, ScrollText, ShieldCheck, AlertTriangle } from "lucide-react";
 
 type Period = "today" | "week" | "month" | "all";
 type TreasuryMode = "operativo" | "real";
