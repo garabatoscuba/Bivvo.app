@@ -269,6 +269,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   // Unified & sorted list
   const getExpenseTipo = (e: Expense): string => {
     if (e.expense_type === "unexpected") return "Imprevisto";
+    if (e.expense_type === "indirect") return "Indirecto";
     return "Directo";
   };
 
