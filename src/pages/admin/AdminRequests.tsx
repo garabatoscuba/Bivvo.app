@@ -439,7 +439,7 @@ const AdminRequests = () => {
                             <TableCell className="text-right" onClick={e => e.stopPropagation()}>
                               {r.status === 'pending' && (
                                 <div className="flex items-center justify-end gap-1">
-                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'approved' })}><Check className="h-4 w-4" /></Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7 text-primary hover:bg-primary/10" onClick={() => openApproveModal(r, 'plan')}><Check className="h-4 w-4" /></Button>
                                   <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:bg-destructive/10" onClick={() => approveMutation.mutate({ requestId: r.id, action: 'rejected' })}><X className="h-4 w-4" /></Button>
                                 </div>
                               )}
