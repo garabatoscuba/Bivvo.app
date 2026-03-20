@@ -1,8 +1,9 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBranches } from "@/hooks/useBranches";
 import { useSearchParams } from "react-router-dom";
 import AppLayout from "@/components/layout/AppLayout";
+import { Lock } from "lucide-react";
 
 import {
   Select,
@@ -15,16 +16,35 @@ import TreasuryMovimientos from "@/components/tesoreria/TreasuryMovimientos";
 import ExpensesTab from "@/components/contabilidad/ExpensesTab";
 import AssetsTab from "@/components/contabilidad/AssetsTab";
 import AnalysisTab from "@/components/contabilidad/AnalysisTab";
+import { usePlanFeatures, type PlanFeatureKey } from "@/hooks/usePlanFeatures";
+import PlanGateModal from "@/components/PlanGateModal";
+
+const TAB_FEATURE_MAP: Record<string, PlanFeatureKey | null> = {
+  balance: null,
+  gastos: null,
+  activos: 'contabilidad_activos',
+  analisis: 'contabilidad_analisis',
+};
+
+const TAB_LABELS: Record<string, string> = {
+  balance: "Balance",
+  gastos: "Gastos",
+  activos: "Activos",
+  analisis: "Análisis",
+};
 
 const Contabilidad = () => {
   const { profile } = useAuth();
   const { data: branches = [] } = useBranches();
+  const { hasFeature, requiredPlanFor } = usePlanFeatures();
 
   const [searchParams, setSearchParams] = useSearchParams();
   const prefillType = searchParams.get("prefill") as "extraccion" | "inyeccion" | null;
 
   const [selectedBranchId, setSelectedBranchId] = useState<string>("all");
   const [activeTab, setActiveTab] = useState("balance");
+  const [gateOpen, setGateOpen] = useState(false);
+  const [gateRequiredPlan, setGateRequiredPlan] = useState("Enterprise");
 
   const handlePrefillConsumed = () => {
     setSearchParams({}, { replace: true });
@@ -33,6 +53,16 @@ const Contabilidad = () => {
   const singleBranch = branches.length === 1;
   const effectiveBranchId = singleBranch ? branches[0].id : selectedBranchId;
   const filterBranchId = effectiveBranchId === "all" ? null : effectiveBranchId;
+
+  const handleTabClick = (tab: string) => {
+    const featureKey = TAB_FEATURE_MAP[tab];
+    if (featureKey && !hasFeature(featureKey)) {
+      setGateRequiredPlan(requiredPlanFor(featureKey));
+      setGateOpen(true);
+      return;
+    }
+    setActiveTab(tab);
+  };
 
   return (
     <AppLayout>
@@ -59,19 +89,24 @@ const Contabilidad = () => {
 
         <div className="flex">
           <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full">
-            {(["balance", "gastos", "activos", "analisis"] as const).map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shrink-0 flex-1 ${
-                  activeTab === tab
-                    ? "bg-background text-foreground shadow"
-                    : "hover:bg-background/50 hover:text-foreground"
-                }`}
-              >
-                {{ balance: "Balance", gastos: "Gastos", activos: "Activos", analisis: "Análisis" }[tab]}
-              </button>
-            ))}
+            {(["balance", "gastos", "activos", "analisis"] as const).map((tab) => {
+              const featureKey = TAB_FEATURE_MAP[tab];
+              const locked = featureKey ? !hasFeature(featureKey) : false;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => handleTabClick(tab)}
+                  className={`inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-xs font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 shrink-0 flex-1 gap-1 ${
+                    activeTab === tab
+                      ? "bg-background text-foreground shadow"
+                      : "hover:bg-background/50 hover:text-foreground"
+                  }`}
+                >
+                  {TAB_LABELS[tab]}
+                  {locked && <Lock className="h-3 w-3 text-muted-foreground" />}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -88,14 +123,16 @@ const Contabilidad = () => {
           <ExpensesTab businessId={profile.business_id} branchId={filterBranchId} />
         )}
 
-        {activeTab === "activos" && profile?.business_id && (
+        {activeTab === "activos" && hasFeature('contabilidad_activos') && profile?.business_id && (
           <AssetsTab businessId={profile.business_id} branchId={filterBranchId} />
         )}
 
-        {activeTab === "analisis" && profile?.business_id && (
+        {activeTab === "analisis" && hasFeature('contabilidad_analisis') && profile?.business_id && (
           <AnalysisTab businessId={profile.business_id} branchId={filterBranchId} />
         )}
       </div>
+
+      <PlanGateModal open={gateOpen} onOpenChange={setGateOpen} requiredPlan={gateRequiredPlan} />
     </AppLayout>
   );
 };
