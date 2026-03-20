@@ -221,12 +221,12 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
   const [seeded, setSeeded] = useState(false);
   useEffect(() => {
     if (!businessId || seeded) return;
-    // Query ALL fixed expenses for the business to avoid re-seeding
+    // Query ALL fixed/indirect expenses for the business to avoid re-seeding
     supabase
       .from("accounting_expenses")
       .select("name")
       .eq("business_id", businessId)
-      .eq("expense_type", "fixed")
+      .in("expense_type", ["fixed", "indirect"])
       .then(({ data }) => {
         const existingNames = new Set((data ?? []).map((e: any) => e.name));
         const missing = DEFAULT_FIXED_NAMES.filter((n) => !existingNames.has(n));
@@ -238,7 +238,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
           branch_id: branchId,
           name,
           amount: 0,
-          expense_type: "fixed",
+          expense_type: "indirect",
           frequency: "monthly",
           status: "pending",
           due_date: addMonths(new Date(), 1).toISOString(),
