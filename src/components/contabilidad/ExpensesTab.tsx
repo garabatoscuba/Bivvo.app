@@ -472,7 +472,7 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     onError: (err: any) => toast.error(err.message),
   });
 
-  const openEditFixed = (e: Expense) => {
+  const openEditExpense = (e: Expense) => {
     setEditingExpense(e);
     setFormName(e.name);
     setFormAmount(String(e.amount));
@@ -480,7 +480,8 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
     setFormCategoryId(e.category_id || "");
     setFormDescription(e.description || "");
     setFormDueDate(e.due_date ? format(parseISO(e.due_date), "yyyy-MM-dd") : "");
-    setFixedDialog(true);
+    setFormTipo(e.expense_type === "unexpected" ? "imprevisto" : e.expense_type === "indirect" ? "indirecto" : "directo");
+    setExpenseDialog(true);
   };
 
   const statusBadge = (status: string) => {
