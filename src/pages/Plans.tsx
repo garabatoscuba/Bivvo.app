@@ -159,7 +159,7 @@ const Plans = () => {
 
   // Trial activation
   const trialMutation = useMutation({
-    mutationFn: async (plan: 'basic' | 'professional') => {
+    mutationFn: async (plan: 'professional' | 'enterprise') => {
       const trialEnd = new Date();
       trialEnd.setDate(trialEnd.getDate() + 7);
       const { error } = await supabase
