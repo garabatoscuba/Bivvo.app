@@ -458,7 +458,7 @@ const Plans = () => {
             </div>
             <CardHeader className="pt-2">
               <CardTitle className="text-lg">Plan Profesional</CardTitle>
-              <CardDescription>Inventario y clientes sin límites</CardDescription>
+              <CardDescription>Todo lo del Gratuito sin límites</CardDescription>
             </CardHeader>
             <CardContent className="flex-1">
               <p className="text-3xl font-bold">$10 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
