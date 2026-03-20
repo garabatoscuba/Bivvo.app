@@ -242,7 +242,7 @@ const AdminOffersTab = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1">
-                          {offer.applies_to_plans.map(p => <Badge key={p} variant="outline" className="text-[10px]">{p === 'basic' ? 'Básico' : 'Pro'}</Badge>)}
+                          {offer.applies_to_plans.map(p => <Badge key={p} variant="outline" className="text-[10px]">{p === 'professional' ? 'Profesional' : p === 'enterprise' ? 'Enterprise' : p}</Badge>)}
                         </div>
                       </TableCell>
                       <TableCell>
