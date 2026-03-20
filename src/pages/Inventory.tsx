@@ -724,7 +724,7 @@ const Inventory = () => {
                   <Button className="mt-4" onClick={() => {
                     if (guardDowngrade()) return;
                     if (!canCreateProduct) {
-                      toast({ title: `Límite alcanzado`, description: `El plan gratuito permite máximo ${FREE_PRODUCT_LIMIT} productos.`, variant: 'destructive' });
+                      setPlanGateOpen(true);
                       return;
                     }
                     setProductFormOpen(true);
