@@ -489,25 +489,25 @@ const Plans = () => {
             </CardFooter>
           </Card>
 
-          {/* Professional */}
+          {/* Enterprise */}
           <Card className="flex flex-col relative">
             <div className="flex items-center justify-between px-4 pt-3">
               <Badge variant="secondary" className="gap-1"><Crown className="h-3 w-3" /> Pro</Badge>
-              {status === 'trial' && planType === 'professional' && (
+              {status === 'trial' && planType === 'enterprise' && (
                 <Badge variant="secondary" className="gap-1 text-[10px]">
                   <Clock className="h-3 w-3" /> PRUEBA
                 </Badge>
               )}
             </div>
             <CardHeader className="pt-2">
-              <CardTitle className="text-lg">Plan Profesional</CardTitle>
+              <CardTitle className="text-lg">Plan Enterprise</CardTitle>
               <CardDescription>Todo para escalar tu negocio</CardDescription>
             </CardHeader>
             <CardContent className="flex-1">
               <p className="text-3xl font-bold">$20 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
               <p className="text-sm text-muted-foreground">En construcción · Disponible pronto</p>
               <ul className="mt-4 space-y-2">
-                {professionalFeatures.map(f => (
+                {enterpriseFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
                     <Check className="h-4 w-4 text-green-600 shrink-0" />
                     {f}
@@ -516,7 +516,7 @@ const Plans = () => {
               </ul>
             </CardContent>
             <CardFooter className="flex-col gap-2">
-              {planType === 'professional' && status !== 'blocked' ? (
+              {planType === 'enterprise' && status !== 'blocked' ? (
                 <Badge variant="outline" className="w-full justify-center py-2">Plan actual</Badge>
               ) : (
                 <Badge variant="secondary" className="w-full justify-center py-2 text-muted-foreground">
