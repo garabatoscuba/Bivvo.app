@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
-export type PlanType = 'free' | 'basic' | 'professional';
+export type PlanType = 'free' | 'professional' | 'enterprise';
 export type SubscriptionState = 'active' | 'trial' | 'expiring' | 'blocked';
 
 interface SubscriptionInfo {
