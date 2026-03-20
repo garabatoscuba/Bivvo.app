@@ -8,7 +8,9 @@ export type PlanFeatureKey =
   | 'reportes_bitacora'
   // Enterprise-only Contabilidad tabs
   | 'contabilidad_activos'
-  | 'contabilidad_analisis';
+  | 'contabilidad_analisis'
+  | 'contabilidad_avanzado'
+  | 'contabilidad_documentos';
 
 const ENTERPRISE_FEATURES: PlanFeatureKey[] = [
   'reportes_por_empleado',
@@ -17,6 +19,8 @@ const ENTERPRISE_FEATURES: PlanFeatureKey[] = [
   'reportes_bitacora',
   'contabilidad_activos',
   'contabilidad_analisis',
+  'contabilidad_avanzado',
+  'contabilidad_documentos',
 ];
 
 const FREE_PRODUCT_LIMIT = 5;

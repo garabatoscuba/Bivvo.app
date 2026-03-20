@@ -511,6 +511,9 @@ export default function BalancePersonalCards({ businessId, branchId, period, mod
           </div>
         </CardContent>
       </Card>
+
+      {/* LIQUIDEZ */}
+      <LiquidityBlock businessId={businessId} disponible={disponible} fmt={fmt} />
     </div>
   );
 }
