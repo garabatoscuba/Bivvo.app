@@ -459,7 +459,7 @@ const Plans = () => {
             </CardHeader>
             <CardContent className="flex-1">
               <p className="text-3xl font-bold">$10 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
-              <p className="text-sm text-muted-foreground">7 días gratis · Sin tarjeta</p>
+              {planType === 'free' && <p className="text-sm text-muted-foreground">7 días gratis · Sin tarjeta</p>}
               <ul className="mt-4 space-y-2">
                 {professionalFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
