@@ -291,10 +291,6 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     startScanLine();
   };
 
-  // Dimensiones del recuadro rectangular horizontal (funciona para QR y códigos de barras)
-  const frameW = 80; // % del ancho
-  const frameH = 50; // % del alto — más ancho que alto para acomodar ambos tipos
-
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-sm p-0 gap-0 overflow-hidden">
@@ -340,79 +336,21 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
             >
               <video id="bivoo-qr-reader" className="w-full h-full object-cover" />
 
-              {/* Overlay con recuadro recortado */}
+              {/* Línea de escaneo animada — pantalla completa */}
               <div className="absolute inset-0 z-10 pointer-events-none">
-                {/* Sombras alrededor del recuadro */}
                 <div
-                  className="absolute top-0 left-0 right-0 bg-black/60"
-                  style={{ height: `${(100 - frameH) / 2}%` }}
-                />
-                <div
-                  className="absolute bottom-0 left-0 right-0 bg-black/60"
-                  style={{ height: `${(100 - frameH) / 2}%` }}
-                />
-                <div
-                  className="absolute bg-black/60"
+                  className="absolute left-4 right-4 h-px"
                   style={{
-                    top: `${(100 - frameH) / 2}%`,
-                    left: 0,
-                    width: `${(100 - frameW) / 2}%`,
-                    height: `${frameH}%`,
+                    top: `${scanLinePos}%`,
+                    background: "linear-gradient(90deg, transparent 0%, #00d282 30%, #00d282 70%, transparent 100%)",
+                    boxShadow: "0 0 8px 2px rgba(0,210,130,0.5)",
                   }}
                 />
-                <div
-                  className="absolute bg-black/60"
-                  style={{
-                    top: `${(100 - frameH) / 2}%`,
-                    right: 0,
-                    width: `${(100 - frameW) / 2}%`,
-                    height: `${frameH}%`,
-                  }}
-                />
-
-                {/* Recuadro con esquinas verdes y línea de escaneo */}
-                <div
-                  className="absolute overflow-hidden"
-                  style={{
-                    top: `${(100 - frameH) / 2}%`,
-                    left: `${(100 - frameW) / 2}%`,
-                    width: `${frameW}%`,
-                    height: `${frameH}%`,
-                  }}
-                >
-                  {/* 4 esquinas — solo las puntas, no el borde completo */}
-                  <div
-                    className="absolute top-0 left-0 w-7 h-7 border-t-[3px] border-l-[3px] border-primary"
-                    style={{ borderRadius: "4px 0 0 0" }}
-                  />
-                  <div
-                    className="absolute top-0 right-0 w-7 h-7 border-t-[3px] border-r-[3px] border-primary"
-                    style={{ borderRadius: "0 4px 0 0" }}
-                  />
-                  <div
-                    className="absolute bottom-0 left-0 w-7 h-7 border-b-[3px] border-l-[3px] border-primary"
-                    style={{ borderRadius: "0 0 0 4px" }}
-                  />
-                  <div
-                    className="absolute bottom-0 right-0 w-7 h-7 border-b-[3px] border-r-[3px] border-primary"
-                    style={{ borderRadius: "0 0 4px 0" }}
-                  />
-
-                  {/* Línea de escaneo animada */}
-                  <div
-                    className="absolute left-2 right-2 h-px"
-                    style={{
-                      top: `${scanLinePos}%`,
-                      background: "linear-gradient(90deg, transparent 0%, #00d282 30%, #00d282 70%, transparent 100%)",
-                      boxShadow: "0 0 8px 2px rgba(0,210,130,0.5)",
-                    }}
-                  />
-                </div>
               </div>
             </div>
 
             <div className="p-4 pt-3 text-center space-y-3">
-              <p className="text-sm text-muted-foreground">Centra el código QR o de barras en el recuadro</p>
+              <p className="text-sm text-muted-foreground">Apunta a cualquier código QR o de barras</p>
               <Button variant="outline" className="w-full" onClick={handleClose}>
                 <X className="h-4 w-4 mr-2" /> Cerrar
               </Button>
