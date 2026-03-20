@@ -546,7 +546,7 @@ const Plans = () => {
       <Dialog open={requestOpen} onOpenChange={setRequestOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Solicitar Plan {selectedPlan === 'basic' ? 'Básico' : 'Profesional'}</DialogTitle>
+            <DialogTitle>Solicitar Plan {selectedPlan === 'professional' ? 'Profesional' : 'Enterprise'}</DialogTitle>
             <DialogDescription>Elige la duración y revisa el total antes de enviar.</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
