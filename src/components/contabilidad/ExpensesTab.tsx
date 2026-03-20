@@ -428,14 +428,14 @@ const ExpensesTab = ({ businessId, branchId }: ExpensesTabProps) => {
         }
       }
 
-      // Generate next occurrence for fixed recurring
-      if (expense.expense_type === "fixed" && nextDue) {
+      // Generate next occurrence for fixed/indirect recurring
+      if ((expense.expense_type === "fixed" || expense.expense_type === "indirect") && nextDue) {
         await supabase.from("accounting_expenses").insert({
           business_id: expense.business_id,
           branch_id: expense.branch_id,
           name: expense.name,
           amount: expense.amount,
-          expense_type: "fixed",
+          expense_type: expense.expense_type,
           frequency: expense.frequency,
           category_id: expense.category_id,
           status: "pending",
