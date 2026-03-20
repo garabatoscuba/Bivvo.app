@@ -422,7 +422,7 @@ const AdminRequests = () => {
                           <TableRow
                             key={r.id}
                             className={`cursor-pointer ${selectedPlanIds.has(r.id) ? 'bg-primary/5' : ''}`}
-                            onClick={() => setDetailPlanReq(r)}
+                            onClick={() => { setDetailPlanReq(r); setApproveIsFree(false); setApproveNotes(''); }}
                           >
                             <TableCell className="w-10" onClick={e => e.stopPropagation()}>
                               <Checkbox checked={selectedPlanIds.has(r.id)} onCheckedChange={() => togglePlanSelect(r.id)} />
