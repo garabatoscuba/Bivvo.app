@@ -1497,6 +1497,11 @@ const Inventory = () => {
         />
       )}
       <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
+      <PlanGateModal
+        open={planGateOpen}
+        onOpenChange={setPlanGateOpen}
+        requiredPlan="Profesional"
+      />
       <ConsumoInternoModal
         open={!!consumoInternoProduct}
         onOpenChange={(o) => !o && setConsumoInternoProduct(null)}
