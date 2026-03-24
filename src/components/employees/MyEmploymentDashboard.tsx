@@ -48,6 +48,7 @@ interface MyEmploymentDashboardProps {
   jornadaActiva: boolean;
   myJornada: any;
   dailySalary: DailySalaryBreakdown;
+  needsCount?: boolean;
   onOpenContarYCerrar: () => void;
 }
 
