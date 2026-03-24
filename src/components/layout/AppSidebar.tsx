@@ -588,8 +588,8 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-        {/* Mi Empleo section - employee tools */}
-        {hasEmployeeRecord && (
+        {/* Mi Empleo section - employee tools (sellers, managers — NOT operators/kitchen, they have their own sections) */}
+        {hasEmployeeRecord && !isEmployeeOperator && !isEmployeeKitchen && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
               <span>Mi Empleo</span>
