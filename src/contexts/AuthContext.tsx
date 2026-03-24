@@ -159,7 +159,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // INITIAL load — controls loading state
     const initializeAuth = async () => {
       try {
-        const { data: { session: existingSession } } = await supabase.auth.getSession();
+        const { data: { session: existingSession } } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Auth session timeout')), 4000)
+          ),
+        ]);
         if (!mountedRef.current) return;
 
         setSession(existingSession);
