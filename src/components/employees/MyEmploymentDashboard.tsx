@@ -48,6 +48,7 @@ interface MyEmploymentDashboardProps {
   jornadaActiva: boolean;
   myJornada: any;
   dailySalary: DailySalaryBreakdown;
+  needsCount?: boolean;
   onOpenContarYCerrar: () => void;
 }
 
@@ -57,6 +58,7 @@ const MyEmploymentDashboard = ({
   jornadaActiva,
   myJornada,
   dailySalary,
+  needsCount = true,
   onOpenContarYCerrar,
 }: MyEmploymentDashboardProps) => {
   const { user } = useAuth();
@@ -451,7 +453,7 @@ const MyEmploymentDashboard = ({
           onClick={onOpenContarYCerrar}
         >
           <LogOut className="h-4 w-4 mr-2" />
-          Contar y Cerrar Jornada
+          {needsCount ? 'Contar y Cerrar Jornada' : 'Cerrar Jornada'}
         </Button>
       </div>
     </div>

@@ -79,6 +79,8 @@ interface Employee {
   start_date: string;
   created_at: string;
   updated_at: string;
+  is_jefe?: boolean;
+  assigned_roles?: string[];
 }
 
 const MyEmployment = () => {
@@ -116,6 +118,13 @@ const MyEmployment = () => {
 
   const businessId = myEmployeeRecord?.business_id || null;
   const monthKey = formatLocalMonthKey(selectedMonth);
+
+  // Determine if employee needs inventory count before closing
+  const employeeRoles = myEmployeeRecord?.assigned_roles || [];
+  const isJefe = myEmployeeRecord?.is_jefe === true;
+  const isSeller = employeeRoles.includes('seller');
+  const isOperatorRole = employeeRoles.includes('operator');
+  const needsCount = isJefe && (isSeller || isOperatorRole);
 
   // Use the shared salary hook
   const dailySalary = useDailySalary({
@@ -411,7 +420,8 @@ const MyEmployment = () => {
               jornadaActiva={!!jornadaActiva}
               myJornada={myJornada}
               dailySalary={dailySalary}
-              onOpenContarYCerrar={() => setContarYCerrarOpen(true)}
+              needsCount={needsCount}
+              onOpenContarYCerrar={() => needsCount ? setContarYCerrarOpen(true) : setCerrarMiJornadaOpen(true)}
             />
           )}
           {!myJornada?.sucursal_id && businessId && (
@@ -421,7 +431,8 @@ const MyEmployment = () => {
               jornadaActiva={false}
               myJornada={myJornada}
               dailySalary={dailySalary}
-              onOpenContarYCerrar={() => setContarYCerrarOpen(true)}
+              needsCount={needsCount}
+              onOpenContarYCerrar={() => needsCount ? setContarYCerrarOpen(true) : setCerrarMiJornadaOpen(true)}
             />
           )}
         </TabsContent>
