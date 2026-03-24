@@ -1171,6 +1171,7 @@ const Inventory = () => {
               onConsumoInterno={(product) => setConsumoInternoProduct(product)}
               canManage={canManage}
               searchQuery={search}
+              operatorAreaIds={operatorAreaIds}
             />
           </TabsContent>
         </Tabs>
