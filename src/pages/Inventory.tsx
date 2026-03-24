@@ -777,6 +777,7 @@ const Inventory = () => {
               </div>
             ) : (
               <div className="space-y-1">
+                {/* Regular products grouped by category */}
                 {Array.from(groupedProducts.groups.values()).map(({ category, products: groupProducts }) => (
                   <div key={category?.id || 'none'}>
                     {groupProducts.map((product) => (
@@ -810,6 +811,58 @@ const Inventory = () => {
                         color="blue"
                         badgeColorClass={getProductBadgeColor(product)}
                         areaName={(product as any)._isRawMaterial ? ((product as any)._areaName || 'Uso') : undefined}
+                        onClick={() => handleProductTap(product)}
+                        canManage={canManage}
+                        onDelete={() => setDeletingProduct(product)}
+                        onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                        onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
+                        onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                      />
+                    ))}
+                  </div>
+                )}
+                {/* Ingredient products grouped by insumo area */}
+                {Array.from(areaGroupedIngredients.areaGroups.entries()).map(([areaId, { areaName, products: areaProducts }]) => (
+                  <div key={areaId}>
+                    <div className="flex items-center gap-2 px-2 py-2 mt-3 mb-1">
+                      <span className="text-sm font-semibold text-foreground">{areaName}</span>
+                      <span className="text-xs text-muted-foreground">({areaProducts.length})</span>
+                    </div>
+                    {areaProducts.map((product) => (
+                      <ProductRow
+                        key={product.id}
+                        product={product}
+                        stock={getProductStock(product)}
+                        warehouseStock={getProductWarehouseStock(product)}
+                        color={product.category?.color || 'blue'}
+                        badgeColorClass={getProductBadgeColor(product)}
+                        areaName={(product as any)._areaName || 'Uso'}
+                        onClick={() => handleProductTap(product)}
+                        canManage={canManage}
+                        onDelete={() => setDeletingProduct(product)}
+                        onAddStock={() => { if (!guardDowngrade()) setStockEntryProduct(product); }}
+                        onMoveStock={() => { if (!guardDowngrade()) setStockMoveProduct(product); }}
+                        onOutflow={() => { if (!guardDowngrade()) setOutflowProduct(product); }}
+                      />
+                    ))}
+                    <Separator className="my-2" />
+                  </div>
+                ))}
+                {areaGroupedIngredients.noArea.length > 0 && (
+                  <div>
+                    <div className="flex items-center gap-2 px-2 py-2 mt-3 mb-1">
+                      <span className="text-sm font-semibold text-foreground">Sin área</span>
+                      <span className="text-xs text-muted-foreground">({areaGroupedIngredients.noArea.length})</span>
+                    </div>
+                    {areaGroupedIngredients.noArea.map((product) => (
+                      <ProductRow
+                        key={product.id}
+                        product={product}
+                        stock={getProductStock(product)}
+                        warehouseStock={getProductWarehouseStock(product)}
+                        color={product.category?.color || 'blue'}
+                        badgeColorClass={getProductBadgeColor(product)}
+                        areaName={(product as any)._areaName || undefined}
                         onClick={() => handleProductTap(product)}
                         canManage={canManage}
                         onDelete={() => setDeletingProduct(product)}
