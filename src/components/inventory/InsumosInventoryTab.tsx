@@ -58,6 +58,7 @@ interface InsumosInventoryTabProps {
   onConsumoInterno?: (product: any) => void;
   canManage: boolean;
   searchQuery?: string;
+  operatorAreaIds?: string[] | null;
 }
 
 const InsumosInventoryTab = ({
@@ -72,6 +73,7 @@ const InsumosInventoryTab = ({
   onConsumoInterno,
   canManage,
   searchQuery = '',
+  operatorAreaIds,
 }: InsumosInventoryTabProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
@@ -101,6 +103,11 @@ const InsumosInventoryTab = ({
     },
     enabled: !!businessId,
   });
+
+  // Filter areas for operator
+  const filteredAreas = operatorAreaIds
+    ? areas.filter((a: any) => operatorAreaIds.includes(a.id))
+    : areas;
 
   // ─── Raw materials query ───
   const { data: rawMaterials = [] } = useQuery({
@@ -321,7 +328,7 @@ const InsumosInventoryTab = ({
               <Select value={insumoForm.area_id} onValueChange={v => setInsumoForm(f => ({ ...f, area_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Sin área" /></SelectTrigger>
                 <SelectContent>
-                  {areas.map((a: any) => (
+                  {filteredAreas.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                   ))}
                 </SelectContent>
@@ -562,7 +569,7 @@ const InsumosInventoryTab = ({
         )}
       </div>
 
-      {areas.length === 0 ? (
+      {filteredAreas.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <p className="text-sm">Crea áreas para organizar tus insumos</p>
           {canManage && (
@@ -573,7 +580,7 @@ const InsumosInventoryTab = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {areas.map((area: any) => {
+          {filteredAreas.map((area: any) => {
             const isInternal = !!area.is_internal;
             const Icon = isInternal ? getIconComponent('Home') : getIconComponent(area.icon);
             const count = areaCountMap.get(area.id) || 0;

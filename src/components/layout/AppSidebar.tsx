@@ -130,7 +130,7 @@ const AppSidebar = () => {
       if (!profile?.user_id) return null;
       const { data, error } = await supabase
         .from("employees")
-        .select("id, business_id, branch_id, position, businesses!employees_business_id_fkey(name, business_type)")
+        .select("id, business_id, branch_id, position, is_jefe, businesses!employees_business_id_fkey(name, business_type)")
         .eq("auth_user_id", profile.user_id)
         .limit(1)
         .maybeSingle();
@@ -168,8 +168,8 @@ const AppSidebar = () => {
   const { jornadaActiva } = useJornadaActiva();
   const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && !isEmployeeOperator && jornadaActiva;
 
-  // Operator only sees Inventario
   const showOperatorModule = !shouldWaitEmployeeResolution && isEmployeeSession && isEmployeeOperator;
+  const isOperatorJefe = showOperatorModule && !!(employeeRecord as any)?.is_jefe;
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
     queryKey: ["user-businesses-with-branches", profile?.user_id],
@@ -685,6 +685,7 @@ const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {isOperatorJefe && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive("/inventory")}>
                     <Link to="/inventory?ctx=emp">
@@ -693,6 +694,7 @@ const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

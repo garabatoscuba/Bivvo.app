@@ -91,7 +91,7 @@ const colorDotMap: Record<string, string> = {
 };
 
 const Inventory = () => {
-  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const { profile, isOwner, isManager, isSuperAdmin, isOperator, user } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const { planType } = useSubscription();
   const { products, isLoading: productsLoading, deleteProduct } = useProducts();
@@ -241,6 +241,34 @@ const Inventory = () => {
     staleTime: 5 * 60 * 1000,
   });
 
+  // Operator: fetch assigned area IDs
+  const { data: operatorAreaIds } = useQuery({
+    queryKey: ['operator-assigned-areas', user?.id, businessId],
+    queryFn: async () => {
+      if (!user?.id || !businessId) return null;
+      // Get employee id by auth_user_id
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+      if (!emp) return null;
+      const { data: assignments } = await supabase
+        .from('employee_insumo_areas')
+        .select('insumo_area_id')
+        .eq('employee_id', emp.id);
+      return (assignments || []).map(a => a.insumo_area_id).filter(Boolean) as string[];
+    },
+    enabled: isOperator && !!user?.id && !!businessId,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const operatorAreaSet = useMemo(() => {
+    if (!isOperator || !operatorAreaIds) return null;
+    return new Set(operatorAreaIds);
+  }, [isOperator, operatorAreaIds]);
+
   const areaColorMap = useMemo(() => {
     const map = new Map<string, string>();
     insumoAreas.forEach((a: any) => {
@@ -374,6 +402,12 @@ const Inventory = () => {
 
       const tipo = (product as any).tipo || 'reventa';
 
+      // Operator filter: only show products from their assigned areas
+      if (operatorAreaSet) {
+        const areaId = (product as any).insumo_area_id;
+        if (!areaId || !operatorAreaSet.has(areaId)) return false;
+      }
+
       // Type filter: only apply if business has kitchen products (ingredients always pass)
       if (hasKitchenProducts && tipo !== 'ingrediente') {
         if (productTypeTab === 'reventa' && tipo !== 'reventa') return false;
@@ -387,13 +421,18 @@ const Inventory = () => {
     const existingIds = new Set(filtered.map(p => p.id));
     const rawToAdd = rawMaterialsAsProducts.filter(rm => {
       if (existingIds.has(rm.id)) return false;
+      // Operator filter: only show raw materials from their assigned areas
+      if (operatorAreaSet) {
+        const areaId = (rm as any).insumo_area_id;
+        if (!areaId || !operatorAreaSet.has(areaId)) return false;
+      }
       if (!search) return true;
       const s = search.toLowerCase();
       return rm.name.toLowerCase().includes(s) || (rm.brand || '').toLowerCase().includes(s) || (rm.description || '').toLowerCase().includes(s);
     });
 
     return [...filtered, ...rawToAdd];
-  }, [products, rawMaterialsAsProducts, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
+  }, [products, rawMaterialsAsProducts, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities, operatorAreaSet]);
 
   // Separate regular products from ingredients
   const { regularProducts, ingredientProducts } = useMemo(() => {
@@ -693,23 +732,29 @@ const Inventory = () => {
                   </button>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="for-sale" className="text-xs px-3 whitespace-nowrap">
-                A la Venta
-              </TabsTrigger>
+              {!isOperator && (
+                <TabsTrigger value="for-sale" className="text-xs px-3 whitespace-nowrap">
+                  A la Venta
+                </TabsTrigger>
+              )}
               <TabsTrigger value="warehouse" className="text-xs px-3 whitespace-nowrap">
                 Almacén
               </TabsTrigger>
               <TabsTrigger value="insumos" className="text-xs px-3 whitespace-nowrap">
                 Insumos
               </TabsTrigger>
-              <TabsTrigger value="movements" className="flex items-center gap-1 text-xs px-3 whitespace-nowrap">
-                <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
-                Movim.
-              </TabsTrigger>
-              <TabsTrigger value="mermas" className="flex items-center gap-1 text-xs px-3 whitespace-nowrap">
-                <PackageX className="h-3.5 w-3.5 shrink-0" />
-                Mermas
-              </TabsTrigger>
+              {!isOperator && (
+                <TabsTrigger value="movements" className="flex items-center gap-1 text-xs px-3 whitespace-nowrap">
+                  <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
+                  Movim.
+                </TabsTrigger>
+              )}
+              {!isOperator && (
+                <TabsTrigger value="mermas" className="flex items-center gap-1 text-xs px-3 whitespace-nowrap">
+                  <PackageX className="h-3.5 w-3.5 shrink-0" />
+                  Mermas
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
@@ -1025,6 +1070,11 @@ const Inventory = () => {
               const allItems = [...products, ...rawMaterialsAsProducts.filter(rm => !products.some(p => p.id === rm.id))];
               const warehouseProducts = allItems.filter((p) => {
                 if (p.status === 'discontinued') return false;
+                // Operator filter: only show products from their assigned areas
+                if (operatorAreaSet) {
+                  const areaId = (p as any).insumo_area_id || (p as any).area_id;
+                  if (!areaId || !operatorAreaSet.has(areaId)) return false;
+                }
                 const wStock = getProductWarehouseStock(p);
                 return wStock > 0;
               }).filter(p => { const s = search.toLowerCase(); return !search || p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.brand || '').toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s); });
@@ -1126,6 +1176,7 @@ const Inventory = () => {
               onConsumoInterno={(product) => setConsumoInternoProduct(product)}
               canManage={canManage}
               searchQuery={search}
+              operatorAreaIds={operatorAreaIds}
             />
           </TabsContent>
         </Tabs>
