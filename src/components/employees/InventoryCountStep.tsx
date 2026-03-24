@@ -94,14 +94,14 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
   const countItems = isOperator ? (operatorInsumos || []) : (products || []);
 
   const results = useMemo(() => {
-    if (!products) return [];
-    return products.map(p => {
+    if (!countItems.length) return [];
+    return countItems.map(p => {
       const raw = counts[p.product_id];
       const counted = raw !== undefined && raw !== '' ? Number(raw) : null;
       const diff = counted !== null ? counted - p.system_stock : null;
       return { ...p, counted, diff };
     });
-  }, [products, counts]);
+  }, [countItems, counts]);
 
   const allCounted = results.length > 0 && results.every(r => r.counted !== null);
   const hasDifferences = results.some(r => r.diff !== null && r.diff !== 0);
@@ -111,7 +111,7 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
     setSaving(true);
 
     try {
-      if (user?.id && products && results.length > 0) {
+      if (user?.id && countItems.length > 0 && results.length > 0) {
         const rows = results
           .filter(r => r.counted !== null)
           .map(r => ({
