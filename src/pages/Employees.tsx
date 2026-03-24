@@ -723,6 +723,7 @@ const Employees = () => {
       use_bivoo_id: emp.email?.endsWith('@bivoo.app') || false,
       bivoo_password: '',
       new_password: '',
+      is_jefe: emp.is_jefe ?? false,
       modality_id: first?.modality_id || '',
       preset_id: first?.preset_id || '',
       pay_frequency: first?.pay_frequency || 'monthly',
