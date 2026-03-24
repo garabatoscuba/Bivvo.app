@@ -402,6 +402,12 @@ const Inventory = () => {
 
       const tipo = (product as any).tipo || 'reventa';
 
+      // Operator filter: only show products from their assigned areas
+      if (operatorAreaSet) {
+        const areaId = (product as any).insumo_area_id;
+        if (!areaId || !operatorAreaSet.has(areaId)) return false;
+      }
+
       // Type filter: only apply if business has kitchen products (ingredients always pass)
       if (hasKitchenProducts && tipo !== 'ingrediente') {
         if (productTypeTab === 'reventa' && tipo !== 'reventa') return false;
@@ -415,13 +421,18 @@ const Inventory = () => {
     const existingIds = new Set(filtered.map(p => p.id));
     const rawToAdd = rawMaterialsAsProducts.filter(rm => {
       if (existingIds.has(rm.id)) return false;
+      // Operator filter: only show raw materials from their assigned areas
+      if (operatorAreaSet) {
+        const areaId = (rm as any).insumo_area_id;
+        if (!areaId || !operatorAreaSet.has(areaId)) return false;
+      }
       if (!search) return true;
       const s = search.toLowerCase();
       return rm.name.toLowerCase().includes(s) || (rm.brand || '').toLowerCase().includes(s) || (rm.description || '').toLowerCase().includes(s);
     });
 
     return [...filtered, ...rawToAdd];
-  }, [products, rawMaterialsAsProducts, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
+  }, [products, rawMaterialsAsProducts, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities, operatorAreaSet]);
 
   // Separate regular products from ingredients
   const { regularProducts, ingredientProducts } = useMemo(() => {
