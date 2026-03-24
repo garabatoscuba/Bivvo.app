@@ -152,6 +152,7 @@ const Inventory = () => {
   const { isDowngraded } = useIsDowngraded();
   const [consumoInternoProduct, setConsumoInternoProduct] = useState<any>(null);
   const [planGateOpen, setPlanGateOpen] = useState(false);
+  const [adjustedCost, setAdjustedCost] = useState<number | null>(null);
 
   const effectiveBranchId = selectedBranch || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(effectiveBranchId);
