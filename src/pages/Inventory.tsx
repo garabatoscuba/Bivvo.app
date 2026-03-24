@@ -395,29 +395,27 @@ const Inventory = () => {
     return [...filtered, ...rawToAdd];
   }, [products, rawMaterialsAsProducts, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
 
-  // Group products by category
-  const groupedProducts = useMemo(() => {
-    const groups = new Map<string, { category: Category | null; products: (Product & { category: Category | null })[] }>();
-    const uncategorized: (Product & { category: Category | null })[] = [];
-    
+  // Group products by insumo area
+  const groupedByArea = useMemo(() => {
+    const groups = new Map<string, { areaName: string; products: (Product & { category: Category | null })[] }>();
+    const noArea: (Product & { category: Category | null })[] = [];
+
     filteredProducts.forEach((product) => {
-      if (product.category_id && product.category) {
-        const group = groups.get(product.category_id);
-        if (group) {
-          group.products.push(product);
+      const areaId = (product as any).insumo_area_id || (product as any)._isRawMaterial && (product as any).area_id;
+      if (areaId && areaNameMap.has(areaId)) {
+        const existing = groups.get(areaId);
+        if (existing) {
+          existing.products.push(product);
         } else {
-          groups.set(product.category_id, {
-            category: product.category,
-            products: [product],
-          });
+          groups.set(areaId, { areaName: areaNameMap.get(areaId)!, products: [product] });
         }
       } else {
-        uncategorized.push(product);
+        noArea.push(product);
       }
     });
 
-    return { groups, uncategorized };
-  }, [filteredProducts]);
+    return { groups, noArea };
+  }, [filteredProducts, areaNameMap]);
 
 
   // Stats
@@ -741,9 +739,14 @@ const Inventory = () => {
               </div>
             ) : (
               <div className="space-y-1">
-                {Array.from(groupedProducts.groups.values()).map(({ category, products: groupProducts }) => (
-                  <div key={category?.id || 'none'}>
-                    {groupProducts.map((product) => (
+                {Array.from(groupedByArea.groups.entries()).map(([areaId, { areaName, products: areaProducts }]) => (
+                  <div key={areaId}>
+                    <div className="flex items-center gap-2 px-1 pt-3 pb-1">
+                      <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-foreground">{areaName}</span>
+                      <span className="text-xs text-muted-foreground">({areaProducts.length})</span>
+                    </div>
+                    {areaProducts.map((product) => (
                       <ProductRow
                         key={product.id}
                         product={product}
@@ -763,9 +766,14 @@ const Inventory = () => {
                     <Separator className="my-2" />
                   </div>
                 ))}
-                {groupedProducts.uncategorized.length > 0 && (
+                {groupedByArea.noArea.length > 0 && (
                   <div>
-                    {groupedProducts.uncategorized.map((product) => (
+                    <div className="flex items-center gap-2 px-1 pt-3 pb-1">
+                      <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-foreground">Sin área</span>
+                      <span className="text-xs text-muted-foreground">({groupedByArea.noArea.length})</span>
+                    </div>
+                    {groupedByArea.noArea.map((product) => (
                       <ProductRow
                         key={product.id}
                         product={product}
