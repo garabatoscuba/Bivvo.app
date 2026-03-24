@@ -81,7 +81,7 @@ export default function CostMethodSection({ product, onCostUpdate, onSaved }: Pr
             .from('products')
             .select('id, cost_price')
             .eq('business_id', businessId)
-            .in('status', ['for_sale']),
+            .eq('status', 'for_sale' as string),
         ]);
 
         const totalExpenses =
