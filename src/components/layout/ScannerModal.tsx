@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, ScanLine, CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { BrowserMultiFormatReader, IScannerControls } from "@zxing/browser";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,6 +18,9 @@ interface ScanFeedback {
   title: string;
   description: string;
 }
+
+// Check native BarcodeDetector support
+const hasBarcodeDetector = typeof globalThis !== "undefined" && "BarcodeDetector" in globalThis;
 
 // Beep usando Web Audio API — no requiere archivos externos
 const playBeep = () => {
@@ -38,8 +40,14 @@ const playBeep = () => {
 };
 
 const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) => {
-  const scannerRef = useRef<BrowserMultiFormatReader | null>(null);
-  const controlsRef = useRef<IScannerControls | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const rafRef = useRef<number | null>(null);
+  const lastScanRef = useRef<number>(0);
+  const detectorRef = useRef<any>(null);
+  const zxingControlsRef = useRef<any>(null);
+  const zxingReaderRef = useRef<any>(null);
   const focusIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scanLineRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const scanLinePosRef = useRef(0);
@@ -49,6 +57,7 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null);
   const { profile } = useAuth();
   const { businessId, branchId } = useResolvedBusinessId();
+  const mountedRef = useRef(false);
 
   // Animación de la línea de escaneo
   const startScanLine = () => {
@@ -85,35 +94,6 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
           await track.applyConstraints({ advanced: [{ focusMode: "continuous" }] as any });
         } catch {}
       }
-    }
-  };
-
-  // Auto-focus removed — only manual tap-to-focus is used
-
-  const stopScanner = () => {
-    controlsRef.current?.stop();
-    controlsRef.current = null;
-    scannerRef.current = null;
-    if (focusIntervalRef.current) {
-      clearInterval(focusIntervalRef.current);
-      focusIntervalRef.current = null;
-    }
-    stopScanLine();
-  };
-
-  const getMainBackCamera = async (): Promise<string | undefined> => {
-    try {
-      const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-      const backCameras = devices.filter(
-        (d) =>
-          d.label.toLowerCase().includes("back") ||
-          d.label.toLowerCase().includes("rear") ||
-          d.label.toLowerCase().includes("environment") ||
-          !d.label.toLowerCase().includes("front"),
-      );
-      return backCameras[backCameras.length - 1]?.deviceId ?? undefined;
-    } catch {
-      return undefined;
     }
   };
 
@@ -207,13 +187,13 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     }
   };
 
-  const handleScanResult = async (decodedText: string) => {
+  const handleScanResult = useCallback(async (decodedText: string) => {
     playBeep();
     stopScanLine();
     try {
       const parsed = JSON.parse(decodedText);
       if (parsed.type === "bivoo_employee" && parsed.employee_id && parsed.business_id) {
-        stopScanner();
+        stopAllScanning();
         await handleEmployeeQR(parsed);
         return;
       }
@@ -221,7 +201,157 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     onScanResult?.(decodedText);
     toast.success("Código escaneado", { description: decodedText });
     onOpenChange(false);
-  };
+  }, [businessId, branchId, onScanResult, onOpenChange]);
+
+  // --- Stop all scanning engines ---
+  const stopAllScanning = useCallback(() => {
+    // Stop native BarcodeDetector loop
+    if (rafRef.current) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    // Stop ZXing
+    zxingControlsRef.current?.stop();
+    zxingControlsRef.current = null;
+    zxingReaderRef.current = null;
+    // Stop media stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop());
+      streamRef.current = null;
+    }
+    if (focusIntervalRef.current) {
+      clearInterval(focusIntervalRef.current);
+      focusIntervalRef.current = null;
+    }
+    stopScanLine();
+  }, []);
+
+  // --- Native BarcodeDetector scanning loop ---
+  const startNativeScanning = useCallback((video: HTMLVideoElement, canvas: HTMLCanvasElement) => {
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    const detector = new (globalThis as any).BarcodeDetector({
+      formats: ["qr_code", "ean_13", "ean_8", "code_128", "code_39", "upc_a", "upc_e"],
+    });
+    detectorRef.current = detector;
+
+    const scanFrame = () => {
+      if (!mountedRef.current) return;
+
+      const now = performance.now();
+      if (now - lastScanRef.current < 300) {
+        rafRef.current = requestAnimationFrame(scanFrame);
+        return;
+      }
+      lastScanRef.current = now;
+
+      if (video.readyState < video.HAVE_ENOUGH_DATA) {
+        rafRef.current = requestAnimationFrame(scanFrame);
+        return;
+      }
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0);
+
+      detector
+        .detect(canvas)
+        .then((barcodes: any[]) => {
+          if (!mountedRef.current) return;
+          if (barcodes.length > 0) {
+            handleScanResult(barcodes[0].rawValue);
+            return; // Stop loop after detection
+          }
+          rafRef.current = requestAnimationFrame(scanFrame);
+        })
+        .catch(() => {
+          if (mountedRef.current) {
+            rafRef.current = requestAnimationFrame(scanFrame);
+          }
+        });
+    };
+
+    rafRef.current = requestAnimationFrame(scanFrame);
+  }, [handleScanResult]);
+
+  // --- Get back camera ---
+  const getBackCameraConstraints = (): MediaStreamConstraints => ({
+    video: {
+      facingMode: { ideal: "environment" },
+      width: { ideal: 1280 },
+      height: { ideal: 720 },
+    },
+    audio: false,
+  });
+
+  // --- ZXing fallback ---
+  const startZxingScanning = useCallback(async (videoEl: HTMLVideoElement) => {
+    const { BrowserMultiFormatReader } = await import("@zxing/browser");
+    const codeReader = new BrowserMultiFormatReader();
+    zxingReaderRef.current = codeReader;
+
+    const devices = await BrowserMultiFormatReader.listVideoInputDevices();
+    const backCameras = devices.filter(
+      (d) =>
+        d.label.toLowerCase().includes("back") ||
+        d.label.toLowerCase().includes("rear") ||
+        d.label.toLowerCase().includes("environment") ||
+        !d.label.toLowerCase().includes("front"),
+    );
+    const selectedCamera = backCameras[backCameras.length - 1]?.deviceId ?? undefined;
+
+    await codeReader.decodeFromVideoDevice(selectedCamera, videoEl, (result, _err, controls) => {
+      if (!mountedRef.current || processing || !result) return;
+      zxingControlsRef.current = controls;
+      handleScanResult(result.getText());
+    });
+  }, [handleScanResult, processing]);
+
+  // --- Main start scanner ---
+  const startScanner = useCallback(async () => {
+    const videoEl = document.getElementById("bivoo-qr-reader") as HTMLVideoElement;
+    if (!videoEl) return;
+
+    if (hasBarcodeDetector) {
+      // Native path: manually acquire camera stream
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(getBackCameraConstraints());
+        if (!mountedRef.current) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        streamRef.current = stream;
+        videoEl.srcObject = stream;
+        await videoEl.play();
+
+        const canvas = canvasRef.current;
+        if (canvas) {
+          startNativeScanning(videoEl, canvas);
+        }
+        startScanLine();
+      } catch (err) {
+        console.error("Native scanner error, falling back to ZXing:", err);
+        // Fallback to ZXing
+        try {
+          await startZxingScanning(videoEl);
+          startScanLine();
+        } catch (zxErr) {
+          console.error("ZXing fallback also failed:", zxErr);
+          if (mountedRef.current) toast.error("No se pudo acceder a la cámara");
+        }
+      }
+    } else {
+      // ZXing path
+      try {
+        await startZxingScanning(videoEl);
+        startScanLine();
+      } catch (err) {
+        console.error("Scanner error:", err);
+        if (mountedRef.current) toast.error("No se pudo acceder a la cámara");
+      }
+    }
+  }, [startNativeScanning, startZxingScanning]);
 
   useEffect(() => {
     if (!open) {
@@ -232,35 +362,14 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
       return;
     }
 
-    let mounted = true;
-
-    const startScanner = async () => {
-      try {
-        const codeReader = new BrowserMultiFormatReader();
-        scannerRef.current = codeReader;
-        const videoEl = document.getElementById("bivoo-qr-reader") as HTMLVideoElement;
-        const selectedCamera = await getMainBackCamera();
-
-        await codeReader.decodeFromVideoDevice(selectedCamera, videoEl, (result, err, controls) => {
-          if (!mounted || processing || !result) return;
-          controlsRef.current = controls;
-          handleScanResult(result.getText());
-        });
-
-        // Manual tap-to-focus only
-        startScanLine();
-      } catch (err) {
-        console.error("Scanner error:", err);
-        if (mounted) toast.error("No se pudo acceder a la cámara");
-      }
-    };
+    mountedRef.current = true;
 
     const t = setTimeout(startScanner, 300);
 
     return () => {
-      mounted = false;
+      mountedRef.current = false;
       clearTimeout(t);
-      stopScanner();
+      stopAllScanning();
     };
   }, [open]);
 
@@ -273,19 +382,8 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     setFeedback(null);
     setScanLinePos(0);
     scanLinePosRef.current = 0;
-    const codeReader = new BrowserMultiFormatReader();
-    scannerRef.current = codeReader;
-    const videoEl = document.getElementById("bivoo-qr-reader") as HTMLVideoElement;
-    const selectedCamera = await getMainBackCamera();
-
-    await codeReader.decodeFromVideoDevice(selectedCamera, videoEl, (result, err, controls) => {
-      if (processing || !result) return;
-      controlsRef.current = controls;
-      handleScanResult(result.getText());
-    });
-
-    // Manual tap-to-focus only
-    startScanLine();
+    mountedRef.current = true;
+    await startScanner();
   };
 
   return (
@@ -331,7 +429,9 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
               onTouchStart={() => applyFocus()}
               onClick={() => applyFocus()}
             >
-              <video id="bivoo-qr-reader" className="w-full h-full object-cover" />
+              <video id="bivoo-qr-reader" className="w-full h-full object-cover" playsInline muted />
+              {/* Canvas oculto para BarcodeDetector */}
+              <canvas ref={canvasRef} className="hidden" />
 
               {/* Línea de escaneo animada — pantalla completa */}
               <div className="absolute inset-0 z-10 pointer-events-none">
