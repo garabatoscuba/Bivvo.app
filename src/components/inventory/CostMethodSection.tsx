@@ -73,7 +73,7 @@ export default function CostMethodSection({ product, onCostUpdate, onSaved }: Pr
           .from('treasury_movements')
           .select('amount')
           .eq('business_id', businessId!)
-          .eq('type', 'expense')
+          .eq('type' as any, 'expense')
           .gte('created_at', dateFrom)
           .lte('created_at', dateTo + 'T23:59:59');
 
