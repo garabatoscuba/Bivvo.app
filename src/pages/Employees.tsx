@@ -457,6 +457,7 @@ const Employees = () => {
             address: form.address.trim() || null,
             position: form.assigned_roles[0] || 'seller',
             start_date: form.start_date,
+            is_jefe: (form.assigned_roles.includes('seller') || form.assigned_roles.includes('operator')) ? form.is_jefe : false,
           })
           .eq('id', editingEmployee.id);
         if (error) throw error;
