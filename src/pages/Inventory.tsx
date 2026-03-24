@@ -732,23 +732,29 @@ const Inventory = () => {
                   </button>
                 )}
               </TabsTrigger>
-              <TabsTrigger value="for-sale" className="text-xs px-3 whitespace-nowrap">
-                A la Venta
-              </TabsTrigger>
+              {!isOperator && (
+                <TabsTrigger value="for-sale" className="text-xs px-3 whitespace-nowrap">
+                  A la Venta
+                </TabsTrigger>
+              )}
               <TabsTrigger value="warehouse" className="text-xs px-3 whitespace-nowrap">
                 Almacén
               </TabsTrigger>
               <TabsTrigger value="insumos" className="text-xs px-3 whitespace-nowrap">
                 Insumos
               </TabsTrigger>
-              <TabsTrigger value="movements" className="flex items-center gap-1 text-xs px-3 whitespace-nowrap">
-                <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
-                Movim.
-              </TabsTrigger>
-              <TabsTrigger value="mermas" className="flex items-center gap-1 text-xs px-3 whitespace-nowrap">
-                <PackageX className="h-3.5 w-3.5 shrink-0" />
-                Mermas
-              </TabsTrigger>
+              {!isOperator && (
+                <TabsTrigger value="movements" className="flex items-center gap-1 text-xs px-3 whitespace-nowrap">
+                  <ArrowRightLeft className="h-3.5 w-3.5 shrink-0" />
+                  Movim.
+                </TabsTrigger>
+              )}
+              {!isOperator && (
+                <TabsTrigger value="mermas" className="flex items-center gap-1 text-xs px-3 whitespace-nowrap">
+                  <PackageX className="h-3.5 w-3.5 shrink-0" />
+                  Mermas
+                </TabsTrigger>
+              )}
             </TabsList>
           </div>
 
