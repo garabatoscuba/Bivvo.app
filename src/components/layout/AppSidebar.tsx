@@ -168,8 +168,8 @@ const AppSidebar = () => {
   const { jornadaActiva } = useJornadaActiva();
   const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && !isEmployeeOperator && jornadaActiva;
 
-  // Operator only sees Inventario
   const showOperatorModule = !shouldWaitEmployeeResolution && isEmployeeSession && isEmployeeOperator;
+  const isOperatorJefe = showOperatorModule && !!(employeeRecord as any)?.is_jefe;
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
     queryKey: ["user-businesses-with-branches", profile?.user_id],
