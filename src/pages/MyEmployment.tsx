@@ -420,7 +420,8 @@ const MyEmployment = () => {
               jornadaActiva={!!jornadaActiva}
               myJornada={myJornada}
               dailySalary={dailySalary}
-              onOpenContarYCerrar={() => setContarYCerrarOpen(true)}
+              needsCount={needsCount}
+              onOpenContarYCerrar={() => needsCount ? setContarYCerrarOpen(true) : setCerrarMiJornadaOpen(true)}
             />
           )}
           {!myJornada?.sucursal_id && businessId && (
@@ -430,7 +431,8 @@ const MyEmployment = () => {
               jornadaActiva={false}
               myJornada={myJornada}
               dailySalary={dailySalary}
-              onOpenContarYCerrar={() => setContarYCerrarOpen(true)}
+              needsCount={needsCount}
+              onOpenContarYCerrar={() => needsCount ? setContarYCerrarOpen(true) : setCerrarMiJornadaOpen(true)}
             />
           )}
         </TabsContent>
