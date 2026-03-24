@@ -119,6 +119,13 @@ const MyEmployment = () => {
   const businessId = myEmployeeRecord?.business_id || null;
   const monthKey = formatLocalMonthKey(selectedMonth);
 
+  // Determine if employee needs inventory count before closing
+  const employeeRoles = myEmployeeRecord?.assigned_roles || [];
+  const isJefe = myEmployeeRecord?.is_jefe === true;
+  const isSeller = employeeRoles.includes('seller');
+  const isOperatorRole = employeeRoles.includes('operator');
+  const needsCount = isJefe && (isSeller || isOperatorRole);
+
   // Use the shared salary hook
   const dailySalary = useDailySalary({
     businessId,
