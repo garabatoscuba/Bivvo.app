@@ -482,6 +482,23 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
             )}
           </div>
 
+          <div className="space-y-1.5">
+            <Label className="flex items-center gap-1.5">
+              <Ruler className="h-3.5 w-3.5 text-muted-foreground" />
+              Unidad de medida
+            </Label>
+            <Select value={purchaseUnit} onValueChange={setPurchaseUnit}>
+              <SelectTrigger>
+                <SelectValue placeholder="Selecciona unidad" />
+              </SelectTrigger>
+              <SelectContent>
+                {['Pieza','Kilogramo','Gramo','Libra','Litro','Mililitro','Metro','Metro cuadrado (m²)','Centímetro','Caja','Paquete','Par','Docena','Rollo'].map(u => (
+                  <SelectItem key={u} value={u}>{u}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           {/* Freight / transport cost */}
           <div className="space-y-1.5">
             <Label className="flex items-center gap-1.5 text-xs">
@@ -501,23 +518,6 @@ export const StockEntryDialog = ({ open, onOpenChange, product, branchId }: Stoc
                 Costo unitario real: ${effectiveCostPerUnit.toFixed(2)} (${unitCost} + ${(parseFloat(freightCost) / totalQty).toFixed(2)} flete)
               </p>
             )}
-          </div>
-
-          <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5">
-              <Ruler className="h-3.5 w-3.5 text-muted-foreground" />
-              Unidad de medida
-            </Label>
-            <Select value={purchaseUnit} onValueChange={setPurchaseUnit}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecciona unidad" />
-              </SelectTrigger>
-              <SelectContent>
-                {['Pieza','Kilogramo','Gramo','Libra','Litro','Mililitro','Metro','Metro cuadrado (m²)','Centímetro','Caja','Paquete','Par','Docena','Rollo'].map(u => (
-                  <SelectItem key={u} value={u}>{u}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
 
           <div className="space-y-1.5">
