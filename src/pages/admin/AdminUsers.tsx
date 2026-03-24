@@ -677,9 +677,9 @@ const AdminUsers = () => {
                 <Select value={editPlan} onValueChange={setEditPlan}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="free">Gratuito</SelectItem>
-                    <SelectItem value="basic">Básico</SelectItem>
+                    <SelectItem value="free">Gratis</SelectItem>
                     <SelectItem value="professional">Profesional</SelectItem>
+                    <SelectItem value="enterprise">Empresarial</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
