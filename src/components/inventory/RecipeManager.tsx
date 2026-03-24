@@ -296,6 +296,25 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
   const salePrice = Number(product.sale_price);
   const margin = salePrice > 0 ? ((salePrice - costPerUnit) / salePrice * 100) : 0;
 
+  // Fetch last freight cost from product_stock_entries
+  const { data: lastFreight } = useQuery({
+    queryKey: ['last-freight', product.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('product_stock_entries')
+        .select('freight_cost')
+        .eq('product_id', product.id)
+        .not('freight_cost', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data?.freight_cost ?? 0;
+    },
+    enabled: open && !!recipe,
+  });
+
+  const [adjustedCostState, setAdjustedCostState] = useState<number | null>(null);
+
   const isLoading = recipeLoading || ingredientsLoading;
 
   return (
