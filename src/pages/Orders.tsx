@@ -127,7 +127,7 @@ const Orders = () => {
     );
   }
 
-  if (!canBypassJornada && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+  if (!canBypassJornada && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente' && jornada?.metodo_apertura !== 'qr') {
     return (
       <AppLayout>
         <SinJornadaAutorizada />
