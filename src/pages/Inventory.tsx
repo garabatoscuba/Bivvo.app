@@ -32,6 +32,7 @@ import { RecipeManager } from '@/components/inventory/RecipeManager';
 import { PurchaseHistory } from '@/components/inventory/PurchaseHistory';
 import ConsumoInternoModal from '@/components/inventory/ConsumoInternoModal';
 import InsumosInventoryTab from '@/components/inventory/InsumosInventoryTab';
+import CostMethodSection from '@/components/inventory/CostMethodSection';
 import { useProductionCapacity } from '@/hooks/useProductionCapacity';
 import { useProductionCapacities } from '@/hooks/useProductionCapacities';
 import {
