@@ -79,6 +79,8 @@ interface Employee {
   start_date: string;
   created_at: string;
   updated_at: string;
+  is_jefe?: boolean;
+  assigned_roles?: string[];
 }
 
 const MyEmployment = () => {
