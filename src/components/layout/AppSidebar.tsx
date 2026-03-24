@@ -150,6 +150,7 @@ const AppSidebar = () => {
   const isEmployeeSession = hasEmployeeRecord;
   const isEmployeeManager = employeePosition === "manager";
   const isEmployeeKitchen = employeePosition === "cocina";
+  const isEmployeeOperator = employeePosition === "operator";
   const shouldWaitEmployeeResolution = isBivooAccount && employeeRecordLoading;
 
   // Employees must not run owner/owner_id sidebar flow
