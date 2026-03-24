@@ -104,6 +104,11 @@ const InsumosInventoryTab = ({
     enabled: !!businessId,
   });
 
+  // Filter areas for operator
+  const filteredAreas = operatorAreaIds
+    ? areas.filter((a: any) => operatorAreaIds.includes(a.id))
+    : areas;
+
   // ─── Raw materials query ───
   const { data: rawMaterials = [] } = useQuery({
     queryKey: ['raw-materials', businessId],
