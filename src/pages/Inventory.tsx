@@ -395,29 +395,27 @@ const Inventory = () => {
     return [...filtered, ...rawToAdd];
   }, [products, rawMaterialsAsProducts, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
 
-  // Group products by category
-  const groupedProducts = useMemo(() => {
-    const groups = new Map<string, { category: Category | null; products: (Product & { category: Category | null })[] }>();
-    const uncategorized: (Product & { category: Category | null })[] = [];
-    
+  // Group products by insumo area
+  const groupedByArea = useMemo(() => {
+    const groups = new Map<string, { areaName: string; products: (Product & { category: Category | null })[] }>();
+    const noArea: (Product & { category: Category | null })[] = [];
+
     filteredProducts.forEach((product) => {
-      if (product.category_id && product.category) {
-        const group = groups.get(product.category_id);
-        if (group) {
-          group.products.push(product);
+      const areaId = (product as any).insumo_area_id || (product as any)._isRawMaterial && (product as any).area_id;
+      if (areaId && areaNameMap.has(areaId)) {
+        const existing = groups.get(areaId);
+        if (existing) {
+          existing.products.push(product);
         } else {
-          groups.set(product.category_id, {
-            category: product.category,
-            products: [product],
-          });
+          groups.set(areaId, { areaName: areaNameMap.get(areaId)!, products: [product] });
         }
       } else {
-        uncategorized.push(product);
+        noArea.push(product);
       }
     });
 
-    return { groups, uncategorized };
-  }, [filteredProducts]);
+    return { groups, noArea };
+  }, [filteredProducts, areaNameMap]);
 
 
   // Stats
