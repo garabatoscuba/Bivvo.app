@@ -739,9 +739,14 @@ const Inventory = () => {
               </div>
             ) : (
               <div className="space-y-1">
-                {Array.from(groupedProducts.groups.values()).map(({ category, products: groupProducts }) => (
-                  <div key={category?.id || 'none'}>
-                    {groupProducts.map((product) => (
+                {Array.from(groupedByArea.groups.entries()).map(([areaId, { areaName, products: areaProducts }]) => (
+                  <div key={areaId}>
+                    <div className="flex items-center gap-2 px-1 pt-3 pb-1">
+                      <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-foreground">{areaName}</span>
+                      <span className="text-xs text-muted-foreground">({areaProducts.length})</span>
+                    </div>
+                    {areaProducts.map((product) => (
                       <ProductRow
                         key={product.id}
                         product={product}
@@ -761,9 +766,14 @@ const Inventory = () => {
                     <Separator className="my-2" />
                   </div>
                 ))}
-                {groupedProducts.uncategorized.length > 0 && (
+                {groupedByArea.noArea.length > 0 && (
                   <div>
-                    {groupedProducts.uncategorized.map((product) => (
+                    <div className="flex items-center gap-2 px-1 pt-3 pb-1">
+                      <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-semibold text-foreground">Sin área</span>
+                      <span className="text-xs text-muted-foreground">({groupedByArea.noArea.length})</span>
+                    </div>
+                    {groupedByArea.noArea.map((product) => (
                       <ProductRow
                         key={product.id}
                         product={product}
