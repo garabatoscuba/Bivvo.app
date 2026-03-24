@@ -57,7 +57,7 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
       const { data } = await supabase
         .from('raw_materials')
         .select('id, name, unidad_medida, stock_vendedor, stock_almacen, insumo_area_id')
-        .in('insumo_area_id', operatorAreaIds);
+        .in('insumo_area_id', operatorAreaIds as any);
       if (!data) return [];
       return data.map((row: any) => ({
         product_id: row.id,
