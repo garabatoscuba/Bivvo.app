@@ -16,6 +16,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -78,6 +79,7 @@ interface Employee {
   created_at: string;
   updated_at: string;
   auth_user_id: string | null;
+  is_jefe: boolean | null;
 }
 
 interface SalaryAssignmentEntry {
@@ -105,6 +107,7 @@ interface EmployeeForm {
   use_bivoo_id: boolean;
   bivoo_password: string;
   new_password: string;
+  is_jefe: boolean;
   
   // Legacy single fields kept for backward compat
   modality_id: string;
@@ -138,6 +141,7 @@ const emptyForm: EmployeeForm = {
   use_bivoo_id: true,
   bivoo_password: '',
   new_password: '',
+  is_jefe: false,
   modality_id: '',
   preset_id: '',
   pay_frequency: 'monthly',
@@ -455,6 +459,7 @@ const Employees = () => {
             address: form.address.trim() || null,
             position: form.assigned_roles[0] || 'seller',
             start_date: form.start_date,
+            is_jefe: (form.assigned_roles.includes('seller') || form.assigned_roles.includes('operator')) ? form.is_jefe : false,
           })
           .eq('id', editingEmployee.id);
         if (error) throw error;
@@ -476,6 +481,7 @@ const Employees = () => {
             address: form.address.trim() || null,
             position: form.assigned_roles[0] || 'seller',
             start_date: form.start_date,
+            is_jefe: (form.assigned_roles.includes('seller') || form.assigned_roles.includes('operator')) ? form.is_jefe : false,
           })
           .select('id')
           .single();
@@ -719,6 +725,7 @@ const Employees = () => {
       use_bivoo_id: emp.email?.endsWith('@bivoo.app') || false,
       bivoo_password: '',
       new_password: '',
+      is_jefe: emp.is_jefe ?? false,
       modality_id: first?.modality_id || '',
       preset_id: first?.preset_id || '',
       pay_frequency: first?.pay_frequency || 'monthly',
@@ -1208,6 +1215,25 @@ const Employees = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">Los roles se asignarán cuando el empleado tenga cuenta vinculada.</p>
               </div>
+
+              {/* Responsable de conteo toggle */}
+              {(form.assigned_roles.includes('seller') || form.assigned_roles.includes('operator')) && (
+                <div className="flex items-center justify-between rounded-lg border p-3">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="is_jefe" className="text-sm cursor-pointer">Responsable de conteo</Label>
+                    <p className="text-xs text-muted-foreground">
+                      {form.assigned_roles.includes('operator')
+                        ? 'Responsable del conteo de su área'
+                        : 'Responsable del conteo de ventas'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="is_jefe"
+                    checked={form.is_jefe}
+                    onCheckedChange={(checked) => setForm(prev => ({ ...prev, is_jefe: !!checked }))}
+                  />
+                </div>
+              )}
 
               {/* Insumo area assignment for operator role */}
               {form.assigned_roles.includes('operator') && insumoAreas.length > 0 && (

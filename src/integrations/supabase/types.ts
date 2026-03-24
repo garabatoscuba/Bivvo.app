@@ -2076,6 +2076,7 @@ export type Database = {
           email: string | null
           full_name: string
           id: string
+          is_jefe: boolean | null
           license_number: string | null
           merma_descuento_pct: number | null
           position: string
@@ -2095,6 +2096,7 @@ export type Database = {
           email?: string | null
           full_name: string
           id?: string
+          is_jefe?: boolean | null
           license_number?: string | null
           merma_descuento_pct?: number | null
           position?: string
@@ -2114,6 +2116,7 @@ export type Database = {
           email?: string | null
           full_name?: string
           id?: string
+          is_jefe?: boolean | null
           license_number?: string | null
           merma_descuento_pct?: number | null
           position?: string
