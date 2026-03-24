@@ -54,12 +54,12 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
     queryKey: ['operator-insumo-count', operatorAreaIds],
     queryFn: async (): Promise<ProductStock[]> => {
       if (!operatorAreaIds.length) return [];
-      const { data } = await supabase
+      const query = supabase
         .from('raw_materials')
-        .select('id, name, unidad_medida, stock_vendedor, stock_almacen, insumo_area_id')
-        .in('insumo_area_id', operatorAreaIds as any);
+        .select('id, name, unidad_medida, stock_vendedor, stock_almacen, insumo_area_id');
+      const { data } = await (query as any).in('insumo_area_id', operatorAreaIds);
       if (!data) return [];
-      return data.map((row: any) => ({
+      return (data as any[]).map((row: any) => ({
         product_id: row.id,
         product_name: row.name || 'Insumo',
         unit: row.unidad_medida || 'Unidad',
