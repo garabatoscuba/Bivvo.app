@@ -569,7 +569,7 @@ const InsumosInventoryTab = ({
         )}
       </div>
 
-      {areas.length === 0 ? (
+      {filteredAreas.length === 0 ? (
         <div className="text-center py-12 text-muted-foreground">
           <p className="text-sm">Crea áreas para organizar tus insumos</p>
           {canManage && (
