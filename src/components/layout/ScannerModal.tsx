@@ -299,7 +299,7 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
         d.label.toLowerCase().includes("environment") ||
         !d.label.toLowerCase().includes("front"),
     );
-    const selectedCamera = backCameras[backCameras.length - 1]?.deviceId ?? undefined;
+    const selectedCamera = backCameras[0]?.deviceId ?? undefined;
 
     await codeReader.decodeFromVideoDevice(selectedCamera, videoEl, (result, _err, controls) => {
       if (!mountedRef.current || processing || !result) return;
