@@ -568,6 +568,21 @@ const Employees = () => {
             await supabase.from('user_roles').insert(roleInserts);
           }
         }
+
+      // Save insumo area assignments for operator role
+      await supabase
+        .from('employee_insumo_areas')
+        .delete()
+        .eq('employee_id', employeeId);
+
+      if (form.assigned_roles.includes('operator') && form.assigned_insumo_areas.length > 0) {
+        const areaInserts = form.assigned_insumo_areas.map(areaId => ({
+          employee_id: employeeId,
+          insumo_area_id: areaId,
+          business_id: businessId,
+        }));
+        await supabase.from('employee_insumo_areas').insert(areaInserts);
+      }
       }
 
       // Save salary assignments (multiple modalities)
