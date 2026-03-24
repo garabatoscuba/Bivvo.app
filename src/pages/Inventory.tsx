@@ -269,6 +269,7 @@ const Inventory = () => {
     return new Set(operatorAreaIds);
   }, [isOperator, operatorAreaIds]);
 
+  const areaColorMap = useMemo(() => {
     const map = new Map<string, string>();
     insumoAreas.forEach((a: any) => {
       if (a.is_internal) {
