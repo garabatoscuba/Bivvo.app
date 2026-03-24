@@ -73,6 +73,7 @@ const InsumosInventoryTab = ({
   onConsumoInterno,
   canManage,
   searchQuery = '',
+  operatorAreaIds,
 }: InsumosInventoryTabProps) => {
   const { profile } = useAuth();
   const queryClient = useQueryClient();
