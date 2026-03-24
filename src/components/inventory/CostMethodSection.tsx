@@ -61,28 +61,29 @@ export default function CostMethodSection({ product, onCostUpdate, onSaved }: Pr
     const fetchExpenses = async () => {
       setLoadingExpenses(true);
       try {
-        // Get total expenses for the period (accounting + treasury outflows)
-        const [expRes, tresRes, prodsRes] = await Promise.all([
-          supabase
-            .from('accounting_expenses')
-            .select('amount')
-            .eq('business_id', businessId)
-            .eq('status', 'paid')
-            .gte('paid_at', dateFrom)
-            .lte('paid_at', dateTo + 'T23:59:59'),
-          supabase
-            .from('treasury_movements')
-            .select('amount')
-            .eq('business_id', businessId)
-            .eq('type', 'expense')
-            .gte('created_at', dateFrom)
-            .lte('created_at', dateTo + 'T23:59:59'),
-          supabase
-            .from('products')
-            .select('id, cost_price')
-            .eq('business_id', businessId)
-            .eq('status', 'for_sale' as string),
-        ]);
+        const expQuery = supabase
+          .from('accounting_expenses')
+          .select('amount')
+          .eq('business_id', businessId!)
+          .eq('status', 'paid')
+          .gte('paid_at', dateFrom)
+          .lte('paid_at', dateTo + 'T23:59:59');
+
+        const tresQuery = supabase
+          .from('treasury_movements')
+          .select('amount')
+          .eq('business_id', businessId!)
+          .eq('type', 'expense')
+          .gte('created_at', dateFrom)
+          .lte('created_at', dateTo + 'T23:59:59');
+
+        const prodsQuery = supabase
+          .from('products')
+          .select('id, cost_price')
+          .eq('business_id', businessId!)
+          .eq('status', 'for_sale');
+
+        const [expRes, tresRes, prodsRes] = await Promise.all([expQuery, tresQuery, prodsQuery]);
 
         const totalExpenses =
           (expRes.data || []).reduce((s, e) => s + Number(e.amount || 0), 0) +
