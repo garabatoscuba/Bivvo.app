@@ -42,7 +42,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
 };
 
 const PLAN_LABELS: Record<string, string> = {
-  free: 'Gratuito', basic: 'Básico', professional: 'Profesional',
+  free: 'Gratis', professional: 'Profesional', enterprise: 'Empresarial',
 };
 
 const SortHead = ({ label, sortKey: sk, currentKey, currentDir, onToggle, className }: {
