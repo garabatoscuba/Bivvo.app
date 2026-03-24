@@ -299,6 +299,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isManager: roles.includes('manager'),
     isSeller: roles.includes('seller'),
     isKitchen: roles.includes('cocina'),
+    isOperator: roles.includes('operator'),
     isAccountant: roles.includes('accountant'),
     isAffiliated: profile?.user_type === 'affiliated',
     isPartner: roles.includes('partner'),

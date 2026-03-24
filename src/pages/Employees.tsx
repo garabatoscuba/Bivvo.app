@@ -133,6 +133,7 @@ const emptyForm: EmployeeForm = {
   start_date: new Date().toISOString().split('T')[0],
   assigned_branches: [],
   assigned_roles: ['seller'],
+  assigned_insumo_areas: [],
   salary_assignments: [],
   use_bivoo_id: true,
   bivoo_password: '',
