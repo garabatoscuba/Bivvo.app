@@ -661,6 +661,16 @@ const Employees = () => {
     // Legacy: use first assignment for backward compat fields
     const first = generalLoaded[0];
 
+    // Load assigned insumo areas
+    let loadedAreas: string[] = [];
+    const { data: areaAssignments } = await supabase
+      .from('employee_insumo_areas')
+      .select('insumo_area_id')
+      .eq('employee_id', emp.id);
+    if (areaAssignments) {
+      loadedAreas = areaAssignments.map(a => a.insumo_area_id).filter(Boolean) as string[];
+    }
+
     setEditingEmployee(emp);
     setForm({
       contract_number: emp.contract_number,
@@ -674,6 +684,7 @@ const Employees = () => {
       start_date: emp.start_date,
       assigned_branches: empBranches,
       assigned_roles: currentRoles,
+      assigned_insumo_areas: loadedAreas,
       salary_assignments: generalLoaded,
       use_bivoo_id: emp.email?.endsWith('@bivoo.app') || false,
       bivoo_password: '',
