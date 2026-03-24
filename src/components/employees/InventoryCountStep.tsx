@@ -26,10 +26,51 @@ interface ProductStock {
 const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: InventoryCountStepProps) => {
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const { user } = useAuth();
+  const { user, isOperator } = useAuth();
   const auditLog = useAuditLog();
 
-  const { data: products, isLoading } = useQuery({
+  // For operators, fetch their assigned insumo areas
+  const { data: operatorAreaIds = [] } = useQuery({
+    queryKey: ['operator-areas', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+      if (!emp) return [];
+      const { data } = await supabase
+        .from('employee_insumo_areas')
+        .select('insumo_area_id')
+        .eq('employee_id', emp.id);
+      return (data || []).map(d => d.insumo_area_id).filter(Boolean) as string[];
+    },
+    enabled: isOperator && !!user?.id,
+  });
+
+  // Operator: fetch raw materials from assigned areas
+  const { data: operatorInsumos, isLoading: loadingInsumos } = useQuery({
+    queryKey: ['operator-insumo-count', operatorAreaIds],
+    queryFn: async (): Promise<ProductStock[]> => {
+      if (!operatorAreaIds.length) return [];
+      const { data } = await supabase
+        .from('raw_materials')
+        .select('id, name, unidad_medida, stock_vendedor, stock_almacen, insumo_area_id')
+        .in('insumo_area_id', operatorAreaIds);
+      if (!data) return [];
+      return data.map((row: any) => ({
+        product_id: row.id,
+        product_name: row.name || 'Insumo',
+        unit: row.unidad_medida || 'Unidad',
+        system_stock: Number(row.stock_vendedor || 0) + Number(row.stock_almacen || 0),
+      }));
+    },
+    enabled: isOperator && operatorAreaIds.length > 0,
+  });
+
+  // Regular: fetch products with stock for branch
+  const { data: products, isLoading: loadingProducts } = useQuery({
     queryKey: ['inventory-count-products', branchId],
     queryFn: async (): Promise<ProductStock[]> => {
       const { data } = await supabase
@@ -46,7 +87,11 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
         system_stock: Number(row.quantity) || 0,
       }));
     },
+    enabled: !isOperator,
   });
+
+  const isLoading = isOperator ? loadingInsumos : loadingProducts;
+  const countItems = isOperator ? (operatorInsumos || []) : (products || []);
 
   const results = useMemo(() => {
     if (!products) return [];
