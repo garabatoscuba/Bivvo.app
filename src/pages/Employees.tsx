@@ -100,6 +100,7 @@ interface EmployeeForm {
   start_date: string;
   assigned_branches: string[];
   assigned_roles: AppRole[];
+  assigned_insumo_areas: string[];
   salary_assignments: SalaryAssignmentEntry[];
   use_bivoo_id: boolean;
   bivoo_password: string;
