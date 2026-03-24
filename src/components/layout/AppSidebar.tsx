@@ -166,8 +166,10 @@ const AppSidebar = () => {
 
   // Jornada check for operational employee tools
   const { jornadaActiva } = useJornadaActiva();
-  const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && jornadaActiva;
+  const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && !isEmployeeOperator && jornadaActiva;
 
+  // Operator only sees Inventario
+  const showOperatorModule = !shouldWaitEmployeeResolution && isEmployeeSession && isEmployeeOperator;
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
     queryKey: ["user-businesses-with-branches", profile?.user_id],
