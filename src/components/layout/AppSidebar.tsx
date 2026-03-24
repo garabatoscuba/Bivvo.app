@@ -112,13 +112,14 @@ const AppSidebar = () => {
   const activeBranch = branches.find((b) => b.id === profile?.branch_id);
   const isBivooAccount = profile?.email?.toLowerCase().endsWith("@bivoo.app") || false;
 
-  const normalizeEmployeePosition = (position?: string | null): "manager" | "seller" | "accountant" | "cocina" | null => {
+  const normalizeEmployeePosition = (position?: string | null): "manager" | "seller" | "accountant" | "cocina" | "operator" | null => {
     const raw = position?.toLowerCase().trim();
     if (!raw) return null;
     if (["manager", "gerente"].includes(raw)) return "manager";
     if (["accountant", "contable"].includes(raw)) return "accountant";
     if (["seller", "vendedor", "dependiente", "dependent"].includes(raw)) return "seller";
     if (["cocina", "cocinero", "kitchen", "chef"].includes(raw)) return "cocina";
+    if (["operator", "operario", "operario de área"].includes(raw)) return "operator";
     return null;
   };
 
@@ -149,6 +150,7 @@ const AppSidebar = () => {
   const isEmployeeSession = hasEmployeeRecord;
   const isEmployeeManager = employeePosition === "manager";
   const isEmployeeKitchen = employeePosition === "cocina";
+  const isEmployeeOperator = employeePosition === "operator";
   const shouldWaitEmployeeResolution = isBivooAccount && employeeRecordLoading;
 
   // Employees must not run owner/owner_id sidebar flow
@@ -164,8 +166,10 @@ const AppSidebar = () => {
 
   // Jornada check for operational employee tools
   const { jornadaActiva } = useJornadaActiva();
-  const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && jornadaActiva;
+  const showEmployeeTools = !shouldWaitEmployeeResolution && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && !isEmployeeOperator && jornadaActiva;
 
+  // Operator only sees Inventario
+  const showOperatorModule = !shouldWaitEmployeeResolution && isEmployeeSession && isEmployeeOperator;
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
     queryKey: ["user-businesses-with-branches", profile?.user_id],
@@ -652,6 +656,40 @@ const AppSidebar = () => {
                     <Link to="/cocina">
                       <ChefHat className="h-4 w-4" />
                       <span className="text-sm">Pedidos</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
+        {/* Operator section - area operator only sees Mi Empleo + Inventario */}
+        {showOperatorModule && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
+              <span>Operario</span>
+              {employerName && (
+                <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
+                  {employerName}
+                </span>
+              )}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/mi-empleo")}>
+                    <Link to="/mi-empleo">
+                      <Briefcase className="h-4 w-4" />
+                      <span className="text-sm">Mi Empleo</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/inventory")}>
+                    <Link to="/inventory?ctx=emp">
+                      <Package className="h-4 w-4" />
+                      <span className="text-sm">Inventario</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

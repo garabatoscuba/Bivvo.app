@@ -26,10 +26,51 @@ interface ProductStock {
 const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: InventoryCountStepProps) => {
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const { user } = useAuth();
+  const { user, isOperator } = useAuth();
   const auditLog = useAuditLog();
 
-  const { data: products, isLoading } = useQuery({
+  // For operators, fetch their assigned insumo areas
+  const { data: operatorAreaIds = [] } = useQuery({
+    queryKey: ['operator-areas', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data: emp } = await supabase
+        .from('employees')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .maybeSingle();
+      if (!emp) return [];
+      const { data } = await supabase
+        .from('employee_insumo_areas')
+        .select('insumo_area_id')
+        .eq('employee_id', emp.id);
+      return (data || []).map(d => d.insumo_area_id).filter(Boolean) as string[];
+    },
+    enabled: isOperator && !!user?.id,
+  });
+
+  // Operator: fetch raw materials from assigned areas
+  const { data: operatorInsumos, isLoading: loadingInsumos } = useQuery({
+    queryKey: ['operator-insumo-count', operatorAreaIds],
+    queryFn: async (): Promise<ProductStock[]> => {
+      if (!operatorAreaIds.length) return [];
+      const query = supabase
+        .from('raw_materials')
+        .select('id, name, unidad_medida, stock_vendedor, stock_almacen, insumo_area_id');
+      const { data } = await (query as any).in('insumo_area_id', operatorAreaIds);
+      if (!data) return [];
+      return (data as any[]).map((row: any) => ({
+        product_id: row.id,
+        product_name: row.name || 'Insumo',
+        unit: row.unidad_medida || 'Unidad',
+        system_stock: Number(row.stock_vendedor || 0) + Number(row.stock_almacen || 0),
+      }));
+    },
+    enabled: isOperator && operatorAreaIds.length > 0,
+  });
+
+  // Regular: fetch products with stock for branch
+  const { data: products, isLoading: loadingProducts } = useQuery({
     queryKey: ['inventory-count-products', branchId],
     queryFn: async (): Promise<ProductStock[]> => {
       const { data } = await supabase
@@ -46,17 +87,21 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
         system_stock: Number(row.quantity) || 0,
       }));
     },
+    enabled: !isOperator,
   });
 
+  const isLoading = isOperator ? loadingInsumos : loadingProducts;
+  const countItems = isOperator ? (operatorInsumos || []) : (products || []);
+
   const results = useMemo(() => {
-    if (!products) return [];
-    return products.map(p => {
+    if (!countItems.length) return [];
+    return countItems.map(p => {
       const raw = counts[p.product_id];
       const counted = raw !== undefined && raw !== '' ? Number(raw) : null;
       const diff = counted !== null ? counted - p.system_stock : null;
       return { ...p, counted, diff };
     });
-  }, [products, counts]);
+  }, [countItems, counts]);
 
   const allCounted = results.length > 0 && results.every(r => r.counted !== null);
   const hasDifferences = results.some(r => r.diff !== null && r.diff !== 0);
@@ -66,7 +111,7 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
     setSaving(true);
 
     try {
-      if (user?.id && products && results.length > 0) {
+      if (user?.id && countItems.length > 0 && results.length > 0) {
         const rows = results
           .filter(r => r.counted !== null)
           .map(r => ({
@@ -111,12 +156,14 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
     );
   }
 
-  if (!products || products.length === 0) {
+  if (countItems.length === 0) {
     return (
       <div className="space-y-4">
         <div className="rounded-lg border border-border bg-muted/30 p-6 text-center space-y-2">
           <PackageCheck className="h-8 w-8 mx-auto text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">No hay productos con stock en venta para contar.</p>
+          <p className="text-sm text-muted-foreground">
+            {isOperator ? 'No hay insumos en tus áreas asignadas para contar.' : 'No hay productos con stock en venta para contar.'}
+          </p>
         </div>
         <Button onClick={onComplete} className="w-full gap-2">
           Continuar <ArrowRight className="h-4 w-4" />

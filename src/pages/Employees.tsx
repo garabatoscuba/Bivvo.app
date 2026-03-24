@@ -26,7 +26,7 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
   Loader2, Pencil, Trash2, Activity, Mail, MapPin, StopCircle, Clock,
-  Play, Square, Plus, Save, ChefHat, QrCode,
+  Play, Square, Plus, Save, ChefHat, QrCode, Wrench,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import PerformanceChart from '@/components/employees/PerformanceChart';
@@ -45,6 +45,7 @@ const ROLE_CONFIG: Record<AppRole, { label: string; icon: typeof Shield; color: 
   manager: { label: 'Gerente', icon: Store, color: 'bg-accent text-accent-foreground' },
   seller: { label: 'Vendedor', icon: ShoppingCart, color: 'bg-secondary text-secondary-foreground' },
   cocina: { label: 'Cocina', icon: ChefHat, color: 'bg-warning/15 text-warning' },
+  operator: { label: 'Operario de área', icon: Wrench, color: 'bg-muted text-foreground' },
   accountant: { label: 'Contable', icon: Calculator, color: 'bg-muted text-muted-foreground' },
   affiliated: { label: 'Afiliado', icon: Users, color: 'bg-muted text-muted-foreground' },
   partner: { label: 'Partner', icon: Users, color: 'bg-muted text-muted-foreground' },
@@ -55,10 +56,11 @@ const BASE_POSITION_OPTIONS = [
   { value: 'manager', label: 'Gerente' },
   { value: 'seller', label: 'Vendedor' },
   { value: 'cocina', label: 'Cocina' },
+  { value: 'operator', label: 'Operario de área' },
   { value: 'accountant', label: 'Contable' },
 ];
 
-const ALL_BASE_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'cocina', 'accountant'];
+const ALL_BASE_ASSIGNABLE_ROLES: AppRole[] = ['owner', 'manager', 'seller', 'cocina', 'operator', 'accountant'];
 
 interface Employee {
   id: string;
@@ -98,6 +100,7 @@ interface EmployeeForm {
   start_date: string;
   assigned_branches: string[];
   assigned_roles: AppRole[];
+  assigned_insumo_areas: string[];
   salary_assignments: SalaryAssignmentEntry[];
   use_bivoo_id: boolean;
   bivoo_password: string;
@@ -130,6 +133,7 @@ const emptyForm: EmployeeForm = {
   start_date: new Date().toISOString().split('T')[0],
   assigned_branches: [],
   assigned_roles: ['seller'],
+  assigned_insumo_areas: [],
   salary_assignments: [],
   use_bivoo_id: true,
   bivoo_password: '',
@@ -236,6 +240,21 @@ const Employees = () => {
 
   const salaryModalities = allSalaryModalities.filter((m: any) => !m.context || m.context === 'general');
 
+  // Fetch insumo areas for the business
+  const { data: insumoAreas = [] } = useQuery({
+    queryKey: ['insumo-areas-employee', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const { data, error } = await supabase
+        .from('insumo_areas')
+        .select('id, name')
+        .eq('business_id', businessId)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!businessId,
+  });
   // Fetch branch assignments for all employees
   const { data: branchAssignments = [] } = useQuery({
     queryKey: ['employee-branch-assignments', businessId],
@@ -549,6 +568,21 @@ const Employees = () => {
             await supabase.from('user_roles').insert(roleInserts);
           }
         }
+
+      // Save insumo area assignments for operator role
+      await supabase
+        .from('employee_insumo_areas')
+        .delete()
+        .eq('employee_id', employeeId);
+
+      if (form.assigned_roles.includes('operator') && form.assigned_insumo_areas.length > 0) {
+        const areaInserts = form.assigned_insumo_areas.map(areaId => ({
+          employee_id: employeeId,
+          insumo_area_id: areaId,
+          business_id: businessId,
+        }));
+        await supabase.from('employee_insumo_areas').insert(areaInserts);
+      }
       }
 
       // Save salary assignments (multiple modalities)
@@ -657,6 +691,16 @@ const Employees = () => {
     // Legacy: use first assignment for backward compat fields
     const first = generalLoaded[0];
 
+    // Load assigned insumo areas
+    let loadedAreas: string[] = [];
+    const { data: areaAssignments } = await supabase
+      .from('employee_insumo_areas')
+      .select('insumo_area_id')
+      .eq('employee_id', emp.id);
+    if (areaAssignments) {
+      loadedAreas = areaAssignments.map(a => a.insumo_area_id).filter(Boolean) as string[];
+    }
+
     setEditingEmployee(emp);
     setForm({
       contract_number: emp.contract_number,
@@ -670,6 +714,7 @@ const Employees = () => {
       start_date: emp.start_date,
       assigned_branches: empBranches,
       assigned_roles: currentRoles,
+      assigned_insumo_areas: loadedAreas,
       salary_assignments: generalLoaded,
       use_bivoo_id: emp.email?.endsWith('@bivoo.app') || false,
       bivoo_password: '',
@@ -1163,6 +1208,35 @@ const Employees = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">Los roles se asignarán cuando el empleado tenga cuenta vinculada.</p>
               </div>
+
+              {/* Insumo area assignment for operator role */}
+              {form.assigned_roles.includes('operator') && insumoAreas.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Áreas de Insumos Asignadas</Label>
+                  <div className="grid grid-cols-2 gap-2 rounded-lg border p-3">
+                    {insumoAreas.map(area => (
+                      <div key={area.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`area-${area.id}`}
+                          checked={form.assigned_insumo_areas.includes(area.id)}
+                          onCheckedChange={(checked) => {
+                            setForm(prev => ({
+                              ...prev,
+                              assigned_insumo_areas: checked
+                                ? [...prev.assigned_insumo_areas, area.id]
+                                : prev.assigned_insumo_areas.filter(a => a !== area.id),
+                            }));
+                          }}
+                        />
+                        <Label htmlFor={`area-${area.id}`} className="text-sm font-normal cursor-pointer">
+                          {area.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">El operario solo verá los insumos de las áreas seleccionadas.</p>
+                </div>
+              )}
 
               {/* Multi-branch assignment */}
               {branches.length > 0 && (

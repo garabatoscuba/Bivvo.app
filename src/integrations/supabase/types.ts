@@ -1706,6 +1706,52 @@ export type Database = {
           },
         ]
       }
+      employee_insumo_areas: {
+        Row: {
+          business_id: string | null
+          created_at: string | null
+          employee_id: string | null
+          id: string
+          insumo_area_id: string | null
+        }
+        Insert: {
+          business_id?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string
+          insumo_area_id?: string | null
+        }
+        Update: {
+          business_id?: string | null
+          created_at?: string | null
+          employee_id?: string | null
+          id?: string
+          insumo_area_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_insumo_areas_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_insumo_areas_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_insumo_areas_insumo_area_id_fkey"
+            columns: ["insumo_area_id"]
+            isOneToOne: false
+            referencedRelation: "insumo_areas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       employee_material_stock: {
         Row: {
           branch_id: string | null
@@ -5314,6 +5360,7 @@ export type Database = {
         | "affiliated"
         | "partner"
         | "cocina"
+        | "operator"
       inventory_movement_type:
         | "purchase"
         | "sale"
@@ -5473,6 +5520,7 @@ export const Constants = {
         "affiliated",
         "partner",
         "cocina",
+        "operator",
       ],
       inventory_movement_type: [
         "purchase",
