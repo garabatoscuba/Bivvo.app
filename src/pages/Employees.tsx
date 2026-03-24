@@ -1209,6 +1209,35 @@ const Employees = () => {
                 <p className="text-xs text-muted-foreground">Los roles se asignarán cuando el empleado tenga cuenta vinculada.</p>
               </div>
 
+              {/* Insumo area assignment for operator role */}
+              {form.assigned_roles.includes('operator') && insumoAreas.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Áreas de Insumos Asignadas</Label>
+                  <div className="grid grid-cols-2 gap-2 rounded-lg border p-3">
+                    {insumoAreas.map(area => (
+                      <div key={area.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={`area-${area.id}`}
+                          checked={form.assigned_insumo_areas.includes(area.id)}
+                          onCheckedChange={(checked) => {
+                            setForm(prev => ({
+                              ...prev,
+                              assigned_insumo_areas: checked
+                                ? [...prev.assigned_insumo_areas, area.id]
+                                : prev.assigned_insumo_areas.filter(a => a !== area.id),
+                            }));
+                          }}
+                        />
+                        <Label htmlFor={`area-${area.id}`} className="text-sm font-normal cursor-pointer">
+                          {area.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground">El operario solo verá los insumos de las áreas seleccionadas.</p>
+                </div>
+              )}
+
               {/* Multi-branch assignment */}
               {branches.length > 0 && (
                 <div className="space-y-2">
