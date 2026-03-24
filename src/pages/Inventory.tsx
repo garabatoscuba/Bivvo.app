@@ -1106,7 +1106,7 @@ const Inventory = () => {
                 <MetricCard
                   label={isRawMaterial ? 'Costo unitario' : 'Margen'}
                   value={isRawMaterial ? `$${selectedUnitCost.toFixed(2)}` : (selectedMargin !== null ? `${selectedMargin.toFixed(0)}%` : '—')}
-                  sublabel={isRawMaterial ? 'Costo promedio actual' : `Costo $${selectedUnitCost.toFixed(2)}`}
+                  sublabel={isRawMaterial ? 'Costo promedio actual' : `Costo $${effectiveCost.toFixed(2)}`}
                 />
                 <MetricCard
                   label="Valor en stock"
@@ -1114,6 +1114,18 @@ const Inventory = () => {
                   sublabel={`${selectedDisplayTotalStock} ${selectedProduct.unit_of_measure || 'uds.'} total`}
                 />
               </div>
+
+              {/* Cost method section - only for non-raw-material products */}
+              {!isRawMaterial && canManage && (
+                <CostMethodSection
+                  product={selectedProduct as any}
+                  onCostUpdate={(cost) => setAdjustedCost(cost)}
+                  onSaved={() => {
+                    queryClient.invalidateQueries({ queryKey: ['products'] });
+                    setAdjustedCost(null);
+                  }}
+                />
+              )}
 
               {/* Stock distribution bar */}
               {selectedDisplayTotalStock > 0 && (
