@@ -544,7 +544,7 @@ const Sales = () => {
   if (!canBypassJornada && !jornadaActiva) {
     return <AppLayout title="Ventas"><SinJornadaActiva /></AppLayout>;
   }
-  if (!canBypassJornada && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+  if (!canBypassJornada && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente' && jornada?.metodo_apertura !== 'qr') {
     return <AppLayout title="Ventas"><SinJornadaAutorizada /></AppLayout>;
   }
 

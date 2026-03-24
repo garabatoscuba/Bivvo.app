@@ -1082,7 +1082,7 @@ const Services = () => {
     return <AppLayout><SinJornadaActiva /></AppLayout>;
   }
 
-  if (!canBypassJornada && !isEmpCtx && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente') {
+  if (!canBypassJornada && !isEmpCtx && jornadaActiva && jornada?.metodo_apertura !== 'manual_gerente' && jornada?.metodo_apertura !== 'qr') {
     return <AppLayout><SinJornadaAutorizada /></AppLayout>;
   }
 
