@@ -32,6 +32,7 @@ import { RecipeManager } from '@/components/inventory/RecipeManager';
 import { PurchaseHistory } from '@/components/inventory/PurchaseHistory';
 import ConsumoInternoModal from '@/components/inventory/ConsumoInternoModal';
 import InsumosInventoryTab from '@/components/inventory/InsumosInventoryTab';
+import CostMethodSection from '@/components/inventory/CostMethodSection';
 import { useProductionCapacity } from '@/hooks/useProductionCapacity';
 import { useProductionCapacities } from '@/hooks/useProductionCapacities';
 import {
@@ -151,6 +152,7 @@ const Inventory = () => {
   const { isDowngraded } = useIsDowngraded();
   const [consumoInternoProduct, setConsumoInternoProduct] = useState<any>(null);
   const [planGateOpen, setPlanGateOpen] = useState(false);
+  const [adjustedCost, setAdjustedCost] = useState<number | null>(null);
 
   const effectiveBranchId = selectedBranch || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(effectiveBranchId);
@@ -447,6 +449,7 @@ const Inventory = () => {
 
   const handleProductTap = (product: Product & { category: Category | null }) => {
     setSelectedProduct(product);
+    setAdjustedCost(null);
   };
 
   const handleEditProduct = () => {
@@ -554,8 +557,10 @@ const Inventory = () => {
   const selectedSalePrice = Number(selectedProduct?.sale_price) || 0;
   const selectedStockValue = selectedDisplayTotalStock * (isRawMaterial ? selectedUnitCost : (selectedSalePrice || selectedUnitCost));
 
+  const effectiveCost = adjustedCost ?? selectedUnitCost;
+
   const selectedMargin = selectedProduct && !isRawMaterial && selectedSalePrice > 0
-    ? ((selectedSalePrice - selectedUnitCost) / selectedSalePrice * 100)
+    ? ((selectedSalePrice - effectiveCost) / selectedSalePrice * 100)
     : null;
 
   const isPrivileged = isOwner || isManager || isSuperAdmin;
@@ -1102,7 +1107,7 @@ const Inventory = () => {
                 <MetricCard
                   label={isRawMaterial ? 'Costo unitario' : 'Margen'}
                   value={isRawMaterial ? `$${selectedUnitCost.toFixed(2)}` : (selectedMargin !== null ? `${selectedMargin.toFixed(0)}%` : '—')}
-                  sublabel={isRawMaterial ? 'Costo promedio actual' : `Costo $${selectedUnitCost.toFixed(2)}`}
+                  sublabel={isRawMaterial ? 'Costo promedio actual' : `Costo $${effectiveCost.toFixed(2)}`}
                 />
                 <MetricCard
                   label="Valor en stock"
@@ -1110,6 +1115,18 @@ const Inventory = () => {
                   sublabel={`${selectedDisplayTotalStock} ${selectedProduct.unit_of_measure || 'uds.'} total`}
                 />
               </div>
+
+              {/* Cost method section - only for non-raw-material products */}
+              {!isRawMaterial && canManage && (
+                <CostMethodSection
+                  product={selectedProduct as any}
+                  onCostUpdate={(cost) => setAdjustedCost(cost)}
+                  onSaved={() => {
+                    queryClient.invalidateQueries({ queryKey: ['products'] });
+                    setAdjustedCost(null);
+                  }}
+                />
+              )}
 
               {/* Stock distribution bar */}
               {selectedDisplayTotalStock > 0 && (

@@ -3915,6 +3915,7 @@ export type Database = {
           branch_id: string
           business_id: string
           created_at: string
+          freight_cost: number | null
           id: string
           is_voided: boolean
           notes: string | null
@@ -3934,6 +3935,7 @@ export type Database = {
           branch_id: string
           business_id: string
           created_at?: string
+          freight_cost?: number | null
           id?: string
           is_voided?: boolean
           notes?: string | null
@@ -3953,6 +3955,7 @@ export type Database = {
           branch_id?: string
           business_id?: string
           created_at?: string
+          freight_cost?: number | null
           id?: string
           is_voided?: boolean
           notes?: string | null
@@ -3999,11 +4002,14 @@ export type Database = {
           business_id: string
           category_id: string | null
           code: string
+          cost_method: string | null
           cost_price: number
           created_at: string
           description: string | null
           id: string
           image_url: string | null
+          indirect_cost_amount: number | null
+          indirect_cost_percentage: number | null
           insumo_area_id: string | null
           min_stock: number
           name: string
@@ -4020,11 +4026,14 @@ export type Database = {
           business_id: string
           category_id?: string | null
           code: string
+          cost_method?: string | null
           cost_price?: number
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
+          indirect_cost_amount?: number | null
+          indirect_cost_percentage?: number | null
           insumo_area_id?: string | null
           min_stock?: number
           name: string
@@ -4041,11 +4050,14 @@ export type Database = {
           business_id?: string
           category_id?: string | null
           code?: string
+          cost_method?: string | null
           cost_price?: number
           created_at?: string
           description?: string | null
           id?: string
           image_url?: string | null
+          indirect_cost_amount?: number | null
+          indirect_cost_percentage?: number | null
           insumo_area_id?: string | null
           min_stock?: number
           name?: string
