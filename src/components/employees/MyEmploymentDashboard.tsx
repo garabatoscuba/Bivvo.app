@@ -58,6 +58,7 @@ const MyEmploymentDashboard = ({
   jornadaActiva,
   myJornada,
   dailySalary,
+  needsCount = true,
   onOpenContarYCerrar,
 }: MyEmploymentDashboardProps) => {
   const { user } = useAuth();
