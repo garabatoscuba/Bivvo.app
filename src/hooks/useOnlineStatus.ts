@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { syncPendingRecords } from '@/lib/offlineSync';
+import { pushPendingOperations } from '@/lib/syncEngine';
 
 export type SyncStatus = 'online' | 'offline' | 'syncing' | 'synced';
 
@@ -15,8 +15,8 @@ export function useOnlineStatus() {
     setSyncStatus('syncing');
 
     try {
-      const result = await syncPendingRecords();
-      if (result.total > 0) {
+      const result = await pushPendingOperations();
+      if (result.pushed > 0) {
         setSyncStatus('synced');
         syncedTimerRef.current = setTimeout(() => setSyncStatus('online'), 3000);
       } else {
