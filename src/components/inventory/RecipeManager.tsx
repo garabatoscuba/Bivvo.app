@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Trash2, Loader2, ChefHat, Pencil, Check, X } from 'lucide-react';
+import CostMethodSection from '@/components/inventory/CostMethodSection';
 import type { Product } from '@/types/database';
 
 interface RecipeManagerProps {
@@ -294,6 +295,25 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
   const costPerUnit = recipeCost / yieldQty;
   const salePrice = Number(product.sale_price);
   const margin = salePrice > 0 ? ((salePrice - costPerUnit) / salePrice * 100) : 0;
+
+  // Fetch last freight cost from product_stock_entries
+  const { data: lastFreight } = useQuery({
+    queryKey: ['last-freight', product.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('product_stock_entries')
+        .select('freight_cost')
+        .eq('product_id', product.id)
+        .not('freight_cost', 'is', null)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      return data?.freight_cost ?? 0;
+    },
+    enabled: open && !!recipe,
+  });
+
+  const [adjustedCostState, setAdjustedCostState] = useState<number | null>(null);
 
   const isLoading = recipeLoading || ingredientsLoading;
 
@@ -597,6 +617,39 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
                   </div>
                 )}
               </div>
+
+              <Separator />
+
+              {/* Read-only cost breakdown */}
+              <div className="rounded-lg border bg-muted/50 p-3 space-y-1.5">
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Desglose de costo</p>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Costo ingredientes (receta)</span>
+                  <span className="font-medium">${costPerUnit.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Flete última compra</span>
+                  <span className="font-medium">${(lastFreight ?? 0).toFixed(2)}</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between text-sm font-semibold">
+                  <span>Costo base total</span>
+                  <span>${(costPerUnit + (lastFreight ?? 0)).toFixed(2)}</span>
+                </div>
+              </div>
+
+              {/* Cost method section */}
+              <CostMethodSection
+                product={{
+                  ...product,
+                  cost_price: costPerUnit + (lastFreight ?? 0),
+                } as any}
+                onCostUpdate={(cost) => setAdjustedCostState(cost)}
+                onSaved={() => {
+                  queryClient.invalidateQueries({ queryKey: ['products'] });
+                  setAdjustedCostState(null);
+                }}
+              />
             </>
           )}
         </div>
