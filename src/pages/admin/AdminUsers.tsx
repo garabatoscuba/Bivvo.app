@@ -504,8 +504,9 @@ const AdminUsers = () => {
             <SelectTrigger className="w-[150px] h-9 text-sm"><SelectValue placeholder="Plan" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Plan: Todos</SelectItem>
-              <SelectItem value="free">Gratuito</SelectItem>
-              <SelectItem value="basic">Básico</SelectItem>
+              <SelectItem value="free">Gratis</SelectItem>
+              <SelectItem value="professional">Profesional</SelectItem>
+              <SelectItem value="enterprise">Empresarial</SelectItem>
               <SelectItem value="professional">Profesional</SelectItem>
             </SelectContent>
           </Select>
