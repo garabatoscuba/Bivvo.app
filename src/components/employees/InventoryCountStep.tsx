@@ -156,12 +156,14 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
     );
   }
 
-  if (!products || products.length === 0) {
+  if (countItems.length === 0) {
     return (
       <div className="space-y-4">
         <div className="rounded-lg border border-border bg-muted/30 p-6 text-center space-y-2">
           <PackageCheck className="h-8 w-8 mx-auto text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">No hay productos con stock en venta para contar.</p>
+          <p className="text-sm text-muted-foreground">
+            {isOperator ? 'No hay insumos en tus áreas asignadas para contar.' : 'No hay productos con stock en venta para contar.'}
+          </p>
         </div>
         <Button onClick={onComplete} className="w-full gap-2">
           Continuar <ArrowRight className="h-4 w-4" />
