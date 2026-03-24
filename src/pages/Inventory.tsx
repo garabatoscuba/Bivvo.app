@@ -556,8 +556,6 @@ const Inventory = () => {
   const selectedSalePrice = Number(selectedProduct?.sale_price) || 0;
   const selectedStockValue = selectedDisplayTotalStock * (isRawMaterial ? selectedUnitCost : (selectedSalePrice || selectedUnitCost));
 
-  // Cost method adjustment: when CostMethodSection provides an adjusted cost, use it for margin
-  const [adjustedCost, setAdjustedCost] = useState<number | null>(null);
   const effectiveCost = adjustedCost ?? selectedUnitCost;
 
   const selectedMargin = selectedProduct && !isRawMaterial && selectedSalePrice > 0
