@@ -328,7 +328,7 @@ const InsumosInventoryTab = ({
               <Select value={insumoForm.area_id} onValueChange={v => setInsumoForm(f => ({ ...f, area_id: v }))}>
                 <SelectTrigger><SelectValue placeholder="Sin área" /></SelectTrigger>
                 <SelectContent>
-                  {areas.map((a: any) => (
+                  {filteredAreas.map((a: any) => (
                     <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>
                   ))}
                 </SelectContent>
