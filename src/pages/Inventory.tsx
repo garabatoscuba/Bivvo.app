@@ -449,6 +449,7 @@ const Inventory = () => {
 
   const handleProductTap = (product: Product & { category: Category | null }) => {
     setSelectedProduct(product);
+    setAdjustedCost(null);
   };
 
   const handleEditProduct = () => {
