@@ -1205,8 +1205,8 @@ const Inventory = () => {
                 />
               </div>
 
-              {/* Cost method section - only for non-raw-material products */}
-              {!isRawMaterial && canManage && (
+              {/* Cost method section - only for products WITHOUT recipe (elaborado/granel have their cost method in RecipeManager) */}
+              {!isRawMaterial && canManage && (selectedProduct as any)?.tipo !== 'elaborado' && (selectedProduct as any)?.tipo !== 'granel' && (
                 <CostMethodSection
                   product={selectedProduct as any}
                   onCostUpdate={(cost) => setAdjustedCost(cost)}

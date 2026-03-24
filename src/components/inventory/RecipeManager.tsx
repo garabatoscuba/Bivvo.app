@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/dialog';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Trash2, Loader2, ChefHat, Pencil, Check, X } from 'lucide-react';
+import CostMethodSection from '@/components/inventory/CostMethodSection';
 import type { Product } from '@/types/database';
 
 interface RecipeManagerProps {
