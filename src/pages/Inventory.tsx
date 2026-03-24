@@ -395,12 +395,26 @@ const Inventory = () => {
     return [...filtered, ...rawToAdd];
   }, [products, rawMaterialsAsProducts, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities]);
 
-  // Group products by category
+  // Separate regular products from ingredients
+  const { regularProducts, ingredientProducts } = useMemo(() => {
+    const regular: (Product & { category: Category | null })[] = [];
+    const ingredients: (Product & { category: Category | null })[] = [];
+    filteredProducts.forEach((p) => {
+      if ((p as any).tipo === 'ingrediente' || (p as any)._isRawMaterial) {
+        ingredients.push(p);
+      } else {
+        regular.push(p);
+      }
+    });
+    return { regularProducts: regular, ingredientProducts: ingredients };
+  }, [filteredProducts]);
+
+  // Group regular products by category (unchanged logic)
   const groupedProducts = useMemo(() => {
     const groups = new Map<string, { category: Category | null; products: (Product & { category: Category | null })[] }>();
     const uncategorized: (Product & { category: Category | null })[] = [];
     
-    filteredProducts.forEach((product) => {
+    regularProducts.forEach((product) => {
       if (product.category_id && product.category) {
         const group = groups.get(product.category_id);
         if (group) {
@@ -417,7 +431,29 @@ const Inventory = () => {
     });
 
     return { groups, uncategorized };
-  }, [filteredProducts]);
+  }, [regularProducts]);
+
+  // Group ingredient products by insumo area
+  const areaGroupedIngredients = useMemo(() => {
+    const areaGroups = new Map<string, { areaName: string; products: (Product & { category: Category | null })[] }>();
+    const noArea: (Product & { category: Category | null })[] = [];
+
+    ingredientProducts.forEach((p) => {
+      const areaId = (p as any).insumo_area_id;
+      if (areaId && areaNameMap.has(areaId)) {
+        const group = areaGroups.get(areaId);
+        if (group) {
+          group.products.push(p);
+        } else {
+          areaGroups.set(areaId, { areaName: areaNameMap.get(areaId)!, products: [p] });
+        }
+      } else {
+        noArea.push(p);
+      }
+    });
+
+    return { areaGroups, noArea };
+  }, [ingredientProducts, areaNameMap]);
 
 
   // Stats
