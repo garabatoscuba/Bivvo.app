@@ -1070,6 +1070,11 @@ const Inventory = () => {
               const allItems = [...products, ...rawMaterialsAsProducts.filter(rm => !products.some(p => p.id === rm.id))];
               const warehouseProducts = allItems.filter((p) => {
                 if (p.status === 'discontinued') return false;
+                // Operator filter: only show products from their assigned areas
+                if (operatorAreaSet) {
+                  const areaId = (p as any).insumo_area_id || (p as any).area_id;
+                  if (!areaId || !operatorAreaSet.has(areaId)) return false;
+                }
                 const wStock = getProductWarehouseStock(p);
                 return wStock > 0;
               }).filter(p => { const s = search.toLowerCase(); return !search || p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.brand || '').toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s); });
