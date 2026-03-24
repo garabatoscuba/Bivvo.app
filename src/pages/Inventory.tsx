@@ -91,7 +91,7 @@ const colorDotMap: Record<string, string> = {
 };
 
 const Inventory = () => {
-  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const { profile, isOwner, isManager, isSuperAdmin, isOperator, user } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const { planType } = useSubscription();
   const { products, isLoading: productsLoading, deleteProduct } = useProducts();
