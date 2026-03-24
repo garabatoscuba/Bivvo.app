@@ -58,6 +58,7 @@ interface InsumosInventoryTabProps {
   onConsumoInterno?: (product: any) => void;
   canManage: boolean;
   searchQuery?: string;
+  operatorAreaIds?: string[] | null;
 }
 
 const InsumosInventoryTab = ({
