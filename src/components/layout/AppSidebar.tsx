@@ -664,6 +664,40 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
+        {/* Operator section - area operator only sees Mi Empleo + Inventario */}
+        {showOperatorModule && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
+              <span>Operario</span>
+              {employerName && (
+                <span className="text-[9px] normal-case tracking-normal text-muted-foreground/50 font-normal">
+                  {employerName}
+                </span>
+              )}
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/mi-empleo")}>
+                    <Link to="/mi-empleo">
+                      <Briefcase className="h-4 w-4" />
+                      <span className="text-sm">Mi Empleo</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton asChild isActive={isActive("/inventory")}>
+                    <Link to="/inventory?ctx=emp">
+                      <Package className="h-4 w-4" />
+                      <span className="text-sm">Inventario</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
+
         {/* Manager modules section — sees dynamic modules + config, but NOT Planes/Mis Negocios */}
         {showManagerModules && (
           <SidebarGroup>
