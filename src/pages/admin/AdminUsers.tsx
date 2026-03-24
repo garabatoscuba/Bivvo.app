@@ -42,7 +42,7 @@ const ROLE_LABELS: Record<AppRole, string> = {
 };
 
 const PLAN_LABELS: Record<string, string> = {
-  free: 'Gratuito', basic: 'Básico', professional: 'Profesional',
+  free: 'Gratis', professional: 'Profesional', enterprise: 'Empresarial',
 };
 
 const SortHead = ({ label, sortKey: sk, currentKey, currentDir, onToggle, className }: {
@@ -504,8 +504,9 @@ const AdminUsers = () => {
             <SelectTrigger className="w-[150px] h-9 text-sm"><SelectValue placeholder="Plan" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Plan: Todos</SelectItem>
-              <SelectItem value="free">Gratuito</SelectItem>
-              <SelectItem value="basic">Básico</SelectItem>
+              <SelectItem value="free">Gratis</SelectItem>
+              <SelectItem value="professional">Profesional</SelectItem>
+              <SelectItem value="enterprise">Empresarial</SelectItem>
               <SelectItem value="professional">Profesional</SelectItem>
             </SelectContent>
           </Select>
@@ -677,9 +678,9 @@ const AdminUsers = () => {
                 <Select value={editPlan} onValueChange={setEditPlan}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="free">Gratuito</SelectItem>
-                    <SelectItem value="basic">Básico</SelectItem>
+                    <SelectItem value="free">Gratis</SelectItem>
                     <SelectItem value="professional">Profesional</SelectItem>
+                    <SelectItem value="enterprise">Empresarial</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
