@@ -580,7 +580,7 @@ const InsumosInventoryTab = ({
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {areas.map((area: any) => {
+          {filteredAreas.map((area: any) => {
             const isInternal = !!area.is_internal;
             const Icon = isInternal ? getIconComponent('Home') : getIconComponent(area.icon);
             const count = areaCountMap.get(area.id) || 0;
