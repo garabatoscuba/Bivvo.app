@@ -240,6 +240,21 @@ const Employees = () => {
 
   const salaryModalities = allSalaryModalities.filter((m: any) => !m.context || m.context === 'general');
 
+  // Fetch insumo areas for the business
+  const { data: insumoAreas = [] } = useQuery({
+    queryKey: ['insumo-areas-employee', businessId],
+    queryFn: async () => {
+      if (!businessId) return [];
+      const { data, error } = await supabase
+        .from('insumo_areas')
+        .select('id, name')
+        .eq('business_id', businessId)
+        .order('name');
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!businessId,
+  });
   // Fetch branch assignments for all employees
   const { data: branchAssignments = [] } = useQuery({
     queryKey: ['employee-branch-assignments', businessId],
