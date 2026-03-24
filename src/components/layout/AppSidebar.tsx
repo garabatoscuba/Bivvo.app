@@ -685,6 +685,7 @@ const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                {isOperatorJefe && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive("/inventory")}>
                     <Link to="/inventory?ctx=emp">
@@ -693,6 +694,7 @@ const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                )}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
