@@ -227,14 +227,15 @@ const Plans = () => {
     setRequestOpen(true);
   };
 
-  const freePlanFeatures = [
-    'Inventario limitado (5 productos)',
-    'Punto de Venta (POS) completo',
-    'Servicios',
-    'Caja',
-    'Empleados y Nómina',
-    'Reportes: Resumen',
-    'Sin límite de tiempo',
+  const freePlanFeatures: { text: string; included: boolean }[] = [
+    { text: 'Inventario limitado (5 productos)', included: true },
+    { text: 'Punto de Venta (POS) completo', included: true },
+    { text: 'Servicios limitados (2 categorías)', included: true },
+    { text: 'Caja', included: true },
+    { text: 'Empleados y Nómina completa', included: true },
+    { text: 'Reportes completos (Resumen, Historial, Comparativa)', included: true },
+    { text: 'Portal de cliente', included: false },
+    { text: 'Sin límite de tiempo', included: true },
   ];
 
   const professionalFeatures = [
@@ -244,13 +245,12 @@ const Plans = () => {
     'Insumos y Ficha de Costo',
     'Empleados y Nómina completa',
     'Reportes completos (Resumen, Historial, Comparativa)',
+    'Portal de cliente',
   ];
 
   const enterpriseFeatures = [
     'Todo lo del Plan Profesional',
     'Contabilidad completa (Balance, Gastos, Activos, Análisis)',
-    'Contabilidad Avanzada (Cuentas T, Libro Diario)',
-    'Documentos (IPV, Conduces, Facturas)',
     'Soporte prioritario',
   ];
 
@@ -425,9 +425,13 @@ const Plans = () => {
               <p className="text-sm text-muted-foreground">Para siempre, sin tarjeta</p>
               <ul className="mt-4 space-y-2">
                 {freePlanFeatures.map(f => (
-                  <li key={f} className="flex items-center gap-2 text-sm">
-                    <Check className="h-4 w-4 text-green-600 shrink-0" />
-                    {f}
+                  <li key={f.text} className="flex items-center gap-2 text-sm">
+                    {f.included ? (
+                      <Check className="h-4 w-4 text-green-600 shrink-0" />
+                    ) : (
+                      <span className="h-4 w-4 shrink-0 flex items-center justify-center text-destructive font-bold text-xs">✕</span>
+                    )}
+                    <span className={f.included ? '' : 'text-muted-foreground line-through'}>{f.text}</span>
                   </li>
                 ))}
               </ul>

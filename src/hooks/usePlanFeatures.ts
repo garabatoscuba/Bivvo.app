@@ -17,13 +17,16 @@ const ENTERPRISE_FEATURES: PlanFeatureKey[] = [
 ];
 
 const FREE_PRODUCT_LIMIT = 5;
+const FREE_SERVICE_CATEGORY_LIMIT = 2;
 
 interface PlanFeatures {
   plan: PlanType;
   loading: boolean;
   hasFeature: (key: PlanFeatureKey) => boolean;
   canCreateProduct: (currentCount: number) => boolean;
+  canCreateServiceCategory: (currentCount: number) => boolean;
   productLimit: number | null;
+  serviceCategoryLimit: number | null;
   planLabel: string;
   requiredPlanFor: (key: PlanFeatureKey) => string;
 }
@@ -42,6 +45,11 @@ export const usePlanFeatures = (): PlanFeatures => {
     return true;
   };
 
+  const canCreateServiceCategory = (currentCount: number): boolean => {
+    if (planType === 'free') return currentCount < FREE_SERVICE_CATEGORY_LIMIT;
+    return true;
+  };
+
   const planLabel =
     planType === 'enterprise' ? 'Enterprise' :
     planType === 'professional' ? 'Profesional' :
@@ -57,7 +65,9 @@ export const usePlanFeatures = (): PlanFeatures => {
     loading,
     hasFeature,
     canCreateProduct,
+    canCreateServiceCategory,
     productLimit: planType === 'free' ? FREE_PRODUCT_LIMIT : null,
+    serviceCategoryLimit: planType === 'free' ? FREE_SERVICE_CATEGORY_LIMIT : null,
     planLabel,
     requiredPlanFor,
   };
