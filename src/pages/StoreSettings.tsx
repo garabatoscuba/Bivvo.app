@@ -303,16 +303,12 @@ const StoreSettingsPage = () => {
     enabled: !!branchId,
   });
 
-  // Free plan: show demo storefront instead of settings
-  if (!planLoading && plan === 'free') {
-    return (
-      <AppLayout>
-        <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
-          <PublicStorefront bizSlugOverride="bivoo-demo" />
-        </Suspense>
-      </AppLayout>
-    );
-  }
+  // Free plan: redirect to public demo storefront
+  useEffect(() => {
+    if (!planLoading && plan === 'free') {
+      window.open('/s/bivoo-demo', '_blank');
+    }
+  }, [planLoading, plan]);
 
   return (
     <AppLayout>
