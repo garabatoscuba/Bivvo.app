@@ -90,8 +90,8 @@ const Contabilidad = () => {
           )}
         </div>
 
-        <div className="flex">
-          <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground w-full overflow-x-auto">
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <div className="inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground min-w-max w-full">
             {(["balance", "gastos", "activos", "analisis", "avanzado", "documentos"] as const).map((tab) => {
               const locked = isDevTab(tab) && !canAccessDevTab;
               return (
