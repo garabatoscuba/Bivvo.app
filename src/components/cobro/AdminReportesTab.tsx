@@ -10,12 +10,13 @@ import { PeriodFilter, type Period } from '@/components/ui/period-filter';
 import { getDateRange } from '@/lib/periodUtils';
 import { format } from 'date-fns';
 
-const AdminReportesTab = ({ businessId }: { businessId: string }) => {
+const AdminReportesTab = ({ businessId, period: externalPeriod }: { businessId: string; period?: Period }) => {
   const { profile } = useAuth();
   const branchId = profile?.branch_id;
 
   const todayStr = new Date().toISOString().split('T')[0];
   const [filterPeriod, setFilterPeriod] = useState<Period>('today');
+  const activePeriod = externalPeriod ?? filterPeriod;
   const [selectedDate, setSelectedDate] = useState(todayStr);
 
   const dateRange = useMemo(() => {
