@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, startOfDay, startOfWeek, startOfMonth, addDays, addWeeks, addMonths, isBefore, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 
 type Period = "today" | "week" | "month" | "all";
 

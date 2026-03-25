@@ -20,6 +20,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 import { toast } from 'sonner';
 import {
   BarChart3, Activity, Plus, Eye, EyeOff, Save, Loader2, ChevronLeft, ChevronRight, Users,

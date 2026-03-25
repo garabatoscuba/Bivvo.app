@@ -32,6 +32,7 @@ import {
   Legend, LineChart, Line, ReferenceLine, Cell,
 } from 'recharts';
 import { type Skill, getWeakPoints, getAvgScore } from '@/components/employees/PerformanceChart';
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { format, startOfMonth, subMonths, addMonths } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -533,7 +534,7 @@ const MyEmployment = () => {
                           <PolarGrid />
                           <PolarAngleAxis dataKey="skill" tick={{ fontSize: 11 }} />
                           <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} />
-                          <Tooltip contentStyle={{ fontSize: 12 }} />
+                          <Tooltip contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 12 }} labelStyle={rechartsTooltipStyle.labelStyle} itemStyle={rechartsTooltipStyle.itemStyle} />
                           <Radar name="Mi evaluación" dataKey="score" stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
                           {compareEvaluation && (
                             <Radar name="Comparación" dataKey="compare" stroke="hsl(var(--destructive))" fill="hsl(var(--destructive))" fillOpacity={0.15} />
@@ -545,7 +546,7 @@ const MyEmployment = () => {
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                           <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 12 }} />
                           <YAxis type="category" dataKey="skill" tick={{ fontSize: 12 }} width={110} />
-                          <Tooltip contentStyle={{ fontSize: 12 }} />
+                          <Tooltip contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 12 }} labelStyle={rechartsTooltipStyle.labelStyle} itemStyle={rechartsTooltipStyle.itemStyle} />
                           <Bar dataKey="score" name="Mi evaluación" radius={[0, 6, 6, 0]} barSize={16}>
                             {barData.map((entry, idx) => (
                               <Cell key={idx} fill={getBarColor(entry.score)} />

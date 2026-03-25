@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 import type { DailySalaryBreakdown } from '@/hooks/useDailySalary';
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
 
