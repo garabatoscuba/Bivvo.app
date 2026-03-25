@@ -303,6 +303,17 @@ const StoreSettingsPage = () => {
     enabled: !!branchId,
   });
 
+  // Free plan: show demo storefront instead of settings
+  if (!planLoading && plan === 'free') {
+    return (
+      <AppLayout>
+        <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
+          <PublicStorefront bizSlugOverride="bivoo-demo" />
+        </Suspense>
+      </AppLayout>
+    );
+  }
+
   return (
     <AppLayout>
       <div className="space-y-6">
