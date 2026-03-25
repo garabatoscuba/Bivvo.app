@@ -558,6 +558,7 @@ const OwnerServicesView = () => {
   const { isDowngraded } = useIsDowngraded();
   const auditLog = useAuditLog();
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
+  const { canCreateServiceCategory, serviceCategoryLimit, plan: currentPlan } = (await import('@/hooks/usePlanFeatures')).usePlanFeatures();
   const canManage = isOwner || isManager;
   const businessId = profile?.business_id;
   const branchId = profile?.branch_id;
