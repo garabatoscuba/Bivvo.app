@@ -72,7 +72,9 @@ const Reportes = () => {
           </TabsContent>
 
           <TabsContent value="historial">
-            <HistorialTab businessId={businessId} employees={employeeData} />
+            <div onMouseDown={e => e.stopPropagation()}>
+              <HistorialTab businessId={businessId} employees={employeeData} />
+            </div>
           </TabsContent>
 
           <TabsContent value="comparativa">
