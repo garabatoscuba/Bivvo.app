@@ -272,7 +272,7 @@ export function useReportData(period: Period) {
     return Array.from(map.values());
   }, [dailyReports]);
 
-  const isLoading = loadingSales || loadingServices || loadingReports || loadingMermas;
+  const isLoading = loadingSales || loadingServices || loadingReports || loadingMermas || loadingExpenses || loadingSalaries;
 
   return {
     isLoading,
@@ -280,6 +280,8 @@ export function useReportData(period: Period) {
     currentServices,
     currentAll,
     currentMermas,
+    currentExpenses,
+    currentSalaries,
     prevSales,
     prevServices,
     prevAll,
