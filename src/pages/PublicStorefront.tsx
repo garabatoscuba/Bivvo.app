@@ -112,8 +112,9 @@ export function getCurrencySymbol(currency: string): string {
   return '$';
 }
 
-const PublicStorefront = () => {
-  const { bizSlug, branchSlug } = useParams<{ bizSlug: string; branchSlug?: string }>();
+const PublicStorefront = ({ bizSlugOverride }: { bizSlugOverride?: string } = {}) => {
+  const { bizSlug: bizSlugParam, branchSlug } = useParams<{ bizSlug: string; branchSlug?: string }>();
+  const bizSlug = bizSlugOverride || bizSlugParam;
   const [data, setData] = useState<StorefrontData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
