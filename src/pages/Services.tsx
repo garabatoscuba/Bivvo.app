@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useIsDowngraded } from '@/hooks/useIsDowngraded';
+import { usePlanFeatures } from '@/hooks/usePlanFeatures';
 import DowngradeModal from '@/components/DowngradeModal';
 import { useSearchParams } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
@@ -558,6 +559,7 @@ const OwnerServicesView = () => {
   const { isDowngraded } = useIsDowngraded();
   const auditLog = useAuditLog();
   const [downgradeModalOpen, setDowngradeModalOpen] = useState(false);
+  const { canCreateServiceCategory, serviceCategoryLimit } = usePlanFeatures();
   const canManage = isOwner || isManager;
   const businessId = profile?.business_id;
   const branchId = profile?.branch_id;
@@ -719,6 +721,10 @@ const OwnerServicesView = () => {
   });
 
   const handleOpenNewCat = () => {
+    if (!canCreateServiceCategory(categories.length)) {
+      toast({ title: 'Límite alcanzado', description: `El plan gratuito permite máximo ${serviceCategoryLimit} categorías de servicio. Mejora tu plan para agregar más.`, variant: 'destructive' });
+      return;
+    }
     setEditCat(null);
     setCatName('');
     setCatIcon('DollarSign');
