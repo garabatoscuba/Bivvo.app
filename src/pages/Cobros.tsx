@@ -24,6 +24,8 @@ const Cobros = () => {
     currentServices,
     currentAll,
     currentMermas,
+    currentExpenses,
+    currentSalaries,
     prevSales,
     prevServices,
     prevAll,
@@ -64,6 +66,8 @@ const Cobros = () => {
               all={currentAll}
               dailyBreakdown={dailyBreakdown}
               mermas={currentMermas}
+              expenses={currentExpenses}
+              salaries={currentSalaries}
             />
           </TabsContent>
 
@@ -80,6 +84,7 @@ const Cobros = () => {
               prevServices={prevServices}
               prevAll={prevAll}
               periodLabel={period}
+              dailyBreakdown={dailyBreakdown}
             />
           </TabsContent>
         </Tabs>
