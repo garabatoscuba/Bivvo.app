@@ -299,7 +299,11 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
         d.label.toLowerCase().includes("environment") ||
         !d.label.toLowerCase().includes("front"),
     );
-    const selectedCamera = backCameras[0]?.deviceId ?? undefined;
+    const mainBack = backCameras.find(d => {
+      const l = d.label.toLowerCase();
+      return !l.includes('ultra') && !l.includes('wide') && !l.includes('macro') && !l.includes('depth');
+    });
+    const selectedCamera = (mainBack ?? backCameras[backCameras.length - 1])?.deviceId ?? undefined;
 
     await codeReader.decodeFromVideoDevice(selectedCamera, videoEl, (result, _err, controls) => {
       if (!mountedRef.current || processing || !result) return;
