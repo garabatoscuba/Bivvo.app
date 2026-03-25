@@ -1,4 +1,5 @@
 import type { StorefrontTab } from '@/pages/PublicStorefront';
+import FadeInView from '@/components/storefront/FadeInView';
 
 export interface PromoBlock {
   block_number: number;
@@ -81,7 +82,7 @@ const StorefrontPromoBlocks = ({ blocks, accent, onNavigate }: Props) => {
         );
 
         return (
-          <div
+          <FadeInView
             key={block.block_number}
             className="flex flex-col md:flex-row md:min-h-[420px]"
           >
@@ -96,7 +97,7 @@ const StorefrontPromoBlocks = ({ blocks, accent, onNavigate }: Props) => {
                 {imageEl}
               </>
             )}
-          </div>
+          </FadeInView>
         );
       })}
     </section>
