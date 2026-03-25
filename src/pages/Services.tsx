@@ -721,6 +721,10 @@ const OwnerServicesView = () => {
   });
 
   const handleOpenNewCat = () => {
+    if (!canCreateServiceCategory(categories.length)) {
+      toast({ title: 'Límite alcanzado', description: `El plan gratuito permite máximo ${serviceCategoryLimit} categorías de servicio. Mejora tu plan para agregar más.`, variant: 'destructive' });
+      return;
+    }
     setEditCat(null);
     setCatName('');
     setCatIcon('DollarSign');
