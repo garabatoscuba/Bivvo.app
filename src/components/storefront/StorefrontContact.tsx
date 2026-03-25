@@ -3,6 +3,7 @@ import { MapPin, Phone, Send, Loader2, CheckCircle } from 'lucide-react';
 import type { StorefrontData } from '@/pages/PublicStorefront';
 import StorefrontSchedule from '@/components/storefront/StorefrontSchedule';
 import StorefrontAbout from '@/components/storefront/StorefrontAbout';
+import FadeInView from '@/components/storefront/FadeInView';
 
 const API_BASE = import.meta.env.VITE_SUPABASE_URL;
 const API_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -50,15 +51,17 @@ const StorefrontContact = ({ data, accent }: Props) => {
 
   return (
     <section className="max-w-4xl mx-auto px-4 sm:px-10 py-14 sm:py-20">
-      <h1
-        className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-12 text-center"
-        style={{ fontFamily: 'var(--font-heading)' }}
-      >
-        Contacto
-      </h1>
+      <FadeInView>
+        <h1
+          className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-12 text-center"
+          style={{ fontFamily: 'var(--font-heading)' }}
+        >
+          Contacto
+        </h1>
+      </FadeInView>
 
       {/* Info & Socials — top row */}
-      <div className="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-12 text-sm text-muted-foreground">
+      <FadeInView delay={80} className="flex flex-wrap justify-center gap-x-8 gap-y-3 mb-12 text-sm text-muted-foreground">
         {data.branch.address && (
           <span className="flex items-center gap-1.5">
             <MapPin className="h-3.5 w-3.5 shrink-0" /> {data.branch.address}
@@ -69,10 +72,10 @@ const StorefrontContact = ({ data, accent }: Props) => {
             <Phone className="h-3.5 w-3.5 shrink-0" /> {data.branch.phone}
           </span>
         )}
-      </div>
+      </FadeInView>
 
       {/* Socials */}
-      <div className="flex justify-center mb-14">
+      <FadeInView delay={160} className="flex justify-center mb-14">
         <StorefrontAbout
           aboutText={null}
           socialInstagram={data.settings.social_instagram}
@@ -81,10 +84,10 @@ const StorefrontContact = ({ data, accent }: Props) => {
           socialTwitter={data.settings.social_twitter}
           whatsappNumber={data.settings.whatsapp_number}
         />
-      </div>
+      </FadeInView>
 
       {/* Schedule + Contact form side by side */}
-      <div className={`grid gap-10 ${contactEmail ? 'md:grid-cols-2' : 'max-w-md mx-auto'}`}>
+      <FadeInView delay={240} className={`grid gap-10 ${contactEmail ? 'md:grid-cols-2' : 'max-w-md mx-auto'}`}>
         {/* Schedule */}
         <div>
           <StorefrontSchedule schedule={data.settings.schedule} />
@@ -143,7 +146,7 @@ const StorefrontContact = ({ data, accent }: Props) => {
             )}
           </div>
         )}
-      </div>
+      </FadeInView>
     </section>
   );
 };
