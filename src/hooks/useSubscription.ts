@@ -68,7 +68,7 @@ export const useSubscription = (): SubscriptionInfo => {
   if (authLoading || branchLoading || serverTimeLoading || !profile || !serverNow) return defaults;
 
   const plan = (profile.plan_type || 'free') as PlanType;
-  const pricePerBranch = plan === 'enterprise' ? 20 : plan === 'professional' ? 10 : 0;
+  const pricePerBranch = plan === 'enterprise' ? 15 : plan === 'professional' ? 10 : 0;
   const totalBranches = Math.max(1, branchCount);
   const totalMonthly = pricePerBranch * totalBranches;
 

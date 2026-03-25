@@ -28,7 +28,7 @@ const PLAN_LABELS: Record<PlanType, string> = {
 const PRICE_PER_BRANCH: Record<PlanType, number> = {
   free: 0,
   professional: 10,
-  enterprise: 20,
+  enterprise: 15,
 };
 
 const DURATION_OPTIONS = [
@@ -233,8 +233,7 @@ const Plans = () => {
     'Servicios',
     'Caja',
     'Empleados y Nómina',
-    'Reportes: Resumen e Historial',
-    'Contabilidad: Balance, Gastos y Análisis básico',
+    'Reportes: Resumen',
     'Sin límite de tiempo',
   ];
 
@@ -244,15 +243,14 @@ const Plans = () => {
     'Servicios ilimitados',
     'Insumos y Ficha de Costo',
     'Empleados y Nómina completa',
-    'Reportes: Resumen e Historial',
-    'Contabilidad: Balance, Gastos y Análisis',
+    'Reportes completos (Resumen, Historial, Comparativa)',
   ];
 
   const enterpriseFeatures = [
     'Todo lo del Plan Profesional',
-    'Reportes completos (Por Empleado, Comparativa, Ventas vs Serv., Bitácora)',
-    'Contabilidad completa (Activos, Análisis avanzado, Documentos)',
+    'Contabilidad completa (Balance, Gastos, Activos, Análisis)',
     'Contabilidad Avanzada (Cuentas T, Libro Diario)',
+    'Documentos (IPV, Conduces, Facturas)',
     'Soporte prioritario',
   ];
 
@@ -508,7 +506,7 @@ const Plans = () => {
               <CardDescription>Todo para escalar tu negocio</CardDescription>
             </CardHeader>
             <CardContent className="flex-1">
-              <p className="text-3xl font-bold">$20 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
+              <p className="text-3xl font-bold">$15 <span className="text-sm font-normal text-muted-foreground">USD/mes/sucursal</span></p>
               <ul className="mt-4 space-y-2">
                 {enterpriseFeatures.map(f => (
                   <li key={f} className="flex items-center gap-2 text-sm">
@@ -562,7 +560,7 @@ const Plans = () => {
                 className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
               >
                 <option value="professional">Profesional ($10/mes/sucursal)</option>
-                <option value="enterprise">Enterprise ($20/mes/sucursal)</option>
+                <option value="enterprise">Enterprise ($15/mes/sucursal)</option>
               </select>
             </div>
 

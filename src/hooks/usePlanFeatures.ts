@@ -1,22 +1,15 @@
 import { useSubscription, PlanType } from '@/hooks/useSubscription';
 
 export type PlanFeatureKey =
-  // Enterprise-only Reportes tabs
-  | 'reportes_por_empleado'
-  | 'reportes_comparativa'
-  | 'reportes_vs'
-  | 'reportes_bitacora'
-  // Enterprise-only Contabilidad tabs
+  // Enterprise-only: Contabilidad module
+  | 'contabilidad'
   | 'contabilidad_activos'
   | 'contabilidad_analisis'
   | 'contabilidad_avanzado'
   | 'contabilidad_documentos';
 
 const ENTERPRISE_FEATURES: PlanFeatureKey[] = [
-  'reportes_por_empleado',
-  'reportes_comparativa',
-  'reportes_vs',
-  'reportes_bitacora',
+  'contabilidad',
   'contabilidad_activos',
   'contabilidad_analisis',
   'contabilidad_avanzado',
@@ -28,15 +21,10 @@ const FREE_PRODUCT_LIMIT = 5;
 interface PlanFeatures {
   plan: PlanType;
   loading: boolean;
-  /** Check if a specific feature is available on the current plan */
   hasFeature: (key: PlanFeatureKey) => boolean;
-  /** Whether the user can create a new product (free plan limit) */
   canCreateProduct: (currentCount: number) => boolean;
-  /** Max products for free plan */
   productLimit: number | null;
-  /** Plan label for display */
   planLabel: string;
-  /** Required plan for a locked feature */
   requiredPlanFor: (key: PlanFeatureKey) => string;
 }
 
