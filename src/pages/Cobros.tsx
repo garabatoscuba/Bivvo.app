@@ -3,32 +3,20 @@ import { useAuth } from '@/contexts/AuthContext';
 import AppLayout from '@/components/layout/AppLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PeriodFilter, type Period } from '@/components/ui/period-filter';
-import { Loader2, Lock } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useReportData } from '@/hooks/useReportData';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
 import ReportesResumenTab from '@/components/cobro/ReportesResumenTab';
-import ReportesPorEmpleadoTab from '@/components/cobro/ReportesPorEmpleadoTab';
-import ReportesVsTab from '@/components/cobro/ReportesVsTab';
-import ReportesComparativaTab from '@/components/cobro/ReportesComparativaTab';
-import AdminReportesTab from '@/components/cobro/AdminReportesTab';
-import BitacoraTab from '@/components/cobro/BitacoraTab';
-import { usePlanFeatures } from '@/hooks/usePlanFeatures';
-import PlanGateModal from '@/components/PlanGateModal';
+import HistorialTab from '@/components/cobro/HistorialTab';
+import ComparativaTab from '@/components/cobro/ComparativaTab';
 
 const Cobros = () => {
-  const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
+  const { profile, isOwner, isSuperAdmin } = useAuth();
   const businessId = profile?.business_id;
   const [period, setPeriod] = useState<Period>('today');
   const { jornadaActiva, isLoading: jornadaLoading } = useJornadaActiva();
   const canBypassJornada = isOwner || isSuperAdmin;
-  const { plan, hasFeature, requiredPlanFor } = usePlanFeatures();
-
-  const [gateOpen, setGateOpen] = useState(false);
-  const [gateRequiredPlan, setGateRequiredPlan] = useState('Enterprise');
-  const [advancedSubTab, setAdvancedSubTab] = useState('empleados');
-
-  const isEnterprise = plan === 'enterprise';
 
   const {
     isLoading,
@@ -53,15 +41,6 @@ const Cobros = () => {
     return <AppLayout title="Reportes"><SinJornadaActiva /></AppLayout>;
   }
 
-  const handleAdvancedClick = (e: React.MouseEvent) => {
-    if (!isEnterprise) {
-      e.preventDefault();
-      e.stopPropagation();
-      setGateRequiredPlan('Enterprise');
-      setGateOpen(true);
-    }
-  };
-
   return (
     <AppLayout title="Reportes">
       <div className="flex justify-end mb-3">
@@ -75,14 +54,7 @@ const Cobros = () => {
           <TabsList className="w-full flex-wrap h-auto gap-1">
             <TabsTrigger value="resumen" className="flex-1 text-xs sm:text-sm">Resumen</TabsTrigger>
             <TabsTrigger value="historial" className="flex-1 text-xs sm:text-sm">Historial</TabsTrigger>
-            <TabsTrigger
-              value="avanzado"
-              className="flex-1 text-xs sm:text-sm gap-1"
-              onClick={handleAdvancedClick}
-            >
-              Avanzado
-              {!isEnterprise && <Lock className="h-3 w-3 text-muted-foreground" />}
-            </TabsTrigger>
+            <TabsTrigger value="comparativa" className="flex-1 text-xs sm:text-sm">Comparativa</TabsTrigger>
           </TabsList>
 
           <TabsContent value="resumen">
@@ -96,51 +68,22 @@ const Cobros = () => {
           </TabsContent>
 
           <TabsContent value="historial">
-            <AdminReportesTab businessId={businessId} />
+            <HistorialTab businessId={businessId} employees={employeeData} />
           </TabsContent>
 
-          {isEnterprise && (
-            <TabsContent value="avanzado">
-              <Tabs value={advancedSubTab} onValueChange={setAdvancedSubTab} className="space-y-4">
-                <TabsList className="w-full flex-wrap h-auto gap-1">
-                  <TabsTrigger value="empleados" className="flex-1 text-xs sm:text-sm">Por Empleado</TabsTrigger>
-                  <TabsTrigger value="vs" className="flex-1 text-xs sm:text-sm">Ventas vs Serv.</TabsTrigger>
-                  <TabsTrigger value="comparativa" className="flex-1 text-xs sm:text-sm">Comparativa</TabsTrigger>
-                  {isOwner && (
-                    <TabsTrigger value="bitacora" className="flex-1 text-xs sm:text-sm">Bitácora</TabsTrigger>
-                  )}
-                </TabsList>
-
-                <TabsContent value="empleados">
-                  <ReportesPorEmpleadoTab employees={employeeData} />
-                </TabsContent>
-                <TabsContent value="vs">
-                  <ReportesVsTab sales={currentSales} services={currentServices} />
-                </TabsContent>
-                <TabsContent value="comparativa">
-                  <ReportesComparativaTab
-                    currentAll={currentAll}
-                    prevAll={prevAll}
-                    currentSales={currentSales}
-                    prevSales={prevSales}
-                    currentServices={currentServices}
-                    prevServices={prevServices}
-                    periodLabel={period}
-                    prevLabel=""
-                  />
-                </TabsContent>
-                {isOwner && (
-                  <TabsContent value="bitacora">
-                    <BitacoraTab businessId={businessId} />
-                  </TabsContent>
-                )}
-              </Tabs>
-            </TabsContent>
-          )}
+          <TabsContent value="comparativa">
+            <ComparativaTab
+              currentSales={currentSales}
+              currentServices={currentServices}
+              currentAll={currentAll}
+              prevSales={prevSales}
+              prevServices={prevServices}
+              prevAll={prevAll}
+              periodLabel={period}
+            />
+          </TabsContent>
         </Tabs>
       )}
-
-      <PlanGateModal open={gateOpen} onOpenChange={setGateOpen} requiredPlan={gateRequiredPlan} />
     </AppLayout>
   );
 };
