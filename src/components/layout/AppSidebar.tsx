@@ -166,7 +166,7 @@ const AppSidebar = () => {
 
   // Jornada check for operational employee tools
   const { jornadaActiva } = useJornadaActiva();
-  const showEmployeeTools = !shouldWaitEmployeeResolution && !employeeRecordLoading && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && !isEmployeeOperator && jornadaActiva;
+  const showEmployeeTools = employeePosition === 'operator' ? false : (!shouldWaitEmployeeResolution && !employeeRecordLoading && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && !isEmployeeOperator && jornadaActiva);
 
   const showOperatorModule = !shouldWaitEmployeeResolution && !employeeRecordLoading && isEmployeeSession && isEmployeeOperator;
   const isOperatorJefe = showOperatorModule && !!(employeeRecord as any)?.is_jefe;
