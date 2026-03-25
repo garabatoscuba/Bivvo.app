@@ -303,12 +303,29 @@ const StoreSettingsPage = () => {
     enabled: !!branchId,
   });
 
-  // Free plan: redirect to public demo storefront
+  // Free plan: open public demo storefront in new tab
+  const isFree = !planLoading && plan === 'free';
+  const freeRedirected = useRef(false);
   useEffect(() => {
-    if (!planLoading && plan === 'free') {
+    if (isFree && !freeRedirected.current) {
+      freeRedirected.current = true;
       window.open('/s/bivoo-demo', '_blank');
     }
-  }, [planLoading, plan]);
+  }, [isFree]);
+
+  if (isFree) {
+    return (
+      <AppLayout>
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
+          <Globe className="h-10 w-10 text-muted-foreground" />
+          <p className="text-muted-foreground text-sm">Se abrió el portal demo en una nueva pestaña.</p>
+          <Button variant="outline" size="sm" onClick={() => window.open('/s/bivoo-demo', '_blank')}>
+            Abrir de nuevo
+          </Button>
+        </div>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
