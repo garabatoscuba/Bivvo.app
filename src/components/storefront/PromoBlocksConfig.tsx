@@ -190,6 +190,19 @@ const PromoBlockEditor = ({
             </SelectContent>
           </Select>
         </div>
+        {form.link_target === 'custom' && (
+          <div>
+            <Label className="text-xs text-muted-foreground">URL del enlace</Label>
+            <Input
+              value={form.link_custom_url}
+              onChange={e => setForm(prev => ({ ...prev, link_custom_url: e.target.value }))}
+              placeholder="https://ejemplo.com"
+              className="h-9 text-sm"
+              maxLength={500}
+            />
+            <p className="text-[10px] text-muted-foreground mt-1">Se abrirá en una nueva pestaña.</p>
+          </div>
+        )}
         <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending} size="sm">
           {saveMutation.isPending ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1.5" />}
           Guardar bloque {blockNumber}

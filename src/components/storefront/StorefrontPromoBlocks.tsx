@@ -6,6 +6,7 @@ export interface PromoBlock {
   text_primary: string | null;
   text_secondary: string | null;
   link_target: string;
+  link_custom_url: string | null;
 }
 
 interface Props {
@@ -21,11 +22,15 @@ const StorefrontPromoBlocks = ({ blocks, accent, onNavigate }: Props) => {
 
   if (sorted.length === 0) return null;
 
-  const linkLabel = (target: string) =>
-    target === 'contact' ? 'Ver contacto' : 'Ver el catálogo';
+  const linkLabel = (target: string, customUrl: string | null) =>
+    target === 'custom' ? (customUrl ? new URL(customUrl).hostname : 'Ver enlace') : target === 'contact' ? 'Ver contacto' : 'Ver el catálogo';
 
-  const handleClick = (target: string) => {
-    onNavigate(target === 'contact' ? 'contact' : 'catalog');
+  const handleClick = (target: string, customUrl: string | null) => {
+    if (target === 'custom' && customUrl) {
+      window.open(customUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      onNavigate(target === 'contact' ? 'contact' : 'catalog');
+    }
   };
 
   return (
@@ -67,10 +72,10 @@ const StorefrontPromoBlocks = ({ blocks, accent, onNavigate }: Props) => {
               </p>
             )}
             <button
-              onClick={() => handleClick(block.link_target)}
+              onClick={() => handleClick(block.link_target, block.link_custom_url)}
               className="mt-4 text-xs tracking-widest uppercase underline underline-offset-4 text-foreground hover:opacity-80 transition-opacity"
             >
-              {linkLabel(block.link_target)}
+              {linkLabel(block.link_target, block.link_custom_url)}
             </button>
           </div>
         );

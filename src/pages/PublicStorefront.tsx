@@ -42,6 +42,7 @@ export interface StorefrontPromoBlock {
   text_primary: string | null;
   text_secondary: string | null;
   link_target: string;
+  link_custom_url: string | null;
 }
 
 export interface StorefrontData {
