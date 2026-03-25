@@ -18,10 +18,11 @@ interface BlockData {
   text_primary: string;
   text_secondary: string;
   link_target: string;
+  link_custom_url: string;
   is_active: boolean;
 }
 
-const emptyBlock: BlockData = { image_url: '', text_primary: '', text_secondary: '', link_target: 'products', is_active: true };
+const emptyBlock: BlockData = { image_url: '', text_primary: '', text_secondary: '', link_target: 'products', link_custom_url: '', is_active: true };
 
 const PromoBlockEditor = ({
   blockNumber,
@@ -59,6 +60,7 @@ const PromoBlockEditor = ({
         text_primary: existing.text_primary || '',
         text_secondary: existing.text_secondary || '',
         link_target: existing.link_target || 'products',
+        link_custom_url: (existing as any).link_custom_url || '',
         is_active: existing.is_active ?? true,
       });
     }
@@ -103,6 +105,7 @@ const PromoBlockEditor = ({
         text_primary: form.text_primary.trim() || null,
         text_secondary: form.text_secondary.trim() || null,
         link_target: form.link_target,
+        link_custom_url: form.link_target === 'custom' ? (form.link_custom_url.trim() || null) : null,
         is_active: form.is_active,
       };
       if (existing) {
@@ -183,6 +186,7 @@ const PromoBlockEditor = ({
             <SelectContent>
               <SelectItem value="products">Ir al catálogo de productos</SelectItem>
               <SelectItem value="contact">Ir a Contacto</SelectItem>
+              <SelectItem value="custom">Enlace externo personalizado</SelectItem>
             </SelectContent>
           </Select>
         </div>
