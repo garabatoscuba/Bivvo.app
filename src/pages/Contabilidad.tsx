@@ -117,48 +117,24 @@ const Contabilidad = () => {
 
         {/* Enterprise gate overlay for non-enterprise users (except dev tabs which are fully locked) */}
         {!isEnterprise && !isDevTab(activeTab) && (
-          <div className="relative">
-            {/* Blurred content preview */}
-            <div className="blur-sm pointer-events-none select-none opacity-60 min-h-[300px]">
-              {activeTab === "balance" && profile?.business_id && (
-                <TreasuryMovimientos
-                  businessId={profile.business_id}
-                  branchId={filterBranchId}
-                  prefillType={null}
-                  onPrefillConsumed={() => {}}
-                />
-              )}
-              {activeTab === "gastos" && profile?.business_id && (
-                <ExpensesTab businessId={profile.business_id} branchId={filterBranchId} />
-              )}
-              {activeTab === "activos" && profile?.business_id && (
-                <AssetsTab businessId={profile.business_id} branchId={filterBranchId} />
-              )}
-              {activeTab === "analisis" && profile?.business_id && (
-                <AnalysisTab businessId={profile.business_id} branchId={filterBranchId} />
-              )}
-            </div>
-
-            {/* Overlay */}
-            <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-[2px] rounded-lg">
-              <Card className="max-w-sm mx-4">
-                <CardContent className="p-6 text-center space-y-3">
-                  <div className="rounded-full bg-primary/10 p-3 mx-auto w-fit">
-                    <Crown className="h-8 w-8 text-primary" />
-                  </div>
-                  <h3 className="text-lg font-semibold">Contabilidad Enterprise</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {TAB_DESCRIPTIONS[activeTab]}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Accede a Balance, Gastos, Activos, Análisis y más con el Plan Enterprise.
-                  </p>
-                  <Button className="w-full" onClick={() => navigate("/plans")}>
-                    Ver planes
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+          <div className="flex items-start justify-center min-h-[350px] pt-12">
+            <Card className="max-w-sm mx-4">
+              <CardContent className="p-6 text-center space-y-3">
+                <div className="rounded-full bg-primary/10 p-3 mx-auto w-fit">
+                  <Crown className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold">Contabilidad Enterprise</h3>
+                <p className="text-sm text-muted-foreground">
+                  {TAB_DESCRIPTIONS[activeTab]}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Accede a Balance, Gastos, Activos, Análisis y más con el Plan Enterprise.
+                </p>
+                <Button className="w-full" onClick={() => navigate("/plans")}>
+                  Ver planes
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         )}
 
