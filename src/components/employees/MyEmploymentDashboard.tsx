@@ -402,7 +402,9 @@ const MyEmploymentDashboard = ({
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 9 }} />
                   <Tooltip
-                    contentStyle={{ fontSize: 11 }}
+                    contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 11 }}
+                    labelStyle={rechartsTooltipStyle.labelStyle}
+                    itemStyle={rechartsTooltipStyle.itemStyle}
                     formatter={(value: number) => [`$${value.toFixed(0)}`, 'Ventas']}
                   />
                   <Bar dataKey="total" radius={[4, 4, 0, 0]}>

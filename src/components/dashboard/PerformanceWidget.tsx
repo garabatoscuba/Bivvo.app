@@ -11,6 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { Activity, AlertTriangle } from 'lucide-react';
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 import { format, startOfMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -122,7 +123,7 @@ export default function PerformanceWidget() {
                   <PolarGrid />
                   <PolarAngleAxis dataKey="skill" tick={{ fontSize: 9 }} />
                   <PolarRadiusAxis angle={30} domain={[0, 10]} tick={false} />
-                  <Tooltip contentStyle={{ fontSize: 11 }} />
+                  <Tooltip contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 11 }} labelStyle={rechartsTooltipStyle.labelStyle} itemStyle={rechartsTooltipStyle.itemStyle} />
                   <Radar name={activeName} dataKey="score"
                     stroke="hsl(var(--primary))" fill="hsl(var(--primary))" fillOpacity={0.3} />
                 </RadarChart>

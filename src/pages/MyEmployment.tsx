@@ -624,7 +624,7 @@ const MyEmployment = () => {
                           <CartesianGrid strokeDasharray="3 3" />
                           <XAxis dataKey="month" tick={{ fontSize: 10 }} />
                           <YAxis domain={[0, 10]} tick={{ fontSize: 10 }} />
-                          <Tooltip contentStyle={{ fontSize: 11 }} />
+                          <Tooltip contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 11 }} labelStyle={rechartsTooltipStyle.labelStyle} itemStyle={rechartsTooltipStyle.itemStyle} />
                           <ReferenceLine y={5} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
                           <Line type="monotone" dataKey="promedio" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 3 }} />
                         </LineChart>

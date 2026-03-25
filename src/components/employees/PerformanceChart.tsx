@@ -584,7 +584,7 @@ export default function PerformanceChart({
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 13 }} />
                       <YAxis type="category" dataKey="skill" tick={{ fontSize: 13 }} width={130} />
-                      <Tooltip contentStyle={{ fontSize: 13 }} />
+                      <Tooltip contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 13 }} labelStyle={rechartsTooltipStyle.labelStyle} itemStyle={rechartsTooltipStyle.itemStyle} />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
                       <Bar dataKey="score" name={employeeName} radius={[0, 6, 6, 0]} barSize={16}>
                         {barData.map((entry, i) => (
@@ -844,7 +844,7 @@ export default function PerformanceChart({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                       <YAxis domain={[0, 10]} tick={{ fontSize: 12 }} />
-                      <Tooltip contentStyle={{ fontSize: 12 }} />
+                      <Tooltip contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 12 }} labelStyle={rechartsTooltipStyle.labelStyle} itemStyle={rechartsTooltipStyle.itemStyle} />
                       <ReferenceLine y={5} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" label={{ value: 'Base', fontSize: 10 }} />
                       <Line type="monotone" dataKey="promedio" stroke="hsl(var(--primary))"
                         strokeWidth={2} dot={{ r: 5 }} name="Promedio" />
