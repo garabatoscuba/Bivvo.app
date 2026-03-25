@@ -426,6 +426,8 @@ const AppSidebar = () => {
       const pricingMap = new Map((pricing || []).map(p => [p.entity_id, p.availability]));
 
       return mods.filter(m => {
+        // Portal is always visible regardless of plan (free shows demo)
+        if (m.name === 'Portal') return true;
         const avail = pricingMap.get(m.id);
         // Exclude modules explicitly marked as unavailable for this plan
         return avail !== 'unavailable' && avail !== 'not_available';
