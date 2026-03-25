@@ -145,6 +145,48 @@ export function useReportData(period: Period) {
     enabled: !!businessId,
   });
 
+  // Fetch treasury expenses
+  const { data: allExpenses = [], isLoading: loadingExpenses } = useQuery({
+    queryKey: ['report-expenses', businessId, branchId],
+    queryFn: async () => {
+      let query = supabase
+        .from('treasury_movements')
+        .select('id, created_at, amount, movement_type')
+        .eq('business_id', businessId!)
+        .eq('movement_type', 'expense')
+        .eq('archived', false)
+        .order('created_at', { ascending: false });
+      if (branchId) query = query.eq('branch_id', branchId);
+      const { data } = await query;
+      return (data || []).map((e: any) => ({
+        id: e.id,
+        created_at: e.created_at,
+        amount: Number(e.amount),
+      }));
+    },
+    enabled: !!businessId,
+  });
+
+  // Fetch salary records
+  const { data: allSalaryRecords = [], isLoading: loadingSalaries } = useQuery({
+    queryKey: ['report-salaries', businessId, branchId],
+    queryFn: async () => {
+      let query = supabase
+        .from('employee_salary_records')
+        .select('id, created_at, amount, salary_date')
+        .eq('business_id', businessId!)
+        .order('created_at', { ascending: false });
+      if (branchId) query = query.eq('branch_id', branchId);
+      const { data } = await query;
+      return (data || []).map((s: any) => ({
+        id: s.id,
+        created_at: s.salary_date || s.created_at,
+        amount: Number(s.amount),
+      }));
+    },
+    enabled: !!businessId,
+  });
+
   // Seller name map
   const { data: sellerMap = new Map<string, string>() } = useQuery({
     queryKey: ['report-sellers', businessId],
