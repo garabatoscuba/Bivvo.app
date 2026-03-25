@@ -1,0 +1,1 @@
+ALTER TABLE public.portal_promo_blocks ADD COLUMN IF NOT EXISTS link_custom_url text DEFAULT null;

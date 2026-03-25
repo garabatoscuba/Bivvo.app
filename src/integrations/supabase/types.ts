@@ -3075,6 +3075,7 @@ export type Database = {
           id: string
           image_url: string | null
           is_active: boolean
+          link_custom_url: string | null
           link_target: string | null
           text_primary: string | null
           text_secondary: string | null
@@ -3088,6 +3089,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          link_custom_url?: string | null
           link_target?: string | null
           text_primary?: string | null
           text_secondary?: string | null
@@ -3101,6 +3103,7 @@ export type Database = {
           id?: string
           image_url?: string | null
           is_active?: boolean
+          link_custom_url?: string | null
           link_target?: string | null
           text_primary?: string | null
           text_secondary?: string | null
