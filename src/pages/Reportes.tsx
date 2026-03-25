@@ -11,7 +11,7 @@ import ReportesResumenTab from '@/components/cobro/ReportesResumenTab';
 import HistorialTab from '@/components/cobro/HistorialTab';
 import ComparativaTab from '@/components/cobro/ComparativaTab';
 
-const Cobros = () => {
+const Reportes = () => {
   const { profile, isOwner, isSuperAdmin } = useAuth();
   const businessId = profile?.business_id;
   const [period, setPeriod] = useState<Period>('today');
@@ -93,4 +93,4 @@ const Cobros = () => {
   );
 };
 
-export default Cobros;
+export default Reportes;
