@@ -175,7 +175,7 @@ const BitacoraTab = ({ businessId }: BitacoraTabProps) => {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("w-full sm:w-[150px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+            <Button variant="outline" onClick={e => e.stopPropagation()} className={cn("w-full sm:w-[150px] justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
               <CalendarIcon className="mr-2 h-4 w-4" />
               {dateFrom ? format(dateFrom, 'dd/MM/yy') : 'Desde'}
             </Button>
@@ -187,7 +187,7 @@ const BitacoraTab = ({ businessId }: BitacoraTabProps) => {
 
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className={cn("w-full sm:w-[150px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+            <Button variant="outline" onClick={e => e.stopPropagation()} className={cn("w-full sm:w-[150px] justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
               <CalendarIcon className="mr-2 h-4 w-4" />
               {dateTo ? format(dateTo, 'dd/MM/yy') : 'Hasta'}
             </Button>
