@@ -1,5 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 import type { ReportEntry } from '@/hooks/useReportData';
 
 interface Props {
@@ -11,6 +13,7 @@ interface Props {
   prevServices: ReportEntry[];
   periodLabel: string;
   prevLabel: string;
+  dailyBreakdown: { label: string; ventas: number; servicios: number }[];
 }
 
 function pctChange(current: number, previous: number): number {
@@ -44,7 +47,7 @@ const periodLabels: Record<string, string> = {
   year: 'Este año vs Anterior',
 };
 
-const ReportesComparativaTab = ({ currentAll, prevAll, currentSales, prevSales, currentServices, prevServices, periodLabel, prevLabel }: Props) => {
+const ReportesComparativaTab = ({ currentAll, prevAll, currentSales, prevSales, currentServices, prevServices, periodLabel, dailyBreakdown }: Props) => {
   const curTotal = currentAll.reduce((s, e) => s + e.total, 0);
   const prevTotal = prevAll.reduce((s, e) => s + e.total, 0);
   const curSalesTotal = currentSales.reduce((s, e) => s + e.total, 0);
@@ -70,6 +73,30 @@ const ReportesComparativaTab = ({ currentAll, prevAll, currentSales, prevSales, 
 
   return (
     <div className="space-y-4">
+      {/* Bar chart moved from Resumen */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Ventas vs Servicios por día</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {dailyBreakdown.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">Sin datos en este período</p>
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={dailyBreakdown}>
+                <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `$${v}`} />
+                <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} {...rechartsTooltipStyle} />
+                <Legend />
+                <Bar dataKey="ventas" name="Ventas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="servicios" name="Servicios" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Period comparison */}
       <p className="text-sm font-medium text-muted-foreground">{periodLabels[periodLabel] || periodLabel}</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
         {comparisons.map(c => (

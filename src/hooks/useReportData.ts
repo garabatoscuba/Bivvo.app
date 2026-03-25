@@ -145,6 +145,48 @@ export function useReportData(period: Period) {
     enabled: !!businessId,
   });
 
+  // Fetch treasury expenses
+  const { data: allExpenses = [], isLoading: loadingExpenses } = useQuery({
+    queryKey: ['report-expenses', businessId, branchId],
+    queryFn: async () => {
+      let query = supabase
+        .from('treasury_movements')
+        .select('id, created_at, amount, movement_type')
+        .eq('business_id', businessId!)
+        .eq('movement_type', 'expense')
+        .eq('archived', false)
+        .order('created_at', { ascending: false });
+      if (branchId) query = query.eq('branch_id', branchId);
+      const { data } = await query;
+      return (data || []).map((e: any) => ({
+        id: e.id,
+        created_at: e.created_at,
+        amount: Number(e.amount),
+      }));
+    },
+    enabled: !!businessId,
+  });
+
+  // Fetch salary records
+  const { data: allSalaryRecords = [], isLoading: loadingSalaries } = useQuery({
+    queryKey: ['report-salaries', businessId, branchId],
+    queryFn: async () => {
+      let query = supabase
+        .from('employee_salary_records')
+        .select('id, created_at, amount, salary_date')
+        .eq('business_id', businessId!)
+        .order('created_at', { ascending: false });
+      if (branchId) query = query.eq('branch_id', branchId);
+      const { data } = await query;
+      return (data || []).map((s: any) => ({
+        id: s.id,
+        created_at: s.salary_date || s.created_at,
+        amount: Number(s.amount),
+      }));
+    },
+    enabled: !!businessId,
+  });
+
   // Seller name map
   const { data: sellerMap = new Map<string, string>() } = useQuery({
     queryKey: ['report-sellers', businessId],
@@ -177,6 +219,10 @@ export function useReportData(period: Period) {
   const currentSales = useMemo(() => allSales.filter(s => isInRange(s.created_at, currentRange)), [allSales, currentRange]);
   const currentServices = useMemo(() => allServices.filter(s => isInRange(s.created_at, currentRange)), [allServices, currentRange]);
   const currentAll = useMemo(() => [...currentSales, ...currentServices], [currentSales, currentServices]);
+
+  // Expenses in current period
+  const currentExpenses = useMemo(() => allExpenses.filter(e => isInRange(e.created_at, currentRange)), [allExpenses, currentRange]);
+  const currentSalaries = useMemo(() => allSalaryRecords.filter(s => isInRange(s.created_at, currentRange)), [allSalaryRecords, currentRange]);
 
   // Mermas in current period
   const currentMermas = useMemo(() => allMermas.filter(m => isInRange(m.created_at, currentRange)), [allMermas, currentRange]);
@@ -226,7 +272,7 @@ export function useReportData(period: Period) {
     return Array.from(map.values());
   }, [dailyReports]);
 
-  const isLoading = loadingSales || loadingServices || loadingReports || loadingMermas;
+  const isLoading = loadingSales || loadingServices || loadingReports || loadingMermas || loadingExpenses || loadingSalaries;
 
   return {
     isLoading,
@@ -234,6 +280,8 @@ export function useReportData(period: Period) {
     currentServices,
     currentAll,
     currentMermas,
+    currentExpenses,
+    currentSalaries,
     prevSales,
     prevServices,
     prevAll,

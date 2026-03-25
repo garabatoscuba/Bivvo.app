@@ -10,6 +10,7 @@ interface Props {
   prevServices: ReportEntry[];
   prevAll: ReportEntry[];
   periodLabel: string;
+  dailyBreakdown: { label: string; ventas: number; servicios: number }[];
 }
 
 const ComparativaTab = ({
@@ -20,6 +21,7 @@ const ComparativaTab = ({
   prevServices,
   prevAll,
   periodLabel,
+  dailyBreakdown,
 }: Props) => {
   return (
     <div className="space-y-6">
@@ -36,6 +38,7 @@ const ComparativaTab = ({
         prevServices={prevServices}
         periodLabel={periodLabel}
         prevLabel=""
+        dailyBreakdown={dailyBreakdown}
       />
     </div>
   );
