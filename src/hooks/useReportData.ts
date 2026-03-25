@@ -220,6 +220,10 @@ export function useReportData(period: Period) {
   const currentServices = useMemo(() => allServices.filter(s => isInRange(s.created_at, currentRange)), [allServices, currentRange]);
   const currentAll = useMemo(() => [...currentSales, ...currentServices], [currentSales, currentServices]);
 
+  // Expenses in current period
+  const currentExpenses = useMemo(() => allExpenses.filter(e => isInRange(e.created_at, currentRange)), [allExpenses, currentRange]);
+  const currentSalaries = useMemo(() => allSalaryRecords.filter(s => isInRange(s.created_at, currentRange)), [allSalaryRecords, currentRange]);
+
   // Mermas in current period
   const currentMermas = useMemo(() => allMermas.filter(m => isInRange(m.created_at, currentRange)), [allMermas, currentRange]);
 
