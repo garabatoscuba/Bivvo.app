@@ -898,7 +898,8 @@ export default function PerformanceChart({
                         <XAxis type="number" tick={{ fontSize: 12 }}
                           label={{ value: 'Cambio', position: 'insideBottomRight', fontSize: 11, offset: -5 }} />
                         <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={120} />
-                        <Tooltip contentStyle={{ fontSize: 12 }}
+                        <Tooltip contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 12 }}
+                          labelStyle={rechartsTooltipStyle.labelStyle} itemStyle={rechartsTooltipStyle.itemStyle}
                           formatter={(v: number) => [`${v > 0 ? '+' : ''}${v}`, 'Cambio']} />
                         <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" />
                         <Bar dataKey="change" radius={[0, 4, 4, 0]} barSize={14}>
