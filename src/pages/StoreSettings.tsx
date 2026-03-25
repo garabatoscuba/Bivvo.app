@@ -1,12 +1,9 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import LoyaltyRewardsTab from '@/components/storefront/LoyaltyRewardsTab';
 import AppLayout from '@/components/layout/AppLayout';
 import { useStoreSettings, type WeekSchedule, type DaySchedule } from '@/hooks/useStoreSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlanFeatures } from '@/hooks/usePlanFeatures';
-import { Loader2 as Loader2Icon } from 'lucide-react';
-
-const PublicStorefront = lazy(() => import('@/pages/PublicStorefront'));
 import { useBranches } from '@/hooks/useBranches';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
