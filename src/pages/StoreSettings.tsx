@@ -1,8 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, lazy, Suspense } from 'react';
 import LoyaltyRewardsTab from '@/components/storefront/LoyaltyRewardsTab';
 import AppLayout from '@/components/layout/AppLayout';
 import { useStoreSettings, type WeekSchedule, type DaySchedule } from '@/hooks/useStoreSettings';
 import { useAuth } from '@/contexts/AuthContext';
+import { usePlanFeatures } from '@/hooks/usePlanFeatures';
+import { Loader2 as Loader2Icon } from 'lucide-react';
+
+const PublicStorefront = lazy(() => import('@/pages/PublicStorefront'));
 import { useBranches } from '@/hooks/useBranches';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,6 +48,7 @@ const MAX_HERO_SIZE = 500 * 1024; // 500 KB
 const StoreSettingsPage = () => {
   const { settings, isLoading, defaultSchedule, save, isSaving } = useStoreSettings();
   const { profile, isSuperAdmin } = useAuth();
+  const { plan, loading: planLoading } = usePlanFeatures();
   const { data: branches = [] } = useBranches();
   const { toast: toastFn } = useToast();
   const queryClient = useQueryClient();
@@ -297,6 +302,17 @@ const StoreSettingsPage = () => {
     },
     enabled: !!branchId,
   });
+
+  // Free plan: show demo storefront instead of settings
+  if (!planLoading && plan === 'free') {
+    return (
+      <AppLayout>
+        <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
+          <PublicStorefront bizSlugOverride="bivoo-demo" />
+        </Suspense>
+      </AppLayout>
+    );
+  }
 
   return (
     <AppLayout>
