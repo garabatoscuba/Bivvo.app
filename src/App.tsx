@@ -41,7 +41,7 @@ const StoreSettings = lazy(() => import("./pages/StoreSettings"));
 const PublicStorefront = lazy(() => import("./pages/PublicStorefront"));
 const Orders = lazy(() => import("./pages/Orders"));
 const Services = lazy(() => import("./pages/Services"));
-const Cobros = lazy(() => import("./pages/Cobros"));
+const Reportes = lazy(() => import("./pages/Reportes"));
 const Nomina = lazy(() => import("./pages/Nomina"));
 const Caja = lazy(() => import("./pages/Caja"));
 const Tesoreria = lazy(() => import("./pages/Tesoreria"));
@@ -102,7 +102,7 @@ const App = () => {
                         <Route path="/store-settings" element={<ProtectedRoute><StoreSettings /></ProtectedRoute>} />
                         <Route path="/orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
                         <Route path="/services" element={<ProtectedRoute><Services /></ProtectedRoute>} />
-                        <Route path="/cobros" element={<ProtectedRoute><Cobros /></ProtectedRoute>} />
+                        <Route path="/cobros" element={<ProtectedRoute><Reportes /></ProtectedRoute>} />
                         <Route path="/nomina" element={<ProtectedRoute><Nomina /></ProtectedRoute>} />
                         <Route path="/caja" element={<ProtectedRoute><Caja /></ProtectedRoute>} />
                         <Route path="/tesoreria" element={<ProtectedRoute><Tesoreria /></ProtectedRoute>} />
