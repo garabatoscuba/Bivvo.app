@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import FadeInView from '@/components/storefront/FadeInView';
 
 interface Props {
   businessName: string;
@@ -6,7 +7,7 @@ interface Props {
 
 const StorefrontFooter = ({ businessName }: Props) => (
   <footer className="border-t border-border mt-auto">
-    <div className="max-w-5xl mx-auto px-6 sm:px-10 py-10 flex items-center justify-center gap-4 text-center">
+    <FadeInView className="max-w-5xl mx-auto px-6 sm:px-10 py-10 flex items-center justify-center gap-4 text-center">
       <span className="text-xs text-muted-foreground/50">
         © {new Date().getFullYear()} {businessName}
       </span>
@@ -17,7 +18,7 @@ const StorefrontFooter = ({ businessName }: Props) => (
       >
         Powered by GestorPro
       </Link>
-    </div>
+    </FadeInView>
   </footer>
 );
 

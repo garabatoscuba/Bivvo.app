@@ -2,6 +2,7 @@ import { Truck } from 'lucide-react';
 import type { StorefrontData, StorefrontTab } from '@/pages/PublicStorefront';
 import StorefrontReviewForm from '@/components/storefront/StorefrontReviewForm';
 import StorefrontPromoBlocks from '@/components/storefront/StorefrontPromoBlocks';
+import FadeInView from '@/components/storefront/FadeInView';
 
 interface Props {
   data: StorefrontData;
@@ -46,15 +47,19 @@ const StorefrontHome = ({ data, accent, portalPath, onNavigate, currencySymbol }
             />
             <div className="absolute inset-0 bg-black/40" />
             <div className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 text-center pt-14">
-              <h1
-                className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1]"
-                style={{ fontFamily: 'var(--font-heading)' }}
-              >
-                {heroTitle}
-              </h1>
-              <p className="mt-4 text-base sm:text-lg text-white/80 max-w-lg mx-auto leading-relaxed">
-                {heroSubtitle}
-              </p>
+              <FadeInView>
+                <h1
+                  className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1]"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  {heroTitle}
+                </h1>
+              </FadeInView>
+              <FadeInView delay={150}>
+                <p className="mt-4 text-base sm:text-lg text-white/80 max-w-lg mx-auto leading-relaxed">
+                  {heroSubtitle}
+                </p>
+              </FadeInView>
             </div>
           </div>
         ) : (
@@ -63,15 +68,19 @@ const StorefrontHome = ({ data, accent, portalPath, onNavigate, currencySymbol }
             style={{ height: hasDelivery ? 'calc(100svh - 38px)' : '100svh' }}
           >
             <div className="max-w-5xl mx-auto px-6 sm:px-10 text-center pt-14">
-              <h1
-                className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-[1.1]"
-                style={{ fontFamily: 'var(--font-heading)' }}
-              >
-                {heroTitle}
-              </h1>
-              <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
-                {heroSubtitle}
-              </p>
+              <FadeInView>
+                <h1
+                  className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-[1.1]"
+                  style={{ fontFamily: 'var(--font-heading)' }}
+                >
+                  {heroTitle}
+                </h1>
+              </FadeInView>
+              <FadeInView delay={150}>
+                <p className="mt-4 text-base sm:text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
+                  {heroSubtitle}
+                </p>
+              </FadeInView>
             </div>
             <div
               className="absolute inset-0 opacity-[0.04] pointer-events-none"
@@ -84,14 +93,14 @@ const StorefrontHome = ({ data, accent, portalPath, onNavigate, currencySymbol }
       {/* About — editorial text block */}
       {data.settings.about_text && (
         <section className="border-t border-border">
-          <div className="max-w-3xl mx-auto px-6 sm:px-10 py-20 sm:py-28 text-center">
+          <FadeInView className="max-w-3xl mx-auto px-6 sm:px-10 py-20 sm:py-28 text-center">
             <p
               className="text-xl sm:text-3xl font-bold tracking-tight text-foreground leading-snug"
               style={{ fontFamily: 'var(--font-heading)' }}
             >
               {data.settings.about_text}
             </p>
-          </div>
+          </FadeInView>
         </section>
       )}
 
@@ -102,12 +111,12 @@ const StorefrontHome = ({ data, accent, portalPath, onNavigate, currencySymbol }
 
       {/* Leave a review */}
       <section className="border-t border-border">
-        <div className="max-w-md mx-auto px-6 sm:px-10 py-14 sm:py-20">
+        <FadeInView className="max-w-md mx-auto px-6 sm:px-10 py-14 sm:py-20">
           <StorefrontReviewForm
             branchId={data.branch.id}
             accent={accent}
           />
-        </div>
+        </FadeInView>
       </section>
     </>
   );
