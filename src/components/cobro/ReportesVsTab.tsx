@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import type { ReportEntry } from '@/hooks/useReportData';
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 
 interface Props {
   sales: ReportEntry[];
@@ -74,7 +75,7 @@ const ReportesVsTab = ({ sales, services }: Props) => {
                   <Pie data={donutData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={3} dataKey="value">
                     {donutData.map((_, i) => <Cell key={i} fill={COLORS[i]} />)}
                   </Pie>
-                  <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} />
+                  <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} {...rechartsTooltipStyle} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>

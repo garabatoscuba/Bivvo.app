@@ -16,6 +16,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 import type { DailySalaryBreakdown } from '@/hooks/useDailySalary';
 import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
 
@@ -402,7 +403,9 @@ const MyEmploymentDashboard = ({
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 9 }} />
                   <Tooltip
-                    contentStyle={{ fontSize: 11 }}
+                    contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 11 }}
+                    labelStyle={rechartsTooltipStyle.labelStyle}
+                    itemStyle={rechartsTooltipStyle.itemStyle}
                     formatter={(value: number) => [`$${value.toFixed(0)}`, 'Ventas']}
                   />
                   <Bar dataKey="total" radius={[4, 4, 0, 0]}>

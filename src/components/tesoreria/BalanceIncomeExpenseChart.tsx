@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { format, startOfDay, startOfWeek, startOfMonth, addDays, addWeeks, addMonths, isBefore, endOfDay } from "date-fns";
 import { es } from "date-fns/locale";
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 
 type Period = "today" | "week" | "month" | "all";
 
@@ -221,7 +222,9 @@ export default function BalanceIncomeExpenseChart({ businessId, branchId, period
               <YAxis tick={{ fontSize: 11 }} className="fill-muted-foreground" />
               <Tooltip
                 formatter={(value: number) => ["$" + value.toLocaleString("es", { minimumFractionDigits: 2 })]}
-                contentStyle={{ fontSize: 12 }}
+                contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 12 }}
+                labelStyle={rechartsTooltipStyle.labelStyle}
+                itemStyle={rechartsTooltipStyle.itemStyle}
               />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar dataKey="Ingresos" fill="hsl(142, 71%, 45%)" radius={[4, 4, 0, 0]} />

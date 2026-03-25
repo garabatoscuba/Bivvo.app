@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, ShoppingCart, Wrench, TrendingUp, CreditCard, Hash, PackageX } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import type { ReportEntry, MermaEntry } from '@/hooks/useReportData';
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 
 interface Props {
   sales: ReportEntry[];
@@ -71,7 +72,7 @@ const ReportesResumenTab = ({ sales, services, all, dailyBreakdown, mermas = [] 
               <BarChart data={dailyBreakdown}>
                 <XAxis dataKey="label" fontSize={11} tickLine={false} axisLine={false} />
                 <YAxis fontSize={11} tickLine={false} axisLine={false} tickFormatter={v => `$${v}`} />
-                <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} />
+                <Tooltip formatter={(v: number) => `$${v.toFixed(2)}`} {...rechartsTooltipStyle} />
                 <Legend />
                 <Bar dataKey="ventas" name="Ventas" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="servicios" name="Servicios" fill="hsl(var(--accent))" radius={[4, 4, 0, 0]} />

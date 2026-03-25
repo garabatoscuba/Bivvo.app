@@ -20,6 +20,7 @@ import {
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
+import { rechartsTooltipStyle } from '@/lib/chartStyles';
 import { toast } from 'sonner';
 import {
   BarChart3, Activity, Plus, Eye, EyeOff, Save, Loader2, ChevronLeft, ChevronRight, Users,
@@ -584,7 +585,7 @@ export default function PerformanceChart({
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} />
                       <XAxis type="number" domain={[0, 10]} tick={{ fontSize: 13 }} />
                       <YAxis type="category" dataKey="skill" tick={{ fontSize: 13 }} width={130} />
-                      <Tooltip contentStyle={{ fontSize: 13 }} />
+                      <Tooltip contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 13 }} labelStyle={rechartsTooltipStyle.labelStyle} itemStyle={rechartsTooltipStyle.itemStyle} />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
                       <Bar dataKey="score" name={employeeName} radius={[0, 6, 6, 0]} barSize={16}>
                         {barData.map((entry, i) => (
@@ -844,7 +845,7 @@ export default function PerformanceChart({
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" tick={{ fontSize: 12 }} />
                       <YAxis domain={[0, 10]} tick={{ fontSize: 12 }} />
-                      <Tooltip contentStyle={{ fontSize: 12 }} />
+                      <Tooltip contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 12 }} labelStyle={rechartsTooltipStyle.labelStyle} itemStyle={rechartsTooltipStyle.itemStyle} />
                       <ReferenceLine y={5} stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" label={{ value: 'Base', fontSize: 10 }} />
                       <Line type="monotone" dataKey="promedio" stroke="hsl(var(--primary))"
                         strokeWidth={2} dot={{ r: 5 }} name="Promedio" />
@@ -897,7 +898,8 @@ export default function PerformanceChart({
                         <XAxis type="number" tick={{ fontSize: 12 }}
                           label={{ value: 'Cambio', position: 'insideBottomRight', fontSize: 11, offset: -5 }} />
                         <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={120} />
-                        <Tooltip contentStyle={{ fontSize: 12 }}
+                        <Tooltip contentStyle={{ ...rechartsTooltipStyle.contentStyle, fontSize: 12 }}
+                          labelStyle={rechartsTooltipStyle.labelStyle} itemStyle={rechartsTooltipStyle.itemStyle}
                           formatter={(v: number) => [`${v > 0 ? '+' : ''}${v}`, 'Cambio']} />
                         <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" />
                         <Bar dataKey="change" radius={[0, 4, 4, 0]} barSize={14}>
