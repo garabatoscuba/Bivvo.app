@@ -1,12 +1,9 @@
-import { useState, useEffect, useRef, lazy, Suspense } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import LoyaltyRewardsTab from '@/components/storefront/LoyaltyRewardsTab';
 import AppLayout from '@/components/layout/AppLayout';
 import { useStoreSettings, type WeekSchedule, type DaySchedule } from '@/hooks/useStoreSettings';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePlanFeatures } from '@/hooks/usePlanFeatures';
-import { Loader2 as Loader2Icon } from 'lucide-react';
-
-const PublicStorefront = lazy(() => import('@/pages/PublicStorefront'));
 import { useBranches } from '@/hooks/useBranches';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -303,13 +300,26 @@ const StoreSettingsPage = () => {
     enabled: !!branchId,
   });
 
-  // Free plan: show demo storefront instead of settings
-  if (!planLoading && plan === 'free') {
+  // Free plan: open public demo storefront in new tab
+  const isFree = !planLoading && plan === 'free';
+  const freeRedirected = useRef(false);
+  useEffect(() => {
+    if (isFree && !freeRedirected.current) {
+      freeRedirected.current = true;
+      window.open('/s/bivoo-demo', '_blank');
+    }
+  }, [isFree]);
+
+  if (isFree) {
     return (
       <AppLayout>
-        <Suspense fallback={<div className="flex items-center justify-center py-12"><Loader2Icon className="h-6 w-6 animate-spin text-muted-foreground" /></div>}>
-          <PublicStorefront bizSlugOverride="bivoo-demo" />
-        </Suspense>
+        <div className="flex flex-col items-center justify-center py-20 text-center space-y-3">
+          <Globe className="h-10 w-10 text-muted-foreground" />
+          <p className="text-muted-foreground text-sm">Se abrió el portal demo en una nueva pestaña.</p>
+          <Button variant="outline" size="sm" onClick={() => window.open('/s/bivoo-demo', '_blank')}>
+            Abrir de nuevo
+          </Button>
+        </div>
       </AppLayout>
     );
   }
