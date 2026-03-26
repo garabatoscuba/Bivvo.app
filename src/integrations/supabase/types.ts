@@ -4842,33 +4842,45 @@ export type Database = {
       service_categories: {
         Row: {
           business_id: string
+          cost_method: string
           created_at: string
           fixed_price: number | null
           icon: string | null
           id: string
+          indirect_cost_amount: number
+          indirect_cost_percentage: number
           is_default: boolean
           name: string
           updated_at: string
+          yield_quantity: number
         }
         Insert: {
           business_id: string
+          cost_method?: string
           created_at?: string
           fixed_price?: number | null
           icon?: string | null
           id?: string
+          indirect_cost_amount?: number
+          indirect_cost_percentage?: number
           is_default?: boolean
           name: string
           updated_at?: string
+          yield_quantity?: number
         }
         Update: {
           business_id?: string
+          cost_method?: string
           created_at?: string
           fixed_price?: number | null
           icon?: string | null
           id?: string
+          indirect_cost_amount?: number
+          indirect_cost_percentage?: number
           is_default?: boolean
           name?: string
           updated_at?: string
+          yield_quantity?: number
         }
         Relationships: [
           {
@@ -4884,25 +4896,37 @@ export type Database = {
         Row: {
           category_id: string
           created_at: string
+          gramaje: number
           id: string
+          ingredient_type: string
+          is_raw_material: boolean
           material_id: string
           quantity: number
+          surcharge: number
           unit: string | null
         }
         Insert: {
           category_id: string
           created_at?: string
+          gramaje?: number
           id?: string
+          ingredient_type?: string
+          is_raw_material?: boolean
           material_id: string
           quantity?: number
+          surcharge?: number
           unit?: string | null
         }
         Update: {
           category_id?: string
           created_at?: string
+          gramaje?: number
           id?: string
+          ingredient_type?: string
+          is_raw_material?: boolean
           material_id?: string
           quantity?: number
+          surcharge?: number
           unit?: string | null
         }
         Relationships: [
