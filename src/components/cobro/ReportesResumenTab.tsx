@@ -1,8 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { DollarSign, ShoppingCart, Wrench, TrendingUp, CreditCard, Hash, PackageX, ChevronDown, Wallet, TrendingDown, BarChart3 } from 'lucide-react';
-import type { ReportEntry, MermaEntry } from '@/hooks/useReportData';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DollarSign, ShoppingCart, Wrench, TrendingUp, CreditCard, Hash, PackageX, ChevronDown, Wallet, TrendingDown, BarChart3, Users } from 'lucide-react';
+import type { ReportEntry, MermaEntry, EmployeeReport } from '@/hooks/useReportData';
 
 interface ExpenseEntry { id: string; created_at: string; amount: number }
 interface SalaryEntry { id: string; created_at: string; amount: number }
@@ -15,14 +16,16 @@ interface Props {
   mermas?: MermaEntry[];
   expenses?: ExpenseEntry[];
   salaries?: SalaryEntry[];
+  employees?: EmployeeReport[];
 }
 
 const paymentLabels: Record<string, string> = {
   cash: 'Efectivo', transfer: 'Transferencia', card: 'Tarjeta', credit: 'Crédito', mixed: 'Mixto',
 };
 
-const ReportesResumenTab = ({ sales, services, all, mermas = [], expenses = [], salaries = [] }: Props) => {
+const ReportesResumenTab = ({ sales, services, all, mermas = [], expenses = [], salaries = [], employees = [] }: Props) => {
   const [breakdownOpen, setBreakdownOpen] = useState(false);
+  const [employeeOpen, setEmployeeOpen] = useState(false);
 
   const totalRecaudado = all.reduce((s, e) => s + e.total, 0);
   const totalVentas = sales.reduce((s, e) => s + e.total, 0);
@@ -147,6 +150,52 @@ const ReportesResumenTab = ({ sales, services, all, mermas = [], expenses = [], 
             </Card>
           </CollapsibleContent>
         </Collapsible>
+
+        {/* Collapsible employee breakdown */}
+        {employees.length > 0 && (
+          <Collapsible open={employeeOpen} onOpenChange={setEmployeeOpen}>
+            <CollapsibleTrigger className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors w-full">
+              <ChevronDown className={`h-4 w-4 transition-transform ${employeeOpen ? 'rotate-180' : ''}`} />
+              <Users className="h-4 w-4" />
+              Por empleado
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
+              <Card>
+                <CardContent className="p-0 md:p-0">
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="text-xs">Nombre</TableHead>
+                          <TableHead className="text-xs text-right">Cobró</TableHead>
+                          <TableHead className="text-xs text-right">Salario</TableHead>
+                          <TableHead className="text-xs text-right">Propinas</TableHead>
+                          <TableHead className="text-xs text-right">Entrega</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {employees.map(emp => {
+                          const entrega = emp.totalCollected - emp.estimatedSalary;
+                          return (
+                            <TableRow key={emp.id}>
+                              <TableCell className="text-sm font-medium py-2 px-3">{emp.name}</TableCell>
+                              <TableCell className="text-sm text-right py-2 px-3">${emp.totalCollected.toFixed(2)}</TableCell>
+                              <TableCell className="text-sm text-right py-2 px-3">${emp.estimatedSalary.toFixed(2)}</TableCell>
+                              <TableCell className="text-sm text-right py-2 px-3">${emp.tips.toFixed(2)}</TableCell>
+                              <TableCell className={`text-sm text-right py-2 px-3 font-medium ${entrega >= 0 ? 'text-success' : 'text-destructive'}`}>
+                                {entrega < 0 ? '−' : ''}${Math.abs(entrega).toFixed(2)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </div>
+                </CardContent>
+              </Card>
+            </CollapsibleContent>
+          </Collapsible>
+        )}
       </div>
     </div>
   );
