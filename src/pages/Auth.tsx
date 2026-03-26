@@ -13,6 +13,9 @@ import { z } from "zod";
 import logoLight from "@/assets/logo-light.png";
 import logoDark from "@/assets/logo-dark.png";
 import WhatIsBivooPanel from "@/components/auth/WhatIsBivooPanel";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 const emailSchema = z.string().email("Email inválido");
 const passwordSchema = z.string().min(6, "La contraseña debe tener al menos 6 caracteres");
@@ -34,6 +37,8 @@ const Auth = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [whatIsOpen, setWhatIsOpen] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
 
   useEffect(() => {
     const msg = sessionStorage.getItem("auth_message");
@@ -217,15 +222,65 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 px-8 pb-8">
+          {/* Terms checkbox + modal */}
+          <div className="flex items-start gap-2">
+            <Checkbox
+              id="terms"
+              checked={termsAccepted}
+              onCheckedChange={(v) => setTermsAccepted(v === true)}
+              className="mt-0.5"
+            />
+            <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight cursor-pointer">
+              He leído y acepto los{" "}
+              <button
+                type="button"
+                onClick={(e) => { e.preventDefault(); setTermsOpen(true); }}
+                className="text-primary underline underline-offset-2 hover:text-primary/80"
+              >
+                Términos de uso y Aviso Legal
+              </button>
+            </label>
+          </div>
+
+          <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
+            <DialogContent className="max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Términos de Uso y Aviso Legal — Bivoo</DialogTitle>
+                <DialogDescription>Lee los términos antes de continuar.</DialogDescription>
+              </DialogHeader>
+              <ScrollArea className="max-h-[60vh] pr-4">
+                <div className="space-y-4 text-sm text-muted-foreground">
+                  <p>Bivoo es una herramienta de gestión empresarial para uso privado e interno. Al usar esta plataforma, el usuario acepta las siguientes condiciones:</p>
+                  <div>
+                    <p className="font-semibold text-foreground">Uso personal y privado.</p>
+                    <p>Bivoo está diseñado como herramienta de organización interna para negocios. Los registros, reportes y documentos generados por Bivoo no constituyen documentación fiscal, contable o legal oficial bajo ninguna normativa vigente.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Sin validez legal.</p>
+                    <p>Bivoo no está homologado ni certificado ante ningún organismo regulador, autoridad fiscal o entidad gubernamental. Los datos registrados en la plataforma no pueden ser utilizados como respaldo legal, contable o fiscal ante inspecciones, auditorías o procedimientos administrativos o judiciales.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Responsabilidad del usuario.</p>
+                    <p>El usuario es el único responsable del cumplimiento de las leyes, regulaciones y normativas aplicables a su actividad comercial. Bivoo no asume ninguna responsabilidad por el uso que el usuario haga de la plataforma ni por las consecuencias legales derivadas de dicho uso.</p>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-foreground">Privacidad de datos.</p>
+                    <p>Los datos ingresados en Bivoo son de uso exclusivo del usuario y su equipo. Bivoo no comparte, vende ni cede información a terceros salvo requerimiento legal expreso.</p>
+                  </div>
+                </div>
+              </ScrollArea>
+            </DialogContent>
+          </Dialog>
+
           {/* Step: Email */}
           {step === "email" && (
             <>
               <div className="space-y-3">
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading}>
+                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading || !termsAccepted}>
                   {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
                   Continuar con Google
                 </Button>
-                <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading}>
+                <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading || !termsAccepted}>
                   {appleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Apple className="mr-2 h-4 w-4" />}
                   Continuar con Apple
                 </Button>
@@ -254,7 +309,7 @@ const Auth = () => {
                     autoFocus
                   />
                 </div>
-                <Button type="submit" className="w-full gap-2">
+                <Button type="submit" className="w-full gap-2" disabled={!termsAccepted}>
                   Continuar <ArrowRight className="h-4 w-4" />
                 </Button>
               </form>
