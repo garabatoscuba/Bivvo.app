@@ -7,13 +7,15 @@ import ReportesPorEmpleadoTab from './ReportesPorEmpleadoTab';
 import BitacoraTab from './BitacoraTab';
 import type { EmployeeReport } from '@/hooks/useReportData';
 import { useAuth } from '@/contexts/AuthContext';
+import type { Period } from '@/components/ui/period-filter';
 
 interface Props {
   businessId: string;
   employees: EmployeeReport[];
+  period: Period;
 }
 
-const HistorialTab = ({ businessId, employees }: Props) => {
+const HistorialTab = ({ businessId, employees, period }: Props) => {
   const { isOwner, isSuperAdmin } = useAuth();
   const canSeeBitacora = isOwner || isSuperAdmin;
 
@@ -77,7 +79,7 @@ const HistorialTab = ({ businessId, employees }: Props) => {
       {/* Content */}
       {view === 'actividad' && canSeeBitacora && (
         <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
-          <BitacoraTab businessId={businessId} />
+          <BitacoraTab businessId={businessId} period={period} />
         </div>
       )}
       {view === 'empleados' && (

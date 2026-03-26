@@ -74,7 +74,7 @@ const Reportes = () => {
 
           <TabsContent value="historial">
             <div onMouseDown={e => e.stopPropagation()}>
-              <HistorialTab businessId={businessId} employees={employeeData} />
+              <HistorialTab businessId={businessId} employees={employeeData} period={period} />
             </div>
           </TabsContent>
 
