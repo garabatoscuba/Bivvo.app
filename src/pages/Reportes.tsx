@@ -15,6 +15,7 @@ const Reportes = () => {
   const { profile, isOwner, isSuperAdmin } = useAuth();
   const businessId = profile?.business_id;
   const [period, setPeriod] = useState<Period>('today');
+  const [activeTab, setActiveTab] = useState('resumen');
   const { jornadaActiva, isLoading: jornadaLoading } = useJornadaActiva();
   const canBypassJornada = isOwner || isSuperAdmin;
 
@@ -52,7 +53,7 @@ const Reportes = () => {
       {isLoading ? (
         <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin" /></div>
       ) : (
-        <Tabs defaultValue="resumen" className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="w-full flex-wrap h-auto gap-1">
             <TabsTrigger value="resumen" className="flex-1 text-xs sm:text-sm">Resumen</TabsTrigger>
             <TabsTrigger value="historial" className="flex-1 text-xs sm:text-sm">Historial</TabsTrigger>
