@@ -69,6 +69,7 @@ const Reportes = () => {
               mermas={currentMermas}
               expenses={currentExpenses}
               salaries={currentSalaries}
+              employees={employeeData}
             />
           </TabsContent>
 
