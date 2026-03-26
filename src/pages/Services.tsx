@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { calcIngredientCost } from '@/lib/unitConversion';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useIsDowngraded } from '@/hooks/useIsDowngraded';
 import { usePlanFeatures } from '@/hooks/usePlanFeatures';
@@ -607,19 +608,42 @@ const OwnerServicesView = () => {
     enabled: !!businessId,
   });
 
-  // Fetch cost summaries for all categories
+  // Fetch cost summaries for all categories (cost per unit using yield)
   const { data: costSummaries = {} } = useQuery({
     queryKey: ['service-cost-summary', businessId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      const catIds = categories.map((c: any) => c.id);
+      const { data: ingredients, error } = await supabase
         .from('service_cost_ingredients' as any)
-        .select('category_id, quantity, raw_materials(costo_unitario)')
-        .in('category_id', categories.map((c: any) => c.id));
+        .select('category_id, quantity, unit, ingredient_type, raw_materials(costo_unitario, unit_purchase)')
+        .in('category_id', catIds);
       if (error) throw error;
-      const map: Record<string, number> = {};
-      (data as any[] || []).forEach((row: any) => {
-        const cost = Number(row.quantity) * (Number(row.raw_materials?.costo_unitario) || 0);
-        map[row.category_id] = (map[row.category_id] || 0) + cost;
+
+      // Build recipe cost per category (base ingredients only)
+      const recipeCostMap: Record<string, number> = {};
+      const hasCost: Record<string, boolean> = {};
+      (ingredients as any[] || []).forEach((row: any) => {
+        hasCost[row.category_id] = true;
+        if (row.ingredient_type !== 'base') return;
+        const costPerPurchaseUnit = Number(row.raw_materials?.costo_unitario) || 0;
+        const purchaseUnit = row.raw_materials?.unit_purchase || 'pieza';
+        const usedUnit = row.unit || purchaseUnit;
+        const qty = Number(row.quantity) || 0;
+        // Use calcIngredientCost for proper unit conversion
+        const cost = calcIngredientCost(qty, usedUnit, costPerPurchaseUnit, purchaseUnit);
+        recipeCostMap[row.category_id] = (recipeCostMap[row.category_id] || 0) + cost;
+      });
+
+      // Divide by yield to get cost per unit
+      const map: Record<string, number | null> = {};
+      catIds.forEach((id: string) => {
+        if (!hasCost[id]) {
+          map[id] = null; // no ingredients configured
+          return;
+        }
+        const cat = categories.find((c: any) => c.id === id);
+        const yieldQty = (cat as any)?.yield_quantity || 1;
+        map[id] = (recipeCostMap[id] || 0) / yieldQty;
       });
       return map;
     },
@@ -843,8 +867,14 @@ const OwnerServicesView = () => {
                                 <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
                               )}
                               {(() => {
-                                const cost = (costSummaries as Record<string, number>)[cat.id];
-                                if (!cost) return null;
+                                const summaries = costSummaries as Record<string, number | null>;
+                                const cost = summaries[cat.id];
+                                if (cost === null || cost === undefined) {
+                                  return <span className="text-[10px] text-muted-foreground italic">Sin costo configurado</span>;
+                                }
+                                if (cost === 0) {
+                                  return <span className="text-[10px] text-muted-foreground italic">Sin costo configurado</span>;
+                                }
                                 const price = cat.fixed_price != null ? Number(cat.fixed_price) : 0;
                                 const margin = price > 0 ? ((price - cost) / price * 100).toFixed(0) : null;
                                 return (
