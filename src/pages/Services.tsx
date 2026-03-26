@@ -842,9 +842,22 @@ const OwnerServicesView = () => {
                           <Icon className="h-4 w-4 text-primary shrink-0" />
                           <div className="min-w-0">
                             <span className="text-sm font-medium truncate block">{cat.name}</span>
-                            {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
-                              <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
-                            )}
+                            <div className="flex items-center gap-2">
+                              {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
+                                <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
+                              )}
+                              {(() => {
+                                const cost = getRecipeCost((cat as any).recipe_id);
+                                if (cost == null) return null;
+                                const price = cat.fixed_price != null ? Number(cat.fixed_price) : 0;
+                                const margin = price > 0 ? ((price - cost) / price * 100).toFixed(0) : null;
+                                return (
+                                  <span className="text-[10px] text-muted-foreground">
+                                    Costo: ${cost.toFixed(2)}{margin != null && <span className="text-success ml-1">({margin}%)</span>}
+                                  </span>
+                                );
+                              })()}
+                            </div>
                           </div>
                         </div>
                         {canManage && (
@@ -963,6 +976,41 @@ const OwnerServicesView = () => {
                 placeholder="Dejar vacío si el precio varía"
               />
               <p className="text-[10px] text-muted-foreground mt-1">El vendedor puede modificar el monto al registrar</p>
+            </div>
+            <div>
+              <Label>Ficha de costo asociada (opcional)</Label>
+              <Select value={catRecipeId || 'none'} onValueChange={(v) => setCatRecipeId(v === 'none' ? null : v)}>
+                <SelectTrigger><SelectValue placeholder="Sin ficha de costo" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin ficha de costo</SelectItem>
+                  {availableRecipes.map((r: any) => (
+                    <SelectItem key={r.id} value={r.id}>
+                      {r.name || (r.products as any)?.name || 'Receta'}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground mt-1">Al cobrar se descontarán los insumos de la receta</p>
+              {catRecipeId && (() => {
+                const cost = getRecipeCost(catRecipeId);
+                if (cost == null) return null;
+                const price = catFixedPrice ? parseFloat(catFixedPrice) : 0;
+                const margin = price > 0 ? ((price - cost) / price * 100).toFixed(0) : null;
+                return (
+                  <div className="mt-2 rounded-md bg-muted/50 p-2.5 text-xs space-y-0.5">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Costo estimado</span>
+                      <span className="font-medium">${cost.toFixed(2)}</span>
+                    </div>
+                    {margin != null && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Margen</span>
+                        <span className={Number(margin) >= 0 ? 'text-success font-medium' : 'text-destructive font-medium'}>{margin}%</span>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             <IconSelector value={catIcon} onChange={setCatIcon} />
           </div>
