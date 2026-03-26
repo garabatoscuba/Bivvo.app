@@ -649,6 +649,7 @@ const OwnerServicesView = () => {
         name: catName.trim(),
         icon: catIcon,
         fixed_price: catFixedPrice ? parseFloat(catFixedPrice) : null,
+        recipe_id: catRecipeId || null,
       };
       if (editCat) {
         const { error } = await supabase.from('service_categories').update(payload).eq('id', editCat.id);
@@ -665,6 +666,7 @@ const OwnerServicesView = () => {
       setCatName('');
       setCatIcon('DollarSign');
       setCatFixedPrice('');
+      setCatRecipeId(null);
       setEditCat(null);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
