@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { calcIngredientCost } from '@/lib/unitConversion';
 import { useAuditLog } from '@/hooks/useAuditLog';
 import { useIsDowngraded } from '@/hooks/useIsDowngraded';
 import { usePlanFeatures } from '@/hooks/usePlanFeatures';
