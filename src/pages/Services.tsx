@@ -130,6 +130,7 @@ const ServicePaymentSection = ({
   );
 };
 import IconSelector, { getIconComponent } from '@/components/services/IconSelector';
+import ServiceCostSheet from '@/components/services/ServiceCostSheet';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const paymentLabels: Record<string, string> = {
@@ -1094,6 +1095,21 @@ const OwnerServicesView = () => {
         </DialogContent>
       </Dialog>
       <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
+      {costSheetCatId && (
+        <ServiceCostSheet
+          categoryId={costSheetCatId}
+          categoryName={costSheetCatName}
+          businessId={businessId!}
+          fixedPrice={categories.find((c: any) => c.id === costSheetCatId)?.fixed_price}
+          open={costSheetOpen}
+          onOpenChange={(open) => {
+            setCostSheetOpen(open);
+            if (!open) {
+              queryClient.invalidateQueries({ queryKey: ['service-cost-summary'] });
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
