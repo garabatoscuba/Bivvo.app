@@ -962,6 +962,7 @@ const AppSidebar = () => {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+        </>)}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/60 p-3 space-y-3">
