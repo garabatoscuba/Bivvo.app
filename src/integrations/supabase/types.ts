@@ -4848,7 +4848,6 @@ export type Database = {
           id: string
           is_default: boolean
           name: string
-          recipe_id: string | null
           updated_at: string
         }
         Insert: {
@@ -4859,7 +4858,6 @@ export type Database = {
           id?: string
           is_default?: boolean
           name: string
-          recipe_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -4870,7 +4868,6 @@ export type Database = {
           id?: string
           is_default?: boolean
           name?: string
-          recipe_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4881,11 +4878,46 @@ export type Database = {
             referencedRelation: "businesses"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      service_cost_ingredients: {
+        Row: {
+          category_id: string
+          created_at: string
+          id: string
+          material_id: string
+          quantity: number
+          unit: string | null
+        }
+        Insert: {
+          category_id: string
+          created_at?: string
+          id?: string
+          material_id: string
+          quantity?: number
+          unit?: string | null
+        }
+        Update: {
+          category_id?: string
+          created_at?: string
+          id?: string
+          material_id?: string
+          quantity?: number
+          unit?: string | null
+        }
+        Relationships: [
           {
-            foreignKeyName: "service_categories_recipe_id_fkey"
-            columns: ["recipe_id"]
+            foreignKeyName: "service_cost_ingredients_category_id_fkey"
+            columns: ["category_id"]
             isOneToOne: false
-            referencedRelation: "recipes"
+            referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_cost_ingredients_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "raw_materials"
             referencedColumns: ["id"]
           },
         ]
