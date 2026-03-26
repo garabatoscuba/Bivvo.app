@@ -4848,6 +4848,7 @@ export type Database = {
           id: string
           is_default: boolean
           name: string
+          recipe_id: string | null
           updated_at: string
         }
         Insert: {
@@ -4858,6 +4859,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           name: string
+          recipe_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -4868,6 +4870,7 @@ export type Database = {
           id?: string
           is_default?: boolean
           name?: string
+          recipe_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -4876,6 +4879,13 @@ export type Database = {
             columns: ["business_id"]
             isOneToOne: false
             referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_categories_recipe_id_fkey"
+            columns: ["recipe_id"]
+            isOneToOne: false
+            referencedRelation: "recipes"
             referencedColumns: ["id"]
           },
         ]
