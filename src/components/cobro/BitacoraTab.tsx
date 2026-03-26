@@ -2,6 +2,8 @@ import { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
+import type { Period } from '@/components/ui/period-filter';
+import { getDateRange } from '@/lib/periodUtils';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -39,9 +41,10 @@ const PAGE_SIZE = 50;
 
 interface BitacoraTabProps {
   businessId: string;
+  period: Period;
 }
 
-const BitacoraTab = ({ businessId }: BitacoraTabProps) => {
+const BitacoraTab = ({ businessId, period }: BitacoraTabProps) => {
   const [searchCode, setSearchCode] = useState('');
   const [filterEmployee, setFilterEmployee] = useState<string>('all');
   const [filterAction, setFilterAction] = useState<string>('all');
@@ -63,13 +66,17 @@ const BitacoraTab = ({ businessId }: BitacoraTabProps) => {
   });
 
   // Fetch audit logs
+  const periodRange = useMemo(() => getDateRange(period), [period]);
+
   const { data: logsData, isLoading } = useQuery({
-    queryKey: ['audit-logs', businessId, searchCode, filterEmployee, filterAction, dateFrom?.toISOString(), dateTo?.toISOString(), page],
+    queryKey: ['audit-logs', businessId, searchCode, filterEmployee, filterAction, dateFrom?.toISOString(), dateTo?.toISOString(), page, period],
     queryFn: async () => {
       let query = supabase
         .from('audit_logs')
         .select('*', { count: 'exact' })
         .eq('business_id', businessId)
+        .gte('created_at', periodRange.start.toISOString())
+        .lte('created_at', periodRange.end.toISOString())
         .order('created_at', { ascending: false })
         .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
