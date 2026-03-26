@@ -566,10 +566,11 @@ const OwnerServicesView = () => {
 
   // Category dialog state
   const [catDialogOpen, setCatDialogOpen] = useState(false);
-  const [editCat, setEditCat] = useState<{ id: string; name: string; icon?: string; fixed_price?: number | null } | null>(null);
+  const [editCat, setEditCat] = useState<{ id: string; name: string; icon?: string; fixed_price?: number | null; recipe_id?: string | null } | null>(null);
   const [catName, setCatName] = useState('');
   const [catIcon, setCatIcon] = useState('DollarSign');
   const [catFixedPrice, setCatFixedPrice] = useState('');
+  const [catRecipeId, setCatRecipeId] = useState<string | null>(null);
 
   // Entry dialog state
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
@@ -600,6 +601,30 @@ const OwnerServicesView = () => {
     },
     enabled: !!businessId,
   });
+
+  // Fetch available recipes for the business
+  const { data: availableRecipes = [] } = useQuery({
+    queryKey: ['recipes-for-services', businessId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('id, name, product_id, yield_quantity, products(name, cost_price)')
+        .eq('business_id', businessId!)
+        .eq('is_active', true)
+        .order('name');
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!businessId,
+  });
+
+  // Calculate recipe cost for display
+  const getRecipeCost = (recipeId: string | null | undefined): number | null => {
+    if (!recipeId) return null;
+    const recipe = availableRecipes.find((r: any) => r.id === recipeId);
+    if (!recipe) return null;
+    return Number((recipe as any).products?.cost_price) || null;
+  };
 
   const { data: recentEntries = [], isLoading: loadingEntries } = useQuery({
     queryKey: ['service-entries-recent', businessId, branchId],
