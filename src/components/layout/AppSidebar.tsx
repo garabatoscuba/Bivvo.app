@@ -62,6 +62,7 @@ import {
   Tag,
   Network,
   ChefHat,
+  Loader2,
 } from "lucide-react";
 import { getIconComponent } from "@/components/services/IconSelector";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
@@ -563,6 +564,12 @@ const AppSidebar = () => {
       <Separator className="mx-4 w-auto" />
 
       <SidebarContent className="pt-2">
+        {employeeRecordLoading && isBivooAccount ? (
+          <div className="flex flex-col items-center justify-center py-12 gap-3">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Cargando módulos...</span>
+          </div>
+        ) : (<>
         {isSuperAdmin && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
@@ -955,6 +962,7 @@ const AppSidebar = () => {
             </SidebarGroupContent>
           </SidebarGroup>
         )}
+        </>)}
       </SidebarContent>
 
       <SidebarFooter className="border-t border-border/60 p-3 space-y-3">
