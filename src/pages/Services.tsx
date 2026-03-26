@@ -25,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle, Banknote, Smartphone, CreditCard, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle, Banknote, Smartphone, CreditCard, RotateCcw, CheckCircle2, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const QUICK_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000];
@@ -130,6 +130,7 @@ const ServicePaymentSection = ({
   );
 };
 import IconSelector, { getIconComponent } from '@/components/services/IconSelector';
+import ServiceCostSheet from '@/components/services/ServiceCostSheet';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const paymentLabels: Record<string, string> = {
@@ -566,11 +567,15 @@ const OwnerServicesView = () => {
 
   // Category dialog state
   const [catDialogOpen, setCatDialogOpen] = useState(false);
-  const [editCat, setEditCat] = useState<{ id: string; name: string; icon?: string; fixed_price?: number | null; recipe_id?: string | null } | null>(null);
+  const [editCat, setEditCat] = useState<{ id: string; name: string; icon?: string; fixed_price?: number | null } | null>(null);
   const [catName, setCatName] = useState('');
   const [catIcon, setCatIcon] = useState('DollarSign');
   const [catFixedPrice, setCatFixedPrice] = useState('');
-  const [catRecipeId, setCatRecipeId] = useState<string | null>(null);
+
+  // Cost sheet state
+  const [costSheetOpen, setCostSheetOpen] = useState(false);
+  const [costSheetCatId, setCostSheetCatId] = useState('');
+  const [costSheetCatName, setCostSheetCatName] = useState('');
 
   // Entry dialog state
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
@@ -602,29 +607,24 @@ const OwnerServicesView = () => {
     enabled: !!businessId,
   });
 
-  // Fetch available recipes for the business
-  const { data: availableRecipes = [] } = useQuery({
-    queryKey: ['recipes-for-services', businessId],
+  // Fetch cost summaries for all categories
+  const { data: costSummaries = {} } = useQuery({
+    queryKey: ['service-cost-summary', businessId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('recipes')
-        .select('id, name, product_id, yield_quantity, products(name, cost_price)')
-        .eq('business_id', businessId!)
-        .eq('is_active', true)
-        .order('name');
+        .from('service_cost_ingredients' as any)
+        .select('category_id, quantity, raw_materials(costo_unitario)')
+        .in('category_id', categories.map((c: any) => c.id));
       if (error) throw error;
-      return data;
+      const map: Record<string, number> = {};
+      (data as any[] || []).forEach((row: any) => {
+        const cost = Number(row.quantity) * (Number(row.raw_materials?.costo_unitario) || 0);
+        map[row.category_id] = (map[row.category_id] || 0) + cost;
+      });
+      return map;
     },
-    enabled: !!businessId,
+    enabled: !!businessId && categories.length > 0,
   });
-
-  // Calculate recipe cost for display
-  const getRecipeCost = (recipeId: string | null | undefined): number | null => {
-    if (!recipeId) return null;
-    const recipe = availableRecipes.find((r: any) => r.id === recipeId);
-    if (!recipe) return null;
-    return Number((recipe as any).products?.cost_price) || null;
-  };
 
   const { data: recentEntries = [], isLoading: loadingEntries } = useQuery({
     queryKey: ['service-entries-recent', businessId, branchId],
@@ -649,7 +649,6 @@ const OwnerServicesView = () => {
         name: catName.trim(),
         icon: catIcon,
         fixed_price: catFixedPrice ? parseFloat(catFixedPrice) : null,
-        recipe_id: catRecipeId || null,
       };
       if (editCat) {
         const { error } = await supabase.from('service_categories').update(payload).eq('id', editCat.id);
@@ -666,7 +665,6 @@ const OwnerServicesView = () => {
       setCatName('');
       setCatIcon('DollarSign');
       setCatFixedPrice('');
-      setCatRecipeId(null);
       setEditCat(null);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
@@ -756,7 +754,6 @@ const OwnerServicesView = () => {
     setCatName('');
     setCatIcon('DollarSign');
     setCatFixedPrice('');
-    setCatRecipeId(null);
     setCatDialogOpen(true);
   };
 
@@ -765,7 +762,6 @@ const OwnerServicesView = () => {
     setCatName(cat.name);
     setCatIcon(cat.icon || 'DollarSign');
     setCatFixedPrice(cat.fixed_price != null ? String(cat.fixed_price) : '');
-    setCatRecipeId(cat.recipe_id || null);
     setCatDialogOpen(true);
   };
 
@@ -842,13 +838,13 @@ const OwnerServicesView = () => {
                           <Icon className="h-4 w-4 text-primary shrink-0" />
                           <div className="min-w-0">
                             <span className="text-sm font-medium truncate block">{cat.name}</span>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
                                 <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
                               )}
                               {(() => {
-                                const cost = getRecipeCost((cat as any).recipe_id);
-                                if (cost == null) return null;
+                                const cost = (costSummaries as Record<string, number>)[cat.id];
+                                if (!cost) return null;
                                 const price = cat.fixed_price != null ? Number(cat.fixed_price) : 0;
                                 const margin = price > 0 ? ((price - cost) / price * 100).toFixed(0) : null;
                                 return (
@@ -862,6 +858,9 @@ const OwnerServicesView = () => {
                         </div>
                         {canManage && (
                           <div className="flex items-center gap-0.5 shrink-0">
+                            <button className="p-1 rounded hover:bg-muted" title="Ficha de costo" onClick={() => { setCostSheetCatId(cat.id); setCostSheetCatName(cat.name); setCostSheetOpen(true); }}>
+                              <ClipboardList className="h-3 w-3 text-muted-foreground" />
+                            </button>
                             <button className="p-1 rounded hover:bg-muted" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } handleEditCat(cat); }}>
                               <Pencil className="h-3 w-3 text-muted-foreground" />
                             </button>
@@ -977,42 +976,21 @@ const OwnerServicesView = () => {
               />
               <p className="text-[10px] text-muted-foreground mt-1">El vendedor puede modificar el monto al registrar</p>
             </div>
-            <div>
-              <Label>Ficha de costo asociada (opcional)</Label>
-              <Select value={catRecipeId || 'none'} onValueChange={(v) => setCatRecipeId(v === 'none' ? null : v)}>
-                <SelectTrigger><SelectValue placeholder="Sin ficha de costo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin ficha de costo</SelectItem>
-                  {availableRecipes.map((r: any) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.name || (r.products as any)?.name || 'Receta'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-muted-foreground mt-1">Al cobrar se descontarán los insumos de la receta</p>
-              {catRecipeId && (() => {
-                const cost = getRecipeCost(catRecipeId);
-                if (cost == null) return null;
-                const price = catFixedPrice ? parseFloat(catFixedPrice) : 0;
-                const margin = price > 0 ? ((price - cost) / price * 100).toFixed(0) : null;
-                return (
-                  <div className="mt-2 rounded-md bg-muted/50 p-2.5 text-xs space-y-0.5">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Costo estimado</span>
-                      <span className="font-medium">${cost.toFixed(2)}</span>
-                    </div>
-                    {margin != null && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Margen</span>
-                        <span className={Number(margin) >= 0 ? 'text-success font-medium' : 'text-destructive font-medium'}>{margin}%</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
             <IconSelector value={catIcon} onChange={setCatIcon} />
+            {editCat && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setCostSheetCatId(editCat.id);
+                  setCostSheetCatName(editCat.name);
+                  setCostSheetOpen(true);
+                }}
+              >
+                <ClipboardList className="h-4 w-4 mr-1" /> Configurar ficha de costo
+              </Button>
+            )}
           </div>
           <DialogFooter>
             <Button onClick={() => saveCatMutation.mutate()} disabled={!catName.trim() || saveCatMutation.isPending}>
@@ -1120,6 +1098,21 @@ const OwnerServicesView = () => {
         </DialogContent>
       </Dialog>
       <DowngradeModal open={downgradeModalOpen} onOpenChange={setDowngradeModalOpen} />
+      {costSheetCatId && (
+        <ServiceCostSheet
+          categoryId={costSheetCatId}
+          categoryName={costSheetCatName}
+          businessId={businessId!}
+          fixedPrice={categories.find((c: any) => c.id === costSheetCatId)?.fixed_price}
+          open={costSheetOpen}
+          onOpenChange={(open) => {
+            setCostSheetOpen(open);
+            if (!open) {
+              queryClient.invalidateQueries({ queryKey: ['service-cost-summary'] });
+            }
+          }}
+        />
+      )}
     </div>
   );
 };
