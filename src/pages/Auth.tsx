@@ -223,7 +223,7 @@ const Auth = () => {
         </CardHeader>
         <CardContent className="space-y-6 px-8 pb-8">
           {/* Terms checkbox + modal */}
-          <div className="flex items-start gap-2">
+          <div className="flex items-center justify-center gap-2">
             <Checkbox
               id="terms"
               checked={termsAccepted}
