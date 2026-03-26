@@ -858,6 +858,9 @@ const OwnerServicesView = () => {
                         </div>
                         {canManage && (
                           <div className="flex items-center gap-0.5 shrink-0">
+                            <button className="p-1 rounded hover:bg-muted" title="Ficha de costo" onClick={() => { setCostSheetCatId(cat.id); setCostSheetCatName(cat.name); setCostSheetOpen(true); }}>
+                              <ClipboardList className="h-3 w-3 text-muted-foreground" />
+                            </button>
                             <button className="p-1 rounded hover:bg-muted" onClick={() => { if (isDowngraded) { setDowngradeModalOpen(true); return; } handleEditCat(cat); }}>
                               <Pencil className="h-3 w-3 text-muted-foreground" />
                             </button>
