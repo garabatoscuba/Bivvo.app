@@ -756,6 +756,7 @@ const OwnerServicesView = () => {
     setCatName('');
     setCatIcon('DollarSign');
     setCatFixedPrice('');
+    setCatRecipeId(null);
     setCatDialogOpen(true);
   };
 
