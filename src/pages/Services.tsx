@@ -648,7 +648,6 @@ const OwnerServicesView = () => {
         name: catName.trim(),
         icon: catIcon,
         fixed_price: catFixedPrice ? parseFloat(catFixedPrice) : null,
-        recipe_id: catRecipeId || null,
       };
       if (editCat) {
         const { error } = await supabase.from('service_categories').update(payload).eq('id', editCat.id);
@@ -665,7 +664,6 @@ const OwnerServicesView = () => {
       setCatName('');
       setCatIcon('DollarSign');
       setCatFixedPrice('');
-      setCatRecipeId(null);
       setEditCat(null);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
@@ -755,7 +753,6 @@ const OwnerServicesView = () => {
     setCatName('');
     setCatIcon('DollarSign');
     setCatFixedPrice('');
-    setCatRecipeId(null);
     setCatDialogOpen(true);
   };
 
@@ -764,7 +761,6 @@ const OwnerServicesView = () => {
     setCatName(cat.name);
     setCatIcon(cat.icon || 'DollarSign');
     setCatFixedPrice(cat.fixed_price != null ? String(cat.fixed_price) : '');
-    setCatRecipeId(cat.recipe_id || null);
     setCatDialogOpen(true);
   };
 
@@ -841,13 +837,13 @@ const OwnerServicesView = () => {
                           <Icon className="h-4 w-4 text-primary shrink-0" />
                           <div className="min-w-0">
                             <span className="text-sm font-medium truncate block">{cat.name}</span>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {cat.fixed_price != null && Number(cat.fixed_price) > 0 && (
                                 <span className="text-[10px] text-muted-foreground">${Number(cat.fixed_price).toFixed(2)}</span>
                               )}
                               {(() => {
-                                const cost = getRecipeCost((cat as any).recipe_id);
-                                if (cost == null) return null;
+                                const cost = (costSummaries as Record<string, number>)[cat.id];
+                                if (!cost) return null;
                                 const price = cat.fixed_price != null ? Number(cat.fixed_price) : 0;
                                 const margin = price > 0 ? ((price - cost) / price * 100).toFixed(0) : null;
                                 return (
@@ -976,42 +972,21 @@ const OwnerServicesView = () => {
               />
               <p className="text-[10px] text-muted-foreground mt-1">El vendedor puede modificar el monto al registrar</p>
             </div>
-            <div>
-              <Label>Ficha de costo asociada (opcional)</Label>
-              <Select value={catRecipeId || 'none'} onValueChange={(v) => setCatRecipeId(v === 'none' ? null : v)}>
-                <SelectTrigger><SelectValue placeholder="Sin ficha de costo" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin ficha de costo</SelectItem>
-                  {availableRecipes.map((r: any) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      {r.name || (r.products as any)?.name || 'Receta'}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-[10px] text-muted-foreground mt-1">Al cobrar se descontarán los insumos de la receta</p>
-              {catRecipeId && (() => {
-                const cost = getRecipeCost(catRecipeId);
-                if (cost == null) return null;
-                const price = catFixedPrice ? parseFloat(catFixedPrice) : 0;
-                const margin = price > 0 ? ((price - cost) / price * 100).toFixed(0) : null;
-                return (
-                  <div className="mt-2 rounded-md bg-muted/50 p-2.5 text-xs space-y-0.5">
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">Costo estimado</span>
-                      <span className="font-medium">${cost.toFixed(2)}</span>
-                    </div>
-                    {margin != null && (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Margen</span>
-                        <span className={Number(margin) >= 0 ? 'text-success font-medium' : 'text-destructive font-medium'}>{margin}%</span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
-            </div>
             <IconSelector value={catIcon} onChange={setCatIcon} />
+            {editCat && (
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={() => {
+                  setCostSheetCatId(editCat.id);
+                  setCostSheetCatName(editCat.name);
+                  setCostSheetOpen(true);
+                }}
+              >
+                <ClipboardList className="h-4 w-4 mr-1" /> Configurar ficha de costo
+              </Button>
+            )}
           </div>
           <DialogFooter>
             <Button onClick={() => saveCatMutation.mutate()} disabled={!catName.trim() || saveCatMutation.isPending}>
