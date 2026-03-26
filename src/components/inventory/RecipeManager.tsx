@@ -362,22 +362,28 @@ export const RecipeManager = ({ open, onOpenChange, product }: RecipeManagerProp
               <Separator />
 
               {/* Cost summary */}
-              <div className="grid grid-cols-3 gap-2">
-                <Card className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Costo ficha</p>
-                  <p className="text-lg font-bold">${recipeCost.toFixed(2)}</p>
-                </Card>
-                <Card className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Costo/unidad</p>
-                  <p className="text-lg font-bold">${costPerUnit.toFixed(2)}</p>
-                </Card>
-                <Card className="p-3 text-center">
-                  <p className="text-xs text-muted-foreground">Margen</p>
-                  <p className={`text-lg font-bold ${margin >= 30 ? 'text-green-600' : margin >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
-                    {margin.toFixed(1)}%
-                  </p>
-                </Card>
-              </div>
+              {(() => {
+                const displayCost = adjustedCostState != null ? adjustedCostState : costPerUnit;
+                const displayMargin = salePrice > 0 ? ((salePrice - displayCost) / salePrice * 100) : 0;
+                return (
+                  <div className="grid grid-cols-3 gap-2">
+                    <Card className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Costo ficha</p>
+                      <p className="text-lg font-bold">${recipeCost.toFixed(2)}</p>
+                    </Card>
+                    <Card className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Costo/unidad</p>
+                      <p className="text-lg font-bold">${displayCost.toFixed(2)}</p>
+                    </Card>
+                    <Card className="p-3 text-center">
+                      <p className="text-xs text-muted-foreground">Margen</p>
+                      <p className={`text-lg font-bold ${displayMargin >= 30 ? 'text-green-600' : displayMargin >= 10 ? 'text-yellow-600' : 'text-red-600'}`}>
+                        {displayMargin.toFixed(1)}%
+                      </p>
+                    </Card>
+                  </div>
+                );
+              })()}
 
               <Separator />
 
