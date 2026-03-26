@@ -566,11 +566,15 @@ const OwnerServicesView = () => {
 
   // Category dialog state
   const [catDialogOpen, setCatDialogOpen] = useState(false);
-  const [editCat, setEditCat] = useState<{ id: string; name: string; icon?: string; fixed_price?: number | null; recipe_id?: string | null } | null>(null);
+  const [editCat, setEditCat] = useState<{ id: string; name: string; icon?: string; fixed_price?: number | null } | null>(null);
   const [catName, setCatName] = useState('');
   const [catIcon, setCatIcon] = useState('DollarSign');
   const [catFixedPrice, setCatFixedPrice] = useState('');
-  const [catRecipeId, setCatRecipeId] = useState<string | null>(null);
+
+  // Cost sheet state
+  const [costSheetOpen, setCostSheetOpen] = useState(false);
+  const [costSheetCatId, setCostSheetCatId] = useState('');
+  const [costSheetCatName, setCostSheetCatName] = useState('');
 
   // Entry dialog state
   const [entryDialogOpen, setEntryDialogOpen] = useState(false);
@@ -602,29 +606,24 @@ const OwnerServicesView = () => {
     enabled: !!businessId,
   });
 
-  // Fetch available recipes for the business
-  const { data: availableRecipes = [] } = useQuery({
-    queryKey: ['recipes-for-services', businessId],
+  // Fetch cost summaries for all categories
+  const { data: costSummaries = {} } = useQuery({
+    queryKey: ['service-cost-summary', businessId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('recipes')
-        .select('id, name, product_id, yield_quantity, products(name, cost_price)')
-        .eq('business_id', businessId!)
-        .eq('is_active', true)
-        .order('name');
+        .from('service_cost_ingredients' as any)
+        .select('category_id, quantity, raw_materials(costo_unitario)')
+        .in('category_id', categories.map((c: any) => c.id));
       if (error) throw error;
-      return data;
+      const map: Record<string, number> = {};
+      (data as any[] || []).forEach((row: any) => {
+        const cost = Number(row.quantity) * (Number(row.raw_materials?.costo_unitario) || 0);
+        map[row.category_id] = (map[row.category_id] || 0) + cost;
+      });
+      return map;
     },
-    enabled: !!businessId,
+    enabled: !!businessId && categories.length > 0,
   });
-
-  // Calculate recipe cost for display
-  const getRecipeCost = (recipeId: string | null | undefined): number | null => {
-    if (!recipeId) return null;
-    const recipe = availableRecipes.find((r: any) => r.id === recipeId);
-    if (!recipe) return null;
-    return Number((recipe as any).products?.cost_price) || null;
-  };
 
   const { data: recentEntries = [], isLoading: loadingEntries } = useQuery({
     queryKey: ['service-entries-recent', businessId, branchId],
