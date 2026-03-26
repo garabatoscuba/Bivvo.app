@@ -76,7 +76,9 @@ const HistorialTab = ({ businessId, employees }: Props) => {
 
       {/* Content */}
       {view === 'actividad' && canSeeBitacora && (
-        <BitacoraTab businessId={businessId} />
+        <div onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+          <BitacoraTab businessId={businessId} />
+        </div>
       )}
       {view === 'empleados' && (
         <ReportesPorEmpleadoTab employees={employees} />
