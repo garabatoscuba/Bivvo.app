@@ -26,24 +26,53 @@ interface ProductStock {
 const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: InventoryCountStepProps) => {
   const [counts, setCounts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
-  const { user, isOperator } = useAuth();
+  const { user, isOperator: isOperatorRole } = useAuth();
   const auditLog = useAuditLog();
+
+  // Resolve operator status from employee record (position fallback)
+  const { data: employeeForOperator } = useQuery({
+    queryKey: ['inventory-count-employee', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from('employees')
+        .select('id, position')
+        .eq('auth_user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+  });
+
+  const isOperatorByPosition = ['operator', 'operario', 'operario de área'].includes(
+    (employeeForOperator?.position || '').toLowerCase().trim()
+  );
+  const isOperator = isOperatorRole || isOperatorByPosition;
 
   // For operators, fetch their assigned insumo areas
   const { data: operatorAreaIds = [] } = useQuery({
     queryKey: ['operator-areas', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data: emp } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .maybeSingle();
-      if (!emp) return [];
+      const empId = employeeForOperator?.id;
+      if (!empId) {
+        const { data: emp } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .maybeSingle();
+        if (!emp) return [];
+        const { data } = await supabase
+          .from('employee_insumo_areas')
+          .select('insumo_area_id')
+          .eq('employee_id', emp.id);
+        return (data || []).map(d => d.insumo_area_id).filter(Boolean) as string[];
+      }
       const { data } = await supabase
         .from('employee_insumo_areas')
         .select('insumo_area_id')
-        .eq('employee_id', emp.id);
+        .eq('employee_id', empId);
       return (data || []).map(d => d.insumo_area_id).filter(Boolean) as string[];
     },
     enabled: isOperator && !!user?.id,

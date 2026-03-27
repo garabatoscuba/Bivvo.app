@@ -91,7 +91,7 @@ const colorDotMap: Record<string, string> = {
 };
 
 const Inventory = () => {
-  const { profile, isOwner, isManager, isSuperAdmin, isOperator, user } = useAuth();
+  const { profile, isOwner, isManager, isSuperAdmin, isOperator: isOperatorRole, user } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const { planType } = useSubscription();
   const { products, isLoading: productsLoading, deleteProduct } = useProducts();
@@ -99,6 +99,29 @@ const Inventory = () => {
   const { data: branches } = useBranches();
   const queryClient = useQueryClient();
   const auditLog = useAuditLog();
+
+  // Resolve operator status from employee record (position), not just user_roles
+  const { data: employeeRecord } = useQuery({
+    queryKey: ['inventory-employee-record', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from('employees')
+        .select('id, position, is_jefe')
+        .eq('auth_user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isOperatorByPosition = ['operator', 'operario', 'operario de área'].includes(
+    (employeeRecord?.position || '').toLowerCase().trim()
+  );
+  const isOperator = isOperatorRole || isOperatorByPosition;
+  const isOperatorJefe = isOperator && !!employeeRecord?.is_jefe;
   
   const [search, setSearch] = useState('');
   const [selectedBranch, setSelectedBranch] = useState<string>(() => {
@@ -243,21 +266,28 @@ const Inventory = () => {
 
   // Operator: fetch assigned area IDs
   const { data: operatorAreaIds } = useQuery({
-    queryKey: ['operator-assigned-areas', user?.id, businessId],
+    queryKey: ['operator-assigned-areas', user?.id, businessId, isOperator],
     queryFn: async () => {
       if (!user?.id || !businessId) return null;
-      // Get employee id by auth_user_id
-      const { data: emp } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .limit(1)
-        .maybeSingle();
-      if (!emp) return null;
+      const empId = employeeRecord?.id;
+      if (!empId) {
+        const { data: emp } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+        if (!emp) return null;
+        const { data: assignments } = await supabase
+          .from('employee_insumo_areas')
+          .select('insumo_area_id')
+          .eq('employee_id', emp.id);
+        return (assignments || []).map(a => a.insumo_area_id).filter(Boolean) as string[];
+      }
       const { data: assignments } = await supabase
         .from('employee_insumo_areas')
         .select('insumo_area_id')
-        .eq('employee_id', emp.id);
+        .eq('employee_id', empId);
       return (assignments || []).map(a => a.insumo_area_id).filter(Boolean) as string[];
     },
     enabled: isOperator && !!user?.id && !!businessId,
@@ -761,7 +791,7 @@ const Inventory = () => {
           {/* ─── Productos Tab (master view, all products) ─── */}
           <TabsContent value="products" className="mt-4 space-y-4">
             {/* Sub-tabs: Reventa / Cocina (only if business has kitchen products) */}
-            {hasKitchenProducts && (
+            {hasKitchenProducts && !isOperator && (
               <div className="flex gap-1 rounded-lg bg-muted p-1">
                 <button
                   type="button"
