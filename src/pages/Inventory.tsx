@@ -266,21 +266,28 @@ const Inventory = () => {
 
   // Operator: fetch assigned area IDs
   const { data: operatorAreaIds } = useQuery({
-    queryKey: ['operator-assigned-areas', user?.id, businessId],
+    queryKey: ['operator-assigned-areas', user?.id, businessId, isOperator],
     queryFn: async () => {
       if (!user?.id || !businessId) return null;
-      // Get employee id by auth_user_id
-      const { data: emp } = await supabase
-        .from('employees')
-        .select('id')
-        .eq('auth_user_id', user.id)
-        .limit(1)
-        .maybeSingle();
-      if (!emp) return null;
+      const empId = employeeRecord?.id;
+      if (!empId) {
+        const { data: emp } = await supabase
+          .from('employees')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+        if (!emp) return null;
+        const { data: assignments } = await supabase
+          .from('employee_insumo_areas')
+          .select('insumo_area_id')
+          .eq('employee_id', emp.id);
+        return (assignments || []).map(a => a.insumo_area_id).filter(Boolean) as string[];
+      }
       const { data: assignments } = await supabase
         .from('employee_insumo_areas')
         .select('insumo_area_id')
-        .eq('employee_id', emp.id);
+        .eq('employee_id', empId);
       return (assignments || []).map(a => a.insumo_area_id).filter(Boolean) as string[];
     },
     enabled: isOperator && !!user?.id && !!businessId,
