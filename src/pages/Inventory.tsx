@@ -791,7 +791,7 @@ const Inventory = () => {
           {/* ─── Productos Tab (master view, all products) ─── */}
           <TabsContent value="products" className="mt-4 space-y-4">
             {/* Sub-tabs: Reventa / Cocina (only if business has kitchen products) */}
-            {hasKitchenProducts && (
+            {hasKitchenProducts && !isOperator && (
               <div className="flex gap-1 rounded-lg bg-muted p-1">
                 <button
                   type="button"
