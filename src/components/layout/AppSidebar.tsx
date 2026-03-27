@@ -125,8 +125,8 @@ const AppSidebar = () => {
   };
 
   // Resolve employee context strictly by auth.uid -> employees.auth_user_id
-  const { data: employeeRecord = null, isLoading: employeeRecordLoading } = useQuery({
-    queryKey: ["employee-session-record", profile?.user_id],
+  const { data: employeeRecord = null, isLoading: employeeRecordLoading, isFetching: employeeRecordFetching } = useQuery({
+    queryKey: ["app-sidebar-employee-session-record", profile?.user_id],
     queryFn: async () => {
       if (!profile?.user_id) return null;
       const { data, error } = await supabase
@@ -145,6 +145,7 @@ const AppSidebar = () => {
   });
 
   const hasEmployeeRecord = !!employeeRecord;
+  const employeeRecordPending = employeeRecordLoading || employeeRecordFetching;
   const employeeBusinessId = (employeeRecord as any)?.business_id ?? null;
   const employerName = (employeeRecord as any)?.businesses?.name || null;
   const employeePosition = normalizeEmployeePosition((employeeRecord as any)?.position);
@@ -152,7 +153,7 @@ const AppSidebar = () => {
   const isEmployeeManager = employeePosition === "manager";
   const isEmployeeKitchen = employeePosition === "cocina";
   const isEmployeeOperator = employeePosition === "operator";
-  const shouldWaitEmployeeResolution = isBivooAccount && employeeRecordLoading;
+  const shouldWaitEmployeeResolution = isBivooAccount && employeeRecordPending;
 
   // Employees must not run owner/owner_id sidebar flow
   const showBusinessSection = !shouldWaitEmployeeResolution && (isOwner || isSuperAdmin) && !isEmployeeSession;
@@ -167,9 +168,9 @@ const AppSidebar = () => {
 
   // Jornada check for operational employee tools
   const { jornadaActiva } = useJornadaActiva();
-  const showEmployeeTools = employeePosition === 'operator' ? false : (!shouldWaitEmployeeResolution && !employeeRecordLoading && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && !isEmployeeOperator && jornadaActiva);
+  const showEmployeeTools = employeePosition === 'operator' ? false : (!shouldWaitEmployeeResolution && !employeeRecordPending && isEmployeeSession && !isEmployeeManager && !isEmployeeKitchen && !isEmployeeOperator && jornadaActiva);
 
-  const showOperatorModule = !shouldWaitEmployeeResolution && !employeeRecordLoading && isEmployeeSession && isEmployeeOperator;
+  const showOperatorModule = !shouldWaitEmployeeResolution && !employeeRecordPending && isEmployeeSession && isEmployeeOperator;
   const isOperatorJefe = showOperatorModule && !!(employeeRecord as any)?.is_jefe;
   // Fetch user's businesses with their branches
   const { data: userBusinesses = [] } = useQuery({
@@ -564,7 +565,7 @@ const AppSidebar = () => {
       <Separator className="mx-4 w-auto" />
 
       <SidebarContent className="pt-2">
-        {employeeRecordLoading && isBivooAccount ? (
+        {employeeRecordPending && isBivooAccount ? (
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Cargando módulos...</span>
@@ -598,7 +599,7 @@ const AppSidebar = () => {
         )}
 
         {/* Mi Empleo section - employee tools (sellers, managers — NOT operators/kitchen, they have their own sections) */}
-        {hasEmployeeRecord && !isEmployeeOperator && !isEmployeeKitchen && !employeeRecordLoading && (
+        {hasEmployeeRecord && !isEmployeeOperator && !isEmployeeKitchen && !employeeRecordPending && (
           <SidebarGroup>
             <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70 flex flex-col items-start leading-tight py-2 h-auto">
               <span>Mi Empleo</span>
