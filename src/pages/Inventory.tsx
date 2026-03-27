@@ -91,7 +91,7 @@ const colorDotMap: Record<string, string> = {
 };
 
 const Inventory = () => {
-  const { profile, isOwner, isManager, isSuperAdmin, isOperator, user } = useAuth();
+  const { profile, isOwner, isManager, isSuperAdmin, isOperator: isOperatorRole, user } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const { planType } = useSubscription();
   const { products, isLoading: productsLoading, deleteProduct } = useProducts();
@@ -99,6 +99,29 @@ const Inventory = () => {
   const { data: branches } = useBranches();
   const queryClient = useQueryClient();
   const auditLog = useAuditLog();
+
+  // Resolve operator status from employee record (position), not just user_roles
+  const { data: employeeRecord } = useQuery({
+    queryKey: ['inventory-employee-record', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data } = await supabase
+        .from('employees')
+        .select('id, position, is_jefe')
+        .eq('auth_user_id', user.id)
+        .limit(1)
+        .maybeSingle();
+      return data;
+    },
+    enabled: !!user?.id,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const isOperatorByPosition = ['operator', 'operario', 'operario de área'].includes(
+    (employeeRecord?.position || '').toLowerCase().trim()
+  );
+  const isOperator = isOperatorRole || isOperatorByPosition;
+  const isOperatorJefe = isOperator && !!employeeRecord?.is_jefe;
   
   const [search, setSearch] = useState('');
   const [selectedBranch, setSelectedBranch] = useState<string>(() => {
