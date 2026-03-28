@@ -1,6 +1,7 @@
 import type { User, Session } from '@supabase/supabase-js';
 
 const OFFLINE_SESSION_KEY = 'bivoo-offline-session';
+const OFFLINE_CREDENTIALS_KEY = 'bivoo-offline-credentials';
 
 export interface OfflineSessionData {
   user: User;
@@ -8,6 +9,24 @@ export interface OfflineSessionData {
   profile: any;
   roles: string[];
   savedAt: string;
+}
+
+interface OfflineCredential {
+  email: string;
+  hash: string;
+  userId: string;
+}
+
+/**
+ * Simple hash for offline credential verification.
+ * NOT for security — just to avoid storing plaintext passwords.
+ */
+async function hashCredential(email: string, password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`${email.toLowerCase()}:${password}:bivoo-offline-salt-2024`);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 
 export function saveOfflineSession(data: Omit<OfflineSessionData, 'savedAt'>): void {
@@ -22,6 +41,52 @@ export function saveOfflineSession(data: Omit<OfflineSessionData, 'savedAt'>): v
   }
 }
 
+/**
+ * Save credentials for offline login verification.
+ * Stores a SHA-256 hash, never the plaintext password.
+ */
+export async function saveOfflineCredentials(email: string, password: string, userId: string): Promise<void> {
+  try {
+    const hash = await hashCredential(email, password);
+    const existing = loadAllOfflineCredentials();
+    // Update or add
+    const idx = existing.findIndex(c => c.email.toLowerCase() === email.toLowerCase());
+    const entry: OfflineCredential = { email: email.toLowerCase(), hash, userId };
+    if (idx >= 0) {
+      existing[idx] = entry;
+    } else {
+      existing.push(entry);
+    }
+    localStorage.setItem(OFFLINE_CREDENTIALS_KEY, JSON.stringify(existing));
+  } catch (err) {
+    console.warn('[offlineSession] Failed to save credentials:', err);
+  }
+}
+
+/**
+ * Verify offline credentials. Returns the userId if match, null otherwise.
+ */
+export async function verifyOfflineCredentials(email: string, password: string): Promise<string | null> {
+  try {
+    const hash = await hashCredential(email, password);
+    const all = loadAllOfflineCredentials();
+    const match = all.find(c => c.email === email.toLowerCase() && c.hash === hash);
+    return match ? match.userId : null;
+  } catch {
+    return null;
+  }
+}
+
+function loadAllOfflineCredentials(): OfflineCredential[] {
+  try {
+    const raw = localStorage.getItem(OFFLINE_CREDENTIALS_KEY);
+    if (!raw) return [];
+    return JSON.parse(raw) as OfflineCredential[];
+  } catch {
+    return [];
+  }
+}
+
 export function loadOfflineSession(): OfflineSessionData | null {
   try {
     const raw = localStorage.getItem(OFFLINE_SESSION_KEY);
@@ -29,6 +94,42 @@ export function loadOfflineSession(): OfflineSessionData | null {
     return JSON.parse(raw) as OfflineSessionData;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Load offline session for a specific user by email.
+ * Falls back to the default cached session if email matches.
+ */
+export function loadOfflineSessionByEmail(email: string): OfflineSessionData | null {
+  const session = loadOfflineSession();
+  if (!session) return null;
+  if (session.profile?.email?.toLowerCase() === email.toLowerCase()) {
+    return session;
+  }
+  // Check multi-user store
+  try {
+    const raw = localStorage.getItem(`${OFFLINE_SESSION_KEY}-multi`);
+    if (!raw) return null;
+    const all: Record<string, OfflineSessionData> = JSON.parse(raw);
+    return all[email.toLowerCase()] || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save session indexed by email for multi-user offline support.
+ */
+export function saveOfflineSessionMulti(email: string, data: Omit<OfflineSessionData, 'savedAt'>): void {
+  try {
+    const key = `${OFFLINE_SESSION_KEY}-multi`;
+    const raw = localStorage.getItem(key);
+    const all: Record<string, OfflineSessionData> = raw ? JSON.parse(raw) : {};
+    all[email.toLowerCase()] = { ...data, savedAt: new Date().toISOString() };
+    localStorage.setItem(key, JSON.stringify(all));
+  } catch (err) {
+    console.warn('[offlineSession] Failed to save multi:', err);
   }
 }
 

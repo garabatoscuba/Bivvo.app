@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { saveOfflineSession, loadOfflineSession, clearOfflineSession } from '@/lib/offlineSession';
+import { saveOfflineSession, loadOfflineSession, clearOfflineSession, saveOfflineCredentials, verifyOfflineCredentials, loadOfflineSessionByEmail, saveOfflineSessionMulti } from '@/lib/offlineSession';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
@@ -143,6 +143,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setRoles(r);
             // Save session for offline use
             saveOfflineSession({ user: newSession.user, session: newSession, profile: p, roles: r });
+            saveOfflineSessionMulti(p.email, { user: newSession.user, session: newSession, profile: p, roles: r });
             // Fire-and-forget: track last login
             if (event === 'SIGNED_IN') {
               supabase.from('profiles').update({ last_login_at: new Date().toISOString() } as any).eq('user_id', newSession.user.id).then();
@@ -184,6 +185,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setRoles(r);
           // Save for offline
           saveOfflineSession({ user: existingSession.user, session: existingSession, profile: p, roles: r });
+          saveOfflineSessionMulti(p.email, { user: existingSession.user, session: existingSession, profile: p, roles: r });
         }
       } catch (err) {
         console.warn('Auth initialization error (possibly offline):', err);
@@ -243,7 +245,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // If offline, try local credential verification
+    if (!navigator.onLine) {
+      const userId = await verifyOfflineCredentials(email, password);
+      if (userId) {
+        const cached = loadOfflineSessionByEmail(email);
+        if (cached) {
+          setUser(cached.user);
+          setSession(cached.session);
+          setProfile(cached.profile);
+          setRoles(cached.roles as AppRole[]);
+          return { error: null };
+        }
+      }
+      return { error: new Error('Sin conexión. Sincroniza tus datos cuando tengas internet para acceder offline.') };
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      // Save credentials for offline login (fire-and-forget)
+      supabase.auth.getSession().then(({ data: { session: s } }) => {
+        if (s?.user) {
+          saveOfflineCredentials(email, password, s.user.id);
+        }
+      });
+    }
     return { error };
   };
 
