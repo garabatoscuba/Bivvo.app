@@ -6,8 +6,9 @@ import { useOffline } from '@/contexts/OfflineContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
 import ScannerModal from './ScannerModal';
-import { WifiOff, Loader2, Cloud, MessageCircle, Camera } from 'lucide-react';
+import { WifiOff, Loader2, Cloud, MessageCircle, Camera, DatabaseBackup, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
 
 function useElapsedTime(startIso: string | null | undefined) {
   const [text, setText] = useState('');
@@ -24,6 +25,45 @@ function useElapsedTime(startIso: string | null | undefined) {
     return () => clearInterval(id);
   }, [startIso]);
   return text;
+}
+
+function SyncDbButton() {
+  const { isOnline, isSyncing, triggerSync, lastSyncTime } = useOffline();
+  const [synced, setSynced] = useState(false);
+
+  const handleSync = async () => {
+    if (isSyncing || !isOnline) {
+      if (!isOnline) {
+        toast({ title: 'Sin conexión', description: 'Conéctate a internet para sincronizar', variant: 'destructive' });
+      }
+      return;
+    }
+    await triggerSync();
+    setSynced(true);
+    toast({ title: 'Base de datos actualizada', description: 'Tus datos están listos para usar offline' });
+    setTimeout(() => setSynced(false), 3000);
+  };
+
+  const lastSyncLabel = lastSyncTime
+    ? `Última sync: ${new Date(lastSyncTime).toLocaleTimeString()}`
+    : 'Sin sincronizar';
+
+  return (
+    <button
+      onClick={handleSync}
+      disabled={isSyncing}
+      className="flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+      title={lastSyncLabel}
+    >
+      {isSyncing ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : synced ? (
+        <CheckCircle2 className="h-4 w-4 text-success" />
+      ) : (
+        <DatabaseBackup className="h-4 w-4" />
+      )}
+    </button>
+  );
 }
 
 interface AppHeaderProps {
@@ -73,6 +113,9 @@ const AppHeader = ({ title }: AppHeaderProps) => {
             </button>
           )
         )}
+
+        {/* Sync DB button */}
+        <SyncDbButton />
 
         {/* Offline/Sync indicator */}
         <div className="flex items-center gap-1.5 mr-1">
