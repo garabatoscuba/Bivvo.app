@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import type { Product, Category } from '@/types/database';
+import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 
 const AREA_COLORS = [
   { value: 'blue', label: 'Azul', class: 'bg-blue-500' },
@@ -76,8 +77,9 @@ const InsumosInventoryTab = ({
   operatorAreaIds,
 }: InsumosInventoryTabProps) => {
   const { profile } = useAuth();
+  const { businessId: resolvedBusinessId } = useResolvedBusinessId();
   const queryClient = useQueryClient();
-  const businessId = profile?.business_id;
+  const businessId = resolvedBusinessId || profile?.business_id || null;
 
   const [selectedArea, setSelectedArea] = useState<any>(null);
   const [areaDialogOpen, setAreaDialogOpen] = useState(false);
