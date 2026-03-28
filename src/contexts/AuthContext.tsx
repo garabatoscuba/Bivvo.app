@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef } from 'r
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import type { Database } from '@/integrations/supabase/types';
-import { saveOfflineSession, loadOfflineSession, clearOfflineSession } from '@/lib/offlineSession';
+import { saveOfflineSession, loadOfflineSession, clearOfflineSession, saveOfflineCredentials, verifyOfflineCredentials, loadOfflineSessionByEmail, saveOfflineSessionMulti } from '@/lib/offlineSession';
 
 type AppRole = Database['public']['Enums']['app_role'];
 
