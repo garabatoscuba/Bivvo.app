@@ -116,10 +116,10 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
   ]);
 
   // Batch 4: Recipes, services, cash (sequential to avoid TS2589)
-  const recipesRes = await supabase.from('recipes').select('*').eq('is_active', true);
+  const recipesRes: { data: any[] | null } = await supabase.from('recipes' as any).select('*').eq('is_active', true);
   const recipeIngredientsRes: { data: any[] | null } = await supabase.from('recipe_ingredients' as any).select('*');
-  const serviceCatsRes = await supabase.from('service_categories').select('*').eq('branch_id', branchId);
-  const cashRegistersRes = await supabase.from('cash_registers').select('*').eq('branch_id', branchId).order('opened_at', { ascending: false }).limit(50);
+  const serviceCatsRes: { data: any[] | null } = await supabase.from('service_categories' as any).select('*').eq('branch_id', branchId);
+  const cashRegistersRes: { data: any[] | null } = await supabase.from('cash_registers' as any).select('*').eq('branch_id', branchId).order('opened_at', { ascending: false }).limit(50);
 
   // Clear and replace stores
   const tasks: Promise<void>[] = [];
