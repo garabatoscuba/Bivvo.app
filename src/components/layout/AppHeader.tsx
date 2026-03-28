@@ -40,7 +40,7 @@ function SyncDbButton() {
     }
     await triggerSync();
     setSynced(true);
-    toast({ title: 'Base de datos actualizada', description: 'Tus datos están listos para usar offline' });
+    toast({ title: '✅ Datos offline listos', description: 'Ya puedes usar Bivoo sin internet desde este dispositivo' });
     setTimeout(() => setSynced(false), 3000);
   };
 
