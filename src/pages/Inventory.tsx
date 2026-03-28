@@ -35,6 +35,7 @@ import InsumosInventoryTab from '@/components/inventory/InsumosInventoryTab';
 import CostMethodSection from '@/components/inventory/CostMethodSection';
 import { useProductionCapacity } from '@/hooks/useProductionCapacity';
 import { useProductionCapacities } from '@/hooks/useProductionCapacities';
+import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
 import {
   Select,
   SelectContent,
@@ -94,6 +95,7 @@ const Inventory = () => {
   const { profile, isOwner, isManager, isSuperAdmin, isOperator: isOperatorRole, user } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const { planType } = useSubscription();
+  const { businessId: resolvedBusinessId, branchId: resolvedBranchId } = useResolvedBusinessId();
   const { products, isLoading: productsLoading, deleteProduct } = useProducts();
   const { categories, isLoading: categoriesLoading, deleteCategory } = useCategories();
   const { data: branches } = useBranches();
@@ -177,7 +179,8 @@ const Inventory = () => {
   const [planGateOpen, setPlanGateOpen] = useState(false);
   const [adjustedCost, setAdjustedCost] = useState<number | null>(null);
 
-  const effectiveBranchId = selectedBranch || profile?.branch_id || branches?.[0]?.id;
+  const businessId = resolvedBusinessId || profile?.business_id || null;
+  const effectiveBranchId = selectedBranch || resolvedBranchId || profile?.branch_id || branches?.[0]?.id;
   const { data: branchStock } = useBranchStock(effectiveBranchId);
 
   const canManage = isOwner || isManager;
@@ -202,7 +205,6 @@ const Inventory = () => {
   const { data: productionCapacities } = useProductionCapacities(elaboradoIds, effectiveBranchId, { granelIds: granelIdSet });
 
   // Product review stats from portal
-  const businessId = profile?.business_id;
   const { data: productReviewStats } = useQuery({
     queryKey: ['product-review-stats', businessId],
     queryFn: async () => {
@@ -317,6 +319,38 @@ const Inventory = () => {
     return map;
   }, [insumoAreas]);
 
+  const { data: recipeProductAreaMap = {} } = useQuery({
+    queryKey: ['inventory-recipe-product-areas', businessId],
+    queryFn: async () => {
+      if (!businessId) return {} as Record<string, string[]>;
+
+      const { data, error } = await supabase
+        .from('recipes')
+        .select('product_id, recipe_ingredients(ingredient_id, is_raw_material, raw_materials(area_id))')
+        .eq('business_id', businessId)
+        .eq('is_active', true);
+
+      if (error) throw error;
+
+      const nextMap: Record<string, string[]> = {};
+
+      (data || []).forEach((recipe: any) => {
+        const areaIds = (recipe.recipe_ingredients || [])
+          .filter((ingredient: any) => ingredient?.is_raw_material)
+          .map((ingredient: any) => ingredient?.raw_materials?.area_id)
+          .filter(Boolean);
+
+        if (recipe.product_id && areaIds.length > 0) {
+          nextMap[recipe.product_id] = Array.from(new Set(areaIds));
+        }
+      });
+
+      return nextMap;
+    },
+    enabled: !!businessId,
+    staleTime: 5 * 60 * 1000,
+  });
+
   // Convert raw materials to Product-like objects for the products tab
   const rawMaterialsAsProducts = useMemo(() => {
     return rawMaterialsForProducts.map((mat: any) => {
@@ -399,15 +433,38 @@ const Inventory = () => {
     return undefined;
   };
 
+  const productMatchesOperatorArea = (product: any) => {
+    if (!operatorAreaSet) return true;
+
+    if (product?._isRawMaterial) {
+      const rawMaterialAreaId = product.insumo_area_id || product.area_id;
+      return !!rawMaterialAreaId && operatorAreaSet.has(rawMaterialAreaId);
+    }
+
+    const tipo = product?.tipo || 'reventa';
+    const directAreaId = product?.insumo_area_id;
+
+    if (tipo === 'ingrediente') {
+      return !!directAreaId && operatorAreaSet.has(directAreaId);
+    }
+
+    if (tipo === 'elaborado') {
+      const recipeAreaIds = recipeProductAreaMap[product.id] || [];
+      return recipeAreaIds.some((areaId) => operatorAreaSet.has(areaId));
+    }
+
+    return false;
+  };
+
   // Check if business is restaurant type (for kitchen features)
   const { data: inventoryBusinessData } = useQuery({
     queryKey: ['inventory-business-type', profile?.business_id],
     queryFn: async () => {
-      if (!profile?.business_id) return null;
-      const { data } = await supabase.from('businesses').select('business_type').eq('id', profile.business_id).maybeSingle();
+      if (!businessId) return null;
+      const { data } = await supabase.from('businesses').select('business_type').eq('id', businessId).maybeSingle();
       return data;
     },
-    enabled: !!profile?.business_id,
+    enabled: !!businessId,
     staleTime: 5 * 60 * 1000,
   });
   const isRestaurantBiz = inventoryBusinessData?.business_type === 'estaurente/safetería';
@@ -432,10 +489,8 @@ const Inventory = () => {
 
       const tipo = (product as any).tipo || 'reventa';
 
-      // Operator filter: only show products from their assigned areas
-      if (operatorAreaSet) {
-        const areaId = (product as any).insumo_area_id;
-        if (!areaId || !operatorAreaSet.has(areaId)) return false;
+      if (operatorAreaSet && !productMatchesOperatorArea(product)) {
+        return false;
       }
 
       // Type filter: only apply if business has kitchen products (ingredients always pass)
@@ -452,9 +507,8 @@ const Inventory = () => {
     const rawToAdd = rawMaterialsAsProducts.filter(rm => {
       if (existingIds.has(rm.id)) return false;
       // Operator filter: only show raw materials from their assigned areas
-      if (operatorAreaSet) {
-        const areaId = (rm as any).insumo_area_id;
-        if (!areaId || !operatorAreaSet.has(areaId)) return false;
+      if (operatorAreaSet && !productMatchesOperatorArea(rm)) {
+        return false;
       }
       if (!search) return true;
       const s = search.toLowerCase();
@@ -462,7 +516,7 @@ const Inventory = () => {
     });
 
     return [...filtered, ...rawToAdd];
-  }, [products, rawMaterialsAsProducts, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities, operatorAreaSet]);
+  }, [products, rawMaterialsAsProducts, search, stockMap, warehouseStockMap, hasKitchenProducts, productTypeTab, productionCapacities, operatorAreaSet, recipeProductAreaMap]);
 
   // Separate regular products from ingredients
   const { regularProducts, ingredientProducts } = useMemo(() => {
@@ -959,6 +1013,7 @@ const Inventory = () => {
                 const tipo = (p as any).tipo || 'reventa';
                 if (tipo === 'ingrediente') return false;
                 if (p.status === 'discontinued') return false;
+                if (operatorAreaSet && !productMatchesOperatorArea(p)) return false;
                 const saleStock = getDisplayForSaleStock(p as any);
                 return saleStock > 0 || ['reventa', 'elaborado', 'granel'].includes(tipo);
               }).filter(p => { const s = search.toLowerCase(); return !search || p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.brand || '').toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s); });
@@ -1100,11 +1155,7 @@ const Inventory = () => {
               const allItems = [...products, ...rawMaterialsAsProducts.filter(rm => !products.some(p => p.id === rm.id))];
               const warehouseProducts = allItems.filter((p) => {
                 if (p.status === 'discontinued') return false;
-                // Operator filter: only show products from their assigned areas
-                if (operatorAreaSet) {
-                  const areaId = (p as any).insumo_area_id || (p as any).area_id;
-                  if (!areaId || !operatorAreaSet.has(areaId)) return false;
-                }
+                if (operatorAreaSet && !productMatchesOperatorArea(p)) return false;
                 const wStock = getProductWarehouseStock(p);
                 return wStock > 0;
               }).filter(p => { const s = search.toLowerCase(); return !search || p.name.toLowerCase().includes(s) || p.code.toLowerCase().includes(s) || (p.brand || '').toLowerCase().includes(s) || (p.description || '').toLowerCase().includes(s); });
