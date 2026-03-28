@@ -54,6 +54,51 @@ interface OfflineDBSchema extends DBSchema {
     value: any;
     indexes: { 'by-user': string };
   };
+  employees: {
+    key: string;
+    value: any;
+    indexes: { 'by-business': string; 'by-auth-user': string };
+  };
+  jornadas: {
+    key: string;
+    value: any;
+    indexes: { 'by-employee': string; 'by-branch': string };
+  };
+  raw_materials: {
+    key: string;
+    value: any;
+    indexes: { 'by-business': string; 'by-area': string };
+  };
+  insumo_areas: {
+    key: string;
+    value: any;
+    indexes: { 'by-business': string };
+  };
+  employee_insumo_areas: {
+    key: string;
+    value: any;
+    indexes: { 'by-employee': string };
+  };
+  service_categories: {
+    key: string;
+    value: any;
+    indexes: { 'by-branch': string };
+  };
+  recipes: {
+    key: string;
+    value: any;
+    indexes: { 'by-product': string };
+  };
+  recipe_ingredients: {
+    key: string;
+    value: any;
+    indexes: { 'by-recipe': string };
+  };
+  cash_registers: {
+    key: string;
+    value: any;
+    indexes: { 'by-user': string; 'by-branch': string };
+  };
   pending_operations: {
     key: string;
     value: PendingOperation;
@@ -70,8 +115,9 @@ let dbInstance: IDBPDatabase<OfflineDBSchema> | null = null;
 export async function getDb(): Promise<IDBPDatabase<OfflineDBSchema>> {
   if (dbInstance) return dbInstance;
 
-  dbInstance = await openDB<OfflineDBSchema>('sync-sales-offline', 2, {
+  dbInstance = await openDB<OfflineDBSchema>('sync-sales-offline', 3, {
     upgrade(db, oldVersion) {
+      // V1 stores
       if (oldVersion < 1) {
         const productsStore = db.createObjectStore('products', { keyPath: 'id' });
         productsStore.createIndex('by-business', 'business_id');
@@ -105,6 +151,58 @@ export async function getDb(): Promise<IDBPDatabase<OfflineDBSchema>> {
 
         db.createObjectStore('sync_meta', { keyPath: 'key' });
       }
+
+      // V3 stores (skip v2 since it had same schema)
+      if (oldVersion < 3) {
+        if (!db.objectStoreNames.contains('employees')) {
+          const employeesStore = db.createObjectStore('employees', { keyPath: 'id' });
+          employeesStore.createIndex('by-business', 'business_id');
+          employeesStore.createIndex('by-auth-user', 'auth_user_id');
+        }
+
+        if (!db.objectStoreNames.contains('jornadas')) {
+          const jornadasStore = db.createObjectStore('jornadas', { keyPath: 'id' });
+          jornadasStore.createIndex('by-employee', 'empleado_id');
+          jornadasStore.createIndex('by-branch', 'sucursal_id');
+        }
+
+        if (!db.objectStoreNames.contains('raw_materials')) {
+          const rawMaterialsStore = db.createObjectStore('raw_materials', { keyPath: 'id' });
+          rawMaterialsStore.createIndex('by-business', 'business_id');
+          rawMaterialsStore.createIndex('by-area', 'insumo_area_id');
+        }
+
+        if (!db.objectStoreNames.contains('insumo_areas')) {
+          const insumoAreasStore = db.createObjectStore('insumo_areas', { keyPath: 'id' });
+          insumoAreasStore.createIndex('by-business', 'business_id');
+        }
+
+        if (!db.objectStoreNames.contains('employee_insumo_areas')) {
+          const empInsumoStore = db.createObjectStore('employee_insumo_areas', { keyPath: 'id' });
+          empInsumoStore.createIndex('by-employee', 'employee_id');
+        }
+
+        if (!db.objectStoreNames.contains('service_categories')) {
+          const svcCatStore = db.createObjectStore('service_categories', { keyPath: 'id' });
+          svcCatStore.createIndex('by-branch', 'branch_id');
+        }
+
+        if (!db.objectStoreNames.contains('recipes')) {
+          const recipesStore = db.createObjectStore('recipes', { keyPath: 'id' });
+          recipesStore.createIndex('by-product', 'product_id');
+        }
+
+        if (!db.objectStoreNames.contains('recipe_ingredients')) {
+          const recipeIngStore = db.createObjectStore('recipe_ingredients', { keyPath: 'id' });
+          recipeIngStore.createIndex('by-recipe', 'recipe_id');
+        }
+
+        if (!db.objectStoreNames.contains('cash_registers')) {
+          const cashRegStore = db.createObjectStore('cash_registers', { keyPath: 'id' });
+          cashRegStore.createIndex('by-user', 'user_id');
+          cashRegStore.createIndex('by-branch', 'branch_id');
+        }
+      }
     },
   });
 
@@ -112,7 +210,7 @@ export async function getDb(): Promise<IDBPDatabase<OfflineDBSchema>> {
 }
 
 // Generic CRUD helpers
-export async function getAllFromStore<T>(storeName: keyof Omit<OfflineDBSchema, 'sync_meta' | 'pending_operations'>, indexName?: string, indexValue?: string): Promise<T[]> {
+export async function getAllFromStore<T>(storeName: string, indexName?: string, indexValue?: string): Promise<T[]> {
   const db = await getDb();
   if (indexName && indexValue) {
     return db.getAllFromIndex(storeName as any, indexName, indexValue) as Promise<T[]>;
@@ -120,7 +218,7 @@ export async function getAllFromStore<T>(storeName: keyof Omit<OfflineDBSchema, 
   return db.getAll(storeName as any) as Promise<T[]>;
 }
 
-export async function getFromStore<T>(storeName: keyof Omit<OfflineDBSchema, 'sync_meta' | 'pending_operations'>, key: string): Promise<T | undefined> {
+export async function getFromStore<T>(storeName: string, key: string): Promise<T | undefined> {
   const db = await getDb();
   return db.get(storeName as any, key) as Promise<T | undefined>;
 }
