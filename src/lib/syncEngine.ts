@@ -115,13 +115,11 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
     supabase.from('employee_insumo_areas').select('*').eq('business_id', businessId),
   ]);
 
-  // Batch 4: Recipes, services, cash
-  const [recipesRes, recipeIngredientsRes, serviceCatsRes, cashRegistersRes] = await Promise.all([
-    supabase.from('recipes').select('*').eq('is_active', true),
-    supabase.from('recipe_ingredients').select('*'),
-    supabase.from('service_categories').select('*').eq('branch_id', branchId),
-    supabase.from('cash_registers').select('*').eq('branch_id', branchId).order('opened_at', { ascending: false }).limit(50),
-  ]);
+  // Batch 4: Recipes, services, cash (sequential to avoid TS2589)
+  const recipesRes = await supabase.from('recipes').select('*').eq('is_active', true);
+  const recipeIngredientsRes = await supabase.from('recipe_ingredients').select('*');
+  const serviceCatsRes = await supabase.from('service_categories').select('*').eq('branch_id', branchId);
+  const cashRegistersRes = await supabase.from('cash_registers').select('*').eq('branch_id', branchId).order('opened_at', { ascending: false }).limit(50);
 
   // Clear and replace stores
   const tasks: Promise<void>[] = [];
