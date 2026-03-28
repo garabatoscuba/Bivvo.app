@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { getAllFromStore, putManyInStore } from '@/lib/offlineDb';
 import { toast } from '@/hooks/use-toast';
 
 const INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutes
@@ -15,20 +16,38 @@ export const useJornadaActiva = () => {
     queryKey: ['jornada-activa', profile?.id],
     queryFn: async () => {
       if (!profile?.id) return null;
-      const { data, error } = await supabase
-        .from('jornadas')
-        .select('*')
-        .eq('empleado_id', profile.id)
-        .is('cierre_at', null)
-        .order('apertura_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching jornada activa:', error);
-        return null;
+      // Try online first
+      if (navigator.onLine) {
+        try {
+          const { data, error } = await supabase
+            .from('jornadas')
+            .select('*')
+            .eq('empleado_id', profile.id)
+            .is('cierre_at', null)
+            .order('apertura_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (error) throw error;
+
+          // Cache jornada to IndexedDB
+          if (data) {
+            await putManyInStore('jornadas', [data]);
+          }
+          return data;
+        } catch (err) {
+          console.warn('[useJornadaActiva] Online fetch failed, using cache:', err);
+        }
       }
-      return data;
+
+      // Offline fallback: read from IndexedDB
+      const cached = await getAllFromStore<any>('jornadas', 'by-employee', profile.id);
+      // Find the active one (no cierre_at)
+      const active = cached
+        .filter(j => !j.cierre_at)
+        .sort((a, b) => new Date(b.apertura_at).getTime() - new Date(a.apertura_at).getTime());
+      return active[0] || null;
     },
     enabled: !!profile?.id,
   });

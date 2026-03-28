@@ -33,7 +33,6 @@ export async function getLastSyncTime(): Promise<number | null> {
 
 /**
  * Push all pending operations to cloud.
- * Each operation is processed in order; if one fails we stop and return false.
  */
 export async function pushPendingOperations(): Promise<{ success: boolean; pushed: number; failed?: PendingOperation }> {
   const ops = await getPendingOperations();
@@ -86,50 +85,69 @@ async function executePendingOperation(op: PendingOperation): Promise<void> {
  * Pull all cloud data for the user's business and branch into IndexedDB.
  */
 export async function pullCloudData(businessId: string, branchId: string): Promise<void> {
-  // Fetch all data in parallel
+  // Batch 1: Core data
   const [
     productsRes,
     categoriesRes,
     branchStockRes,
     branchesRes,
     customersRes,
-    salesRes,
-    saleItemsRes,
   ] = await Promise.all([
     supabase.from('products').select('*, category:categories(*)').eq('business_id', businessId).order('name'),
     supabase.from('categories').select('*').eq('business_id', businessId).order('name'),
     supabase.from('branch_stock').select('*').eq('branch_id', branchId),
     supabase.from('branches').select('*').eq('business_id', businessId),
     supabase.from('customers').select('*').eq('business_id', businessId),
+  ]);
+
+  // Batch 2: Sales
+  const [salesRes, saleItemsRes] = await Promise.all([
     supabase.from('sales').select('*, customers(name)').eq('branch_id', branchId).order('created_at', { ascending: false }).limit(500),
-    // Sale items: we'll fetch for recent sales
     supabase.from('sale_items').select('*, products(name, code)').limit(1000),
+  ]);
+
+  // Batch 3: Employees, jornadas, materials
+  const [employeesRes, jornadasRes, rawMaterialsRes, insumoAreasRes, empInsumoAreasRes] = await Promise.all([
+    supabase.from('employees').select('*').eq('business_id', businessId),
+    supabase.from('jornadas').select('*').eq('sucursal_id', branchId).order('apertura_at', { ascending: false }).limit(100),
+    supabase.from('raw_materials').select('*').eq('business_id', businessId),
+    supabase.from('insumo_areas').select('*').eq('business_id', businessId),
+    supabase.from('employee_insumo_areas').select('*').eq('business_id', businessId),
+  ]);
+
+  // Batch 4: Recipes, services, cash
+  const [recipesRes, recipeIngredientsRes, serviceCatsRes, cashRegistersRes] = await Promise.all([
+    supabase.from('recipes').select('*').eq('is_active', true),
+    supabase.from('recipe_ingredients').select('*'),
+    supabase.from('service_categories').select('*').eq('branch_id', branchId),
+    supabase.from('cash_registers').select('*').eq('branch_id', branchId).order('opened_at', { ascending: false }).limit(50),
   ]);
 
   // Clear and replace stores
   const tasks: Promise<void>[] = [];
 
-  if (productsRes.data) {
-    tasks.push(clearStore('products').then(() => putManyInStore('products', productsRes.data!)));
-  }
-  if (categoriesRes.data) {
-    tasks.push(clearStore('categories').then(() => putManyInStore('categories', categoriesRes.data!)));
-  }
-  if (branchStockRes.data) {
-    tasks.push(clearStore('branch_stock').then(() => putManyInStore('branch_stock', branchStockRes.data!)));
-  }
-  if (branchesRes.data) {
-    tasks.push(clearStore('branches').then(() => putManyInStore('branches', branchesRes.data!)));
-  }
-  if (customersRes.data) {
-    tasks.push(clearStore('customers').then(() => putManyInStore('customers', customersRes.data!)));
-  }
-  if (salesRes.data) {
-    tasks.push(clearStore('sales').then(() => putManyInStore('sales', salesRes.data!)));
-  }
-  if (saleItemsRes.data) {
-    tasks.push(clearStore('sale_items').then(() => putManyInStore('sale_items', saleItemsRes.data!)));
-  }
+  const cacheIfData = (storeName: string, data: any[] | null) => {
+    if (data) {
+      tasks.push(clearStore(storeName).then(() => putManyInStore(storeName, data)));
+    }
+  };
+
+  cacheIfData('products', productsRes.data);
+  cacheIfData('categories', categoriesRes.data);
+  cacheIfData('branch_stock', branchStockRes.data);
+  cacheIfData('branches', branchesRes.data);
+  cacheIfData('customers', customersRes.data);
+  cacheIfData('sales', salesRes.data);
+  cacheIfData('sale_items', saleItemsRes.data);
+  cacheIfData('employees', employeesRes.data);
+  cacheIfData('jornadas', jornadasRes.data);
+  cacheIfData('raw_materials', rawMaterialsRes.data);
+  cacheIfData('insumo_areas', insumoAreasRes.data);
+  cacheIfData('employee_insumo_areas', empInsumoAreasRes.data);
+  cacheIfData('recipes', recipesRes.data);
+  cacheIfData('recipe_ingredients', recipeIngredientsRes.data);
+  cacheIfData('service_categories', serviceCatsRes.data);
+  cacheIfData('cash_registers', cashRegistersRes.data);
 
   await Promise.all(tasks);
   await setSyncMeta('lastSyncTimestamp', Date.now());

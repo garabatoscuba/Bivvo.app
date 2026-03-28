@@ -20,16 +20,34 @@ export function useOfflineCache() {
         const businessId = profile.business_id!;
         const branchId = profile.branch_id!;
 
-        const [productsRes, categoriesRes, salesRes, saleItemsRes] = await Promise.all([
+        // Batch 1: Core data
+        const [productsRes, categoriesRes, branchStockRes, branchesRes, customersRes] = await Promise.all([
           supabase
             .from('products')
-            .select('id, business_id, name, sale_price, cost_price, status, category_id, image_url')
+            .select('*, category:categories(*)')
             .eq('business_id', businessId)
-            .neq('status', 'discontinued'),
+            .order('name'),
           supabase
             .from('categories')
-            .select('id, business_id, name')
+            .select('*')
+            .eq('business_id', businessId)
+            .order('name'),
+          supabase
+            .from('branch_stock')
+            .select('*, product:products(*, category:categories(*))')
+            .eq('branch_id', branchId),
+          supabase
+            .from('branches')
+            .select('*')
             .eq('business_id', businessId),
+          supabase
+            .from('customers')
+            .select('*')
+            .eq('business_id', businessId),
+        ]);
+
+        // Batch 2: Sales data
+        const [salesRes, saleItemsRes] = await Promise.all([
           supabase
             .from('sales')
             .select('*, customers(name)')
@@ -42,25 +60,83 @@ export function useOfflineCache() {
             .limit(1000),
         ]);
 
-        if (productsRes.data) {
-          await clearStore('products');
-          await putManyInStore('products', productsRes.data);
-        }
-        if (categoriesRes.data) {
-          await clearStore('categories');
-          await putManyInStore('categories', categoriesRes.data);
-        }
-        if (salesRes.data) {
-          await clearStore('sales');
-          await putManyInStore('sales', salesRes.data);
-        }
-        if (saleItemsRes.data) {
-          await clearStore('sale_items');
-          await putManyInStore('sale_items', saleItemsRes.data);
-        }
+        // Batch 3: Employees, jornadas, insumos
+        const [employeesRes, jornadasRes, rawMaterialsRes, insumoAreasRes, empInsumoAreasRes] = await Promise.all([
+          supabase
+            .from('employees')
+            .select('*')
+            .eq('business_id', businessId),
+          supabase
+            .from('jornadas')
+            .select('*')
+            .eq('sucursal_id', branchId)
+            .order('apertura_at', { ascending: false })
+            .limit(100),
+          supabase
+            .from('raw_materials')
+            .select('*')
+            .eq('business_id', businessId),
+          supabase
+            .from('insumo_areas')
+            .select('*')
+            .eq('business_id', businessId),
+          supabase
+            .from('employee_insumo_areas')
+            .select('*')
+            .eq('business_id', businessId),
+        ]);
+
+        // Batch 4: Recipes, services, cash registers
+        const [recipesRes, recipeIngredientsRes, serviceCatsRes, cashRegistersRes] = await Promise.all([
+          supabase
+            .from('recipes')
+            .select('*')
+            .eq('is_active', true),
+          supabase
+            .from('recipe_ingredients')
+            .select('*'),
+          supabase
+            .from('service_categories')
+            .select('*')
+            .eq('branch_id', branchId),
+          supabase
+            .from('cash_registers')
+            .select('*')
+            .eq('branch_id', branchId)
+            .order('opened_at', { ascending: false })
+            .limit(50),
+        ]);
+
+        // Write all to IndexedDB
+        const writes: Promise<void>[] = [];
+
+        const cacheIfData = (storeName: string, data: any[] | null) => {
+          if (data && data.length > 0) {
+            writes.push(clearStore(storeName).then(() => putManyInStore(storeName, data)));
+          }
+        };
+
+        cacheIfData('products', productsRes.data);
+        cacheIfData('categories', categoriesRes.data);
+        cacheIfData('branch_stock', branchStockRes.data);
+        cacheIfData('branches', branchesRes.data);
+        cacheIfData('customers', customersRes.data);
+        cacheIfData('sales', salesRes.data);
+        cacheIfData('sale_items', saleItemsRes.data);
+        cacheIfData('employees', employeesRes.data);
+        cacheIfData('jornadas', jornadasRes.data);
+        cacheIfData('raw_materials', rawMaterialsRes.data);
+        cacheIfData('insumo_areas', insumoAreasRes.data);
+        cacheIfData('employee_insumo_areas', empInsumoAreasRes.data);
+        cacheIfData('recipes', recipesRes.data);
+        cacheIfData('recipe_ingredients', recipeIngredientsRes.data);
+        cacheIfData('service_categories', serviceCatsRes.data);
+        cacheIfData('cash_registers', cashRegistersRes.data);
+
+        await Promise.all(writes);
 
         localStorage.setItem(`bivoo-last-sync-${user.id}`, new Date().toISOString());
-        console.log('[useOfflineCache] Datos offline listos');
+        console.log('[useOfflineCache] Datos offline listos — todos los stores actualizados');
       } catch (err) {
         console.error('[useOfflineCache] Error:', err);
       } finally {
