@@ -243,7 +243,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signIn = async (email: string, password: string) => {
+    // If offline, try local credential verification
+    if (!navigator.onLine) {
+      const userId = await verifyOfflineCredentials(email, password);
+      if (userId) {
+        const cached = loadOfflineSessionByEmail(email);
+        if (cached) {
+          setUser(cached.user);
+          setSession(cached.session);
+          setProfile(cached.profile);
+          setRoles(cached.roles as AppRole[]);
+          return { error: null };
+        }
+      }
+      return { error: new Error('Sin conexión. Sincroniza tus datos cuando tengas internet para acceder offline.') };
+    }
+
     const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (!error) {
+      // Save credentials for offline login (fire-and-forget)
+      supabase.auth.getSession().then(({ data: { session: s } }) => {
+        if (s?.user) {
+          saveOfflineCredentials(email, password, s.user.id);
+        }
+      });
+    }
     return { error };
   };
 
