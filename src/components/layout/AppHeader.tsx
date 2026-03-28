@@ -75,6 +75,9 @@ const AppHeader = ({ title }: AppHeaderProps) => {
           )
         )}
 
+        {/* Sync DB button */}
+        <SyncDbButton />
+
         {/* Offline/Sync indicator */}
         <div className="flex items-center gap-1.5 mr-1">
           {isSyncing ? (
