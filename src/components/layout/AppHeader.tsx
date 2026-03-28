@@ -27,6 +27,45 @@ function useElapsedTime(startIso: string | null | undefined) {
   return text;
 }
 
+function SyncDbButton() {
+  const { isOnline, isSyncing, triggerSync, lastSyncTime } = useOffline();
+  const [synced, setSynced] = useState(false);
+
+  const handleSync = async () => {
+    if (isSyncing || !isOnline) {
+      if (!isOnline) {
+        toast({ title: 'Sin conexión', description: 'Conéctate a internet para sincronizar', variant: 'destructive' });
+      }
+      return;
+    }
+    await triggerSync();
+    setSynced(true);
+    toast({ title: 'Base de datos actualizada', description: 'Tus datos están listos para usar offline' });
+    setTimeout(() => setSynced(false), 3000);
+  };
+
+  const lastSyncLabel = lastSyncTime
+    ? `Última sync: ${new Date(lastSyncTime).toLocaleTimeString()}`
+    : 'Sin sincronizar';
+
+  return (
+    <button
+      onClick={handleSync}
+      disabled={isSyncing}
+      className="flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+      title={lastSyncLabel}
+    >
+      {isSyncing ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : synced ? (
+        <CheckCircle2 className="h-4 w-4 text-success" />
+      ) : (
+        <DatabaseBackup className="h-4 w-4" />
+      )}
+    </button>
+  );
+}
+
 interface AppHeaderProps {
   title?: string;
 }
