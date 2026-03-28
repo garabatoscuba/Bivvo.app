@@ -6,8 +6,9 @@ import { useOffline } from '@/contexts/OfflineContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
 import ScannerModal from './ScannerModal';
-import { WifiOff, Loader2, Cloud, MessageCircle, Camera } from 'lucide-react';
+import { WifiOff, Loader2, Cloud, MessageCircle, Camera, DatabaseBackup, CheckCircle2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
 
 function useElapsedTime(startIso: string | null | undefined) {
   const [text, setText] = useState('');
