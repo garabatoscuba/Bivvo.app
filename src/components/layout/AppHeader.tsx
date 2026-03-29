@@ -6,7 +6,7 @@ import { useOffline } from '@/contexts/OfflineContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
 import ScannerModal from './ScannerModal';
-import { WifiOff, Loader2, Cloud, MessageCircle, Camera, DatabaseBackup, CheckCircle2 } from 'lucide-react';
+import { WifiOff, Loader2, Cloud, MessageCircle, Camera } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
 
@@ -27,52 +27,13 @@ function useElapsedTime(startIso: string | null | undefined) {
   return text;
 }
 
-function SyncDbButton() {
-  const { isOnline, isSyncing, triggerSync, lastSyncTime } = useOffline();
-  const [synced, setSynced] = useState(false);
-
-  const handleSync = async () => {
-    if (isSyncing || !isOnline) {
-      if (!isOnline) {
-        toast({ title: 'Sin conexión', description: 'Conéctate a internet para sincronizar', variant: 'destructive' });
-      }
-      return;
-    }
-    await triggerSync();
-    setSynced(true);
-    toast({ title: '✅ Datos offline listos', description: 'Ya puedes usar Bivoo sin internet desde este dispositivo' });
-    setTimeout(() => setSynced(false), 3000);
-  };
-
-  const lastSyncLabel = lastSyncTime
-    ? `Última sync: ${new Date(lastSyncTime).toLocaleTimeString()}`
-    : 'Sin sincronizar';
-
-  return (
-    <button
-      onClick={handleSync}
-      disabled={isSyncing}
-      className="flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
-      title={lastSyncLabel}
-    >
-      {isSyncing ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : synced ? (
-        <CheckCircle2 className="h-4 w-4 text-success" />
-      ) : (
-        <DatabaseBackup className="h-4 w-4" />
-      )}
-    </button>
-  );
-}
-
 interface AppHeaderProps {
   title?: string;
 }
 
 const AppHeader = ({ title }: AppHeaderProps) => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
-  const { isOnline, isSyncing, pendingCount } = useOffline();
+  const { isOnline, isSyncing, pendingCount, triggerSync, lastSyncTime } = useOffline();
   const navigate = useNavigate();
 
   const isPrivileged = isOwner || isManager || isSuperAdmin;
@@ -80,6 +41,23 @@ const AppHeader = ({ title }: AppHeaderProps) => {
   const elapsed = useElapsedTime(jornada?.apertura_at);
   const [cerrarOpen, setCerrarOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+
+  const handleCloudSync = async () => {
+    if (isSyncing) return;
+
+    if (!isOnline) {
+      toast({ title: 'Sin conexión', description: 'Conéctate a internet para actualizar la base local', variant: 'destructive' });
+      return;
+    }
+
+    await triggerSync();
+    toast({ title: 'Datos offline listos', description: 'Este dispositivo quedó actualizado para usar Bivoo sin internet' });
+  };
+
+  const cloudButtonTitle = lastSyncTime
+    ? `Actualizar base local · última sync ${new Date(lastSyncTime).toLocaleTimeString()}`
+    : 'Actualizar base local';
+
   return (
     <header className="flex h-11 md:h-14 shrink-0 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-2 md:px-4 overflow-hidden max-w-full">
       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -114,11 +92,13 @@ const AppHeader = ({ title }: AppHeaderProps) => {
           )
         )}
 
-        {/* Sync DB button */}
-        <SyncDbButton />
-
         {/* Offline/Sync indicator */}
-        <div className="flex items-center gap-1.5 mr-1">
+        <button
+          onClick={handleCloudSync}
+          disabled={isSyncing}
+          className="flex items-center gap-1.5 mr-1 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
+          title={cloudButtonTitle}
+        >
           {isSyncing ? (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           ) : !isOnline ? (
@@ -133,7 +113,7 @@ const AppHeader = ({ title }: AppHeaderProps) => {
           ) : (
             <Cloud className="h-4 w-4 text-success" />
           )}
-        </div>
+        </button>
         {/* Scanner button */}
         <button
           onClick={() => setScannerOpen(true)}

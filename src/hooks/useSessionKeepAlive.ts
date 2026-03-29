@@ -12,6 +12,8 @@ export const useSessionKeepAlive = () => {
 
   useEffect(() => {
     const refreshSession = async () => {
+      if (!navigator.onLine) return;
+
       try {
         const { data } = await supabase.auth.getSession();
         if (data.session) {
@@ -24,13 +26,14 @@ export const useSessionKeepAlive = () => {
 
     // Refresh when tab becomes visible again
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
+      if (document.visibilityState === 'visible' && navigator.onLine) {
         refreshSession();
       }
     };
 
     // Refresh on window focus (covers alt-tab scenarios)
     const handleFocus = () => {
+      if (!navigator.onLine) return;
       refreshSession();
     };
 

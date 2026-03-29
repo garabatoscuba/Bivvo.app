@@ -2,6 +2,7 @@ import type { User, Session } from '@supabase/supabase-js';
 
 const OFFLINE_SESSION_KEY = 'bivoo-offline-session';
 const OFFLINE_CREDENTIALS_KEY = 'bivoo-offline-credentials';
+const OFFLINE_SESSION_MULTI_KEY = `${OFFLINE_SESSION_KEY}-multi`;
 
 export interface OfflineSessionData {
   user: User;
@@ -102,17 +103,17 @@ export function loadOfflineSession(): OfflineSessionData | null {
  * Falls back to the default cached session if email matches.
  */
 export function loadOfflineSessionByEmail(email: string): OfflineSessionData | null {
+  const normalizedEmail = email.toLowerCase();
   const session = loadOfflineSession();
-  if (!session) return null;
-  if (session.profile?.email?.toLowerCase() === email.toLowerCase()) {
+  if (session?.profile?.email?.toLowerCase() === normalizedEmail) {
     return session;
   }
-  // Check multi-user store
+
   try {
-    const raw = localStorage.getItem(`${OFFLINE_SESSION_KEY}-multi`);
+    const raw = localStorage.getItem(OFFLINE_SESSION_MULTI_KEY);
     if (!raw) return null;
     const all: Record<string, OfflineSessionData> = JSON.parse(raw);
-    return all[email.toLowerCase()] || null;
+    return all[normalizedEmail] || null;
   } catch {
     return null;
   }
@@ -123,11 +124,10 @@ export function loadOfflineSessionByEmail(email: string): OfflineSessionData | n
  */
 export function saveOfflineSessionMulti(email: string, data: Omit<OfflineSessionData, 'savedAt'>): void {
   try {
-    const key = `${OFFLINE_SESSION_KEY}-multi`;
-    const raw = localStorage.getItem(key);
+    const raw = localStorage.getItem(OFFLINE_SESSION_MULTI_KEY);
     const all: Record<string, OfflineSessionData> = raw ? JSON.parse(raw) : {};
     all[email.toLowerCase()] = { ...data, savedAt: new Date().toISOString() };
-    localStorage.setItem(key, JSON.stringify(all));
+    localStorage.setItem(OFFLINE_SESSION_MULTI_KEY, JSON.stringify(all));
   } catch (err) {
     console.warn('[offlineSession] Failed to save multi:', err);
   }
