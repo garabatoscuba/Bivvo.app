@@ -27,7 +27,13 @@ const OfflineContext = createContext<OfflineContextType>({
 export const useOffline = () => useContext(OfflineContext);
 
 export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { profile } = useAuth();
+  let profile: any = null;
+  try {
+    const auth = useAuth();
+    profile = auth.profile;
+  } catch {
+    // AuthProvider not ready yet during HMR or initial mount race
+  }
   const [online, setOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
