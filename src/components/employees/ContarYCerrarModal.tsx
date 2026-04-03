@@ -314,9 +314,11 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
           <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
             <span>Entrada: <strong>{entryTime}</strong></span>
             <span>Duración: <strong>{duration.text}</strong></span>
-            <span className="ml-auto font-medium">
-              Paso {step === 'inventory' ? '1' : '2'} de 2
-            </span>
+            {totalSteps > 1 && (
+              <span className="ml-auto font-medium">
+                Paso {currentStepNumber} de {totalSteps}
+              </span>
+            )}
           </div>
         </DialogHeader>
 
