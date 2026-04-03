@@ -1,67 +1,78 @@
 
 
-## Plan: Limpieza completa al borrar empleado + prevención de duplicados
+## Plan: Corregir residuos en creación/eliminación de empleados @bivoo.app
 
-### Problemas
+### Problemas encontrados
 
-1. **Residuo al borrar**: `handleDeleteEmployee` solo borra la fila de `employees`. El usuario auth (`auth.users`), su `profiles`, y `user_roles` quedan huérfanos. Cuando recreas el empleado con el mismo nombre, el email `nombre@bivoo.app` ya existe en auth y falla o crea conflicto.
+1. **Perfil sin negocio**: `create-bivoo-employee` crea el auth user, el trigger `handle_new_user` genera un profile con `business_id = NULL` y `branch_id = NULL`. La función **nunca actualiza el profile** con el `business_id`/`branch_id` del empleado. Por eso tito@bivoo.app aparece "sin negocio asociado".
 
-2. **Sin advertencia de duplicado**: Si ya existe un empleado con ese nombre, no se avisa al dueño antes de crear.
+2. **`getUserByEmail` lanza error en vez de null**: La API de Supabase Admin `getUserByEmail()` lanza un error cuando el usuario no existe (en vez de retornar `{data: null}`). El loop de unicidad de email se rompe en la primera iteración si el email no existe, pero si SÍ existe un residuo, el error puede confundir la lógica.
+
+3. **Residuos previos**: Si `tito@bivoo.app` fue borrado parcialmente antes de que existiera `delete-bivoo-employee`, el auth user sigue en `auth.users` con ese email. Al recrear, `getUserByEmail` lo encuentra, incrementa a `tito1@bivoo.app`, y el empleado queda con un email diferente al esperado. Además el profile viejo puede seguir huérfano.
+
+4. **Aviso de nombre duplicado**: Funciona correctamente (query `.ilike` en employees), no se toca.
 
 ### Cambios
 
-#### 1. Edge function `delete-bivoo-employee` (nuevo)
+#### 1. `supabase/functions/create-bivoo-employee/index.ts`
 
-Crear `supabase/functions/delete-bivoo-employee/index.ts`:
-- Recibe `employee_id`
-- Busca el empleado, obtiene su `auth_user_id`
-- Si tiene `auth_user_id` (es @bivoo.app):
-  - Borra `user_roles` del auth_user_id
-  - Borra `profiles` del auth_user_id
-  - Borra el auth user via `admin.auth.admin.deleteUser()`
-- Borra `employee_salary_assignments` del employee_id
-- Borra `employee_branch_assignments` del employee_id
-- Borra `employee_insumo_areas` del employee_id
-- Borra la fila de `employees`
-- Requiere que el caller sea owner o super_admin (verifica rol)
+**a)** Después de crear el auth user y esperar el trigger, actualizar el profile del nuevo usuario con `business_id` y `branch_id`:
 
-#### 2. `src/pages/Employees.tsx` — handleDeleteEmployee
-
-Reemplazar el delete directo por una llamada a la edge function `delete-bivoo-employee`. Agregar confirmación antes de borrar ("¿Estás seguro? Se eliminará la cuenta de acceso del empleado").
-
-#### 3. `supabase/functions/create-bivoo-employee/index.ts` — Prevenir duplicados
-
-Antes de crear, verificar si ya existe un empleado con el mismo `full_name` en el mismo `business_id` en la tabla `employees`. Si existe, retornar error claro: "Ya existe un empleado con ese nombre en este negocio. Usa un nombre diferente."
-
-Además, optimizar el check de email: en vez de `listUsers()` (lista TODOS), usar `getUserByEmail()` que es O(1).
-
-#### 4. Admin — Borrado desde panel admin
-
-En `src/pages/admin/AdminBusinesses.tsx` o `BusinessDetailSheet`, si hay botón de borrar empleado, usar la misma edge function `delete-bivoo-employee`.
-
-### Flujo resultante
-
-```text
-BORRAR EMPLEADO:
-1. Dueño/Admin clickea "Eliminar"
-2. Confirmación: "Se eliminará el acceso del empleado"
-3. Llama delete-bivoo-employee
-4. Edge function: borra auth user + profile + roles + assignments + employee
-5. Sin residuos ✅
-
-CREAR EMPLEADO CON NOMBRE REPETIDO:
-1. Dueño intenta crear "Juan Pérez" que ya existe
-2. Edge function retorna: "Ya existe un empleado con ese nombre"
-3. Dueño cambia el nombre → éxito ✅
+```typescript
+// Después del setTimeout de 1500ms
+await admin.from("profiles")
+  .update({ business_id, branch_id: branch_id || null })
+  .eq("user_id", userId);
 ```
 
-### Archivos a crear
-- `supabase/functions/delete-bivoo-employee/index.ts`
+**b)** Envolver `getUserByEmail` en try/catch para manejar el error 404 correctamente:
+
+```typescript
+while (true) {
+  try {
+    const { data: existing } = await admin.auth.admin.getUserByEmail(email);
+    if (!existing?.user) break;
+  } catch {
+    break; // User doesn't exist, email is available
+  }
+  attempt++;
+  email = `${baseSlug}${attempt}@bivoo.app`;
+  if (attempt > 20) { ... }
+}
+```
+
+**c)** Antes de crear el auth user, limpiar residuos: si existe un auth user con ese email que NO tiene empleado activo, eliminarlo automáticamente (cleanup de borrados parciales previos).
+
+#### 2. `supabase/functions/delete-bivoo-employee/index.ts`
+
+Sin cambios estructurales — la lógica es correcta. Solo agregar manejo de errores más robusto: si `deleteUser` falla, loguear pero no fallar la operación completa (ya lo hace).
+
+#### 3. Admin panel
+
+El admin (`BusinessDetailSheet`) no tiene botón de borrar empleados, por lo que no necesita cambios. Solo `Employees.tsx` usa `delete-bivoo-employee`, y eso ya está correcto.
+
+### Flujo corregido
+
+```text
+CREAR EMPLEADO @bivoo.app:
+1. Insert en employees (business_id, branch_id)
+2. Verificar nombre duplicado en employees ✅
+3. Generar email slug, verificar en auth (con try/catch)
+4. Si hay residuo auth con ese email → limpiarlo primero
+5. Crear auth user → trigger crea profile (sin business)
+6. Esperar 1.5s → actualizar profile con business_id + branch_id ✅
+7. Vincular employee.auth_user_id + email
+8. Asignar rol correcto
+
+BORRAR EMPLEADO:
+→ delete-bivoo-employee borra todo atómicamente ✅ (ya implementado)
+```
 
 ### Archivos a modificar
-- `src/pages/Employees.tsx` (handleDeleteEmployee → edge function)
-- `supabase/functions/create-bivoo-employee/index.ts` (validación duplicados + optimizar check email)
+- `supabase/functions/create-bivoo-employee/index.ts`
 
 ### Lo que NO se toca
-- Auth, POS, inventario, nómina, contabilidad, sidebar
+- El formulario de nombre de usuario en Employees.tsx (sigue rellenándose igual)
+- `delete-bivoo-employee` (ya funciona correctamente)
+- Auth, POS, inventario, nómina, sidebar
 
