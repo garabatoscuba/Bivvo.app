@@ -1,102 +1,80 @@
 
 
-## Plan: Cierre de Jornada Offline
+## Plan: Hacer que el login offline funcione definitivamente
 
-### Problema
-`ContarYCerrarModal`, `CashCalculator` e `InventoryCountStep` hacen queries directas a Supabase con `useQuery`. Si no hay conexión, las queries fallan y el cierre no funciona.
+### Problemas encontrados
+
+1. **`pullCloudData` no guarda profiles ni user_roles** — Los stores existen en IndexedDB (`profiles`, `user_roles`) pero `pullCloudData` nunca escribe en ellos. El botón "Forzar descarga completa" no prepara los datos de autenticación para offline.
+
+2. **OAuth (Google/Apple) nunca guarda credenciales offline** — `saveOfflineCredentials` solo se llama en `signIn` (email+password). Los usuarios que entran con Google/Apple no pueden autenticarse offline.
+
+3. **`useOfflineCache` tampoco guarda profiles ni roles** — Es un segundo sistema de cache que corre en `AppLayout`, pero tampoco guarda los datos de auth.
+
+4. **No hay forma de iniciar sesión offline sin credenciales previas** — Si nunca se guardaron las credenciales (por ser OAuth o por ser la primera vez), el usuario queda bloqueado en `/auth`.
 
 ### Estrategia
-NO cacheamos todo el sitio. Solo agregamos 2 tablas al pull y creamos un patrón "offline-first" para los 3 componentes del cierre: leer de IndexedDB cuando offline, encolar escrituras como `pending_operations`.
 
----
+Dado que solo el dueño puede editar y los empleados solo venden (operaciones aditivas), la solución es:
+- Guardar SIEMPRE la sesión offline completa (ya se hace)
+- Para OAuth: permitir restaurar sesión sin verificar credenciales (ya se hace en `initializeAuth` con `loadOfflineSession`)
+- El problema real es que cuando la app ARRANCA offline, intenta restaurar desde localStorage y funciona... PERO si el usuario cerró sesión y quiere re-loguearse offline, necesita credenciales
 
 ### Cambios
 
-#### 1. `src/lib/offlineDb.ts` — Agregar stores faltantes
-- Agregar stores: `tip_config`, `service_entries`
-- Incrementar versión de la DB (4)
-- Agregar función helper `getFromStoreByIndex(store, indexName, value)` para queries filtradas desde IndexedDB
+#### 1. `src/lib/syncEngine.ts` — Guardar profiles y roles en pullCloudData
 
-#### 2. `src/lib/syncEngine.ts` — Agregar al pull
-En `pullCloudData`, agregar:
-- `tip_config` (by business_id, single row)
-- `service_entries` (by branch_id, today only, no archived)
+Agregar al `pullCloudData` la descarga de:
+- `profiles`: todos los profiles del negocio (para que cada empleado tenga su perfil en IndexedDB)
+- `user_roles`: todos los roles de los usuarios del negocio
 
-#### 3. `src/hooks/useOfflineQuery.ts` — Hook genérico offline-first
-Crear/refactorizar hook que:
-- Si `isOnline`: hace query normal a Supabase (como ahora)
-- Si `!isOnline`: lee de IndexedDB con los mismos filtros
-- Retorna misma interfaz que useQuery (`data`, `isLoading`)
+Esto se logra descargando los `employees` (ya se hace), luego consultando profiles y user_roles por los `auth_user_id` de esos empleados. Pero dado que hay RLS, simplificar: guardar al menos el profile y roles del usuario actual que está ejecutando el pull.
 
-#### 4. `src/components/cobro/CashCalculator.tsx` — Lectura offline
-Reemplazar las 3 queries directas (`service_entries`, `sales`, `jornadas`) por el hook offline-first:
-- Offline: leer `sales` del store IndexedDB filtrando por fecha de hoy y branch
-- Offline: leer `service_entries` del store filtrando por fecha y branch
-- Offline: leer `jornadas` del store filtrando por fecha y branch
-- La lógica de cálculo (breakdown, tips) NO cambia
+En realidad, lo más práctico: en el pull, guardar el profile del usuario actual y sus roles. Para multi-usuario offline (varios empleados en el mismo dispositivo), guardar los profiles de todos los empleados que tienen `auth_user_id`.
 
-#### 5. `src/components/employees/InventoryCountStep.tsx` — Lectura y escritura offline
-**Lecturas** (ya cacheadas):
-- `employees` → IndexedDB
-- `employee_insumo_areas` → IndexedDB
-- `raw_materials` → IndexedDB
-- `branch_stock` + `products` → IndexedDB
+#### 2. `src/contexts/AuthContext.tsx` — Guardar credenciales OAuth implícitamente
 
-**Escritura** offline:
-- `inventory_counts` INSERT → encolar como `pending_operation`
-- Audit log → encolar como `pending_operation` (ya usa función que puede adaptarse)
+Cuando un usuario OAuth inicia sesión exitosamente (via `onAuthStateChange` con `SIGNED_IN`), guardar una credencial "especial" que permita el auto-restore sin password. Esto ya se hace parcialmente con `saveOfflineSession` — pero el flujo de `signIn` offline requiere email+password.
 
-#### 6. `src/components/employees/ContarYCerrarModal.tsx` — Escritura offline
-Las 6 escrituras del cierre, cuando offline, se encolan como `pending_operations`:
-- `tip_entries` INSERT
-- `daily_reports` UPSERT → convertir a INSERT con conflict handling en el server
-- `notifications` INSERT
-- `jornadas` UPDATE
-- `cash_registers` UPDATE
-- `employee_salary_records` INSERT
+Solución: en el flujo offline inicial (`initializeAuth`), ya se restaura desde `loadOfflineSession()` sin necesitar credenciales. El problema solo ocurre si el usuario CIERRA SESION y luego quiere re-entrar offline. Para eso:
+- Modificar `signOut` para NO borrar la sesión offline si está offline (avisar que no puede cerrar sesión offline)
+- O: al detectar offline en Auth.tsx, intentar restaurar automáticamente la última sesión cached sin pedir credenciales
 
-Además:
-- La query de `activeWorkersCount` lee de IndexedDB offline
-- La query de `tipConfig` lee de IndexedDB offline
-- Al cerrar offline: actualizar el registro de jornada en IndexedDB local también (para que la UI refleje el cierre inmediatamente)
-- Toast de éxito dice "Jornada cerrada (se sincronizará al conectar)" cuando offline
+#### 3. `src/pages/Auth.tsx` — Auto-restore offline
 
-#### 7. `src/lib/offlineDb.ts` — Helper para actualizar store local
-Agregar función `updateInStore(store, id, changes)` para que al cerrar jornada offline, el registro local se actualice y la UI no muestre la jornada como activa.
+Si el usuario llega a Auth.tsx y está offline, intentar restaurar la sesión cached automáticamente sin pedir credenciales. Mostrar un botón "Continuar sin conexión" que restaure la última sesión. Si hay credenciales guardadas, también permitir login con email+password.
+
+#### 4. `src/hooks/useOfflineCache.ts` — Incluir profiles y roles
+
+Agregar la descarga de profiles (al menos del usuario actual) y user_roles al cache automático que corre en AppLayout.
 
 ### Flujo resultante
 
 ```text
-EMPLEADO OFFLINE cierra jornada:
-1. Cuenta inventario → lee branch_stock/raw_materials de IndexedDB
-2. Guarda conteo → pending_operation (INSERT inventory_counts)
-3. Cuenta billetes → lee sales/service_entries de IndexedDB
-4. Confirma cierre:
-   - 6 pending_operations (tip, report, notification, jornada, caja, salary)
-   - Actualiza jornada local en IndexedDB (cierre_at = now)
-   - UI muestra "Sin jornada activa"
-   - Badge en nube: +7 pendientes
+USUARIO ONLINE (primera vez):
+1. Login (email o Google/Apple) → sesión guardada en localStorage
+2. AppLayout monta → useOfflineCache guarda datos + profile + roles en IndexedDB
+3. Sync automático → pullCloudData guarda todo incluyendo profiles/roles
 
-EMPLEADO CONECTA:
-1. Sync push: envía las 7 operaciones
-2. Servidor procesa (triggers de stock, etc.)
-3. Pull: descarga datos frescos
-4. Badge en nube: 0 pendientes ✅
+USUARIO OFFLINE (app ya abierta):
+→ initializeAuth detecta offline → loadOfflineSession → funciona ✅
+
+USUARIO OFFLINE (app cerrada y reabierta):
+→ initializeAuth detecta offline → loadOfflineSession → funciona ✅
+
+USUARIO OFFLINE (cerró sesión y quiere re-entrar):
+→ Auth.tsx detecta offline → muestra "Continuar sin conexión"
+→ Click → restaura última sesión → funciona ✅
+→ O: ingresa email+password → verifyOfflineCredentials → funciona ✅
 ```
 
-### Archivos a crear
-- Ninguno nuevo (reutilizamos `useOfflineQuery` existente)
-
 ### Archivos a modificar
-- `src/lib/offlineDb.ts` (2 stores + helpers)
-- `src/lib/syncEngine.ts` (2 tablas al pull)
-- `src/components/cobro/CashCalculator.tsx` (queries offline-first)
-- `src/components/employees/InventoryCountStep.tsx` (queries + escritura offline)
-- `src/components/employees/ContarYCerrarModal.tsx` (queries + 6 escrituras offline)
+- `src/lib/syncEngine.ts` (agregar profiles/roles al pull)
+- `src/hooks/useOfflineCache.ts` (agregar profiles/roles al cache)
+- `src/pages/Auth.tsx` (botón "Continuar sin conexión" cuando offline)
+- `src/contexts/AuthContext.tsx` (proteger signOut cuando offline)
 
 ### Lo que NO se toca
-- Auth, POS, sidebar, nómina, contabilidad, tesorería
+- POS, inventario, sidebar, nómina, empleados, contabilidad
 - No se crean tablas nuevas
-- No se modifica la lógica de cálculo de salarios ni tips
-- El modal `CerrarJornadaModal` (simple, sin conteo) no se modifica
+- No se modifica el flujo de OAuth online
 
