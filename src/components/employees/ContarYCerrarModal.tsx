@@ -72,9 +72,13 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
 
   // Reset step when modal opens
   const handleOpenChange = (open: boolean) => {
-    if (!open) setStep('inventory');
+    if (!open) setStep(needsInventoryCount ? 'inventory' : 'cash');
     onOpenChange(open);
   };
+
+  // Calculate total steps and current step number
+  const totalSteps = (needsInventoryCount ? 1 : 0) + (needsCashCount ? 1 : 0);
+  const currentStepNumber = step === 'inventory' ? 1 : (needsInventoryCount ? 2 : 1);
 
   // Fetch active workers count (all unique workers who worked today in this branch)
   const { data: activeWorkersCount = 1 } = useQuery({
