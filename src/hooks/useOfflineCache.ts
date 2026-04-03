@@ -125,6 +125,8 @@ export function useOfflineCache() {
         cacheIfData('recipe_ingredients', recipeIngredientsRes.data);
         cacheIfData('service_categories', serviceCatsRes.data);
         cacheIfData('cash_registers', cashRegistersRes.data);
+        cacheIfData('profiles', profilesRes.data);
+        cacheIfData('user_roles', userRolesRes.data);
 
         await Promise.all(writes);
 
