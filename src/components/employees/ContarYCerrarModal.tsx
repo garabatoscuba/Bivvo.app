@@ -322,13 +322,13 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
           </div>
         </DialogHeader>
 
-        {step === 'inventory' && (
+        {step === 'inventory' && needsInventoryCount && (
           <div className="flex-1 overflow-y-auto px-6 pb-6">
             <InventoryCountStep
               businessId={employeeBusinessId}
               branchId={jornada.sucursal_id}
               shiftId={jornada.id}
-              onComplete={() => setStep('cash')}
+              onComplete={() => needsCashCount ? setStep('cash') : handleClose()}
             />
           </div>
         )}
