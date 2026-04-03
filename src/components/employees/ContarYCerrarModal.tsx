@@ -297,7 +297,9 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
 
   const stepTitle = step === 'inventory' ? 'Conteo de inventario' : 'Contar y Cerrar Jornada';
   const stepDescription = step === 'inventory'
-    ? 'Cuenta los productos físicamente antes de continuar al conteo de efectivo.'
+    ? 'Cuenta los productos físicamente antes de continuar.'
+    : 'Cuenta el efectivo y revisa el resumen antes de cerrar tu jornada.';
+  const StepIcon = step === 'inventory' ? PackageCheck : Calculator;
     : 'Cuenta el efectivo y revisa el resumen antes de cerrar tu jornada.';
   const StepIcon = step === 'inventory' ? PackageCheck : Calculator;
 
