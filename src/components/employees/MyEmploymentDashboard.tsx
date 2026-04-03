@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
   ShoppingCart, Wrench, Package, DollarSign, Clock, TrendingUp,
-  LogOut, Trophy, AlertTriangle, Sun, AlertCircle, ThumbsUp, Printer,
+  LogOut, Trophy, AlertTriangle, Sun, AlertCircle, ThumbsUp, Printer, User,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -300,6 +300,41 @@ const MyEmploymentDashboard = ({
                 </span>
               )}
             </div>
+
+            {/* Personal contribution - only show when there are other workers */}
+            {(() => {
+              const personalTotal = dailySalary.todaySalesTotal + dailySalary.todayServiceTotal + dailySalary.todayPrintTotal;
+              const showPersonal = dailySalary.activeWorkersCount > 1 && personalTotal !== todayTotal;
+              if (!showPersonal) return null;
+              return (
+                <>
+                  <div className="border-t border-dashed border-border my-1.5" />
+                  <div className="flex items-center gap-1 text-[10px] text-muted-foreground mb-0.5">
+                    <User className="h-2.5 w-2.5" />
+                    <span>Tu aporte:</span>
+                    <span className="font-semibold text-foreground">
+                      ${personalTotal.toLocaleString('es', { minimumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 text-[10px] text-muted-foreground flex-wrap">
+                    <span className="flex items-center gap-0.5">
+                      <Package className="h-2.5 w-2.5" />
+                      ${dailySalary.todaySalesTotal.toFixed(0)}
+                    </span>
+                    <span className="flex items-center gap-0.5">
+                      <Wrench className="h-2.5 w-2.5" />
+                      ${dailySalary.todayServiceTotal.toFixed(0)}
+                    </span>
+                    {dailySalary.todayPrintTotal > 0 && (
+                      <span className="flex items-center gap-0.5">
+                        <Printer className="h-2.5 w-2.5" />
+                        ${dailySalary.todayPrintTotal.toFixed(0)}
+                      </span>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </CardContent>
         </Card>
 
