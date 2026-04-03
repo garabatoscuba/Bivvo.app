@@ -1,103 +1,102 @@
 
 
-## Plan: Sistema Offline Completo — Sync resiliente, límite 48h, modal Cloud interactivo
+## Plan: Cierre de Jornada Offline
 
-### Resumen
+### Problema
+`ContarYCerrarModal`, `CashCalculator` e `InventoryCountStep` hacen queries directas a Supabase con `useQuery`. Si no hay conexión, las queries fallan y el cierre no funciona.
 
-Implementar el sistema offline completo con: (1) sync resiliente que no bloquea la cola ante errores, (2) prefijo offline para ventas, (3) límite obligatorio de 48h, (4) banner de advertencia a las 36h, (5) bloqueo total a las 48h, y (6) modal interactivo al tocar el icono de la nube con estadísticas, estado de sync y acciones.
+### Estrategia
+NO cacheamos todo el sitio. Solo agregamos 2 tablas al pull y creamos un patrón "offline-first" para los 3 componentes del cierre: leer de IndexedDB cuando offline, encolar escrituras como `pending_operations`.
 
 ---
 
 ### Cambios
 
-#### 1. `src/lib/syncEngine.ts` — Sync resiliente + constantes de tiempo
+#### 1. `src/lib/offlineDb.ts` — Agregar stores faltantes
+- Agregar stores: `tip_config`, `service_entries`
+- Incrementar versión de la DB (4)
+- Agregar función helper `getFromStoreByIndex(store, indexName, value)` para queries filtradas desde IndexedDB
 
-- Cambiar `SYNC_MANDATORY_INTERVAL_MS` de 24h a 48h (172800000ms)
-- Agregar constante `SYNC_WARNING_INTERVAL_MS` = 36h (129600000ms)
-- Exportar función `isSyncWarning()` que devuelve `true` si han pasado 36h sin sincronizar
-- **Modificar `pushPendingOperations()`**: en vez de detenerse al primer error, marcar la operación como `failed` (agregar campo `status` al PendingOperation), continuar con las demás, y retornar un resumen `{ pushed, failed: number, failedOps: PendingOperation[] }`
-- Agregar `executePendingOperation`: para UPDATEs, NO implementar merge por campos (el dueño es el único que edita, last-write-wins es aceptable)
+#### 2. `src/lib/syncEngine.ts` — Agregar al pull
+En `pullCloudData`, agregar:
+- `tip_config` (by business_id, single row)
+- `service_entries` (by branch_id, today only, no archived)
 
-#### 2. `src/lib/offlineDb.ts` — Soporte para operaciones fallidas
+#### 3. `src/hooks/useOfflineQuery.ts` — Hook genérico offline-first
+Crear/refactorizar hook que:
+- Si `isOnline`: hace query normal a Supabase (como ahora)
+- Si `!isOnline`: lee de IndexedDB con los mismos filtros
+- Retorna misma interfaz que useQuery (`data`, `isLoading`)
 
-- Agregar campo opcional `status?: 'pending' | 'failed'` a `PendingOperation`
-- Agregar función `markOperationFailed(id: string)` que actualiza el status a 'failed'
-- Agregar función `getFailedOperations()` que filtra por status='failed'
-- Agregar función `retryFailedOperation(id: string)` que resetea status a 'pending'
-- Agregar función `getStoreCounts()` que retorna un objeto con el count de cada store en IndexedDB (para mostrar en el modal)
+#### 4. `src/components/cobro/CashCalculator.tsx` — Lectura offline
+Reemplazar las 3 queries directas (`service_entries`, `sales`, `jornadas`) por el hook offline-first:
+- Offline: leer `sales` del store IndexedDB filtrando por fecha de hoy y branch
+- Offline: leer `service_entries` del store filtrando por fecha y branch
+- Offline: leer `jornadas` del store filtrando por fecha y branch
+- La lógica de cálculo (breakdown, tips) NO cambia
 
-#### 3. `src/contexts/OfflineContext.tsx` — Exponer estado de warning/bloqueo
+#### 5. `src/components/employees/InventoryCountStep.tsx` — Lectura y escritura offline
+**Lecturas** (ya cacheadas):
+- `employees` → IndexedDB
+- `employee_insumo_areas` → IndexedDB
+- `raw_materials` → IndexedDB
+- `branch_stock` + `products` → IndexedDB
 
-- Agregar estados: `syncWarning: boolean`, `syncBlocked: boolean`, `failedOps: number`
-- Calcular `syncWarning` = más de 36h sin sync
-- Calcular `syncBlocked` = más de 48h sin sync
-- Exponer `failedOps` count en el contexto
-- Actualizar `triggerSync` para manejar el nuevo formato de respuesta con operaciones fallidas
+**Escritura** offline:
+- `inventory_counts` INSERT → encolar como `pending_operation`
+- Audit log → encolar como `pending_operation` (ya usa función que puede adaptarse)
 
-#### 4. `src/components/layout/SyncGate.tsx` — Bloqueo a las 48h
+#### 6. `src/components/employees/ContarYCerrarModal.tsx` — Escritura offline
+Las 6 escrituras del cierre, cuando offline, se encolan como `pending_operations`:
+- `tip_entries` INSERT
+- `daily_reports` UPSERT → convertir a INSERT con conflict handling en el server
+- `notifications` INSERT
+- `jornadas` UPDATE
+- `cash_registers` UPDATE
+- `employee_salary_records` INSERT
 
-- Reactivar como gate real: si `syncBlocked === true`, mostrar pantalla completa de bloqueo
-- Pantalla: icono Cloud grande, mensaje "Necesitas sincronizar", texto explicando que han pasado 48h, botón "Sincronizar ahora" que llama `triggerSync()`
-- Si no hay conexión: mensaje "Conéctate a internet para continuar"
-- Si hay conexión y sync exitosa: desbloquea automáticamente
+Además:
+- La query de `activeWorkersCount` lee de IndexedDB offline
+- La query de `tipConfig` lee de IndexedDB offline
+- Al cerrar offline: actualizar el registro de jornada en IndexedDB local también (para que la UI refleje el cierre inmediatamente)
+- Toast de éxito dice "Jornada cerrada (se sincronizará al conectar)" cuando offline
 
-#### 5. `src/components/layout/SyncStatusModal.tsx` — NUEVO: Modal interactivo del Cloud
+#### 7. `src/lib/offlineDb.ts` — Helper para actualizar store local
+Agregar función `updateInStore(store, id, changes)` para que al cerrar jornada offline, el registro local se actualice y la UI no muestre la jornada como activa.
 
-Al tocar el icono de la nube en el header, se abre un Sheet/Drawer (no un simple toast) con:
+### Flujo resultante
 
-**Sección 1: Estado de conexión**
-- Indicador verde/amarillo/rojo con texto (Online / Intermitente / Offline)
-- Última sincronización: fecha y hora relativa ("hace 5 minutos")
+```text
+EMPLEADO OFFLINE cierra jornada:
+1. Cuenta inventario → lee branch_stock/raw_materials de IndexedDB
+2. Guarda conteo → pending_operation (INSERT inventory_counts)
+3. Cuenta billetes → lee sales/service_entries de IndexedDB
+4. Confirma cierre:
+   - 6 pending_operations (tip, report, notification, jornada, caja, salary)
+   - Actualiza jornada local en IndexedDB (cierre_at = now)
+   - UI muestra "Sin jornada activa"
+   - Badge en nube: +7 pendientes
 
-**Sección 2: Base de datos local**
-- Conteo de registros por store principal: Productos, Categorías, Ventas, Empleados, etc.
-- Tamaño aproximado de la DB local
-
-**Sección 3: Cola de sincronización**
-- Operaciones pendientes: X (con badge)
-- Operaciones fallidas: X (con badge rojo + botón "Reintentar")
-- Lista expandible de operaciones fallidas con detalle (tabla, tipo, error)
-
-**Sección 4: Acciones**
-- Botón principal: "Sincronizar ahora" (disabled si offline o syncing)
-- Botón secundario: "Forzar descarga completa" (pull completo sin push)
-- Indicador de progreso durante sync
-
-**Sección 5: Límite de uso offline**
-- Barra de progreso visual: 0h → 36h (warning) → 48h (bloqueo)
-- Horas restantes antes del bloqueo
-- Si en warning (36-48h): texto amarillo "Sincroniza pronto"
-- Si bloqueado: texto rojo "Sincroniza para continuar"
-
-#### 6. `src/components/layout/AppHeader.tsx` — Conectar modal
-
-- Reemplazar el `onClick={handleCloudSync}` del icono Cloud por `onClick={() => setSyncModalOpen(true)}`
-- Agregar estado `syncModalOpen` y renderizar `<SyncStatusModal />`
-- Agregar indicador visual en el icono Cloud:
-  - Verde: online, sin pendientes
-  - Amarillo pulsante: warning (36h+) o hay pendientes
-  - Rojo: bloqueado (48h+) u offline
-  - Badge numérico: pendientes + fallidos
-
-#### 7. `src/components/layout/OfflineBanner.tsx` — Banner de warning 36h
-
-- Agregar estado de warning desde OfflineContext
-- Si `syncWarning && !syncBlocked`: mostrar banner amarillo fijo "Llevas más de 36h sin sincronizar. Conéctate pronto para no perder acceso."
-- Si `syncBlocked`: banner rojo "Acceso bloqueado. Sincroniza para continuar."
+EMPLEADO CONECTA:
+1. Sync push: envía las 7 operaciones
+2. Servidor procesa (triggers de stock, etc.)
+3. Pull: descarga datos frescos
+4. Badge en nube: 0 pendientes ✅
+```
 
 ### Archivos a crear
-- `src/components/layout/SyncStatusModal.tsx`
+- Ninguno nuevo (reutilizamos `useOfflineQuery` existente)
 
 ### Archivos a modificar
-- `src/lib/syncEngine.ts`
-- `src/lib/offlineDb.ts`
-- `src/contexts/OfflineContext.tsx`
-- `src/components/layout/SyncGate.tsx`
-- `src/components/layout/AppHeader.tsx`
-- `src/components/layout/OfflineBanner.tsx`
+- `src/lib/offlineDb.ts` (2 stores + helpers)
+- `src/lib/syncEngine.ts` (2 tablas al pull)
+- `src/components/cobro/CashCalculator.tsx` (queries offline-first)
+- `src/components/employees/InventoryCountStep.tsx` (queries + escritura offline)
+- `src/components/employees/ContarYCerrarModal.tsx` (queries + 6 escrituras offline)
 
 ### Lo que NO se toca
-- Auth, POS, inventario, sidebar, nómina, empleados, contabilidad
-- No se crean tablas nuevas en la base de datos
-- No se modifica el flujo de ventas offline (ya funciona con VTA-OFF-prefix)
+- Auth, POS, sidebar, nómina, contabilidad, tesorería
+- No se crean tablas nuevas
+- No se modifica la lógica de cálculo de salarios ni tips
+- El modal `CerrarJornadaModal` (simple, sin conteo) no se modifica
 
