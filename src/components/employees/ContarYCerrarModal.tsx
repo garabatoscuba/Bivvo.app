@@ -300,8 +300,6 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
     ? 'Cuenta los productos físicamente antes de continuar.'
     : 'Cuenta el efectivo y revisa el resumen antes de cerrar tu jornada.';
   const StepIcon = step === 'inventory' ? PackageCheck : Calculator;
-    : 'Cuenta el efectivo y revisa el resumen antes de cerrar tu jornada.';
-  const StepIcon = step === 'inventory' ? PackageCheck : Calculator;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
