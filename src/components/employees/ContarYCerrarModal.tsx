@@ -35,6 +35,7 @@ interface ContarYCerrarModalProps {
   dailySalary?: DailySalaryBreakdown | null;
   needsInventoryCount?: boolean;
   needsCashCount?: boolean;
+  employeeModalityType?: string;
 }
 
 function calcDuration(apertura: string): { text: string; minutes: number } {
