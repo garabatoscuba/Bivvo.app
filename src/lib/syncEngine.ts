@@ -164,6 +164,8 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
   cacheIfData('cash_registers', cashRegistersRes.data);
   cacheIfData('tip_config', tipConfigRes.data);
   cacheIfData('service_entries', serviceEntriesRes.data);
+  cacheIfData('profiles', profilesRes.data);
+  cacheIfData('user_roles', userRolesRes.data);
 
   await Promise.all(tasks);
   await setSyncMeta('lastSyncTimestamp', Date.now());
