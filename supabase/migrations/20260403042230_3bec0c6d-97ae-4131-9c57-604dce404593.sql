@@ -1,0 +1,1 @@
+ALTER TABLE public.employees ADD COLUMN is_cash_counter boolean NOT NULL DEFAULT false;

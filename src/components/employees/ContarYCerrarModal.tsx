@@ -33,6 +33,8 @@ interface ContarYCerrarModalProps {
   };
   employeeBusinessId: string;
   dailySalary?: DailySalaryBreakdown | null;
+  needsInventoryCount?: boolean;
+  needsCashCount?: boolean;
 }
 
 function calcDuration(apertura: string): { text: string; minutes: number } {
@@ -50,8 +52,10 @@ function calcDuration(apertura: string): { text: string; minutes: number } {
 
 type ClosureStep = 'inventory' | 'cash';
 
-const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, dailySalary }: ContarYCerrarModalProps) => {
-  const [step, setStep] = useState<ClosureStep>('inventory');
+const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, dailySalary, needsInventoryCount = true, needsCashCount = true }: ContarYCerrarModalProps) => {
+  // Determine initial step based on what's needed
+  const initialStep: ClosureStep = needsInventoryCount ? 'inventory' : 'cash';
+  const [step, setStep] = useState<ClosureStep>(initialStep);
   const [closing, setClosing] = useState(false);
   const [tipSurplus, setTipSurplus] = useState(0);
   const [calculatorBreakdown, setCalculatorBreakdown] = useState<any>(null);
@@ -68,9 +72,13 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
 
   // Reset step when modal opens
   const handleOpenChange = (open: boolean) => {
-    if (!open) setStep('inventory');
+    if (!open) setStep(needsInventoryCount ? 'inventory' : 'cash');
     onOpenChange(open);
   };
+
+  // Calculate total steps and current step number
+  const totalSteps = (needsInventoryCount ? 1 : 0) + (needsCashCount ? 1 : 0);
+  const currentStepNumber = step === 'inventory' ? 1 : (needsInventoryCount ? 2 : 1);
 
   // Fetch active workers count (all unique workers who worked today in this branch)
   const { data: activeWorkersCount = 1 } = useQuery({
@@ -289,7 +297,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
 
   const stepTitle = step === 'inventory' ? 'Conteo de inventario' : 'Contar y Cerrar Jornada';
   const stepDescription = step === 'inventory'
-    ? 'Cuenta los productos físicamente antes de continuar al conteo de efectivo.'
+    ? 'Cuenta los productos físicamente antes de continuar.'
     : 'Cuenta el efectivo y revisa el resumen antes de cerrar tu jornada.';
   const StepIcon = step === 'inventory' ? PackageCheck : Calculator;
 
@@ -306,24 +314,26 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
           <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
             <span>Entrada: <strong>{entryTime}</strong></span>
             <span>Duración: <strong>{duration.text}</strong></span>
-            <span className="ml-auto font-medium">
-              Paso {step === 'inventory' ? '1' : '2'} de 2
-            </span>
+            {totalSteps > 1 && (
+              <span className="ml-auto font-medium">
+                Paso {currentStepNumber} de {totalSteps}
+              </span>
+            )}
           </div>
         </DialogHeader>
 
-        {step === 'inventory' && (
+        {step === 'inventory' && needsInventoryCount && (
           <div className="flex-1 overflow-y-auto px-6 pb-6">
             <InventoryCountStep
               businessId={employeeBusinessId}
               branchId={jornada.sucursal_id}
               shiftId={jornada.id}
-              onComplete={() => setStep('cash')}
+              onComplete={() => needsCashCount ? setStep('cash') : handleClose()}
             />
           </div>
         )}
 
-        {step === 'cash' && (
+        {step === 'cash' && needsCashCount && (
           <>
             {/* Single scrollable content area */}
             <div className="flex-1 overflow-y-auto min-h-0 px-6 space-y-4">
