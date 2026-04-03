@@ -303,7 +303,7 @@ const MyEmploymentDashboard = ({
           </CardContent>
         </Card>
 
-        {/* Salary */}
+        {/* Unified Salary Card */}
         <Card className="border-primary/30">
           <CardContent className="py-3 px-3">
             <p className="text-[10px] text-muted-foreground flex items-center gap-1 mb-1">
@@ -323,51 +323,48 @@ const MyEmploymentDashboard = ({
                 {dailySalary.modalityName}
               </p>
             )}
+            {dailySalary.hasAssignment && (
+              <>
+                <div className="border-t my-2" />
+                <div className="space-y-1.5 text-xs">
+                  {dailySalary.base > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Base diaria</span>
+                      <span className="font-medium">${dailySalary.base.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySalary.serviceEarning > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">
+                        % Ingresos ({dailySalary.displayPercent}% ÷ {dailySalary.activeWorkersCount})
+                      </span>
+                      <span className="font-medium">${dailySalary.serviceEarning.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySalary.commissionEarning > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Comisiones</span>
+                      <span className="font-medium">${dailySalary.commissionEarning.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySalary.tipShare > 0 && (
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Propinas</span>
+                      <span className="font-medium">${dailySalary.tipShare.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {dailySalary.total > 0 && (dailySalary.base > 0 || dailySalary.serviceEarning > 0) && (
+                    <div className="flex justify-between pt-1 border-t font-bold">
+                      <span>Total</span>
+                      <span className="text-primary">${dailySalary.total.toFixed(2)}</span>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
-
-      {/* Salary breakdown */}
-      {dailySalary.hasAssignment && (
-        <Card>
-          <CardContent className="py-3 px-4">
-            <div className="space-y-1.5 text-xs">
-              {dailySalary.base > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Base diaria</span>
-                  <span className="font-medium">${dailySalary.base.toFixed(2)}</span>
-                </div>
-              )}
-              {dailySalary.serviceEarning > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    % Ingresos ({dailySalary.displayPercent}% ÷ {dailySalary.activeWorkersCount})
-                  </span>
-                  <span className="font-medium">${dailySalary.serviceEarning.toFixed(2)}</span>
-                </div>
-              )}
-              {dailySalary.commissionEarning > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Comisiones</span>
-                  <span className="font-medium">${dailySalary.commissionEarning.toFixed(2)}</span>
-                </div>
-              )}
-              {dailySalary.tipShare > 0 && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Propinas</span>
-                  <span className="font-medium">${dailySalary.tipShare.toFixed(2)}</span>
-                </div>
-              )}
-              {dailySalary.total > 0 && (dailySalary.base > 0 || dailySalary.serviceEarning > 0) && (
-                <div className="flex justify-between pt-1 border-t font-bold">
-                  <span>Total</span>
-                  <span className="text-primary">${dailySalary.total.toFixed(2)}</span>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Day progress vs week average */}
       <Card>
