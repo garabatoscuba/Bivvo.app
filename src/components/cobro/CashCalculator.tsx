@@ -17,10 +17,12 @@ interface CashCalculatorProps {
   onBreakdownChange?: (breakdown: any) => void;
 }
 
-const CashCalculator = ({ employeeBusinessId, employeeBranchId, onTipSurplusChange, onBreakdownChange }: CashCalculatorProps) => {
-  const { profile } = useAuth();
+const CashCalculator = ({ employeeBusinessId, employeeBranchId, employeeModalityType, onTipSurplusChange, onBreakdownChange }: CashCalculatorProps) => {
+  const { profile, user } = useAuth();
   const businessId = employeeBusinessId || profile?.business_id;
   const branchId = employeeBranchId || profile?.branch_id;
+  const isSharedMode = employeeModalityType === 'custom_mixed';
+  const userId = user?.id;
   const todayStr = new Date().toISOString().split('T')[0];
 
   const [bills, setBills] = useState<Record<number, number>>(
