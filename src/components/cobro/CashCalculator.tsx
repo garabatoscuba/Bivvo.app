@@ -1,11 +1,10 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Calculator, Coins, ArrowRightLeft, Wrench, Package, Gift } from 'lucide-react';
+import { useOfflineQuery } from '@/hooks/useOfflineQuery';
 
 const BILL_DENOMINATIONS = [1, 3, 5, 10, 20, 50, 100, 200, 500, 1000];
 
@@ -35,12 +34,22 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId, employeeModality
 
   const totalCash = BILL_DENOMINATIONS.reduce((sum, d) => sum + d * (bills[d] || 0), 0);
 
-  // Fetch today's service entries with payment types
-  const { data: todayServices = [] } = useQuery({
+  const startOfDay = todayStr + 'T00:00:00';
+  const endOfDay = todayStr + 'T23:59:59';
+
+  // Fetch today's service entries with offline fallback
+  const { data: todayServices = [] } = useOfflineQuery<any>({
     queryKey: ['calculator-services-today', businessId, branchId, todayStr, isSharedMode, userId],
-    queryFn: async () => {
-      const startOfDay = todayStr + 'T00:00:00';
-      const endOfDay = todayStr + 'T23:59:59';
+    storeName: 'service_entries',
+    indexName: 'by-branch',
+    indexValue: branchId || undefined,
+    offlineFilter: (s: any) => {
+      const created = s.created_at || '';
+      const inRange = created >= startOfDay && created <= endOfDay;
+      if (!isSharedMode && userId) return inRange && s.user_id === userId;
+      return inRange;
+    },
+    onlineFn: async () => {
       let query = supabase
         .from('service_entries')
         .select('amount, payment_type')
@@ -53,17 +62,25 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId, employeeModality
       }
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!businessId && !!branchId,
   });
 
-  // Fetch today's sales with payment types
-  const { data: todaySales = [] } = useQuery({
+  // Fetch today's sales with offline fallback
+  const { data: todaySales = [] } = useOfflineQuery<any>({
     queryKey: ['calculator-sales-today', branchId, todayStr, isSharedMode, userId],
-    queryFn: async () => {
-      const startOfDay = todayStr + 'T00:00:00';
-      const endOfDay = todayStr + 'T23:59:59';
+    storeName: 'sales',
+    indexName: 'by-branch',
+    indexValue: branchId || undefined,
+    offlineFilter: (s: any) => {
+      const created = s.created_at || '';
+      const inRange = created >= startOfDay && created <= endOfDay;
+      const isCompleted = s.status === 'completed';
+      if (!isSharedMode && userId) return inRange && isCompleted && s.user_id === userId;
+      return inRange && isCompleted;
+    },
+    onlineFn: async () => {
       let query = supabase
         .from('sales')
         .select('id, payment_type, total, cash_amount, transfer_amount')
@@ -76,17 +93,22 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId, employeeModality
       }
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!branchId,
   });
 
-  // Fetch jornadas to count active workers
-  const { data: todayJornadas = [] } = useQuery({
+  // Fetch jornadas to count active workers with offline fallback
+  const { data: todayJornadas = [] } = useOfflineQuery<any>({
     queryKey: ['calculator-jornadas-today', branchId, todayStr],
-    queryFn: async () => {
-      const startOfDay = todayStr + 'T00:00:00';
-      const endOfDay = todayStr + 'T23:59:59';
+    storeName: 'jornadas',
+    indexName: 'by-branch',
+    indexValue: branchId || undefined,
+    offlineFilter: (j: any) => {
+      const apertura = j.apertura_at || '';
+      return apertura >= startOfDay && apertura <= endOfDay;
+    },
+    onlineFn: async () => {
       const { data, error } = await supabase
         .from('jornadas')
         .select('empleado_id')
@@ -94,7 +116,7 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId, employeeModality
         .gte('apertura_at', startOfDay)
         .lte('apertura_at', endOfDay);
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!branchId,
   });
@@ -104,7 +126,6 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId, employeeModality
     const serviceTransfer = todayServices.filter(s => s.payment_type === 'transfer').reduce((sum, s) => sum + Number(s.amount), 0);
     const serviceTotal = serviceCash + serviceTransfer;
 
-    // Include mixed payments: their cash_amount goes to cash, transfer_amount goes to transfer
     const salesCash = todaySales.reduce((sum, s) => {
       if (s.payment_type === 'cash') return sum + Number(s.total);
       if (s.payment_type === 'mixed') return sum + Number((s as any).cash_amount || 0);
@@ -126,7 +147,6 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId, employeeModality
 
     const activeWorkers = new Set(todayJornadas.map(j => j.empleado_id)).size;
 
-    // Tips = cash counted - expected cash
     const tips = Math.max(0, totalCash - totalExpectedCash);
     const tipsPerWorker = activeWorkers > 0 ? tips / activeWorkers : tips;
 

@@ -101,6 +101,10 @@ async function executePendingOperation(op: PendingOperation): Promise<void> {
  * Pull all cloud data for the user's business and branch into IndexedDB.
  */
 export async function pullCloudData(businessId: string, branchId: string): Promise<void> {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const startOfDay = todayStr + 'T00:00:00';
+  const endOfDay = todayStr + 'T23:59:59';
+
   const [
     productsRes,
     categoriesRes,
@@ -132,6 +136,8 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
   const recipeIngredientsRes: { data: any[] | null } = await supabase.from('recipe_ingredients' as any).select('*');
   const serviceCatsRes: { data: any[] | null } = await supabase.from('service_categories' as any).select('*').eq('branch_id', branchId);
   const cashRegistersRes: { data: any[] | null } = await supabase.from('cash_registers' as any).select('*').eq('branch_id', branchId).order('opened_at', { ascending: false }).limit(50);
+  const tipConfigRes: { data: any[] | null } = await supabase.from('tip_config' as any).select('*').eq('business_id', businessId);
+  const serviceEntriesRes: { data: any[] | null } = await supabase.from('service_entries' as any).select('*').eq('branch_id', branchId).gte('created_at', startOfDay).lte('created_at', endOfDay);
 
   const tasks: Promise<void>[] = [];
   const cacheIfData = (storeName: string, data: any[] | null) => {
@@ -156,6 +162,8 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
   cacheIfData('recipe_ingredients', recipeIngredientsRes.data);
   cacheIfData('service_categories', serviceCatsRes.data);
   cacheIfData('cash_registers', cashRegistersRes.data);
+  cacheIfData('tip_config', tipConfigRes.data);
+  cacheIfData('service_entries', serviceEntriesRes.data);
 
   await Promise.all(tasks);
   await setSyncMeta('lastSyncTimestamp', Date.now());

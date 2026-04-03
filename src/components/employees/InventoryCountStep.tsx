@@ -1,5 +1,4 @@
 import { useState, useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +6,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Loader2, PackageCheck, AlertTriangle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLog } from '@/hooks/useAuditLog';
-import { toast } from 'sonner';
+import { addPendingOperation } from '@/lib/offlineDb';
+import { useOfflineQuery } from '@/hooks/useOfflineQuery';
 
 interface InventoryCountStepProps {
   businessId: string;
@@ -28,34 +28,43 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
   const [saving, setSaving] = useState(false);
   const { user, isOperator: isOperatorRole } = useAuth();
   const auditLog = useAuditLog();
+  const isOnline = navigator.onLine;
 
-  // Resolve operator status from employee record (position fallback)
-  const { data: employeeForOperator } = useQuery({
+  // Resolve operator status from employee record
+  const { data: employeeForOperator } = useOfflineQuery<any>({
     queryKey: ['inventory-count-employee', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return null;
+    storeName: 'employees',
+    indexName: 'by-auth-user',
+    indexValue: user?.id || undefined,
+    onlineFn: async () => {
+      if (!user?.id) return [];
       const { data } = await supabase
         .from('employees')
         .select('id, position')
         .eq('auth_user_id', user.id)
         .limit(1)
         .maybeSingle();
-      return data;
+      return data ? [data] : [];
     },
     enabled: !!user?.id,
   });
 
+  const empRecord = employeeForOperator?.[0] || null;
+
   const isOperatorByPosition = ['operator', 'operario', 'operario de área'].includes(
-    (employeeForOperator?.position || '').toLowerCase().trim()
+    (empRecord?.position || '').toLowerCase().trim()
   );
   const isOperator = isOperatorRole || isOperatorByPosition;
 
   // For operators, fetch their assigned insumo areas
-  const { data: operatorAreaIds = [] } = useQuery({
-    queryKey: ['operator-areas', user?.id],
-    queryFn: async () => {
+  const { data: operatorAreaData = [] } = useOfflineQuery<any>({
+    queryKey: ['operator-areas', user?.id, empRecord?.id],
+    storeName: 'employee_insumo_areas',
+    indexName: 'by-employee',
+    indexValue: empRecord?.id || undefined,
+    onlineFn: async () => {
       if (!user?.id) return [];
-      const empId = employeeForOperator?.id;
+      const empId = empRecord?.id;
       if (!empId) {
         const { data: emp } = await supabase
           .from('employees')
@@ -67,21 +76,25 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
           .from('employee_insumo_areas')
           .select('insumo_area_id')
           .eq('employee_id', emp.id);
-        return (data || []).map(d => d.insumo_area_id).filter(Boolean) as string[];
+        return data || [];
       }
       const { data } = await supabase
         .from('employee_insumo_areas')
         .select('insumo_area_id')
         .eq('employee_id', empId);
-      return (data || []).map(d => d.insumo_area_id).filter(Boolean) as string[];
+      return data || [];
     },
     enabled: isOperator && !!user?.id,
   });
 
-  // Operator: fetch raw materials from assigned areas
-  const { data: operatorInsumos, isLoading: loadingInsumos } = useQuery({
+  const operatorAreaIds = operatorAreaData.map(d => d.insumo_area_id).filter(Boolean) as string[];
+
+  // Operator: fetch raw materials from assigned areas (offline-first)
+  const { data: operatorInsumos, isLoading: loadingInsumos } = useOfflineQuery<ProductStock>({
     queryKey: ['operator-insumo-count', operatorAreaIds],
-    queryFn: async (): Promise<ProductStock[]> => {
+    storeName: 'raw_materials',
+    offlineFilter: (rm: any) => operatorAreaIds.includes(rm.insumo_area_id),
+    onlineFn: async (): Promise<ProductStock[]> => {
       if (!operatorAreaIds.length) return [];
       const query = supabase
         .from('raw_materials')
@@ -98,16 +111,33 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
     enabled: isOperator && operatorAreaIds.length > 0,
   });
 
-  // Regular: fetch products with stock for branch
-  const { data: products, isLoading: loadingProducts } = useQuery({
+  // For operator offline, transform raw_materials into ProductStock format
+  const operatorInsumosResolved = useMemo(() => {
+    if (!isOperator) return [];
+    if (!operatorInsumos) return [];
+    // If data already has product_id, it came from online; otherwise transform
+    if (operatorInsumos.length > 0 && 'product_id' in operatorInsumos[0]) return operatorInsumos;
+    return (operatorInsumos as any[]).map((row: any) => ({
+      product_id: row.id,
+      product_name: row.name || 'Insumo',
+      unit: row.unidad_medida || 'Unidad',
+      system_stock: Number(row.stock_vendedor || 0) + Number(row.stock_almacen || 0),
+    }));
+  }, [operatorInsumos, isOperator]);
+
+  // Regular: fetch products with stock for branch (offline-first)
+  const { data: products, isLoading: loadingProducts } = useOfflineQuery<any>({
     queryKey: ['inventory-count-products', branchId],
-    queryFn: async (): Promise<ProductStock[]> => {
+    storeName: 'branch_stock',
+    indexName: 'by-branch',
+    indexValue: branchId,
+    offlineFilter: (bs: any) => Number(bs.quantity) > 0,
+    onlineFn: async (): Promise<ProductStock[]> => {
       const { data } = await supabase
         .from('branch_stock')
         .select('product_id, quantity, products!inner(name, unit_of_measure)')
         .eq('branch_id', branchId)
         .gt('quantity', 0);
-
       if (!data) return [];
       return data.map((row: any) => ({
         product_id: row.product_id,
@@ -119,8 +149,22 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
     enabled: !isOperator,
   });
 
+  // Transform offline branch_stock data into ProductStock format
+  const productsResolved = useMemo(() => {
+    if (isOperator) return [];
+    if (!products) return [];
+    if (products.length > 0 && 'product_id' in products[0] && 'product_name' in products[0]) return products as unknown as ProductStock[];
+    // Offline: branch_stock records don't have product names embedded
+    return (products as any[]).map((row: any) => ({
+      product_id: row.product_id || row.id,
+      product_name: row.products?.name || row.product_name || 'Producto',
+      unit: row.products?.unit_of_measure || row.unit || 'Pieza',
+      system_stock: Number(row.quantity) || 0,
+    }));
+  }, [products, isOperator]);
+
   const isLoading = isOperator ? loadingInsumos : loadingProducts;
-  const countItems = isOperator ? (operatorInsumos || []) : (products || []);
+  const countItems: ProductStock[] = isOperator ? operatorInsumosResolved : productsResolved;
 
   const results = useMemo(() => {
     if (!countItems.length) return [];
@@ -134,7 +178,6 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
 
   const allCounted = results.length > 0 && results.every(r => r.counted !== null);
   const hasDifferences = results.some(r => r.diff !== null && r.diff !== 0);
-  const hasShortage = results.some(r => r.diff !== null && r.diff < 0);
 
   const handleConfirm = async () => {
     setSaving(true);
@@ -155,7 +198,19 @@ const InventoryCountStep = ({ businessId, branchId, shiftId, onComplete }: Inven
           }));
 
         if (rows.length > 0) {
-          await supabase.from('inventory_counts' as any).insert(rows);
+          if (isOnline) {
+            await supabase.from('inventory_counts' as any).insert(rows);
+          } else {
+            // Queue for sync
+            for (const row of rows) {
+              await addPendingOperation({
+                table: 'inventory_counts',
+                operation: 'insert',
+                data: { ...row, id: crypto.randomUUID() },
+                branchId,
+              });
+            }
+          }
         }
 
         // Audit log for each shortage

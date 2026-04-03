@@ -5,13 +5,15 @@ import {
 import { Button } from '@/components/ui/button';
 import { Loader2, LogOut, Calculator, DollarSign, Gift, Briefcase, TrendingUp, PackageCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import CashCalculator from '@/components/cobro/CashCalculator';
 import JornadaSummaryBlock from '@/components/employees/JornadaSummaryBlock';
 import InventoryCountStep from '@/components/employees/InventoryCountStep';
 import CashDifferenceAlert from '@/components/employees/CashDifferenceAlert';
+import { useOfflineQuery } from '@/hooks/useOfflineQuery';
+import { addPendingOperation, updateInStore } from '@/lib/offlineDb';
 
 interface DailySalaryBreakdown {
   total: number;
@@ -54,7 +56,6 @@ function calcDuration(apertura: string): { text: string; minutes: number } {
 type ClosureStep = 'inventory' | 'cash';
 
 const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, dailySalary, needsInventoryCount = true, needsCashCount = true, employeeModalityType }: ContarYCerrarModalProps) => {
-  // Determine initial step based on what's needed
   const initialStep: ClosureStep = needsInventoryCount ? 'inventory' : 'cash';
   const [step, setStep] = useState<ClosureStep>(initialStep);
   const [closing, setClosing] = useState(false);
@@ -63,6 +64,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
   const [cashBlocked, setCashBlocked] = useState(false);
   const queryClient = useQueryClient();
   const { user, profile } = useAuth();
+  const isOnline = navigator.onLine;
 
   const todayStr = new Date().toISOString().split('T')[0];
   const duration = calcDuration(jornada.apertura_at);
@@ -71,47 +73,59 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
     minute: '2-digit',
   });
 
-  // Reset step when modal opens
   const handleOpenChange = (open: boolean) => {
     if (!open) setStep(needsInventoryCount ? 'inventory' : 'cash');
     onOpenChange(open);
   };
 
-  // Calculate total steps and current step number
   const totalSteps = (needsInventoryCount ? 1 : 0) + (needsCashCount ? 1 : 0);
   const currentStepNumber = step === 'inventory' ? 1 : (needsInventoryCount ? 2 : 1);
 
-  // Fetch active workers count (all unique workers who worked today in this branch)
-  const { data: activeWorkersCount = 1 } = useQuery({
+  const startOfDay = todayStr + 'T00:00:00';
+  const endOfDay = todayStr + 'T23:59:59';
+
+  // Fetch active workers count (offline-first)
+  const { data: activeWorkersData = [] } = useOfflineQuery<any>({
     queryKey: ['closure-active-workers', jornada.sucursal_id, todayStr],
-    queryFn: async () => {
-      const startOfDay = todayStr + 'T00:00:00';
-      const endOfDay = todayStr + 'T23:59:59';
+    storeName: 'jornadas',
+    indexName: 'by-branch',
+    indexValue: jornada.sucursal_id,
+    offlineFilter: (j: any) => {
+      const apertura = j.apertura_at || '';
+      return apertura >= startOfDay && apertura <= endOfDay;
+    },
+    onlineFn: async () => {
       const { data } = await supabase
         .from('jornadas')
         .select('empleado_id')
         .eq('sucursal_id', jornada.sucursal_id)
         .gte('apertura_at', startOfDay)
         .lte('apertura_at', endOfDay);
-      const unique = new Set(data?.map(j => j.empleado_id) || []);
-      return Math.max(1, unique.size);
+      return data || [];
     },
     enabled: open,
   });
 
-  // Fetch tip config
-  const { data: tipConfig } = useQuery({
+  const activeWorkersCount = Math.max(1, new Set(activeWorkersData.map(j => j.empleado_id)).size);
+
+  // Fetch tip config (offline-first)
+  const { data: tipConfigData } = useOfflineQuery<any>({
     queryKey: ['tip-config-closure', employeeBusinessId],
-    queryFn: async () => {
+    storeName: 'tip_config',
+    indexName: 'by-business',
+    indexValue: employeeBusinessId,
+    onlineFn: async () => {
       const { data } = await supabase
         .from('tip_config')
         .select('*')
         .eq('business_id', employeeBusinessId)
         .maybeSingle();
-      return data;
+      return data ? [data] : [];
     },
     enabled: open && !!employeeBusinessId,
   });
+
+  const tipConfig = tipConfigData?.[0] || null;
 
   const handleTipSurplusChange = useCallback((surplus: number) => {
     setTipSurplus(surplus);
@@ -124,36 +138,61 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
   // Auto-close cash register for this employee
   const autoCloseCashRegister = async (totalCash: number, expectedCash: number) => {
     if (!user?.id) return;
-    try {
-      const { data: openRegister } = await supabase
-        .from('cash_registers')
-        .select('id, opening_amount')
-        .eq('branch_id', jornada.sucursal_id)
-        .eq('user_id', user.id)
-        .eq('status', 'open')
-        .order('opened_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    const bd = calculatorBreakdown;
 
-      if (openRegister) {
-        const bd = calculatorBreakdown;
-        await supabase
+    if (isOnline) {
+      try {
+        const { data: openRegister } = await supabase
           .from('cash_registers')
-          .update({
-            status: 'closed',
-            closed_at: new Date().toISOString(),
-            counted_cash: totalCash,
-            expected_cash: expectedCash,
-            difference: totalCash - expectedCash,
-            total_sales_cash: bd?.salesCash || 0,
-            total_sales_transfer: bd?.salesTransfer || 0,
-            total_services_cash: bd?.serviceCash || 0,
-            total_services_transfer: bd?.serviceTransfer || 0,
-          })
-          .eq('id', openRegister.id);
+          .select('id, opening_amount')
+          .eq('branch_id', jornada.sucursal_id)
+          .eq('user_id', user.id)
+          .eq('status', 'open')
+          .order('opened_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (openRegister) {
+          await supabase
+            .from('cash_registers')
+            .update({
+              status: 'closed',
+              closed_at: new Date().toISOString(),
+              counted_cash: totalCash,
+              expected_cash: expectedCash,
+              difference: totalCash - expectedCash,
+              total_sales_cash: bd?.salesCash || 0,
+              total_sales_transfer: bd?.salesTransfer || 0,
+              total_services_cash: bd?.serviceCash || 0,
+              total_services_transfer: bd?.serviceTransfer || 0,
+            })
+            .eq('id', openRegister.id);
+        }
+      } catch (e) {
+        console.error('Error auto-closing cash register:', e);
       }
-    } catch (e) {
-      console.error('Error auto-closing cash register:', e);
+    } else {
+      // Offline: queue cash register close as pending operation
+      // We don't know the register ID offline, so we queue a special RPC-like op
+      await addPendingOperation({
+        table: 'cash_registers',
+        operation: 'rpc',
+        data: {
+          functionName: 'close_cash_register_for_user',
+          args: {
+            _branch_id: jornada.sucursal_id,
+            _user_id: user.id,
+            _counted_cash: totalCash,
+            _expected_cash: expectedCash,
+            _difference: totalCash - expectedCash,
+            _sales_cash: bd?.salesCash || 0,
+            _sales_transfer: bd?.salesTransfer || 0,
+            _services_cash: bd?.serviceCash || 0,
+            _services_transfer: bd?.serviceTransfer || 0,
+          },
+        },
+        branchId: jornada.sucursal_id,
+      });
     }
   };
 
@@ -162,10 +201,12 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
 
     const bd = calculatorBreakdown;
     const totalCash = bd?.totalCash || 0;
+    const nowIso = new Date().toISOString();
 
     // Save automatic tip entry if there's a surplus
     if (tipSurplus > 0 && user?.id) {
-      await supabase.from('tip_entries').insert({
+      const tipData = {
+        id: crypto.randomUUID(),
         business_id: employeeBusinessId,
         branch_id: jornada.sucursal_id,
         user_id: user.id,
@@ -174,7 +215,13 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
         jornada_id: jornada.id,
         date: todayStr,
         notes: 'Excedente de caja al cierre',
-      } as any);
+      };
+
+      if (isOnline) {
+        await supabase.from('tip_entries').insert(tipData as any);
+      } else {
+        await addPendingOperation({ table: 'tip_entries', operation: 'insert', data: tipData, branchId: jornada.sucursal_id });
+      }
     }
 
     // Calculate tip share for this worker
@@ -196,6 +243,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
       const moneyToDeliver = totalCash - totalTips;
 
       const reportData = {
+        id: crypto.randomUUID(),
         business_id: employeeBusinessId,
         branch_id: jornada.sucursal_id,
         employee_id: profile.id,
@@ -225,21 +273,23 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
         jornada_id: jornada.id,
       };
 
-      const { error: reportError } = await supabase
-        .from('daily_reports')
-        .upsert(reportData as any, { onConflict: 'employee_id,date' });
-
-      if (reportError) {
-        console.error('Error saving daily report:', reportError);
+      if (isOnline) {
+        const { error: reportError } = await supabase
+          .from('daily_reports')
+          .upsert(reportData as any, { onConflict: 'employee_id,date' });
+        if (reportError) console.error('Error saving daily report:', reportError);
+      } else {
+        await addPendingOperation({ table: 'daily_reports', operation: 'insert', data: reportData, branchId: jornada.sucursal_id });
       }
 
-      // Send notification to owner
-      await supabase.from('notifications').insert({
+      // Send notification
+      const notifData = {
+        id: crypto.randomUUID(),
         business_id: employeeBusinessId,
         branch_id: jornada.sucursal_id,
         type: 'daily_report',
         title: `Cierre: ${profile.full_name}`,
-        message: `${profile.full_name} cerró jornada. Venta: $${totalSalesDay.toFixed(2)}, Propinas: $${totalTips.toFixed(2)}, Entrega: $${Math.max(0, moneyToDeliver).toFixed(2)}`,
+        message: `${profile.full_name} cerró jornada. Venta: $${(bd.serviceTotal + bd.salesTotal).toFixed(2)}, Propinas: $${totalTips.toFixed(2)}, Entrega: $${Math.max(0, moneyToDeliver).toFixed(2)}`,
         metadata: {
           employee_name: profile.full_name,
           date: todayStr,
@@ -248,25 +298,45 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
           total_sales_day: totalSalesDay,
           money_to_deliver: Math.max(0, moneyToDeliver),
         },
-      });
+      };
+
+      if (isOnline) {
+        await supabase.from('notifications').insert(notifData);
+      } else {
+        await addPendingOperation({ table: 'notifications', operation: 'insert', data: notifData, branchId: jornada.sucursal_id });
+      }
     }
 
     const salarioTotal = (dailySalary?.total || 0) + myTipShare;
 
-    const { error } = await supabase
-      .from('jornadas')
-      .update({
-        cierre_at: new Date().toISOString(),
-        duracion_min: duration.minutes,
-        metodo_cierre: 'manual',
-        salario_ganado: salarioTotal,
-      } as any)
-      .eq('id', jornada.id);
+    // Update jornada
+    const jornadaUpdateData = {
+      cierre_at: nowIso,
+      duracion_min: duration.minutes,
+      metodo_cierre: 'manual',
+      salario_ganado: salarioTotal,
+    };
 
-    if (error) {
-      setClosing(false);
-      toast.error('Error al cerrar jornada: ' + error.message);
-      return;
+    if (isOnline) {
+      const { error } = await supabase
+        .from('jornadas')
+        .update(jornadaUpdateData as any)
+        .eq('id', jornada.id);
+
+      if (error) {
+        setClosing(false);
+        toast.error('Error al cerrar jornada: ' + error.message);
+        return;
+      }
+    } else {
+      await addPendingOperation({
+        table: 'jornadas',
+        operation: 'update',
+        data: { id: jornada.id, ...jornadaUpdateData },
+        branchId: jornada.sucursal_id,
+      });
+      // Update local IndexedDB so UI reflects closed state immediately
+      await updateInStore('jornadas', jornada.id, jornadaUpdateData);
     }
 
     // Auto-close cash register
@@ -274,7 +344,8 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
 
     // Insert salary record for Balance Personal
     if (user?.id && salarioTotal > 0) {
-      await supabase.from('employee_salary_records' as any).insert({
+      const salaryData = {
+        id: crypto.randomUUID(),
         business_id: employeeBusinessId,
         branch_id: jornada.sucursal_id,
         employee_user_id: user.id,
@@ -283,7 +354,13 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
         salary_date: todayStr,
         payment_method: 'pending',
         jornada_id: jornada.id,
-      });
+      };
+
+      if (isOnline) {
+        await supabase.from('employee_salary_records' as any).insert(salaryData);
+      } else {
+        await addPendingOperation({ table: 'employee_salary_records', operation: 'insert', data: salaryData, branchId: jornada.sucursal_id });
+      }
     }
 
     setClosing(false);
@@ -292,7 +369,11 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
     queryClient.invalidateQueries({ queryKey: ['my-today-tips'] });
     queryClient.invalidateQueries({ queryKey: ['admin-daily-reports'] });
     queryClient.invalidateQueries({ queryKey: ['cash-registers'] });
-    toast.success('Jornada cerrada. ¡Hasta luego! 👋');
+
+    const successMsg = isOnline
+      ? 'Jornada cerrada. ¡Hasta luego! 👋'
+      : 'Jornada cerrada (se sincronizará al conectar) 👋';
+    toast.success(successMsg);
     handleOpenChange(false);
   };
 
