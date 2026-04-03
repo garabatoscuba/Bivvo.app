@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import {
   ShoppingCart, Wrench, Package, DollarSign, Clock, TrendingUp,
-  LogOut, Trophy, AlertTriangle, Sun, AlertCircle, ThumbsUp, Printer,
+  LogOut, Trophy, AlertTriangle, Sun, AlertCircle, ThumbsUp, Printer, User,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
