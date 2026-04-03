@@ -37,17 +37,21 @@ const CashCalculator = ({ employeeBusinessId, employeeBranchId, employeeModality
 
   // Fetch today's service entries with payment types
   const { data: todayServices = [] } = useQuery({
-    queryKey: ['calculator-services-today', businessId, branchId, todayStr],
+    queryKey: ['calculator-services-today', businessId, branchId, todayStr, isSharedMode, userId],
     queryFn: async () => {
       const startOfDay = todayStr + 'T00:00:00';
       const endOfDay = todayStr + 'T23:59:59';
-      const { data, error } = await supabase
+      let query = supabase
         .from('service_entries')
         .select('amount, payment_type')
         .eq('business_id', businessId!)
         .eq('branch_id', branchId!)
         .gte('created_at', startOfDay)
         .lte('created_at', endOfDay);
+      if (!isSharedMode && userId) {
+        query = query.eq('user_id', userId);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data;
     },
