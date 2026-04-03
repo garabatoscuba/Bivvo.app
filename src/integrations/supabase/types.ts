@@ -5392,6 +5392,15 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_profiles_by_user_ids: {
+        Args: { user_ids: string[] }
+        Returns: {
+          branch_id: string
+          business_id: string
+          id: string
+          user_id: string
+        }[]
+      }
       get_server_now: { Args: never; Returns: string }
       get_user_business_id: { Args: { _user_id: string }; Returns: string }
       get_user_profile_id: { Args: { _user_id: string }; Returns: string }
