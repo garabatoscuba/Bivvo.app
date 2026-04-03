@@ -144,6 +144,7 @@ const emptyForm: EmployeeForm = {
   bivoo_password: '',
   new_password: '',
   is_jefe: false,
+  is_cash_counter: false,
   modality_id: '',
   preset_id: '',
   pay_frequency: 'monthly',
