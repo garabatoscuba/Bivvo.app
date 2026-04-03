@@ -1,27 +1,32 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { fullSync, isOnline as checkOnline, isSyncRequired, getLastSyncTime, pushPendingOperations } from '@/lib/syncEngine';
-import { getPendingCount, setSyncMeta } from '@/lib/offlineDb';
-import { toast } from '@/hooks/use-toast';
-
-// Import the raw context to avoid the throwing useAuth wrapper
+import { fullSync, isOnline as checkOnline, isSyncRequired, isSyncWarning, getLastSyncTime } from '@/lib/syncEngine';
+import { getPendingCount, getFailedCount } from '@/lib/offlineDb';
 import { useAuth } from './AuthContext';
 
 interface OfflineContextType {
   isOnline: boolean;
   isSyncing: boolean;
   pendingCount: number;
+  failedOps: number;
   lastSyncTime: number | null;
   syncRequired: boolean;
+  syncWarning: boolean;
+  syncBlocked: boolean;
   triggerSync: () => Promise<void>;
+  triggerPullOnly: () => Promise<void>;
 }
 
 const OfflineContext = createContext<OfflineContextType>({
   isOnline: true,
   isSyncing: false,
   pendingCount: 0,
+  failedOps: 0,
   lastSyncTime: null,
   syncRequired: false,
+  syncWarning: false,
+  syncBlocked: false,
   triggerSync: async () => {},
+  triggerPullOnly: async () => {},
 });
 
 export const useOffline = () => useContext(OfflineContext);
@@ -32,16 +37,19 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const auth = useAuth();
     profile = auth.profile;
   } catch {
-    // AuthProvider not ready yet during HMR or initial mount race
+    // AuthProvider not ready yet
   }
+
   const [online, setOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [failedOps, setFailedOps] = useState(0);
   const [lastSyncTime, setLastSyncTime] = useState<number | null>(null);
   const [syncRequired, setSyncRequired] = useState(false);
+  const [syncWarning, setSyncWarning] = useState(false);
+  const [syncBlocked, setSyncBlocked] = useState(false);
   const syncingRef = useRef(false);
 
-  // Listen for online/offline events
   useEffect(() => {
     const handleOnline = () => setOnline(true);
     const handleOffline = () => setOnline(false);
@@ -53,22 +61,23 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, []);
 
-  // Check pending count periodically
   useEffect(() => {
-    const checkPending = async () => {
-      const count = await getPendingCount();
-      setPendingCount(count);
+    const checkCounts = async () => {
+      setPendingCount(await getPendingCount());
+      setFailedOps(await getFailedCount());
     };
-    checkPending();
-    const interval = setInterval(checkPending, 5000);
+    checkCounts();
+    const interval = setInterval(checkCounts, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // Check sync status
   useEffect(() => {
     const checkSync = async () => {
       const required = await isSyncRequired();
       setSyncRequired(required);
+      setSyncBlocked(required);
+      const warning = await isSyncWarning();
+      setSyncWarning(warning);
       const last = await getLastSyncTime();
       setLastSyncTime(last);
     };
@@ -79,7 +88,7 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const triggerSync = useCallback(async () => {
     if (syncingRef.current || !profile?.business_id || !profile?.branch_id) return;
-    
+
     const isReallyOnline = await checkOnline();
     if (!isReallyOnline) {
       setOnline(false);
@@ -91,19 +100,19 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     try {
       const result = await fullSync(profile.business_id, profile.branch_id);
-      
-      if (result.success) {
-        const count = await getPendingCount();
-        setPendingCount(count);
+
+      if (result.success || result.pushed > 0) {
+        setPendingCount(await getPendingCount());
+        setFailedOps(await getFailedCount());
         const last = await getLastSyncTime();
         setLastSyncTime(last);
         setSyncRequired(false);
+        setSyncBlocked(false);
+        setSyncWarning(false);
+      }
 
-        if (result.pushed > 0) {
-          console.log(`[OfflineContext] ${result.pushed} operaciones sincronizadas`);
-        }
-      } else {
-        console.error('[OfflineContext] Error de sincronización:', result.error);
+      if (result.failed > 0) {
+        console.warn(`[OfflineContext] ${result.failed} operaciones fallidas`);
       }
     } catch (err: any) {
       console.error('[OfflineContext] Sync error:', err);
@@ -113,14 +122,37 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [profile?.business_id, profile?.branch_id]);
 
-  // Auto-sync when coming online or when there are pending operations
+  const triggerPullOnly = useCallback(async () => {
+    if (syncingRef.current || !profile?.business_id || !profile?.branch_id) return;
+
+    const isReallyOnline = await checkOnline();
+    if (!isReallyOnline) { setOnline(false); return; }
+
+    syncingRef.current = true;
+    setIsSyncing(true);
+
+    try {
+      const { pullCloudData } = await import('@/lib/syncEngine');
+      await pullCloudData(profile.business_id, profile.branch_id);
+      const last = await getLastSyncTime();
+      setLastSyncTime(last);
+      setSyncRequired(false);
+      setSyncBlocked(false);
+      setSyncWarning(false);
+    } catch (err: any) {
+      console.error('[OfflineContext] Pull error:', err);
+    } finally {
+      syncingRef.current = false;
+      setIsSyncing(false);
+    }
+  }, [profile?.business_id, profile?.branch_id]);
+
   useEffect(() => {
     if (online && profile?.business_id && profile?.branch_id) {
       triggerSync();
     }
   }, [online, profile?.business_id, profile?.branch_id, triggerSync]);
 
-  // Periodic auto-sync every 5 minutes when online
   useEffect(() => {
     if (!online || !profile?.business_id) return;
     const interval = setInterval(() => {
@@ -134,9 +166,13 @@ export const OfflineProvider: React.FC<{ children: React.ReactNode }> = ({ child
       isOnline: online,
       isSyncing,
       pendingCount,
+      failedOps,
       lastSyncTime,
       syncRequired,
+      syncWarning,
+      syncBlocked,
       triggerSync,
+      triggerPullOnly,
     }}>
       {children}
     </OfflineContext.Provider>

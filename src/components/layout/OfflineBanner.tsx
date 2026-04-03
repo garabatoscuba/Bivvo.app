@@ -1,35 +1,35 @@
-import { useOnlineStatus, type SyncStatus } from '@/hooks/useOnlineStatus';
-import { WifiOff, Loader2, CheckCircle2 } from 'lucide-react';
-
-const statusConfig: Record<Exclude<SyncStatus, 'online'>, { icon: React.ReactNode; text: string; bg: string }> = {
-  offline: {
-    icon: <WifiOff className="h-3.5 w-3.5" />,
-    text: 'Modo sin conexión — los cambios se sincronizarán cuando vuelva el internet',
-    bg: 'bg-yellow-500/90 text-yellow-950',
-  },
-  syncing: {
-    icon: <Loader2 className="h-3.5 w-3.5 animate-spin" />,
-    text: 'Sincronizando...',
-    bg: 'bg-blue-500/90 text-white',
-  },
-  synced: {
-    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
-    text: 'Todo sincronizado ✓',
-    bg: 'bg-green-500/90 text-white',
-  },
-};
+import { useOffline } from '@/contexts/OfflineContext';
+import { WifiOff, AlertTriangle } from 'lucide-react';
 
 export const OfflineBanner = () => {
-  const { syncStatus } = useOnlineStatus();
+  const { isOnline, syncWarning, syncBlocked } = useOffline();
 
-  if (syncStatus === 'online') return null;
+  if (syncBlocked) {
+    return (
+      <div className="flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium bg-destructive text-destructive-foreground">
+        <AlertTriangle className="h-3.5 w-3.5" />
+        <span>Acceso bloqueado. Sincroniza para continuar.</span>
+      </div>
+    );
+  }
 
-  const config = statusConfig[syncStatus];
+  if (syncWarning) {
+    return (
+      <div className="flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium bg-warning text-warning-foreground">
+        <AlertTriangle className="h-3.5 w-3.5" />
+        <span>Llevas más de 36h sin sincronizar. Conéctate pronto para no perder acceso.</span>
+      </div>
+    );
+  }
 
-  return (
-    <div className={`flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium ${config.bg} transition-all duration-300`}>
-      {config.icon}
-      <span>{config.text}</span>
-    </div>
-  );
+  if (!isOnline) {
+    return (
+      <div className="flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-medium bg-yellow-500/90 text-yellow-950 transition-all duration-300">
+        <WifiOff className="h-3.5 w-3.5" />
+        <span>Modo sin conexión — los cambios se sincronizarán cuando vuelva el internet</span>
+      </div>
+    );
+  }
+
+  return null;
 };
