@@ -496,27 +496,28 @@ const Employees = () => {
 
         if (form.use_bivoo_id) {
           // Create @bivoo.app account via edge function
-          try {
-            const resolvedPosition = form.assigned_roles[0] || form.position || 'seller';
-            const { data: bivooResult, error: bivooError } = await supabase.functions.invoke('create-bivoo-employee', {
-              body: {
-                full_name: form.full_name.trim(),
-                password: form.bivoo_password,
-                business_id: businessId,
-                branch_id: profile?.branch_id || null,
-                position: resolvedPosition,
-                employee_id: employeeId,
-              },
-            });
-            if (bivooError || bivooResult?.error) {
-              sonnerToast.error(bivooResult?.error || bivooError?.message || 'Error al crear cuenta @bivoo.app');
-            } else {
-              sonnerToast.success(`Cuenta ${bivooResult.email} creada exitosamente`);
-            }
-          } catch (bivooErr) {
-            console.error('Error creating bivoo account:', bivooErr);
-            sonnerToast.error('Error al crear cuenta @bivoo.app');
+          const resolvedPosition = form.assigned_roles[0] || form.position || 'seller';
+          const { data: bivooResult, error: bivooError } = await supabase.functions.invoke('create-bivoo-employee', {
+            body: {
+              full_name: form.full_name.trim(),
+              password: form.bivoo_password,
+              business_id: businessId,
+              branch_id: profile?.branch_id || null,
+              position: resolvedPosition,
+              employee_id: employeeId,
+            },
+          });
+          if (bivooError || bivooResult?.error) {
+            // ROLLBACK: delete the employee row to avoid phantoms
+            await supabase.from('employees').delete().eq('id', employeeId);
+            const errMsg = bivooResult?.error || bivooError?.message || 'Error al crear cuenta @bivoo.app';
+            sonnerToast.error(errMsg);
+            setSaving(false);
+            setEmployeeDialogOpen(false);
+            queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
+            return; // Abort — don't save salary/branches for a phantom employee
           }
+          sonnerToast.success(`Cuenta ${bivooResult.email} creada exitosamente`);
         } else if (form.email.trim()) {
           // Auto-link: if email matches an existing profile, assign role + business
           try {

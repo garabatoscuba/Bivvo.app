@@ -101,21 +101,33 @@ const MyEmployment = () => {
   const [compareEmployeeId, setCompareEmployeeId] = useState<string | null>(null);
   const [evalSkills, setEvalSkills] = useState<Skill[]>([]);
 
-  // Find current user's employee record
+  // Find current user's employee record — prefer auth_user_id, fallback to email
   const { data: myEmployeeRecord = null } = useQuery({
-    queryKey: ['my-employee-record', profile?.email],
+    queryKey: ['my-employee-record', user?.id, profile?.email],
     queryFn: async () => {
-      if (!profile?.email) return null;
-      const { data, error } = await supabase
-        .from('employees')
-        .select('*')
-        .eq('email', profile.email.toLowerCase())
-        .limit(1)
-        .maybeSingle();
-      if (error) return null;
-      return data as Employee | null;
+      // 1. Try by auth_user_id (reliable for @bivoo.app accounts)
+      if (user?.id) {
+        const { data } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('auth_user_id', user.id)
+          .limit(1)
+          .maybeSingle();
+        if (data) return data as Employee | null;
+      }
+      // 2. Fallback: match by email (legacy accounts without auth_user_id)
+      if (profile?.email) {
+        const { data } = await supabase
+          .from('employees')
+          .select('*')
+          .eq('email', profile.email.toLowerCase())
+          .limit(1)
+          .maybeSingle();
+        if (data) return data as Employee | null;
+      }
+      return null;
     },
-    enabled: !!profile?.email,
+    enabled: !!user?.id || !!profile?.email,
   });
 
   const businessId = myEmployeeRecord?.business_id || null;

@@ -71,18 +71,36 @@ const EquipoActivoSection = ({ onlyActive = false, businessIdOverride, myJornada
       // 1. Get all HR employees for this business
       const { data: employees } = await supabase
         .from('employees')
-        .select('id, full_name, email, branch_id, position')
+        .select('id, full_name, email, branch_id, position, auth_user_id')
         .eq('business_id', businessId);
       if (!employees?.length) return [];
 
-      // 2. Get profiles by email using SECURITY DEFINER function
-      const emails = employees.filter(e => e.email).map(e => e.email!.toLowerCase());
+      // 2. Build profile map — prefer auth_user_id, fallback to email
       let profileMap: Record<string, { id: string; branch_id: string | null }> = {};
-      if (emails.length > 0) {
+
+      // 2a. For employees with auth_user_id, get profiles directly
+      const authUserIds = employees.filter(e => e.auth_user_id).map(e => e.auth_user_id!);
+      if (authUserIds.length > 0) {
+        const { data: profiles } = await supabase
+          .from('profiles')
+          .select('id, user_id, branch_id')
+          .in('user_id', authUserIds);
+        if (profiles) {
+          for (const p of profiles) {
+            // Key by auth_user_id for lookup
+            profileMap[`uid:${p.user_id}`] = { id: p.id, branch_id: p.branch_id };
+          }
+        }
+      }
+
+      // 2b. For employees WITHOUT auth_user_id, fallback to email
+      const emailOnlyEmps = employees.filter(e => !e.auth_user_id && e.email);
+      if (emailOnlyEmps.length > 0) {
+        const emails = emailOnlyEmps.map(e => e.email!.toLowerCase());
         const { data: profiles } = await supabase.rpc('get_profiles_by_emails', { emails });
         if (profiles) {
           for (const p of profiles) {
-            profileMap[p.email.toLowerCase()] = { id: p.id, branch_id: p.branch_id };
+            profileMap[`email:${p.email.toLowerCase()}`] = { id: p.id, branch_id: p.branch_id };
           }
         }
       }
@@ -104,9 +122,13 @@ const EquipoActivoSection = ({ onlyActive = false, businessIdOverride, myJornada
         jornadas = data || [];
       }
 
-      // 4. Combine
+      // 4. Combine — resolve profile by auth_user_id first, then email
       return employees.map(emp => {
-        const prof = emp.email ? profileMap[emp.email.toLowerCase()] : null;
+        const prof = emp.auth_user_id
+          ? profileMap[`uid:${emp.auth_user_id}`]
+          : emp.email
+            ? profileMap[`email:${emp.email.toLowerCase()}`]
+            : null;
         return {
           id: emp.id,
           full_name: emp.full_name,
