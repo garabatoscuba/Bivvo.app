@@ -946,6 +946,8 @@ const MyEmployment = () => {
           jornada={myJornada}
           employeeBusinessId={businessId}
           dailySalary={dailySalary}
+          needsInventoryCount={needsInventoryCount}
+          needsCashCount={needsCashCount}
         />
       )}
 

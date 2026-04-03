@@ -33,6 +33,8 @@ interface ContarYCerrarModalProps {
   };
   employeeBusinessId: string;
   dailySalary?: DailySalaryBreakdown | null;
+  needsInventoryCount?: boolean;
+  needsCashCount?: boolean;
 }
 
 function calcDuration(apertura: string): { text: string; minutes: number } {
