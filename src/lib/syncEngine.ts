@@ -132,19 +132,12 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
     supabase.from('employee_insumo_areas').select('*').eq('business_id', businessId),
   ]);
 
-  const [recipesRes, recipeIngredientsRes, serviceCatsRes, cashRegistersRes, tipConfigRes, serviceEntriesRes] = await Promise.all([
-    supabase.from('recipes' as any).select('*').eq('is_active', true) as Promise<{ data: any[] | null }>,
-    supabase.from('recipe_ingredients' as any).select('*') as Promise<{ data: any[] | null }>,
-    supabase.from('service_categories' as any).select('*').eq('branch_id', branchId) as Promise<{ data: any[] | null }>,
-    supabase.from('cash_registers' as any).select('*').eq('branch_id', branchId).order('opened_at', { ascending: false }).limit(50) as Promise<{ data: any[] | null }>,
-    supabase.from('tip_config').select('*').eq('business_id', businessId) as Promise<{ data: any[] | null }>,
-    supabase.from('service_entries')
-      .select('*')
-      .eq('branch_id', branchId)
-      .gte('created_at', startOfDay)
-      .lte('created_at', endOfDay)
-      .eq('archived', false) as Promise<{ data: any[] | null }>,
-  ]);
+  const recipesRes: { data: any[] | null } = await supabase.from('recipes' as any).select('*').eq('is_active', true);
+  const recipeIngredientsRes: { data: any[] | null } = await supabase.from('recipe_ingredients' as any).select('*');
+  const serviceCatsRes: { data: any[] | null } = await supabase.from('service_categories' as any).select('*').eq('branch_id', branchId);
+  const cashRegistersRes: { data: any[] | null } = await supabase.from('cash_registers' as any).select('*').eq('branch_id', branchId).order('opened_at', { ascending: false }).limit(50);
+  const tipConfigRes: { data: any[] | null } = await supabase.from('tip_config' as any).select('*').eq('business_id', businessId);
+  const serviceEntriesRes: { data: any[] | null } = await supabase.from('service_entries' as any).select('*').eq('branch_id', branchId).gte('created_at', startOfDay).lte('created_at', endOfDay);
 
   const tasks: Promise<void>[] = [];
   const cacheIfData = (storeName: string, data: any[] | null) => {
