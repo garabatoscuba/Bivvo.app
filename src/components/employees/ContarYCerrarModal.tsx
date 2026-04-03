@@ -52,8 +52,10 @@ function calcDuration(apertura: string): { text: string; minutes: number } {
 
 type ClosureStep = 'inventory' | 'cash';
 
-const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, dailySalary }: ContarYCerrarModalProps) => {
-  const [step, setStep] = useState<ClosureStep>('inventory');
+const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, dailySalary, needsInventoryCount = true, needsCashCount = true }: ContarYCerrarModalProps) => {
+  // Determine initial step based on what's needed
+  const initialStep: ClosureStep = needsInventoryCount ? 'inventory' : 'cash';
+  const [step, setStep] = useState<ClosureStep>(initialStep);
   const [closing, setClosing] = useState(false);
   const [tipSurplus, setTipSurplus] = useState(0);
   const [calculatorBreakdown, setCalculatorBreakdown] = useState<any>(null);
