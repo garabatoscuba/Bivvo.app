@@ -109,6 +109,7 @@ interface EmployeeForm {
   bivoo_password: string;
   new_password: string;
   is_jefe: boolean;
+  is_cash_counter: boolean;
   
   // Legacy single fields kept for backward compat
   modality_id: string;
