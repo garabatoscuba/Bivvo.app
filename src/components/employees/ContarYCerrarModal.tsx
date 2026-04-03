@@ -333,7 +333,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
           </div>
         )}
 
-        {step === 'cash' && (
+        {step === 'cash' && needsCashCount && (
           <>
             {/* Single scrollable content area */}
             <div className="flex-1 overflow-y-auto min-h-0 px-6 space-y-4">
