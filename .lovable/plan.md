@@ -1,54 +1,51 @@
 
 
-## Plan: Ajustar toggles de conteo y enlazar cierre de jornada correctamente
+## Plan: Corregir cálculo de salario Mixto Personalizado y unificar tarjetas
 
-### Resumen
+### Problema encontrado
 
-Actualmente existe un solo toggle (`is_jefe` = "Responsable de conteo") que controla si el empleado cuenta productos al cerrar jornada. Si no es `is_jefe`, va al modal simple (`CerrarJornadaModal`) que no tiene conteo de efectivo ni de productos.
-
-**Problema**: No hay forma de separar "contar productos" de "contar dinero de caja". Además, empleados sin `is_jefe` cierran con un modal básico sin conteo de caja.
-
-**Solución**: Agregar un segundo campo `is_cash_counter` (boolean) en la tabla `employees` para indicar si el empleado debe contar efectivo. Modificar la lógica de cierre para que `ContarYCerrarModal` soporte ambos toggles independientemente.
-
----
+En `useDailySalary.ts`, la modalidad `custom_mixed` calcula:
+```
+earning = ingresosSucursal * (33 / 100) = $3,016.20
+```
+Pero **NO divide entre los trabajadores activos**. La UI muestra "33% ÷ 2" pero el cálculo real no divide. El resultado correcto debería ser $3,016.20 / 2 = **$1,508.10** por empleado.
 
 ### Cambios
 
-#### 1. Migración de base de datos
-Agregar columna `is_cash_counter` (boolean, default false) a la tabla `employees`.
+#### 1. `src/hooks/useDailySalary.ts` — Corregir cálculo custom_mixed
 
-#### 2. `src/pages/Employees.tsx` — Formulario de empleado
-- **Renombrar** el toggle actual de "Responsable de conteo" → descripción genérica:
-  - Label: "Responsable de conteo"
-  - Sublabel: "Cuenta productos de su área al cerrar jornada" (sin diferenciar ventas/área)
-- **Agregar nuevo toggle** debajo:
-  - Label: "Conteo de caja"
-  - Sublabel: "Cuenta el dinero de caja al cerrar jornada"
-  - Campo: `is_cash_counter`
-- Ambos toggles visibles para **todos los roles** (vendedor, operario, gerente), no solo seller/operator
-- Guardar `is_cash_counter` en create y update
+Línea 338, cambiar:
+```typescript
+earning += getSharedApplicableIncome(appliesTo) * (servicePercent / 100);
+```
+A:
+```typescript
+earning += (getSharedApplicableIncome(appliesTo) * (servicePercent / 100)) / activeWorkersCount;
+```
 
-#### 3. `src/pages/MyEmployment.tsx` — Lógica de cierre
-- Leer `is_cash_counter` del registro del empleado
-- Nueva lógica de decisión:
-  - Si `is_jefe` O `is_cash_counter` → abrir `ContarYCerrarModal` (pasando flags)
-  - Si ninguno → abrir `CerrarJornadaModal` (cierre simple)
-- Pasar nuevas props `needsInventoryCount` y `needsCashCount` a `ContarYCerrarModal`
+Esto aplica para `custom_mixed` porque es un esquema compartido donde los ingresos de la sucursal se reparten entre los trabajadores activos.
 
-#### 4. `src/components/employees/ContarYCerrarModal.tsx` — Modal de cierre
-- Recibir props `needsInventoryCount` y `needsCashCount`
-- Ajustar los pasos dinámicamente:
-  - Si solo `needsInventoryCount`: paso 1 = inventario, cierra sin conteo de caja
-  - Si solo `needsCashCount`: paso 1 = conteo de caja directo (sin inventario)
-  - Si ambos: paso 1 = inventario, paso 2 = caja (flujo actual)
-  - El indicador "Paso X de Y" se adapta al número de pasos reales
+#### 2. `src/components/employees/MyEmploymentDashboard.tsx` — Unificar tarjetas
 
-#### 5. Employee type interface
-- Agregar `is_cash_counter?: boolean` a la interfaz `Employee` en `MyEmployment.tsx` y `Employees.tsx`
-- Agregar al `formDefaults` en `Employees.tsx`
+Fusionar la tarjeta "Salario estimado" (líneas 306-327) y la tarjeta "Salary breakdown" (líneas 330-369) en **una sola tarjeta**:
+
+```text
+┌─────────────────────────────────┐
+│ $ Salario estimado              │
+│   $1,508.10          (verde)    │
+│   Mixto Personalizado           │
+│ ────────────────────────────── │
+│ % Ingresos (33% ÷ 2)  $1508.10 │
+│ Comisiones                $0.00 │
+│ Propinas                  $0.00 │
+│ ─────────────────────────────── │
+│ Total               $1,508.10   │
+└─────────────────────────────────┘
+```
+
+La tarjeta de "Ventas del día" queda sola ocupando todo el ancho, y debajo la tarjeta unificada de salario con el desglose integrado.
 
 ### Lo que NO se toca
-- Auth, POS, inventario, sidebar, vendedores, tesorería
-- No se cambia el contenido de `CashCalculator` ni `InventoryCountStep`
-- No se modifica `CerrarJornadaModal` (sigue como fallback para empleados sin ningún conteo)
+- Auth, POS, inventario, sidebar, empleados, contabilidad
+- Las demás modalidades (fixed, hourly, etc.) no usan división compartida
 
