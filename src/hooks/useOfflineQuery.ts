@@ -1,5 +1,5 @@
-import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
-import { getAllFromStore, putManyInStore, clearStore } from '@/lib/offlineDb';
+import { useQuery } from '@tanstack/react-query';
+import { getAllFromStore, getFilteredFromStore, putManyInStore, clearStore } from '@/lib/offlineDb';
 
 interface OfflineQueryOptions<T> {
   queryKey: any[];
@@ -10,7 +10,9 @@ interface OfflineQueryOptions<T> {
   /** Optional index to filter cached results */
   indexName?: string;
   indexValue?: string;
-  /** Whether to clear the store before writing (default true) */
+  /** JS filter applied on IndexedDB results (for date filtering etc.) */
+  offlineFilter?: (item: T) => boolean;
+  /** Whether to clear the store before writing (default false) */
   replaceAll?: boolean;
   enabled?: boolean;
   staleTime?: number;
@@ -27,6 +29,7 @@ export function useOfflineQuery<T>({
   storeName,
   indexName,
   indexValue,
+  offlineFilter,
   replaceAll = false,
   enabled = true,
   staleTime,
@@ -52,8 +55,12 @@ export function useOfflineQuery<T>({
       }
 
       // Fallback to IndexedDB
-      const cached = await getAllFromStore<T>(storeName, indexName, indexValue);
-      return cached;
+      if (indexName && indexValue) {
+        const cached = await getFilteredFromStore<T>(storeName, indexName, indexValue, offlineFilter);
+        return cached;
+      }
+      const cached = await getAllFromStore<T>(storeName);
+      return offlineFilter ? cached.filter(offlineFilter) : cached;
     },
     enabled,
     staleTime,

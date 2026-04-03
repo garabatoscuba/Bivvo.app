@@ -101,6 +101,16 @@ interface OfflineDBSchema extends DBSchema {
     value: any;
     indexes: { 'by-user': string; 'by-branch': string };
   };
+  tip_config: {
+    key: string;
+    value: any;
+    indexes: { 'by-business': string };
+  };
+  service_entries: {
+    key: string;
+    value: any;
+    indexes: { 'by-branch': string; 'by-business': string };
+  };
   pending_operations: {
     key: string;
     value: PendingOperation;
@@ -117,7 +127,7 @@ let dbInstance: IDBPDatabase<OfflineDBSchema> | null = null;
 export async function getDb(): Promise<IDBPDatabase<OfflineDBSchema>> {
   if (dbInstance) return dbInstance;
 
-  dbInstance = await openDB<OfflineDBSchema>('sync-sales-offline', 3, {
+  dbInstance = await openDB<OfflineDBSchema>('sync-sales-offline', 4, {
     upgrade(db, oldVersion) {
       if (oldVersion < 1) {
         const productsStore = db.createObjectStore('products', { keyPath: 'id' });
@@ -184,6 +194,17 @@ export async function getDb(): Promise<IDBPDatabase<OfflineDBSchema>> {
           cashRegStore.createIndex('by-branch', 'branch_id');
         }
       }
+      if (oldVersion < 4) {
+        if (!db.objectStoreNames.contains('tip_config')) {
+          const tipStore = db.createObjectStore('tip_config', { keyPath: 'id' });
+          tipStore.createIndex('by-business', 'business_id');
+        }
+        if (!db.objectStoreNames.contains('service_entries')) {
+          const seStore = db.createObjectStore('service_entries', { keyPath: 'id' });
+          seStore.createIndex('by-branch', 'branch_id');
+          seStore.createIndex('by-business', 'business_id');
+        }
+      }
     },
   });
 
@@ -226,6 +247,34 @@ export async function deleteFromStore(storeName: string, key: string): Promise<v
 export async function clearStore(storeName: string): Promise<void> {
   const db = await getDb();
   await db.clear(storeName as any);
+}
+
+/**
+ * Update a single record in a store by merging changes.
+ * Useful for updating local jornada after offline closure.
+ */
+export async function updateInStore(storeName: string, id: string, changes: Record<string, any>): Promise<void> {
+  const db = await getDb();
+  const existing = await db.get(storeName as any, id);
+  if (existing) {
+    const updated = { ...existing, ...changes };
+    await db.put(storeName as any, updated);
+  }
+}
+
+/**
+ * Get all records from a store index and apply a JS filter function.
+ * Useful for filtered offline queries (e.g. today's sales by branch).
+ */
+export async function getFilteredFromStore<T>(
+  storeName: string,
+  indexName: string,
+  indexValue: string,
+  filterFn?: (item: T) => boolean
+): Promise<T[]> {
+  const db = await getDb();
+  const all = await db.getAllFromIndex(storeName as any, indexName, indexValue) as T[];
+  return filterFn ? all.filter(filterFn) : all;
 }
 
 // Pending operations
@@ -303,6 +352,7 @@ const STORE_NAMES = [
   'products', 'categories', 'branch_stock', 'branches', 'customers',
   'sales', 'sale_items', 'employees', 'jornadas', 'raw_materials',
   'insumo_areas', 'service_categories', 'recipes', 'cash_registers',
+  'tip_config', 'service_entries',
 ] as const;
 
 const STORE_LABELS: Record<string, string> = {
@@ -320,6 +370,8 @@ const STORE_LABELS: Record<string, string> = {
   service_categories: 'Servicios',
   recipes: 'Recetas',
   cash_registers: 'Cajas',
+  tip_config: 'Config. Propinas',
+  service_entries: 'Cobros Servicios',
 };
 
 export async function getStoreCounts(): Promise<{ name: string; label: string; count: number }[]> {
