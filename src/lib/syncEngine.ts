@@ -4,12 +4,14 @@ import {
   putManyInStore,
   getPendingOperations,
   removePendingOperation,
+  markOperationFailed,
   setSyncMeta,
   getSyncMeta,
   type PendingOperation,
 } from './offlineDb';
 
-const SYNC_MANDATORY_INTERVAL_MS = 24 * 60 * 60 * 1000; // 1 day
+export const SYNC_MANDATORY_INTERVAL_MS = 48 * 60 * 60 * 1000; // 48h
+export const SYNC_WARNING_INTERVAL_MS = 36 * 60 * 60 * 1000; // 36h
 
 export async function isOnline(): Promise<boolean> {
   if (!navigator.onLine) return false;
@@ -27,31 +29,45 @@ export async function isSyncRequired(): Promise<boolean> {
   return Date.now() - lastSync > SYNC_MANDATORY_INTERVAL_MS;
 }
 
+export async function isSyncWarning(): Promise<boolean> {
+  const lastSync = await getSyncMeta('lastSyncTimestamp');
+  if (!lastSync) return true;
+  return Date.now() - lastSync > SYNC_WARNING_INTERVAL_MS;
+}
+
 export async function getLastSyncTime(): Promise<number | null> {
   return getSyncMeta('lastSyncTimestamp');
 }
 
+export interface PushResult {
+  success: boolean;
+  pushed: number;
+  failed: number;
+}
+
 /**
- * Push all pending operations to cloud.
+ * Push all pending operations to cloud. Resilient: skips failed ops.
  */
-export async function pushPendingOperations(): Promise<{ success: boolean; pushed: number; failed?: PendingOperation }> {
+export async function pushPendingOperations(): Promise<PushResult> {
   const ops = await getPendingOperations();
-  if (ops.length === 0) return { success: true, pushed: 0 };
+  if (ops.length === 0) return { success: true, pushed: 0, failed: 0 };
 
   let pushed = 0;
+  let failed = 0;
 
   for (const op of ops) {
     try {
       await executePendingOperation(op);
       await removePendingOperation(op.id);
       pushed++;
-    } catch (err) {
-      console.error('Sync failed for operation:', op, err);
-      return { success: false, pushed, failed: op };
+    } catch (err: any) {
+      console.error('[SyncEngine] Op failed, marking:', op.table, op.operation, err?.message);
+      await markOperationFailed(op.id, err?.message || 'Unknown error');
+      failed++;
     }
   }
 
-  return { success: true, pushed };
+  return { success: failed === 0, pushed, failed };
 }
 
 async function executePendingOperation(op: PendingOperation): Promise<void> {
@@ -85,7 +101,6 @@ async function executePendingOperation(op: PendingOperation): Promise<void> {
  * Pull all cloud data for the user's business and branch into IndexedDB.
  */
 export async function pullCloudData(businessId: string, branchId: string): Promise<void> {
-  // Batch 1: Core data
   const [
     productsRes,
     categoriesRes,
@@ -100,13 +115,11 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
     supabase.from('customers').select('*').eq('business_id', businessId),
   ]);
 
-  // Batch 2: Sales
   const [salesRes, saleItemsRes] = await Promise.all([
     supabase.from('sales').select('*, customers(name)').eq('branch_id', branchId).order('created_at', { ascending: false }).limit(500),
     supabase.from('sale_items').select('*, products(name, code)').limit(1000),
   ]);
 
-  // Batch 3: Employees, jornadas, materials
   const [employeesRes, jornadasRes, rawMaterialsRes, insumoAreasRes, empInsumoAreasRes] = await Promise.all([
     supabase.from('employees').select('*').eq('business_id', businessId),
     supabase.from('jornadas').select('*').eq('sucursal_id', branchId).order('apertura_at', { ascending: false }).limit(100),
@@ -115,15 +128,12 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
     supabase.from('employee_insumo_areas').select('*').eq('business_id', businessId),
   ]);
 
-  // Batch 4: Recipes, services, cash (sequential to avoid TS2589)
   const recipesRes: { data: any[] | null } = await supabase.from('recipes' as any).select('*').eq('is_active', true);
   const recipeIngredientsRes: { data: any[] | null } = await supabase.from('recipe_ingredients' as any).select('*');
   const serviceCatsRes: { data: any[] | null } = await supabase.from('service_categories' as any).select('*').eq('branch_id', branchId);
   const cashRegistersRes: { data: any[] | null } = await supabase.from('cash_registers' as any).select('*').eq('branch_id', branchId).order('opened_at', { ascending: false }).limit(50);
 
-  // Clear and replace stores
   const tasks: Promise<void>[] = [];
-
   const cacheIfData = (storeName: string, data: any[] | null) => {
     if (data) {
       tasks.push(clearStore(storeName).then(() => putManyInStore(storeName, data)));
@@ -156,20 +166,15 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
 /**
  * Full sync cycle: push local changes, then pull fresh data.
  */
-export async function fullSync(businessId: string, branchId: string): Promise<{ success: boolean; pushed: number; error?: string }> {
+export async function fullSync(businessId: string, branchId: string): Promise<{ success: boolean; pushed: number; failed: number; error?: string }> {
   try {
-    // 1. Push pending operations first (device wins)
     const pushResult = await pushPendingOperations();
-    if (!pushResult.success) {
-      return { success: false, pushed: pushResult.pushed, error: 'Error al subir datos locales' };
-    }
 
-    // 2. Pull fresh data from cloud
     await pullCloudData(businessId, branchId);
 
-    return { success: true, pushed: pushResult.pushed };
+    return { success: true, pushed: pushResult.pushed, failed: pushResult.failed };
   } catch (err: any) {
     console.error('Full sync error:', err);
-    return { success: false, pushed: 0, error: err.message };
+    return { success: false, pushed: 0, failed: 0, error: err.message };
   }
 }

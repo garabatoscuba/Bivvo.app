@@ -6,9 +6,9 @@ import { useOffline } from '@/contexts/OfflineContext';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import CerrarJornadaModal from '@/components/employees/CerrarJornadaModal';
 import ScannerModal from './ScannerModal';
+import { SyncStatusModal } from './SyncStatusModal';
 import { WifiOff, Loader2, Cloud, MessageCircle, Camera } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { toast } from '@/hooks/use-toast';
 
 function useElapsedTime(startIso: string | null | undefined) {
   const [text, setText] = useState('');
@@ -33,7 +33,7 @@ interface AppHeaderProps {
 
 const AppHeader = ({ title }: AppHeaderProps) => {
   const { profile, isOwner, isManager, isSuperAdmin } = useAuth();
-  const { isOnline, isSyncing, pendingCount, triggerSync, lastSyncTime } = useOffline();
+  const { isOnline, isSyncing, pendingCount, failedOps, syncWarning, syncBlocked } = useOffline();
   const navigate = useNavigate();
 
   const isPrivileged = isOwner || isManager || isSuperAdmin;
@@ -41,22 +41,16 @@ const AppHeader = ({ title }: AppHeaderProps) => {
   const elapsed = useElapsedTime(jornada?.apertura_at);
   const [cerrarOpen, setCerrarOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [syncModalOpen, setSyncModalOpen] = useState(false);
 
-  const handleCloudSync = async () => {
-    if (isSyncing) return;
+  const totalBadge = pendingCount + failedOps;
 
-    if (!isOnline) {
-      toast({ title: 'Sin conexión', description: 'Conéctate a internet para actualizar la base local', variant: 'destructive' });
-      return;
-    }
-
-    await triggerSync();
-    toast({ title: 'Datos offline listos', description: 'Este dispositivo quedó actualizado para usar Bivoo sin internet' });
-  };
-
-  const cloudButtonTitle = lastSyncTime
-    ? `Actualizar base local · última sync ${new Date(lastSyncTime).toLocaleTimeString()}`
-    : 'Actualizar base local';
+  // Cloud icon color
+  const cloudColorClass = syncBlocked || !isOnline
+    ? 'text-destructive'
+    : syncWarning || totalBadge > 0
+      ? 'text-warning animate-pulse'
+      : 'text-success';
 
   return (
     <header className="flex h-11 md:h-14 shrink-0 items-center justify-between border-b border-border/60 bg-card/80 backdrop-blur-sm px-2 md:px-4 overflow-hidden max-w-full">
@@ -68,7 +62,6 @@ const AppHeader = ({ title }: AppHeaderProps) => {
       </div>
 
       <div className="flex items-center gap-1 flex-shrink-0">
-        {/* Jornada indicator — only for non-privileged roles */}
         {!isPrivileged && !jornadaLoading && (
           jornadaActiva && jornada ? (
             <button
@@ -92,29 +85,27 @@ const AppHeader = ({ title }: AppHeaderProps) => {
           )
         )}
 
-        {/* Offline/Sync indicator */}
+        {/* Cloud sync button → opens modal */}
         <button
-          onClick={handleCloudSync}
-          disabled={isSyncing}
-          className="flex items-center gap-1.5 mr-1 rounded-full p-1 text-muted-foreground hover:bg-accent hover:text-foreground transition-colors disabled:opacity-50"
-          title={cloudButtonTitle}
+          onClick={() => setSyncModalOpen(true)}
+          className="relative flex items-center justify-center h-7 w-7 rounded-full hover:bg-accent transition-colors mr-1"
+          title="Estado de sincronización"
         >
           {isSyncing ? (
             <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
           ) : !isOnline ? (
-            <div className="flex items-center gap-1">
-              <WifiOff className="h-4 w-4 text-warning" />
-              {pendingCount > 0 && (
-                <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
-                  {pendingCount}
-                </Badge>
-              )}
-            </div>
+            <WifiOff className={`h-4 w-4 ${cloudColorClass}`} />
           ) : (
-            <Cloud className="h-4 w-4 text-success" />
+            <Cloud className={`h-4 w-4 ${cloudColorClass}`} />
+          )}
+          {totalBadge > 0 && !isSyncing && (
+            <Badge variant="destructive" className="absolute -top-1 -right-1 h-4 min-w-[16px] px-1 text-[9px] flex items-center justify-center">
+              {totalBadge}
+            </Badge>
           )}
         </button>
-        {/* Scanner button */}
+
+        {/* Scanner */}
         <button
           onClick={() => setScannerOpen(true)}
           className="flex items-center justify-center h-7 w-7 rounded-full text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
@@ -122,7 +113,8 @@ const AppHeader = ({ title }: AppHeaderProps) => {
         >
           <Camera className="h-4 w-4" />
         </button>
-        {/* WhatsApp support */}
+
+        {/* WhatsApp */}
         <a
           href="https://wa.me/5352514878?text=Hola%2C%20necesito%20soporte%20con%20Bivoo"
           target="_blank"
@@ -134,15 +126,11 @@ const AppHeader = ({ title }: AppHeaderProps) => {
         </a>
       </div>
 
-      {/* Modal cerrar jornada */}
       {jornada && (
-        <CerrarJornadaModal
-          open={cerrarOpen}
-          onOpenChange={setCerrarOpen}
-          jornada={jornada}
-        />
+        <CerrarJornadaModal open={cerrarOpen} onOpenChange={setCerrarOpen} jornada={jornada} />
       )}
       <ScannerModal open={scannerOpen} onOpenChange={setScannerOpen} />
+      <SyncStatusModal open={syncModalOpen} onOpenChange={setSyncModalOpen} />
     </header>
   );
 };

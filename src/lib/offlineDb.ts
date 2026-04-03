@@ -7,6 +7,8 @@ export interface PendingOperation {
   data: any;
   timestamp: number;
   branchId?: string;
+  status?: 'pending' | 'failed';
+  errorMessage?: string;
 }
 
 interface OfflineDBSchema extends DBSchema {
@@ -117,86 +119,65 @@ export async function getDb(): Promise<IDBPDatabase<OfflineDBSchema>> {
 
   dbInstance = await openDB<OfflineDBSchema>('sync-sales-offline', 3, {
     upgrade(db, oldVersion) {
-      // V1 stores
       if (oldVersion < 1) {
         const productsStore = db.createObjectStore('products', { keyPath: 'id' });
         productsStore.createIndex('by-business', 'business_id');
-
         const categoriesStore = db.createObjectStore('categories', { keyPath: 'id' });
         categoriesStore.createIndex('by-business', 'business_id');
-
         const branchStockStore = db.createObjectStore('branch_stock', { keyPath: 'id' });
         branchStockStore.createIndex('by-branch', 'branch_id');
         branchStockStore.createIndex('by-product', 'product_id');
-
         const branchesStore = db.createObjectStore('branches', { keyPath: 'id' });
         branchesStore.createIndex('by-business', 'business_id');
-
         const customersStore = db.createObjectStore('customers', { keyPath: 'id' });
         customersStore.createIndex('by-business', 'business_id');
-
         const salesStore = db.createObjectStore('sales', { keyPath: 'id' });
         salesStore.createIndex('by-branch', 'branch_id');
-
         const saleItemsStore = db.createObjectStore('sale_items', { keyPath: 'id' });
         saleItemsStore.createIndex('by-sale', 'sale_id');
-
         db.createObjectStore('profiles', { keyPath: 'id' });
-
         const userRolesStore = db.createObjectStore('user_roles', { keyPath: 'id' });
         userRolesStore.createIndex('by-user', 'user_id');
-
         const pendingStore = db.createObjectStore('pending_operations', { keyPath: 'id' });
         pendingStore.createIndex('by-timestamp', 'timestamp');
-
         db.createObjectStore('sync_meta', { keyPath: 'key' });
       }
-
-      // V3 stores (skip v2 since it had same schema)
       if (oldVersion < 3) {
         if (!db.objectStoreNames.contains('employees')) {
           const employeesStore = db.createObjectStore('employees', { keyPath: 'id' });
           employeesStore.createIndex('by-business', 'business_id');
           employeesStore.createIndex('by-auth-user', 'auth_user_id');
         }
-
         if (!db.objectStoreNames.contains('jornadas')) {
           const jornadasStore = db.createObjectStore('jornadas', { keyPath: 'id' });
           jornadasStore.createIndex('by-employee', 'empleado_id');
           jornadasStore.createIndex('by-branch', 'sucursal_id');
         }
-
         if (!db.objectStoreNames.contains('raw_materials')) {
           const rawMaterialsStore = db.createObjectStore('raw_materials', { keyPath: 'id' });
           rawMaterialsStore.createIndex('by-business', 'business_id');
           rawMaterialsStore.createIndex('by-area', 'insumo_area_id');
         }
-
         if (!db.objectStoreNames.contains('insumo_areas')) {
           const insumoAreasStore = db.createObjectStore('insumo_areas', { keyPath: 'id' });
           insumoAreasStore.createIndex('by-business', 'business_id');
         }
-
         if (!db.objectStoreNames.contains('employee_insumo_areas')) {
           const empInsumoStore = db.createObjectStore('employee_insumo_areas', { keyPath: 'id' });
           empInsumoStore.createIndex('by-employee', 'employee_id');
         }
-
         if (!db.objectStoreNames.contains('service_categories')) {
           const svcCatStore = db.createObjectStore('service_categories', { keyPath: 'id' });
           svcCatStore.createIndex('by-branch', 'branch_id');
         }
-
         if (!db.objectStoreNames.contains('recipes')) {
           const recipesStore = db.createObjectStore('recipes', { keyPath: 'id' });
           recipesStore.createIndex('by-product', 'product_id');
         }
-
         if (!db.objectStoreNames.contains('recipe_ingredients')) {
           const recipeIngStore = db.createObjectStore('recipe_ingredients', { keyPath: 'id' });
           recipeIngStore.createIndex('by-recipe', 'recipe_id');
         }
-
         if (!db.objectStoreNames.contains('cash_registers')) {
           const cashRegStore = db.createObjectStore('cash_registers', { keyPath: 'id' });
           cashRegStore.createIndex('by-user', 'user_id');
@@ -255,12 +236,52 @@ export async function addPendingOperation(op: Omit<PendingOperation, 'id' | 'tim
     ...op,
     id,
     timestamp: Date.now(),
+    status: 'pending',
   });
 }
 
 export async function getPendingOperations(): Promise<PendingOperation[]> {
   const db = await getDb();
-  return db.getAllFromIndex('pending_operations', 'by-timestamp');
+  const all = await db.getAllFromIndex('pending_operations', 'by-timestamp');
+  return all.filter(op => !op.status || op.status === 'pending');
+}
+
+export async function getFailedOperations(): Promise<PendingOperation[]> {
+  const db = await getDb();
+  const all = await db.getAllFromIndex('pending_operations', 'by-timestamp');
+  return all.filter(op => op.status === 'failed');
+}
+
+export async function markOperationFailed(id: string, errorMessage: string): Promise<void> {
+  const db = await getDb();
+  const op = await db.get('pending_operations', id);
+  if (op) {
+    op.status = 'failed';
+    op.errorMessage = errorMessage;
+    await db.put('pending_operations', op);
+  }
+}
+
+export async function retryFailedOperation(id: string): Promise<void> {
+  const db = await getDb();
+  const op = await db.get('pending_operations', id);
+  if (op) {
+    op.status = 'pending';
+    op.errorMessage = undefined;
+    await db.put('pending_operations', op);
+  }
+}
+
+export async function retryAllFailedOperations(): Promise<void> {
+  const failed = await getFailedOperations();
+  const db = await getDb();
+  const tx = db.transaction('pending_operations', 'readwrite');
+  for (const op of failed) {
+    op.status = 'pending';
+    op.errorMessage = undefined;
+    await tx.store.put(op);
+  }
+  await tx.done;
 }
 
 export async function removePendingOperation(id: string): Promise<void> {
@@ -269,8 +290,50 @@ export async function removePendingOperation(id: string): Promise<void> {
 }
 
 export async function getPendingCount(): Promise<number> {
+  const ops = await getPendingOperations();
+  return ops.length;
+}
+
+export async function getFailedCount(): Promise<number> {
+  const ops = await getFailedOperations();
+  return ops.length;
+}
+
+const STORE_NAMES = [
+  'products', 'categories', 'branch_stock', 'branches', 'customers',
+  'sales', 'sale_items', 'employees', 'jornadas', 'raw_materials',
+  'insumo_areas', 'service_categories', 'recipes', 'cash_registers',
+] as const;
+
+const STORE_LABELS: Record<string, string> = {
+  products: 'Productos',
+  categories: 'Categorías',
+  branch_stock: 'Stock',
+  branches: 'Sucursales',
+  customers: 'Clientes',
+  sales: 'Ventas',
+  sale_items: 'Items de venta',
+  employees: 'Empleados',
+  jornadas: 'Jornadas',
+  raw_materials: 'Insumos',
+  insumo_areas: 'Áreas',
+  service_categories: 'Servicios',
+  recipes: 'Recetas',
+  cash_registers: 'Cajas',
+};
+
+export async function getStoreCounts(): Promise<{ name: string; label: string; count: number }[]> {
   const db = await getDb();
-  return db.count('pending_operations');
+  const results: { name: string; label: string; count: number }[] = [];
+  for (const name of STORE_NAMES) {
+    try {
+      const count = await db.count(name as any);
+      results.push({ name, label: STORE_LABELS[name] || name, count });
+    } catch {
+      results.push({ name, label: STORE_LABELS[name] || name, count: 0 });
+    }
+  }
+  return results;
 }
 
 // Sync meta
