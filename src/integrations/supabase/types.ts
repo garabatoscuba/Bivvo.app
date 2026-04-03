@@ -4952,6 +4952,8 @@ export type Database = {
       service_entries: {
         Row: {
           amount: number
+          archived: boolean | null
+          archived_at: string | null
           branch_id: string
           business_id: string
           category_id: string | null
@@ -4965,6 +4967,8 @@ export type Database = {
         }
         Insert: {
           amount?: number
+          archived?: boolean | null
+          archived_at?: string | null
           branch_id: string
           business_id: string
           category_id?: string | null
@@ -4978,6 +4982,8 @@ export type Database = {
         }
         Update: {
           amount?: number
+          archived?: boolean | null
+          archived_at?: string | null
           branch_id?: string
           business_id?: string
           category_id?: string | null
