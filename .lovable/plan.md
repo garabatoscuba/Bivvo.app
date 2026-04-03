@@ -1,111 +1,54 @@
 
-# Actualizacion inteligente de la PWA
 
-## Problema actual
+## Plan: Ajustar toggles de conteo y enlazar cierre de jornada correctamente
 
-La app usa `registerType: "autoUpdate"` que descarga actualizaciones en segundo plano, pero:
-- El usuario nunca se entera de que hay una version nueva
-- La actualizacion solo se aplica al cerrar y reabrir la app
-- No hay forma de forzar una sincronizacion de datos
+### Resumen
 
-## Solucion
+Actualmente existe un solo toggle (`is_jefe` = "Responsable de conteo") que controla si el empleado cuenta productos al cerrar jornada. Si no es `is_jefe`, va al modal simple (`CerrarJornadaModal`) que no tiene conteo de efectivo ni de productos.
 
-### 1. Cambiar estrategia de actualizacion PWA
+**Problema**: No hay forma de separar "contar productos" de "contar dinero de caja". Además, empleados sin `is_jefe` cierran con un modal básico sin conteo de caja.
 
-Cambiar de `autoUpdate` a `prompt` en `vite.config.ts`. Esto permite que la app detecte la nueva version y le **pregunte** al usuario si quiere actualizar, en vez de hacerlo silenciosamente.
+**Solución**: Agregar un segundo campo `is_cash_counter` (boolean) en la tabla `employees` para indicar si el empleado debe contar efectivo. Modificar la lógica de cierre para que `ContarYCerrarModal` soporte ambos toggles independientemente.
 
-### 2. Hook de actualizacion (`src/hooks/usePWAUpdate.ts`)
+---
 
-Crear un hook que:
-- Registra el Service Worker manualmente usando `registerSW` de `vite-plugin-pwa`
-- Detecta cuando hay una actualizacion disponible (`onNeedRefresh`)
-- Expone `needsUpdate` (boolean) y `updateApp()` (funcion que recarga con la nueva version)
-- Verifica actualizaciones periodicamente (cada 60 minutos)
+### Cambios
 
-### 3. Banner de actualizacion (`src/components/layout/UpdateBanner.tsx`)
+#### 1. Migración de base de datos
+Agregar columna `is_cash_counter` (boolean, default false) a la tabla `employees`.
 
-Un banner que aparece en la parte superior cuando se detecta una nueva version:
+#### 2. `src/pages/Employees.tsx` — Formulario de empleado
+- **Renombrar** el toggle actual de "Responsable de conteo" → descripción genérica:
+  - Label: "Responsable de conteo"
+  - Sublabel: "Cuenta productos de su área al cerrar jornada" (sin diferenciar ventas/área)
+- **Agregar nuevo toggle** debajo:
+  - Label: "Conteo de caja"
+  - Sublabel: "Cuenta el dinero de caja al cerrar jornada"
+  - Campo: `is_cash_counter`
+- Ambos toggles visibles para **todos los roles** (vendedor, operario, gerente), no solo seller/operator
+- Guardar `is_cash_counter` en create y update
 
-```text
-+----------------------------------------------+
-| Nueva version disponible  [Actualizar ahora] |
-+----------------------------------------------+
-```
+#### 3. `src/pages/MyEmployment.tsx` — Lógica de cierre
+- Leer `is_cash_counter` del registro del empleado
+- Nueva lógica de decisión:
+  - Si `is_jefe` O `is_cash_counter` → abrir `ContarYCerrarModal` (pasando flags)
+  - Si ninguno → abrir `CerrarJornadaModal` (cierre simple)
+- Pasar nuevas props `needsInventoryCount` y `needsCashCount` a `ContarYCerrarModal`
 
-Se integra en `AppLayout.tsx` arriba de todo.
+#### 4. `src/components/employees/ContarYCerrarModal.tsx` — Modal de cierre
+- Recibir props `needsInventoryCount` y `needsCashCount`
+- Ajustar los pasos dinámicamente:
+  - Si solo `needsInventoryCount`: paso 1 = inventario, cierra sin conteo de caja
+  - Si solo `needsCashCount`: paso 1 = conteo de caja directo (sin inventario)
+  - Si ambos: paso 1 = inventario, paso 2 = caja (flujo actual)
+  - El indicador "Paso X de Y" se adapta al número de pasos reales
 
-### 4. Botones en el header
+#### 5. Employee type interface
+- Agregar `is_cash_counter?: boolean` a la interfaz `Employee` en `MyEmployment.tsx` y `Employees.tsx`
+- Agregar al `formDefaults` en `Employees.tsx`
 
-Agregar dos botones pequenos en el `AppHeader.tsx` junto al centro de notificaciones:
+### Lo que NO se toca
+- Auth, POS, inventario, sidebar, vendedores, tesorería
+- No se cambia el contenido de `CashCalculator` ni `InventoryCountStep`
+- No se modifica `CerrarJornadaModal` (sigue como fallback para empleados sin ningún conteo)
 
-- **Sincronizar** (icono RefreshCw): Invalida los caches de React Query para forzar una recarga de datos frescos desde la base de datos. Util cuando el usuario quiere asegurarse de tener la informacion mas reciente.
-- **Actualizar** (icono Download): Solo aparece cuando hay una version nueva disponible. Al tocarlo, aplica la actualizacion y recarga la app.
-
-```text
-[RefreshCw] [Download*] [Bell]
-             * solo si hay update
-```
-
-### 5. Verificacion periodica
-
-En el hook, configurar `intervalMS` para que el Service Worker verifique si hay una nueva version cada 60 minutos automaticamente.
-
-## Detalle tecnico
-
-### Archivos nuevos
-- `src/hooks/usePWAUpdate.ts` - Hook para deteccion y aplicacion de actualizaciones
-
-### Archivos modificados
-- `vite.config.ts` - Cambiar `registerType` de `"autoUpdate"` a `"prompt"`
-- `src/components/layout/AppHeader.tsx` - Agregar botones de Sincronizar y Actualizar
-- `src/components/layout/AppLayout.tsx` - Integrar banner de actualizacion (inline, sin componente separado)
-
-### Flujo de actualizacion
-
-```text
-Tu publicas cambios
-        |
-        v
-Service Worker detecta nueva version (check cada 60 min)
-        |
-        v
-Aparece banner "Nueva version disponible"
-+ Aparece icono de descarga en el header
-        |
-        v
-Usuario toca "Actualizar ahora"
-        |
-        v
-Se activa el nuevo Service Worker y se recarga la pagina
-        |
-        v
-App corriendo con la version mas reciente
-```
-
-### Flujo de sincronizacion
-
-```text
-Usuario toca icono RefreshCw en el header
-        |
-        v
-Se invalidan todos los caches de React Query
-        |
-        v
-Se refetch automatico de todos los datos visibles
-        |
-        v
-Toast: "Datos sincronizados"
-```
-
-### Logica del hook usePWAUpdate
-
-```text
-import { useRegisterSW } from 'virtual:pwa-register/react'
-
-- onNeedRefresh -> setNeedsUpdate(true)
-- updateApp() -> updateServiceWorker(true) // activa SW y recarga
-- intervalMS: 60 * 60 * 1000 // verificar cada hora
-```
-
-### Nota para el usuario
-Una vez implementado, tus clientes nunca tendran que reinstalar la app. Cada vez que publiques cambios, les aparecera un aviso y con un toque actualizan. El boton de sincronizar les permite refrescar los datos en cualquier momento.
