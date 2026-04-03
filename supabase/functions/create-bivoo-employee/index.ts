@@ -72,17 +72,49 @@ Deno.serve(async (req) => {
     let email = `${baseSlug}@bivoo.app`;
     let attempt = 0;
 
-    // Check uniqueness using getUserByEmail (O(1) instead of listUsers)
+    // Check uniqueness with try/catch (getUserByEmail throws on 404)
     while (true) {
-      const { data: existing } = await admin.auth.admin.getUserByEmail(email);
-      if (!existing?.user) break;
-      attempt++;
-      email = `${baseSlug}${attempt}@bivoo.app`;
-      if (attempt > 20) {
-        return new Response(
-          JSON.stringify({ error: "No se pudo generar un identificador único" }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+      let emailTaken = false;
+      try {
+        const { data: existing } = await admin.auth.admin.getUserByEmail(email);
+        if (existing?.user) {
+          // Check if this is a residual user with no active employee link
+          const { data: linkedEmp } = await admin
+            .from("employees")
+            .select("id")
+            .eq("auth_user_id", existing.user.id)
+            .maybeSingle();
+
+          if (!linkedEmp) {
+            // Orphaned auth user from previous partial deletion — clean it up
+            console.log(`Cleaning up orphaned auth user: ${email} (${existing.user.id})`);
+            await admin.from("user_roles").delete().eq("user_id", existing.user.id);
+            await admin.from("profiles").delete().eq("user_id", existing.user.id);
+            try { await admin.auth.admin.deleteUser(existing.user.id); } catch (e) {
+              console.error("Failed to delete orphaned auth user:", e);
+            }
+            // Email is now free
+            break;
+          } else {
+            emailTaken = true;
+          }
+        } else {
+          break;
+        }
+      } catch {
+        // getUserByEmail throws when user doesn't exist — email is available
+        break;
+      }
+
+      if (emailTaken) {
+        attempt++;
+        email = `${baseSlug}${attempt}@bivoo.app`;
+        if (attempt > 20) {
+          return new Response(
+            JSON.stringify({ error: "No se pudo generar un identificador único" }),
+            { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
       }
     }
 
@@ -103,9 +135,7 @@ Deno.serve(async (req) => {
 
     const userId = newUser.user.id;
 
-    // Wait for the trigger to create the profile, then update it
-    // The handle_new_user trigger creates a profile automatically
-    // We need to wait a moment for it to execute
+    // Wait for the trigger to create the profile
     await new Promise((r) => setTimeout(r, 1500));
 
     const normalizedPosition = (() => {
@@ -115,6 +145,12 @@ Deno.serve(async (req) => {
       if (["seller", "vendedor", "dependiente", "dependent"].includes(raw)) return "seller";
       return "seller";
     })();
+
+    // Update the profile with business_id and branch_id (trigger creates it with NULLs)
+    await admin
+      .from("profiles")
+      .update({ business_id, branch_id: branch_id || null })
+      .eq("user_id", userId);
 
     // Update the employee record with generated credentials binding
     const { error: employeeUpdateError } = await admin
@@ -134,8 +170,6 @@ Deno.serve(async (req) => {
 
     // Assign the appropriate operational role
     const role = normalizedPosition;
-
-    // Check if role already exists
     const { data: existingRole } = await admin
       .from("user_roles")
       .select("id")
