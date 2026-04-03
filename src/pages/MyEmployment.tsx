@@ -81,6 +81,7 @@ interface Employee {
   created_at: string;
   updated_at: string;
   is_jefe?: boolean;
+  is_cash_counter?: boolean;
   assigned_roles?: string[];
 }
 
