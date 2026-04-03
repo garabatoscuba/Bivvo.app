@@ -12,7 +12,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Validate auth
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -37,7 +36,6 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.claims.sub as string;
-
     const { business_id } = await req.json();
     if (!business_id) {
       return new Response(JSON.stringify({ error: "business_id required" }), {
@@ -46,12 +44,12 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Verify user is owner of this business
     const adminClient = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
     );
 
+    // Verify owner
     const { data: profile } = await adminClient
       .from("profiles")
       .select("business_id")
@@ -65,7 +63,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check owner role
     const { data: roleData } = await adminClient
       .from("user_roles")
       .select("role")
@@ -82,7 +79,6 @@ Deno.serve(async (req) => {
 
     const errors: string[] = [];
 
-    // Helper to delete and log errors without blocking
     const safeDelete = async (table: string, filter: Record<string, any>) => {
       try {
         let query = adminClient.from(table).delete();
@@ -114,96 +110,116 @@ Deno.serve(async (req) => {
       }
     };
 
-    // Get all branch IDs for this business (needed for tables without business_id)
+    // Get branch IDs
     const { data: branches } = await adminClient
       .from("branches")
       .select("id")
       .eq("business_id", business_id);
     const branchIds = (branches || []).map((b: any) => b.id);
 
-    // 1. audit_logs
+    // --- Delete children before parents ---
+
+    // audit_logs
     await safeDelete("audit_logs", { business_id });
 
-    // 2. inventory_counts (may not exist yet)
-    try {
-      const { error } = await adminClient.from("inventory_counts").delete().eq("business_id", business_id);
-      if (error) console.error("inventory_counts:", error.message);
-    } catch (_) {}
+    // inventory_counts
+    await safeDelete("inventory_counts", { business_id });
 
-    // 3. accounting_asset_interventions & maintenances via asset_id
+    // accounting assets children
     const { data: assets } = await adminClient
       .from("accounting_assets")
       .select("id")
       .eq("business_id", business_id);
     const assetIds = (assets || []).map((a: any) => a.id);
-
     if (assetIds.length > 0) {
       await safeDeleteIn("accounting_asset_interventions", "asset_id", assetIds);
       await safeDeleteIn("accounting_asset_maintenances", "asset_id", assetIds);
     }
-
-    // 4. accounting_assets
     await safeDelete("accounting_assets", { business_id });
-
-    // 5. accounting_expenses
     await safeDelete("accounting_expenses", { business_id });
 
-    // 6. employee_salary_records
+    // employee_salary_records
     await safeDelete("employee_salary_records", { business_id });
 
-    // 7. daily_reports
+    // daily_reports
     await safeDelete("daily_reports", { business_id });
 
-    // 8. jornadas (uses sucursal_id, no business_id)
+    // jornadas
     await safeDeleteIn("jornadas", "sucursal_id", branchIds);
 
-    // 9. cash_register_movements
+    // cash_register_movements & cash_registers
     await safeDelete("cash_register_movements", { business_id });
-
-    // 10. cash_registers
     await safeDelete("cash_registers", { business_id });
 
-    // 11. treasury_movements
+    // treasury
     await safeDelete("treasury_movements", { business_id });
-
-    // 12. treasury_pending_entries
     await safeDelete("treasury_pending_entries", { business_id });
 
-    // 13. product_stock_entries
+    // product_stock_entries
     await safeDelete("product_stock_entries", { business_id });
 
-    // 14. sale_items via sale_id (sales uses branch_id, no business_id)
+    // sale_items -> sales
     const { data: salesData } = await adminClient
       .from("sales")
       .select("id")
       .in("branch_id", branchIds);
     const saleIds = (salesData || []).map((s: any) => s.id);
-
     if (saleIds.length > 0) {
       const batchSize = 200;
       for (let i = 0; i < saleIds.length; i += batchSize) {
-        const batch = saleIds.slice(i, i + batchSize);
-        await safeDeleteIn("sale_items", "sale_id", batch);
+        await safeDeleteIn("sale_items", "sale_id", saleIds.slice(i, i + batchSize));
       }
     }
-
-    // 15. sales (uses branch_id)
     await safeDeleteIn("sales", "branch_id", branchIds);
 
-    // 16. daily_copies
+    // daily_copies
     await safeDelete("daily_copies", { business_id });
 
-    // 17. tip_entries (if exists)
+    // tip_entries
     try {
-      const { error } = await adminClient.from("tip_entries").delete().eq("business_id", business_id);
-      if (error) console.error("tip_entries:", error.message);
+      await adminClient.from("tip_entries").delete().eq("business_id", business_id);
     } catch (_) {}
 
-    // 18. inventory_movements (uses branch_id, no business_id)
+    // inventory_movements
     await safeDeleteIn("inventory_movements", "branch_id", branchIds);
 
-    // 19. notifications
+    // notifications
     await safeDelete("notifications", { business_id });
+
+    // --- NEW: service_entries ---
+    await safeDelete("service_entries", { business_id });
+
+    // --- NEW: kitchen_orders ---
+    await safeDelete("kitchen_orders", { business_id });
+
+    // --- NEW: print_job_items -> print_jobs (children first) ---
+    const { data: printJobs } = await adminClient
+      .from("print_jobs")
+      .select("id")
+      .eq("business_id", business_id);
+    const printJobIds = (printJobs || []).map((p: any) => p.id);
+    if (printJobIds.length > 0) {
+      const batchSize = 200;
+      for (let i = 0; i < printJobIds.length; i += batchSize) {
+        await safeDeleteIn("print_job_items", "print_job_id", printJobIds.slice(i, i + batchSize));
+      }
+    }
+    await safeDelete("print_jobs", { business_id });
+
+    // --- NEW: print_ink_usage ---
+    await safeDelete("print_ink_usage", { business_id });
+
+    // --- NEW: print_active_sheets ---
+    await safeDeleteIn("print_active_sheets", "branch_id", branchIds);
+
+    // --- NEW: print_shrinkage ---
+    await safeDelete("print_shrinkage", { business_id });
+
+    // --- NEW: raw_material_entries ---
+    await safeDelete("raw_material_entries", { business_id });
+
+    // --- NEW: raw_material_transfers ---
+    await safeDelete("raw_material_transfers", { business_id });
 
     return new Response(
       JSON.stringify({ success: true, errors: errors.length > 0 ? errors : undefined }),

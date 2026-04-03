@@ -68,7 +68,7 @@ function PeriodCloseModal({ open, onOpenChange }: { open: boolean; onOpenChange:
       const now = new Date().toISOString();
       const businessId = profile.business_id;
 
-      const archiveTables = ['sales', 'cash_register_movements', 'treasury_movements', 'jornadas', 'daily_reports'] as const;
+      const archiveTables = ['sales', 'cash_register_movements', 'treasury_movements', 'jornadas', 'daily_reports', 'service_entries'] as const;
       for (const table of archiveTables) {
         const { error } = await (supabase.from(table) as any)
           .update({ archived: true, archived_at: now })
