@@ -80,6 +80,7 @@ interface Employee {
   updated_at: string;
   auth_user_id: string | null;
   is_jefe: boolean | null;
+  is_cash_counter: boolean | null;
 }
 
 interface SalaryAssignmentEntry {
