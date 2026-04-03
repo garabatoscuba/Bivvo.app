@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Chrome, Apple, ArrowRight, ArrowLeft, Mail, Lock, User, Sun, Moon } from "lucide-react";
+import { Loader2, Chrome, Apple, ArrowRight, ArrowLeft, Mail, Lock, User, Sun, Moon, WifiOff } from "lucide-react";
 import { useTheme } from "next-themes";
 import { z } from "zod";
 import logoLight from "@/assets/logo-light.png";
@@ -16,6 +16,7 @@ import WhatIsBivooPanel from "@/components/auth/WhatIsBivooPanel";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { loadOfflineSession } from "@/lib/offlineSession";
 
 const emailSchema = z.string().email("Email inválido");
 const passwordSchema = z.string().min(6, "La contraseña debe tener al menos 6 caracteres");
@@ -39,6 +40,24 @@ const Auth = () => {
   const [whatIsOpen, setWhatIsOpen] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
+
+  useEffect(() => {
+    const goOnline = () => setIsOffline(false);
+    const goOffline = () => setIsOffline(true);
+    window.addEventListener('online', goOnline);
+    window.addEventListener('offline', goOffline);
+    return () => { window.removeEventListener('online', goOnline); window.removeEventListener('offline', goOffline); };
+  }, []);
+
+  const handleContinueOffline = () => {
+    const cached = loadOfflineSession();
+    if (cached) {
+      window.location.replace('/');
+    } else {
+      toast({ title: "Sin datos", description: "No hay sesión guardada. Sincroniza cuando tengas internet.", variant: "destructive" });
+    }
+  };
 
   useEffect(() => {
     const msg = sessionStorage.getItem("auth_message");
@@ -113,7 +132,7 @@ const Auth = () => {
       } else if (error.message.includes("Email not confirmed")) {
         toast({ title: "Email no confirmado", description: "Revisa tu bandeja de entrada para confirmar tu cuenta.", variant: "destructive" });
       } else {
-        toast({ title: "Error", description: "Error al iniciar sesión", variant: "destructive" });
+        toast({ title: "Error", description: error.message || "Error al iniciar sesión", variant: "destructive" });
       }
     } else {
       toast({ title: "¡Bienvenido!", description: "Has iniciado sesión correctamente." });
@@ -222,6 +241,20 @@ const Auth = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6 px-8 pb-8">
+          {/* Offline banner + continue button */}
+          {isOffline && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-3 py-2 text-sm text-yellow-700 dark:text-yellow-400">
+                <WifiOff className="h-4 w-4 shrink-0" />
+                <span>Sin conexión a internet</span>
+              </div>
+              <Button onClick={handleContinueOffline} className="w-full gap-2" variant="outline">
+                <WifiOff className="h-4 w-4" />
+                Continuar sin conexión
+              </Button>
+            </div>
+          )}
+
           {/* Terms checkbox + modal */}
           <div className="flex items-center justify-center gap-2">
             <Checkbox
@@ -276,11 +309,11 @@ const Auth = () => {
           {step === "email" && (
             <>
               <div className="space-y-3">
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading || !termsAccepted}>
+                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading || !termsAccepted || isOffline}>
                   {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
                   Continuar con Google
                 </Button>
-                <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading || !termsAccepted}>
+                <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading || !termsAccepted || isOffline}>
                   {appleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Apple className="mr-2 h-4 w-4" />}
                   Continuar con Apple
                 </Button>
@@ -408,7 +441,7 @@ const Auth = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || isOffline}>
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                 Crear cuenta
               </Button>
