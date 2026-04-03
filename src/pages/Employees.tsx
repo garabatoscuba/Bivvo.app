@@ -1222,24 +1222,35 @@ const Employees = () => {
                 <p className="text-xs text-muted-foreground">Los roles se asignarán cuando el empleado tenga cuenta vinculada.</p>
               </div>
 
-              {/* Responsable de conteo toggle */}
-              {(form.assigned_roles.includes('seller') || form.assigned_roles.includes('operator')) && (
-                <div className="flex items-center justify-between rounded-lg border p-3">
-                  <div className="space-y-0.5">
-                    <Label htmlFor="is_jefe" className="text-sm cursor-pointer">Responsable de conteo</Label>
-                    <p className="text-xs text-muted-foreground">
-                      {form.assigned_roles.includes('operator')
-                        ? 'Responsable del conteo de su área'
-                        : 'Responsable del conteo de ventas'}
-                    </p>
-                  </div>
-                  <Switch
-                    id="is_jefe"
-                    checked={form.is_jefe}
-                    onCheckedChange={(checked) => setForm(prev => ({ ...prev, is_jefe: !!checked }))}
-                  />
+              {/* Conteo de productos toggle */}
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is_jefe" className="text-sm cursor-pointer">Conteo de productos</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Cuenta productos de su área al cerrar jornada
+                  </p>
                 </div>
-              )}
+                <Switch
+                  id="is_jefe"
+                  checked={form.is_jefe}
+                  onCheckedChange={(checked) => setForm(prev => ({ ...prev, is_jefe: !!checked }))}
+                />
+              </div>
+
+              {/* Conteo de caja toggle */}
+              <div className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is_cash_counter" className="text-sm cursor-pointer">Conteo de caja</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Cuenta el dinero de caja al cerrar jornada
+                  </p>
+                </div>
+                <Switch
+                  id="is_cash_counter"
+                  checked={form.is_cash_counter}
+                  onCheckedChange={(checked) => setForm(prev => ({ ...prev, is_cash_counter: !!checked }))}
+                />
+              </div>
 
               {/* Insumo area assignment for operator role */}
               {form.assigned_roles.includes('operator') && insumoAreas.length > 0 && (
