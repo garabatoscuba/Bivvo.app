@@ -78,22 +78,18 @@ const EquipoActivoSection = ({ onlyActive = false, businessIdOverride, myJornada
       // 2. Build profile map — prefer auth_user_id, fallback to email
       let profileMap: Record<string, { id: string; branch_id: string | null }> = {};
 
-      // 2a. For employees with auth_user_id, get profiles directly
+      // 2a. For employees with auth_user_id, get profiles via SECURITY DEFINER function
       const authUserIds = employees.filter(e => e.auth_user_id).map(e => e.auth_user_id!);
       if (authUserIds.length > 0) {
-        const { data: profiles } = await supabase
-          .from('profiles')
-          .select('id, user_id, branch_id')
-          .in('user_id', authUserIds);
+        const { data: profiles } = await supabase.rpc('get_profiles_by_user_ids', { user_ids: authUserIds });
         if (profiles) {
           for (const p of profiles) {
-            // Key by auth_user_id for lookup
             profileMap[`uid:${p.user_id}`] = { id: p.id, branch_id: p.branch_id };
           }
         }
       }
 
-      // 2b. For employees WITHOUT auth_user_id, fallback to email
+      // 2b. For employees WITHOUT auth_user_id, fallback to email via SECURITY DEFINER
       const emailOnlyEmps = employees.filter(e => !e.auth_user_id && e.email);
       if (emailOnlyEmps.length > 0) {
         const emails = emailOnlyEmps.map(e => e.email!.toLowerCase());
