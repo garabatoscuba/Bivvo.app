@@ -341,6 +341,7 @@ const ContarYCerrarModal = ({ open, onOpenChange, jornada, employeeBusinessId, d
               <CashCalculator
                 employeeBusinessId={employeeBusinessId}
                 employeeBranchId={jornada.sucursal_id}
+                employeeModalityType={employeeModalityType}
                 onTipSurplusChange={handleTipSurplusChange}
                 onBreakdownChange={handleBreakdownChange}
               />
