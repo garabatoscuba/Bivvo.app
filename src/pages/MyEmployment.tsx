@@ -948,6 +948,7 @@ const MyEmployment = () => {
           dailySalary={dailySalary}
           needsInventoryCount={needsInventoryCount}
           needsCashCount={needsCashCount}
+          employeeModalityType={(mySalaryAssignment as any)?.salary_modalities?.modality_type}
         />
       )}
 
