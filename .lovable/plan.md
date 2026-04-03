@@ -1,56 +1,55 @@
 
 
-## Plan: Filtrar conteo de caja según modalidad de nómina
+## Plan: Completar Reset de datos + Crear área "Uso Interno" faltante
 
-### Problema
+### Tres problemas identificados
 
-Cuando hay 2 empleados con modalidad **Mixto Personalizado** (`custom_mixed`), el ingreso se reparte entre ambos. Pero `CashCalculator` muestra TODAS las ventas de la sucursal como "efectivo esperado", así que si el Empleado A solo tiene su propio efectivo, las ventas del Empleado B aparecen como faltante o sobrante falso.
+1. **Reset Completo** no borra: `service_entries`, `kitchen_orders`, `print_jobs`/`print_job_items`, `print_ink_usage`, `print_active_sheets`, `print_shrinkage`, `raw_material_entries`, `raw_material_transfers`, `inventory_counts` (la tabla sí existe pero el delete falla silenciosamente)
+2. **Cerrar Período** solo archiva 5 tablas (`sales`, `cash_register_movements`, `treasury_movements`, `jornadas`, `daily_reports`) — le falta `service_entries` y otros registros operativos. Además, varias tablas NO tienen columna `archived`, así que el update falla silenciosamente.
+3. **Área "Uso Interno"** no existe para negocios creados antes de que se implementara. El negocio "visionlahabana" solo tiene "Cocina" sin área interna.
 
-**La regla es:**
-- **Mixto Personalizado (`custom_mixed`)**: Las ventas se fusionan — ver TODAS las ventas de la sucursal (el conteo es compartido)
-- **Cualquier otra modalidad** (fijo, por hora, % individual, etc.): Filtrar solo las ventas del propio empleado (`user_id`)
+---
 
 ### Cambios
 
-#### 1. `src/components/cobro/CashCalculator.tsx` — Agregar prop y lógica de filtrado
+#### 1. Migración: agregar columna `archived` a `service_entries`
+Para que el cierre de período pueda archivar servicios.
 
-- Agregar nueva prop opcional `employeeModalityType?: string`
-- Agregar `userId` desde `useAuth` (ya existe `profile`)
-- Lógica de filtrado:
-  - Si `employeeModalityType === 'custom_mixed'`: mantener queries actuales sin filtro por user (todas las ventas de la sucursal)
-  - Si es cualquier otra modalidad O no se pasa la prop: agregar `.eq('user_id', userId)` a las queries de `sales` y `service_entries`
-- Actualizar `queryKey` para incluir modalidad y userId
-
-#### 2. `src/components/employees/ContarYCerrarModal.tsx` — Pasar modalidad al CashCalculator
-
-- Agregar nueva prop `employeeModalityType?: string` al modal
-- Pasarla a `<CashCalculator employeeModalityType={employeeModalityType} />`
-
-#### 3. `src/pages/MyEmployment.tsx` — Obtener y pasar la modalidad
-
-- Del query existente de `employee_salary_assignments` + `salary_modalities`, extraer el `modality_type`
-- Pasarlo como prop `employeeModalityType` a `ContarYCerrarModal`
-
-### Resultado
-
-```text
-MIXTO PERSONALIZADO (custom_mixed):
-  Ambos empleados ven TODAS las ventas de la sucursal
-  El "efectivo esperado" es el total de la sucursal
-  El conteo de caja es compartido (deben contar juntos o uno cuenta todo)
-  Propinas = lo que sobra del total de la sucursal
-
-CUALQUIER OTRA MODALIDAD:
-  Cada empleado ve SOLO sus ventas
-  "Efectivo esperado" = solo lo que ese empleado cobró en efectivo
-  Propinas = solo lo que le sobra a ese empleado
+```sql
+ALTER TABLE service_entries ADD COLUMN IF NOT EXISTS archived boolean DEFAULT false;
+ALTER TABLE service_entries ADD COLUMN IF NOT EXISTS archived_at timestamptz;
 ```
 
-### Archivos a modificar
-- `src/components/cobro/CashCalculator.tsx`
-- `src/components/employees/ContarYCerrarModal.tsx`
-- `src/pages/MyEmployment.tsx`
+#### 2. Migración: crear área "Uso Interno" para negocios que no la tienen
+```sql
+INSERT INTO insumo_areas (business_id, name, icon, color, is_internal)
+SELECT b.id, 'Uso Interno', 'Home', 'primary', true
+FROM businesses b
+WHERE NOT EXISTS (
+  SELECT 1 FROM insumo_areas ia 
+  WHERE ia.business_id = b.id AND ia.is_internal = true
+);
+```
+
+#### 3. `supabase/functions/reset-business-data/index.ts` — Agregar tablas faltantes
+Agregar borrado de:
+- `service_entries` (by business_id)
+- `kitchen_orders` (by business_id)  
+- `print_job_items` (via print_jobs.id)
+- `print_jobs` (by business_id)
+- `print_ink_usage` (by business_id)
+- `print_active_sheets` (by branch_id)
+- `print_shrinkage` (by business_id)
+- `raw_material_entries` (by business_id)
+- `raw_material_transfers` (by business_id)
+
+Orden: borrar hijos antes que padres (print_job_items antes de print_jobs).
+
+**NO borra**: employees, products, raw_materials, branches, businesses, insumo_areas, salary_modalities, salary_modality_presets, employee_salary_assignments, cash_register_config, recipes, recipe_ingredients, categories, service_categories, service_cost_ingredients, print_service_types, print_material_types, print_printers.
+
+#### 4. `src/components/settings/DataManagement.tsx` — Cerrar Período
+Agregar `service_entries` a la lista de `archiveTables` para que los cobros de servicios también se archiven.
 
 ### Lo que NO se toca
-- No se modifican tablas, auth, POS, inventario, sidebar ni nómina
-
+- Auth, POS, inventario, sidebar, nómina, empleados, contabilidad
+- La UI de áreas ya protege "Uso Interno" de edición/borrado (línea 599 verifica `!isInternal`)
