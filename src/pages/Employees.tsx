@@ -642,13 +642,22 @@ const Employees = () => {
 
   const handleDeleteEmployee = async (id: string) => {
     const emp = hrEmployees.find(e => e.id === id);
-    const { error } = await supabase.from('employees').delete().eq('id', id);
-    if (error) {
-      sonnerToast.error(error.message);
-    } else {
+    const confirmMsg = emp?.email?.endsWith('@bivoo.app')
+      ? `¿Eliminar a ${emp.full_name}? Se eliminará también su cuenta de acceso @bivoo.app.`
+      : `¿Eliminar a ${emp?.full_name || 'este empleado'}?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke('delete-bivoo-employee', {
+        body: { employee_id: id },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
       queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
-      sonnerToast.success('Empleado eliminado');
+      sonnerToast.success('Empleado eliminado completamente');
       auditLog('employee_deleted', `Empleado ${emp?.full_name || 'desconocido'} eliminado`, id, 'employee');
+    } catch (err: any) {
+      sonnerToast.error(err.message || 'Error al eliminar empleado');
     }
   };
 

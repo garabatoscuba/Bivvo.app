@@ -51,16 +51,31 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
+    // Check for duplicate name in same business
+    const { data: existingEmp } = await admin
+      .from("employees")
+      .select("id")
+      .eq("business_id", business_id)
+      .ilike("full_name", full_name.trim())
+      .neq("id", employee_id)
+      .maybeSingle();
+
+    if (existingEmp) {
+      return new Response(
+        JSON.stringify({ error: "Ya existe un empleado con ese nombre en este negocio. Usa un nombre diferente." }),
+        { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Generate unique @bivoo.app email
     const baseSlug = slugify(full_name);
     let email = `${baseSlug}@bivoo.app`;
     let attempt = 0;
 
-    // Check uniqueness
+    // Check uniqueness using getUserByEmail (O(1) instead of listUsers)
     while (true) {
-      const { data: existing } = await admin.auth.admin.listUsers();
-      const taken = existing?.users?.some((u: any) => u.email === email);
-      if (!taken) break;
+      const { data: existing } = await admin.auth.admin.getUserByEmail(email);
+      if (!existing?.user) break;
       attempt++;
       email = `${baseSlug}${attempt}@bivoo.app`;
       if (attempt > 20) {
