@@ -92,6 +92,14 @@ export function useOfflineCache() {
         const serviceCatsRes: { data: any[] | null } = await supabase.from('service_categories' as any).select('*').eq('branch_id', branchId);
         const cashRegistersRes: { data: any[] | null } = await supabase.from('cash_registers' as any).select('*').eq('branch_id', branchId).order('opened_at', { ascending: false }).limit(50);
 
+        // Batch 5: Auth data for offline login
+        const profilesRes = await supabase.from('profiles').select('*').eq('business_id', businessId);
+        const profileUserIds = (profilesRes.data || []).map((p: any) => p.user_id).filter(Boolean);
+        let userRolesRes: { data: any[] | null } = { data: [] };
+        if (profileUserIds.length > 0) {
+          userRolesRes = await supabase.from('user_roles').select('*').in('user_id', profileUserIds);
+        }
+
         // Write all to IndexedDB
         const writes: Promise<void>[] = [];
 
@@ -117,6 +125,8 @@ export function useOfflineCache() {
         cacheIfData('recipe_ingredients', recipeIngredientsRes.data);
         cacheIfData('service_categories', serviceCatsRes.data);
         cacheIfData('cash_registers', cashRegistersRes.data);
+        cacheIfData('profiles', profilesRes.data);
+        cacheIfData('user_roles', userRolesRes.data);
 
         await Promise.all(writes);
 

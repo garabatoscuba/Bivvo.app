@@ -139,6 +139,14 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
   const tipConfigRes: { data: any[] | null } = await supabase.from('tip_config' as any).select('*').eq('business_id', businessId);
   const serviceEntriesRes: { data: any[] | null } = await supabase.from('service_entries' as any).select('*').eq('branch_id', branchId).gte('created_at', startOfDay).lte('created_at', endOfDay);
 
+  // Profiles & roles for offline auth
+  const profilesRes = await supabase.from('profiles').select('*').eq('business_id', businessId);
+  const userIdsFromProfiles = (profilesRes.data || []).map((p: any) => p.user_id).filter(Boolean);
+  let userRolesRes: { data: any[] | null } = { data: [] };
+  if (userIdsFromProfiles.length > 0) {
+    userRolesRes = await supabase.from('user_roles').select('*').in('user_id', userIdsFromProfiles);
+  }
+
   const tasks: Promise<void>[] = [];
   const cacheIfData = (storeName: string, data: any[] | null) => {
     if (data) {
@@ -164,6 +172,8 @@ export async function pullCloudData(businessId: string, branchId: string): Promi
   cacheIfData('cash_registers', cashRegistersRes.data);
   cacheIfData('tip_config', tipConfigRes.data);
   cacheIfData('service_entries', serviceEntriesRes.data);
+  cacheIfData('profiles', profilesRes.data);
+  cacheIfData('user_roles', userRolesRes.data);
 
   await Promise.all(tasks);
   await setSyncMeta('lastSyncTimestamp', Date.now());

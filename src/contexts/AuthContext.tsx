@@ -306,6 +306,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signOut = async () => {
+    if (!navigator.onLine) {
+      // Don't clear offline session when offline — user won't be able to log back in
+      throw new Error('No puedes cerrar sesión sin conexión a internet.');
+    }
     clearOfflineSession();
     await supabase.auth.signOut();
     setUser(null);
