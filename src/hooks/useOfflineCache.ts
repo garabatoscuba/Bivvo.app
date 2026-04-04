@@ -130,6 +130,11 @@ export function useOfflineCache() {
 
         await Promise.all(writes);
 
+        // Mark sync as completed in IndexedDB so SyncGate won't block offline
+        await setSyncMeta('lastSyncTimestamp', Date.now());
+        await setSyncMeta('lastSyncBusiness', businessId);
+        await setSyncMeta('lastSyncBranch', branchId);
+
         localStorage.setItem(`bivoo-last-sync-${user.id}`, new Date().toISOString());
         console.log('[useOfflineCache] Datos offline listos — todos los stores actualizados');
       } catch (err) {
