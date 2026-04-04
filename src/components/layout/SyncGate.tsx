@@ -1,11 +1,20 @@
 import { useOffline } from '@/contexts/OfflineContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Cloud, WifiOff, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export const SyncGate = ({ children }: { children: React.ReactNode }) => {
   const { syncBlocked, isOnline, isSyncing, triggerSync } = useOffline();
+  let user: any = null;
+  try {
+    const auth = useAuth();
+    user = auth.user;
+  } catch {
+    // AuthProvider not ready
+  }
 
-  if (!syncBlocked) return <>{children}</>;
+  // Don't block if: no sync issue, user is online, or no authenticated user (let them reach /auth)
+  if (!syncBlocked || isOnline || !user) return <>{children}</>;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6 text-center gap-6">

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { clearStore, putManyInStore } from '@/lib/offlineDb';
+import { clearStore, putManyInStore, setSyncMeta } from '@/lib/offlineDb';
 
 export function useOfflineCache() {
   const { user, profile } = useAuth();
