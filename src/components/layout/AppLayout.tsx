@@ -31,7 +31,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
           <main className="flex-1 overflow-auto p-3 md:p-6 px-2 py-[5px] border-transparent border-none border-0 max-w-full">
             {children}
           </main>
-          <AlertaInactividad />
+          
         </SidebarInset>
       </div>
       <BivooAssistant />
