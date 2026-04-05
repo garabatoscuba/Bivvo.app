@@ -324,21 +324,9 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     const codeReader = new BrowserMultiFormatReader();
     zxingReaderRef.current = codeReader;
 
-    const devices = await BrowserMultiFormatReader.listVideoInputDevices();
-    const backCameras = devices.filter(
-      (d) =>
-        d.label.toLowerCase().includes("back") ||
-        d.label.toLowerCase().includes("rear") ||
-        d.label.toLowerCase().includes("environment") ||
-        !d.label.toLowerCase().includes("front"),
-    );
-    const mainBack = backCameras.find(d => {
-      const l = d.label.toLowerCase();
-      return !l.includes('ultra') && !l.includes('wide') && !l.includes('macro') && !l.includes('depth');
-    });
-    const selectedCamera = (mainBack ?? backCameras[backCameras.length - 1])?.deviceId ?? undefined;
+    const selectedCamera = await pickMainBackCamera();
 
-    await codeReader.decodeFromVideoDevice(selectedCamera, videoEl, (result, _err, controls) => {
+    await codeReader.decodeFromVideoDevice(selectedCamera ?? undefined, videoEl, (result, _err, controls) => {
       if (!mountedRef.current || processing || !result) return;
       zxingControlsRef.current = controls;
       handleScanResult(result.getText());
