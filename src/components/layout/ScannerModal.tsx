@@ -341,7 +341,8 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     if (hasBarcodeDetector) {
       // Native path: manually acquire camera stream
       try {
-        const stream = await navigator.mediaDevices.getUserMedia(getBackCameraConstraints());
+        const constraints = await getCameraConstraints();
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         if (!mountedRef.current) {
           stream.getTracks().forEach((t) => t.stop());
           return;
