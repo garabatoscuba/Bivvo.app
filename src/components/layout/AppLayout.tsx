@@ -4,7 +4,7 @@ import AppSidebar from './AppSidebar';
 import AppHeader from './AppHeader';
 import SubscriptionBanner from './SubscriptionBanner';
 import InstallBanner from './InstallBanner';
-import AlertaInactividad from '@/components/employees/AlertaInactividad';
+
 import BivooAssistant from '@/components/assistant/BivooAssistant';
 import { OfflineBanner } from './OfflineBanner';
 import { useFeatureUsage } from '@/hooks/useFeatureUsage';
@@ -31,7 +31,7 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
           <main className="flex-1 overflow-auto p-3 md:p-6 px-2 py-[5px] border-transparent border-none border-0 max-w-full">
             {children}
           </main>
-          <AlertaInactividad />
+          
         </SidebarInset>
       </div>
       <BivooAssistant />
