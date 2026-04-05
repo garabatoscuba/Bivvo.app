@@ -1,74 +1,50 @@
 
 
-## Plan: Corregir SyncGate que bloquea con internet + login offline que no funciona
+## Plan: Eliminar cierre automático por inactividad + asegurar persistencia de sesión
 
-### Problemas encontrados
+### Problemas
 
-**Bug 1 — SyncGate bloquea usuarios con internet (GRAVE)**
+1. **Jornadas se cierran solas por inactividad**: `useJornadaActiva` tiene un timer de 30 min que muestra una alerta, y `AlertaInactividad` tiene otro timer de 10 min que ejecuta `cerrarPorInactividad()` automáticamente. Esto no conviene — las jornadas solo deben cerrarse manualmente.
 
-`SyncGate` envuelve TODA la app incluyendo `/auth`. La función `isSyncRequired()` retorna `true` cuando `lastSyncTimestamp` es `null` en IndexedDB (línea 28 de syncEngine.ts). 
-
-En una máquina que nunca ha sincronizado (o si se borra IndexedDB), esto causa un DEADLOCK:
-- SyncGate bloquea → no se puede llegar a `/auth` → no hay login → no hay `profile` → el botón "Sincronizar ahora" no hace nada (línea 90 de OfflineContext: `if (!profile?.business_id) return`)
-- Resultado: pantalla "Necesitas sincronizar" sin salida posible, incluso con internet
-
-Esto es exactamente lo que les pasó en tu trabajo.
-
-**Bug 2 — Login offline no funciona pese a descarga forzada**
-
-`useOfflineCache` (descarga forzada) escribe datos a IndexedDB pero **nunca llama `setSyncMeta('lastSyncTimestamp')`**. Solo escribe a `localStorage` (`bivoo-last-sync-${user.id}`). Entonces aunque los datos estén descargados, SyncGate sigue bloqueando porque `lastSyncTimestamp` nunca se setea en IndexedDB.
-
----
+2. **Sesiones de dueños**: El cliente Supabase ya tiene `persistSession: true` y `autoRefreshToken: true`, y existe `useSessionKeepAlive` que refresca cada 10 min. La sesión persiste al cerrar/abrir el navegador. No hay código que cierre la sesión automáticamente. Esto ya funciona correctamente.
 
 ### Solución
 
-#### 1. SyncGate: no bloquear cuando hay internet ni cuando no hay sesión
-**Archivo:** `src/components/layout/SyncGate.tsx`
+#### 1. Eliminar toda la lógica de inactividad del hook
+**Archivo:** `src/hooks/useJornadaActiva.ts`
 
-Agregar dos condiciones de escape:
-- Si `navigator.onLine` y hay conectividad real → no bloquear (el sync debería correr automáticamente en background, no impedir el uso)
-- Si no hay usuario autenticado → no bloquear (dejar pasar a `/auth`)
+- Eliminar las constantes `INACTIVITY_TIMEOUT` y `ACTIVITY_EVENTS`
+- Eliminar los estados `mostrarAlertaInactividad`, `timerRef`
+- Eliminar las funciones `clearTimer`, `startTimer`, `resetInactividad`, `cerrarPorInactividad`
+- Eliminar el `useEffect` de activity listeners
+- Eliminar las propiedades del return (`mostrarAlertaInactividad`, `resetInactividad`, `cerrarPorInactividad`)
+- El hook queda solo con la query de jornada activa y retorna `{ jornadaActiva, jornada, isLoading }`
 
-```text
-// Pseudocódigo del cambio
-const { user } = useAuth();
+#### 2. Eliminar el componente AlertaInactividad
+**Archivo:** `src/components/employees/AlertaInactividad.tsx` — eliminar archivo completo
 
-// No bloquear si:
-// 1. No hay sync pendiente (!syncBlocked)
-// 2. El usuario tiene internet (isOnline) 
-// 3. No hay usuario logueado (dejar pasar a /auth)
-if (!syncBlocked || isOnline || !user) return children;
-```
+#### 3. Quitar AlertaInactividad del layout
+**Archivo:** `src/components/layout/AppLayout.tsx`
+- Eliminar el import y el `<AlertaInactividad />` (líneas 7 y 34)
 
-Con esto:
-- Máquinas nuevas con internet → pasan directo al login, sincronizan después
-- Offline sin sync en 48h → sigue bloqueando (correcto)
-- Sin sesión offline → ven login, no gate
+#### 4. Edge function auto-cerrar-jornadas — se mantiene
+La edge function `auto-cerrar-jornadas` cierra jornadas de >13 horas o de días anteriores. Esto es una limpieza de servidor legítima (jornadas olvidadas), **no** cierre por inactividad del cliente. Se deja tal cual.
 
-#### 2. useOfflineCache: setear lastSyncTimestamp en IndexedDB
-**Archivo:** `src/hooks/useOfflineCache.ts`
+### Sesión de dueños
+Ya está correctamente configurado:
+- `persistSession: true` en el cliente Supabase
+- `autoRefreshToken: true` refresca tokens automáticamente
+- `useSessionKeepAlive` refresca al volver al tab o cada 10 min
+- La sesión sobrevive al cerrar/abrir navegador sin problema
 
-Después de escribir todos los stores, agregar:
-```typescript
-import { setSyncMeta } from '@/lib/offlineDb';
-// Al final del run(), después de Promise.all(writes):
-await setSyncMeta('lastSyncTimestamp', Date.now());
-```
-
-Así la descarga forzada también marca el sync como completado, y SyncGate no bloqueará offline.
-
----
+No se requieren cambios para la sesión.
 
 ### Archivos a modificar
-- `src/components/layout/SyncGate.tsx` (agregar guards para online y sin sesión)
-- `src/hooks/useOfflineCache.ts` (agregar setSyncMeta al final)
+- `src/hooks/useJornadaActiva.ts` (limpiar inactividad)
+- `src/components/layout/AppLayout.tsx` (quitar AlertaInactividad)
+- `src/components/employees/AlertaInactividad.tsx` (eliminar)
 
 ### Lo que NO se toca
-- Auth, POS, inventario, empleados, sidebar, nómina, contabilidad
-- No se crean tablas ni edge functions
-
-### Resultado esperado
-- Las máquinas de tu trabajo dejarán de ver la pantalla de "Necesitas sincronizar" porque tienen internet
-- La descarga forzada realmente preparará todo para uso offline
-- El login offline funcionará después de haber forzado la descarga al menos una vez
+- Edge function `auto-cerrar-jornadas` (limpieza servidor legítima)
+- Auth, POS, inventario, nómina, sidebar, contabilidad
 
