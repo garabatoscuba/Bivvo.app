@@ -22,6 +22,40 @@ interface ScanFeedback {
 // Check native BarcodeDetector support
 const hasBarcodeDetector = typeof globalThis !== "undefined" && "BarcodeDetector" in globalThis;
 
+// Pick the main back camera, excluding ultra-wide/macro/depth lenses
+const pickMainBackCamera = async (): Promise<string | undefined> => {
+  let devices = await navigator.mediaDevices.enumerateDevices();
+  let videoDevices = devices.filter((d) => d.kind === "videoinput");
+
+  // If labels are empty (no permission yet), get a temp stream to unlock labels
+  if (videoDevices.length > 0 && !videoDevices[0].label) {
+    const tempStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: "environment" } },
+      audio: false,
+    });
+    tempStream.getTracks().forEach((t) => t.stop());
+    devices = await navigator.mediaDevices.enumerateDevices();
+    videoDevices = devices.filter((d) => d.kind === "videoinput");
+  }
+
+  const backCameras = videoDevices.filter((d) => {
+    const l = d.label.toLowerCase();
+    return l.includes("back") || l.includes("rear") || l.includes("environment") || !l.includes("front");
+  });
+
+  const filtered = backCameras.filter((d) => {
+    const l = d.label.toLowerCase();
+    return !l.includes("ultra") && !l.includes("wide") && !l.includes("macro") && !l.includes("depth") && !l.includes("telephoto");
+  });
+
+  const candidates = filtered.length > 0 ? filtered : backCameras;
+  if (candidates.length === 0) return undefined;
+
+  // Prefer one with "0" in label (usually main), otherwise first
+  const main = candidates.find((d) => /\b0\b/.test(d.label)) ?? candidates[0];
+  return main.deviceId || undefined;
+};
+
 // Beep usando Web Audio API — no requiere archivos externos
 const playBeep = () => {
   try {
