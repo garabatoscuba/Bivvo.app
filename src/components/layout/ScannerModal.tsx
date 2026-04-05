@@ -309,15 +309,14 @@ const ScannerModal = ({ open, onOpenChange, onScanResult }: ScannerModalProps) =
     rafRef.current = requestAnimationFrame(scanFrame);
   }, [handleScanResult]);
 
-  // --- Get back camera ---
-  const getBackCameraConstraints = (): MediaStreamConstraints => ({
-    video: {
-      facingMode: { ideal: "environment" },
-      width: { ideal: 1280 },
-      height: { ideal: 720 },
-    },
-    audio: false,
-  });
+  // --- Get camera constraints using main back camera ---
+  const getCameraConstraints = async (): Promise<MediaStreamConstraints> => {
+    const deviceId = await pickMainBackCamera();
+    if (deviceId) {
+      return { video: { deviceId: { exact: deviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+    }
+    return { video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+  };
 
   // --- ZXing fallback ---
   const startZxingScanning = useCallback(async (videoEl: HTMLVideoElement) => {
