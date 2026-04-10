@@ -629,14 +629,17 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
           <div className="rounded-lg bg-muted/50 p-4">
             <div className="flex justify-between font-bold text-lg">
               <span>Total</span>
-              <span className="text-primary">${(parseFloat(amount) || 0).toFixed(2)}</span>
+              <span className="text-primary">${totalACobrar.toFixed(2)}</span>
             </div>
+            {tabItems.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">{tabItems.length + (currentItemValid ? 1 : 0)} servicio(s)</p>
+            )}
           </div>
           <ServicePaymentSection
             paymentType={paymentType}
             setPaymentType={setPaymentType}
-            amount={amount}
-            total={parseFloat(amount) || 0}
+            amount={totalACobrar.toFixed(2)}
+            total={totalACobrar}
             isMixed={isMixed}
             setIsMixed={setIsMixed}
             mixedCash={mixedCash}
@@ -644,10 +647,10 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
             mixedTransfer={mixedTransfer}
             setMixedTransfer={setMixedTransfer}
           />
-          {!isMixed && paymentType === 'cash' && Number(mixedCash) > (parseFloat(amount) || 0) && (parseFloat(amount) || 0) > 0 && (
+          {!isMixed && paymentType === 'cash' && Number(mixedCash) > totalACobrar && totalACobrar > 0 && (
             <div className="rounded-lg bg-muted/30 p-4 text-center">
               <p className="text-sm text-muted-foreground">Cambio</p>
-              <p className="text-2xl font-bold text-primary">${(Number(mixedCash) - (parseFloat(amount) || 0)).toFixed(2)}</p>
+              <p className="text-2xl font-bold text-primary">${(Number(mixedCash) - totalACobrar).toFixed(2)}</p>
             </div>
           )}
         </div>
