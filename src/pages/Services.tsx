@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle, Banknote, Smartphone, CreditCard, RotateCcw, CheckCircle2, ClipboardList } from 'lucide-react';
+import { Plus, Minus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle, Banknote, Smartphone, CreditCard, RotateCcw, CheckCircle2, ClipboardList, X, ListPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const QUICK_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000];
