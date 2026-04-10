@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle, Banknote, Smartphone, CreditCard, RotateCcw, CheckCircle2, ClipboardList } from 'lucide-react';
+import { Plus, Minus, Pencil, Trash2, Loader2, DollarSign, Send, Zap, ArrowUpCircle, Banknote, Smartphone, CreditCard, RotateCcw, CheckCircle2, ClipboardList, X, ListPlus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const QUICK_AMOUNTS = [1, 5, 10, 20, 50, 100, 200, 500, 1000];
@@ -228,6 +228,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [quantity, setQuantity] = useState(1);
   const [paymentType, setPaymentType] = useState('cash');
   const [isMixed, setIsMixed] = useState(false);
   const [mixedCash, setMixedCash] = useState('0');
@@ -235,6 +236,10 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [isLiveService, setIsLiveService] = useState(false);
   const [liveServiceName, setLiveServiceName] = useState('');
+  const [tabItems, setTabItems] = useState<Array<{
+    id: string; catId: string | null; name: string; icon: string;
+    description: string; quantity: number; unitPrice: number; isLive: boolean;
+  }>>([]);
 
   const { data: categories = [], isLoading: loadingCats } = useQuery({
     queryKey: ['service-categories', businessId],
@@ -267,39 +272,70 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     enabled: !!businessId && !!branchId,
   });
 
+  // Compute current line total
+  const unitPrice = parseFloat(amount) || 0;
+  const lineTotal = quantity * unitPrice;
+  const tabSubtotal = tabItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+  const totalACobrar = tabSubtotal + ((selectedCatId || isLiveService) && unitPrice > 0 ? lineTotal : 0);
+
   const createEntryMutation = useMutation({
     mutationFn: async () => {
-      const payload: any = {
-        business_id: businessId!,
-        branch_id: branchId!,
-        user_id: user!.id,
-        description: description.trim() || null,
-        amount: parseFloat(amount),
-        payment_type: isMixed ? 'mixed' : paymentType,
-        is_catalog: !isLiveService,
-      };
-      if (isLiveService) {
-        payload.service_name = liveServiceName.trim();
-        payload.category_id = null;
-      } else {
-        payload.category_id = selectedCatId!;
+      // Build list of all items to insert
+      const allItems: Array<{
+        catId: string | null; name: string; description: string;
+        quantity: number; unitPrice: number; isLive: boolean;
+      }> = [...tabItems.map(t => ({
+        catId: t.catId, name: t.name, description: t.description,
+        quantity: t.quantity, unitPrice: t.unitPrice, isLive: t.isLive,
+      }))];
+
+      // Add current selection if present
+      if ((selectedCatId || isLiveService) && unitPrice > 0) {
+        allItems.push({
+          catId: isLiveService ? null : selectedCatId,
+          name: isLiveService ? liveServiceName.trim() : categories.find((c: any) => c.id === selectedCatId)?.name || '',
+          description: description.trim(),
+          quantity,
+          unitPrice,
+          isLive: isLiveService,
+        });
       }
-      const { error } = await supabase.from('service_entries').insert(payload);
-      if (error) throw error;
+
+      // Insert each item individually
+      for (const item of allItems) {
+        const payload: any = {
+          business_id: businessId!,
+          branch_id: branchId!,
+          user_id: user!.id,
+          description: item.description || null,
+          amount: item.quantity * item.unitPrice,
+          payment_type: isMixed ? 'mixed' : paymentType,
+          is_catalog: !item.isLive,
+        };
+        if (item.isLive) {
+          payload.service_name = item.name;
+          payload.category_id = null;
+        } else {
+          payload.category_id = item.catId;
+        }
+        const { error } = await supabase.from('service_entries').insert(payload);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-entries'] });
       queryClient.invalidateQueries({ queryKey: ['service-entries-recent'] });
-      toast({ title: '✓ Servicio registrado' });
-      const catName = isLiveService ? liveServiceName : categories.find((c: any) => c.id === selectedCatId)?.name || 'Servicio';
+      const itemCount = tabItems.length + ((selectedCatId || isLiveService) && unitPrice > 0 ? 1 : 0);
+      toast({ title: `✓ ${itemCount > 1 ? `${itemCount} servicios registrados` : 'Servicio registrado'}` });
       auditLog(
         'service_charge_created',
-        `Cobro de servicio ${catName} por $${parseFloat(amount).toFixed(2)}`,
+        `Cobro de ${itemCount} servicio(s) por $${totalACobrar.toFixed(2)}`,
         undefined,
         'service_entry'
       );
       setDescription('');
       setAmount('');
+      setQuantity(1);
       setSelectedCatId(null);
       setPaymentType('cash');
       setIsMixed(false);
@@ -308,6 +344,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       setPaymentDialogOpen(false);
       setIsLiveService(false);
       setLiveServiceName('');
+      setTabItems([]);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
@@ -317,9 +354,11 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     if (selectedCatId === catId) {
       setSelectedCatId(null);
       setAmount('');
+      setQuantity(1);
       return;
     }
     setSelectedCatId(catId);
+    setQuantity(1);
     const cat = categories.find((c: any) => c.id === catId);
     if (cat && (cat as any).fixed_price != null && Number((cat as any).fixed_price) > 0) {
       setAmount(String(Number((cat as any).fixed_price)));
@@ -330,14 +369,38 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     setIsLiveService(!isLiveService);
     setSelectedCatId(null);
     setAmount('');
+    setQuantity(1);
+  };
+
+  const handleAddToTab = () => {
+    if (!canAddToTab) return;
+    const cat = categories.find((c: any) => c.id === selectedCatId);
+    setTabItems(prev => [...prev, {
+      id: crypto.randomUUID(),
+      catId: isLiveService ? null : selectedCatId,
+      name: isLiveService ? liveServiceName.trim() : cat?.name || '',
+      icon: isLiveService ? '' : cat?.icon || '',
+      description: description.trim(),
+      quantity,
+      unitPrice,
+      isLive: isLiveService,
+    }]);
+    // Reset current selection
+    setDescription('');
+    setAmount('');
+    setQuantity(1);
+    setSelectedCatId(null);
+    if (isLiveService) { setLiveServiceName(''); setIsLiveService(false); }
   };
 
   const todayEntries = recentEntries.filter(e => new Date(e.created_at).toDateString() === new Date().toDateString());
   const todayTotal = todayEntries.reduce((sum, e) => sum + Number(e.amount), 0);
 
-  const canSubmit = isLiveService
-    ? !!liveServiceName.trim() && !!amount && parseFloat(amount) > 0 && !createEntryMutation.isPending
-    : !!selectedCatId && !!amount && parseFloat(amount) > 0 && !createEntryMutation.isPending;
+  const currentItemValid = isLiveService
+    ? !!liveServiceName.trim() && unitPrice > 0
+    : !!selectedCatId && unitPrice > 0;
+  const canAddToTab = currentItemValid && !createEntryMutation.isPending;
+  const canSubmit = (currentItemValid || tabItems.length > 0) && !createEntryMutation.isPending;
 
   return (
     <>
@@ -452,52 +515,104 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
               <CardTitle className="text-sm font-medium">Detalle del cobro</CardTitle>
             </CardHeader>
             <div className="flex-1 overflow-y-auto px-4 space-y-4">
-              {!selectedCatId && !isLiveService ? (
+              {!selectedCatId && !isLiveService && tabItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
                   <DollarSign className="h-8 w-8 opacity-20 mb-2" />
                   <p className="text-sm">Selecciona un servicio</p>
                 </div>
               ) : (
                 <>
-                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
-                    {isLiveService ? (
-                      <div className="flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-amber-500" />
-                        <span className="text-sm font-medium">{liveServiceName || 'Servicio en vivo'}</span>
+                  {(selectedCatId || isLiveService) && (
+                    <>
+                      <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                        {isLiveService ? (
+                          <div className="flex items-center gap-2">
+                            <Zap className="h-4 w-4 text-amber-500" />
+                            <span className="text-sm font-medium">{liveServiceName || 'Servicio en vivo'}</span>
+                          </div>
+                        ) : (() => {
+                          const cat = categories.find((c: any) => c.id === selectedCatId);
+                          const CatIcon = getIconComponent(cat?.icon);
+                          return (
+                            <div className="flex items-center gap-2">
+                              <CatIcon className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-medium">{cat?.name}</span>
+                            </div>
+                          );
+                        })()}
                       </div>
-                    ) : (() => {
-                      const cat = categories.find((c: any) => c.id === selectedCatId);
-                      const CatIcon = getIconComponent(cat?.icon);
-                      return (
-                        <div className="flex items-center gap-2">
-                          <CatIcon className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium">{cat?.name}</span>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Descripción (opcional)</Label>
+                        <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalle del servicio..." rows={2} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Precio unitario ($)</Label>
+                        <Input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="mt-1 text-lg font-medium text-right" />
+                      </div>
+                      {/* Quantity control */}
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Cantidad</Label>
+                        <div className="flex items-center gap-3 mt-1">
+                          <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="text-lg font-bold w-8 text-center">{quantity}</span>
+                          <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setQuantity(q => q + 1)}>
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          {unitPrice > 0 && (
+                            <span className="text-sm text-muted-foreground ml-auto">
+                              {quantity} × ${unitPrice.toFixed(2)} = <span className="font-bold text-foreground">${lineTotal.toFixed(2)}</span>
+                            </span>
+                          )}
                         </div>
-                      );
-                    })()}
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Descripción (opcional)</Label>
-                    <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalle del servicio..." rows={2} className="mt-1" />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Monto ($)</Label>
-                    <Input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="mt-1 text-lg font-medium text-right" />
-                  </div>
+                      </div>
+                      {/* Add to tab button */}
+                      <Button type="button" variant="outline" className="w-full" onClick={handleAddToTab} disabled={!canAddToTab}>
+                        <ListPlus className="h-4 w-4 mr-1" /> Agregar a cuenta
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Open tab items */}
+                  {tabItems.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        <ClipboardList className="h-3 w-3" /> Cuenta abierta ({tabItems.length})
+                      </p>
+                      {tabItems.map(item => (
+                        <div key={item.id} className="flex items-center justify-between rounded-lg border p-2.5">
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium truncate block">{item.name}</span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {item.quantity} × ${item.unitPrice.toFixed(2)} = ${(item.quantity * item.unitPrice).toFixed(2)}
+                            </span>
+                          </div>
+                          <button onClick={() => setTabItems(prev => prev.filter(t => t.id !== item.id))} className="p-1 rounded hover:bg-destructive/10">
+                            <X className="h-3.5 w-3.5 text-destructive" />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-sm pt-1 border-t">
+                        <span className="text-muted-foreground">Subtotal cuenta</span>
+                        <span className="font-bold">${tabSubtotal.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
-            {(selectedCatId || isLiveService) && (
+            {(selectedCatId || isLiveService || tabItems.length > 0) && (
               <div className="p-4 border-t space-y-2 shrink-0">
-                {amount && parseFloat(amount) > 0 && (
+                {totalACobrar > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Total</span>
-                    <span className="text-xl font-bold">${parseFloat(amount).toFixed(2)}</span>
+                    <span className="text-sm text-muted-foreground">Total a cobrar</span>
+                    <span className="text-xl font-bold">${totalACobrar.toFixed(2)}</span>
                   </div>
                 )}
-                <Button className="w-full h-11 font-bold" onClick={() => setPaymentDialogOpen(true)} disabled={!canSubmit}>
+                <Button className="w-full h-11 font-bold" onClick={() => setPaymentDialogOpen(true)} disabled={!canSubmit || totalACobrar <= 0}>
                   <DollarSign className="h-4 w-4 mr-1" />
-                  Cobrar {amount && parseFloat(amount) > 0 ? `$${parseFloat(amount).toFixed(2)}` : ''}
+                  Cobrar {totalACobrar > 0 ? `$${totalACobrar.toFixed(2)}` : ''}
                 </Button>
               </div>
             )}
@@ -514,14 +629,17 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
           <div className="rounded-lg bg-muted/50 p-4">
             <div className="flex justify-between font-bold text-lg">
               <span>Total</span>
-              <span className="text-primary">${(parseFloat(amount) || 0).toFixed(2)}</span>
+              <span className="text-primary">${totalACobrar.toFixed(2)}</span>
             </div>
+            {tabItems.length > 0 && (
+              <p className="text-xs text-muted-foreground mt-1">{tabItems.length + (currentItemValid ? 1 : 0)} servicio(s)</p>
+            )}
           </div>
           <ServicePaymentSection
             paymentType={paymentType}
             setPaymentType={setPaymentType}
-            amount={amount}
-            total={parseFloat(amount) || 0}
+            amount={totalACobrar.toFixed(2)}
+            total={totalACobrar}
             isMixed={isMixed}
             setIsMixed={setIsMixed}
             mixedCash={mixedCash}
@@ -529,10 +647,10 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
             mixedTransfer={mixedTransfer}
             setMixedTransfer={setMixedTransfer}
           />
-          {!isMixed && paymentType === 'cash' && Number(mixedCash) > (parseFloat(amount) || 0) && (parseFloat(amount) || 0) > 0 && (
+          {!isMixed && paymentType === 'cash' && Number(mixedCash) > totalACobrar && totalACobrar > 0 && (
             <div className="rounded-lg bg-muted/30 p-4 text-center">
               <p className="text-sm text-muted-foreground">Cambio</p>
-              <p className="text-2xl font-bold text-primary">${(Number(mixedCash) - (parseFloat(amount) || 0)).toFixed(2)}</p>
+              <p className="text-2xl font-bold text-primary">${(Number(mixedCash) - totalACobrar).toFixed(2)}</p>
             </div>
           )}
         </div>
