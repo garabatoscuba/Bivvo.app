@@ -228,6 +228,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState('');
+  const [quantity, setQuantity] = useState(1);
   const [paymentType, setPaymentType] = useState('cash');
   const [isMixed, setIsMixed] = useState(false);
   const [mixedCash, setMixedCash] = useState('0');
@@ -235,6 +236,10 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [isLiveService, setIsLiveService] = useState(false);
   const [liveServiceName, setLiveServiceName] = useState('');
+  const [tabItems, setTabItems] = useState<Array<{
+    id: string; catId: string | null; name: string; icon: string;
+    description: string; quantity: number; unitPrice: number; isLive: boolean;
+  }>>([]);
 
   const { data: categories = [], isLoading: loadingCats } = useQuery({
     queryKey: ['service-categories', businessId],
