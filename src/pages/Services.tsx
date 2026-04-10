@@ -396,9 +396,11 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const todayEntries = recentEntries.filter(e => new Date(e.created_at).toDateString() === new Date().toDateString());
   const todayTotal = todayEntries.reduce((sum, e) => sum + Number(e.amount), 0);
 
-  const canSubmit = isLiveService
-    ? !!liveServiceName.trim() && !!amount && parseFloat(amount) > 0 && !createEntryMutation.isPending
-    : !!selectedCatId && !!amount && parseFloat(amount) > 0 && !createEntryMutation.isPending;
+  const currentItemValid = isLiveService
+    ? !!liveServiceName.trim() && unitPrice > 0
+    : !!selectedCatId && unitPrice > 0;
+  const canAddToTab = currentItemValid && !createEntryMutation.isPending;
+  const canSubmit = (currentItemValid || tabItems.length > 0) && !createEntryMutation.isPending;
 
   return (
     <>
