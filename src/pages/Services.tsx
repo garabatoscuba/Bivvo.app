@@ -272,39 +272,70 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     enabled: !!businessId && !!branchId,
   });
 
+  // Compute current line total
+  const unitPrice = parseFloat(amount) || 0;
+  const lineTotal = quantity * unitPrice;
+  const tabSubtotal = tabItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
+  const totalACobrar = tabSubtotal + ((selectedCatId || isLiveService) && unitPrice > 0 ? lineTotal : 0);
+
   const createEntryMutation = useMutation({
     mutationFn: async () => {
-      const payload: any = {
-        business_id: businessId!,
-        branch_id: branchId!,
-        user_id: user!.id,
-        description: description.trim() || null,
-        amount: parseFloat(amount),
-        payment_type: isMixed ? 'mixed' : paymentType,
-        is_catalog: !isLiveService,
-      };
-      if (isLiveService) {
-        payload.service_name = liveServiceName.trim();
-        payload.category_id = null;
-      } else {
-        payload.category_id = selectedCatId!;
+      // Build list of all items to insert
+      const allItems: Array<{
+        catId: string | null; name: string; description: string;
+        quantity: number; unitPrice: number; isLive: boolean;
+      }> = [...tabItems.map(t => ({
+        catId: t.catId, name: t.name, description: t.description,
+        quantity: t.quantity, unitPrice: t.unitPrice, isLive: t.isLive,
+      }))];
+
+      // Add current selection if present
+      if ((selectedCatId || isLiveService) && unitPrice > 0) {
+        allItems.push({
+          catId: isLiveService ? null : selectedCatId,
+          name: isLiveService ? liveServiceName.trim() : categories.find((c: any) => c.id === selectedCatId)?.name || '',
+          description: description.trim(),
+          quantity,
+          unitPrice,
+          isLive: isLiveService,
+        });
       }
-      const { error } = await supabase.from('service_entries').insert(payload);
-      if (error) throw error;
+
+      // Insert each item individually
+      for (const item of allItems) {
+        const payload: any = {
+          business_id: businessId!,
+          branch_id: branchId!,
+          user_id: user!.id,
+          description: item.description || null,
+          amount: item.quantity * item.unitPrice,
+          payment_type: isMixed ? 'mixed' : paymentType,
+          is_catalog: !item.isLive,
+        };
+        if (item.isLive) {
+          payload.service_name = item.name;
+          payload.category_id = null;
+        } else {
+          payload.category_id = item.catId;
+        }
+        const { error } = await supabase.from('service_entries').insert(payload);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service-entries'] });
       queryClient.invalidateQueries({ queryKey: ['service-entries-recent'] });
-      toast({ title: '✓ Servicio registrado' });
-      const catName = isLiveService ? liveServiceName : categories.find((c: any) => c.id === selectedCatId)?.name || 'Servicio';
+      const itemCount = tabItems.length + ((selectedCatId || isLiveService) && unitPrice > 0 ? 1 : 0);
+      toast({ title: `✓ ${itemCount > 1 ? `${itemCount} servicios registrados` : 'Servicio registrado'}` });
       auditLog(
         'service_charge_created',
-        `Cobro de servicio ${catName} por $${parseFloat(amount).toFixed(2)}`,
+        `Cobro de ${itemCount} servicio(s) por $${totalACobrar.toFixed(2)}`,
         undefined,
         'service_entry'
       );
       setDescription('');
       setAmount('');
+      setQuantity(1);
       setSelectedCatId(null);
       setPaymentType('cash');
       setIsMixed(false);
@@ -313,6 +344,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       setPaymentDialogOpen(false);
       setIsLiveService(false);
       setLiveServiceName('');
+      setTabItems([]);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
@@ -322,9 +354,11 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     if (selectedCatId === catId) {
       setSelectedCatId(null);
       setAmount('');
+      setQuantity(1);
       return;
     }
     setSelectedCatId(catId);
+    setQuantity(1);
     const cat = categories.find((c: any) => c.id === catId);
     if (cat && (cat as any).fixed_price != null && Number((cat as any).fixed_price) > 0) {
       setAmount(String(Number((cat as any).fixed_price)));
@@ -335,6 +369,28 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
     setIsLiveService(!isLiveService);
     setSelectedCatId(null);
     setAmount('');
+    setQuantity(1);
+  };
+
+  const handleAddToTab = () => {
+    if (!canAddToTab) return;
+    const cat = categories.find((c: any) => c.id === selectedCatId);
+    setTabItems(prev => [...prev, {
+      id: crypto.randomUUID(),
+      catId: isLiveService ? null : selectedCatId,
+      name: isLiveService ? liveServiceName.trim() : cat?.name || '',
+      icon: isLiveService ? '' : cat?.icon || '',
+      description: description.trim(),
+      quantity,
+      unitPrice,
+      isLive: isLiveService,
+    }]);
+    // Reset current selection
+    setDescription('');
+    setAmount('');
+    setQuantity(1);
+    setSelectedCatId(null);
+    if (isLiveService) { setLiveServiceName(''); setIsLiveService(false); }
   };
 
   const todayEntries = recentEntries.filter(e => new Date(e.created_at).toDateString() === new Date().toDateString());
