@@ -1,37 +1,52 @@
 
 
-## Plan: Forzar cámara principal (no angular) en el escáner
+## Plan: Cantidad multiplicadora + Cuenta abierta en Servicios
 
-### Problema
+### Cambios en `src/pages/Services.tsx` (solo dentro de `EmployeeServicesView`)
 
-Hay dos rutas de selección de cámara:
+#### 1 — Estado nuevo
+- `quantity: number` (default 1)
+- `tabItems: Array<{ id: string, catId: string|null, name: string, icon: string, description: string, quantity: number, unitPrice: number, isLive: boolean }>` (cuenta abierta)
+- Reset `quantity` a 1 cuando se selecciona un servicio diferente
 
-1. **Ruta nativa (BarcodeDetector)** — usa `facingMode: { ideal: "environment" }` sin filtrar por dispositivo. El navegador elige libremente y en muchos teléfonos selecciona la cámara angular/wide que no enfoca bien.
+#### 2 — Panel derecho: control de cantidad
+Debajo del campo Descripción (línea ~482), antes del campo Monto:
+- Reemplazar el input libre de monto por un control de cantidad: botones `−` `[cantidad]` `+` × `[precio]` = `$total`
+- El precio base viene del `fixed_price` de la categoría (o input manual si es "en vivo")
+- Si el servicio tiene precio fijo: mostrar `Precio base: $X` como referencia, permitir editar el precio unitario
+- Total línea = `quantity × precio_unitario`
+- El campo de monto actual se convierte en el precio unitario editable
 
-2. **Ruta ZXing** — enumera dispositivos y filtra por label excluyendo `ultra/wide/macro/depth`. Esta lógica sí intenta elegir la principal, pero la ruta nativa la ignora completamente.
+#### 3 — Sección "Cuenta abierta"
+Debajo del control de cantidad:
+- Botón "Agregar a cuenta" que añade el servicio actual (con su cantidad, precio, descripción) a `tabItems`
+- Lista de items agregados: cada uno muestra nombre, `qty × $precio`, total, botón × para eliminar
+- Subtotal de la cuenta
+- Al agregar, se resetea la selección actual (cantidad=1, descripción vacía)
 
-### Solución
+#### 4 — Total y botón Cobrar
+- `totalACobrar` = suma de tabItems + servicio seleccionado actual (si hay)
+- El botón "Cobrar" muestra el total combinado
+- Si no hay tabItems, el comportamiento es idéntico al actual (cobro individual)
 
-Unificar la selección de cámara: **siempre enumerar dispositivos primero**, encontrar la cámara principal trasera por label, y usar su `deviceId` exacto en ambas rutas.
+#### 5 — Payment Dialog y mutación
+- NO se modifica el componente `ServicePaymentSection` ni la estructura del dialog
+- Se actualiza el total mostrado en el dialog para usar `totalACobrar`
+- La mutación `createEntryMutation` se adapta para insertar múltiples registros:
+  - Cada item de la cuenta + el servicio actual se inserta como un `service_entry` individual
+  - Cada uno con su propio `amount = qty × unitPrice`
+  - Se usa un loop de inserts o un insert con array
+- Al confirmar: se limpia `tabItems`, se resetea todo
 
-### Cambios en `src/components/layout/ScannerModal.tsx`
+#### 6 — Audit log
+- Se registra un solo audit log con el total combinado y cantidad de servicios
 
-1. **Crear función auxiliar `pickMainBackCamera()`** que:
-   - Llama `navigator.mediaDevices.enumerateDevices()`
-   - Filtra `kind === 'videoinput'`
-   - De las traseras (label incluye `back/rear/environment` O no incluye `front`), excluye las que tengan `ultra/wide/macro/depth/telephoto`
-   - Si hay candidatas, elige la que tenga label con `"0"` o la primera (suele ser la principal)
-   - Retorna el `deviceId` o `undefined`
-
-2. **Ruta nativa (`startScanner`)**: antes de `getUserMedia`, llamar `pickMainBackCamera()`. Si obtiene un `deviceId`, usar `{ video: { deviceId: { exact: deviceId } } }` en vez de `facingMode`. Si no, mantener `facingMode` como fallback.
-
-3. **Ruta ZXing (`startZxingScanning`)**: reusar `pickMainBackCamera()` en vez de la lógica inline duplicada.
-
-4. **Nota**: para que `enumerateDevices` devuelva labels, puede requerir un stream temporal previo. Si los labels están vacíos, se pide un stream con `facingMode: environment` primero, se leen los labels, se para el stream, y luego se abre el definitivo con el `deviceId` correcto.
-
-### Archivo a modificar
-- `src/components/layout/ScannerModal.tsx`
+### Archivos a modificar
+- `src/pages/Services.tsx` (solo `EmployeeServicesView`, líneas ~200-553)
 
 ### Lo que NO se toca
-- Auth, POS, inventario, jornadas, sidebar, nómina
+- `ServicePaymentSection` (componente de métodos de pago)
+- Vista Owner (`OwnerServicesView`)
+- POS, Inventario, Jornadas, Auth
+- Base de datos (no se necesitan cambios de schema)
 
