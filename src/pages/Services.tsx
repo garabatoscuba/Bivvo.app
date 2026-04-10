@@ -556,7 +556,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
                           <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>
                             <Minus className="h-4 w-4" />
                           </Button>
-                          <span className="text-lg font-bold w-8 text-center">{quantity}</span>
+                          <Input type="number" min={1} value={quantity} onChange={e => { const v = parseInt(e.target.value, 10); setQuantity(v > 0 ? v : 1); }} className="h-9 w-14 text-center text-lg font-bold px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
                           <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setQuantity(q => q + 1)}>
                             <Plus className="h-4 w-4" />
                           </Button>
