@@ -515,52 +515,104 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
               <CardTitle className="text-sm font-medium">Detalle del cobro</CardTitle>
             </CardHeader>
             <div className="flex-1 overflow-y-auto px-4 space-y-4">
-              {!selectedCatId && !isLiveService ? (
+              {!selectedCatId && !isLiveService && tabItems.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
                   <DollarSign className="h-8 w-8 opacity-20 mb-2" />
                   <p className="text-sm">Selecciona un servicio</p>
                 </div>
               ) : (
                 <>
-                  <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
-                    {isLiveService ? (
-                      <div className="flex items-center gap-2">
-                        <Zap className="h-4 w-4 text-amber-500" />
-                        <span className="text-sm font-medium">{liveServiceName || 'Servicio en vivo'}</span>
+                  {(selectedCatId || isLiveService) && (
+                    <>
+                      <div className="rounded-lg bg-primary/5 border border-primary/20 p-3">
+                        {isLiveService ? (
+                          <div className="flex items-center gap-2">
+                            <Zap className="h-4 w-4 text-amber-500" />
+                            <span className="text-sm font-medium">{liveServiceName || 'Servicio en vivo'}</span>
+                          </div>
+                        ) : (() => {
+                          const cat = categories.find((c: any) => c.id === selectedCatId);
+                          const CatIcon = getIconComponent(cat?.icon);
+                          return (
+                            <div className="flex items-center gap-2">
+                              <CatIcon className="h-4 w-4 text-primary" />
+                              <span className="text-sm font-medium">{cat?.name}</span>
+                            </div>
+                          );
+                        })()}
                       </div>
-                    ) : (() => {
-                      const cat = categories.find((c: any) => c.id === selectedCatId);
-                      const CatIcon = getIconComponent(cat?.icon);
-                      return (
-                        <div className="flex items-center gap-2">
-                          <CatIcon className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium">{cat?.name}</span>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Descripción (opcional)</Label>
+                        <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalle del servicio..." rows={2} className="mt-1" />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Precio unitario ($)</Label>
+                        <Input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="mt-1 text-lg font-medium text-right" />
+                      </div>
+                      {/* Quantity control */}
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Cantidad</Label>
+                        <div className="flex items-center gap-3 mt-1">
+                          <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className="text-lg font-bold w-8 text-center">{quantity}</span>
+                          <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setQuantity(q => q + 1)}>
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                          {unitPrice > 0 && (
+                            <span className="text-sm text-muted-foreground ml-auto">
+                              {quantity} × ${unitPrice.toFixed(2)} = <span className="font-bold text-foreground">${lineTotal.toFixed(2)}</span>
+                            </span>
+                          )}
                         </div>
-                      );
-                    })()}
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Descripción (opcional)</Label>
-                    <Textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Detalle del servicio..." rows={2} className="mt-1" />
-                  </div>
-                  <div>
-                    <Label className="text-xs text-muted-foreground">Monto ($)</Label>
-                    <Input type="number" min="0" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="mt-1 text-lg font-medium text-right" />
-                  </div>
+                      </div>
+                      {/* Add to tab button */}
+                      <Button type="button" variant="outline" className="w-full" onClick={handleAddToTab} disabled={!canAddToTab}>
+                        <ListPlus className="h-4 w-4 mr-1" /> Agregar a cuenta
+                      </Button>
+                    </>
+                  )}
+
+                  {/* Open tab items */}
+                  {tabItems.length > 0 && (
+                    <div className="space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                        <ClipboardList className="h-3 w-3" /> Cuenta abierta ({tabItems.length})
+                      </p>
+                      {tabItems.map(item => (
+                        <div key={item.id} className="flex items-center justify-between rounded-lg border p-2.5">
+                          <div className="min-w-0">
+                            <span className="text-sm font-medium truncate block">{item.name}</span>
+                            <span className="text-[11px] text-muted-foreground">
+                              {item.quantity} × ${item.unitPrice.toFixed(2)} = ${(item.quantity * item.unitPrice).toFixed(2)}
+                            </span>
+                          </div>
+                          <button onClick={() => setTabItems(prev => prev.filter(t => t.id !== item.id))} className="p-1 rounded hover:bg-destructive/10">
+                            <X className="h-3.5 w-3.5 text-destructive" />
+                          </button>
+                        </div>
+                      ))}
+                      <div className="flex justify-between text-sm pt-1 border-t">
+                        <span className="text-muted-foreground">Subtotal cuenta</span>
+                        <span className="font-bold">${tabSubtotal.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
-            {(selectedCatId || isLiveService) && (
+            {(selectedCatId || isLiveService || tabItems.length > 0) && (
               <div className="p-4 border-t space-y-2 shrink-0">
-                {amount && parseFloat(amount) > 0 && (
+                {totalACobrar > 0 && (
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-muted-foreground">Total</span>
-                    <span className="text-xl font-bold">${parseFloat(amount).toFixed(2)}</span>
+                    <span className="text-sm text-muted-foreground">Total a cobrar</span>
+                    <span className="text-xl font-bold">${totalACobrar.toFixed(2)}</span>
                   </div>
                 )}
-                <Button className="w-full h-11 font-bold" onClick={() => setPaymentDialogOpen(true)} disabled={!canSubmit}>
+                <Button className="w-full h-11 font-bold" onClick={() => setPaymentDialogOpen(true)} disabled={!canSubmit || totalACobrar <= 0}>
                   <DollarSign className="h-4 w-4 mr-1" />
-                  Cobrar {amount && parseFloat(amount) > 0 ? `$${parseFloat(amount).toFixed(2)}` : ''}
+                  Cobrar {totalACobrar > 0 ? `$${totalACobrar.toFixed(2)}` : ''}
                 </Button>
               </div>
             )}
