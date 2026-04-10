@@ -356,7 +356,7 @@ const Sales = () => {
   const selectedCount = useMemo(() => sortedEntries.filter(e => selectedIds.has(e.id)).length, [sortedEntries, selectedIds]);
 
   const openDetail = (saleId: string) => { setSelectedSaleId(saleId); setSheetOpen(true); };
-  const canCancel = isOwner || isManager || isSuperAdmin;
+  const canCancel = isOwner || isManager || isSuperAdmin || isSeller;
 
   const handleCancel = () => {
     if (!selectedSaleId || !cancelReason.trim()) return;
