@@ -10,6 +10,8 @@ import { isInPeriod } from '@/lib/periodUtils';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSales } from '@/hooks/useSales';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { toast } from '@/hooks/use-toast';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
 import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
