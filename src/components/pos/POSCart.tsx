@@ -98,9 +98,20 @@ export const POSCart = ({
                   >
                     <Minus className="h-3 w-3" />
                   </Button>
-                  <span className="w-7 text-center font-medium text-sm flex-shrink-0">
-                    {item.quantity}
-                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={stockMap.get(item.product.id) || 999}
+                    value={item.quantity}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      if (!isNaN(val) && val >= 1) {
+                        const max = stockMap.get(item.product.id) || 999;
+                        onUpdateQuantity(item.product.id, Math.min(val, max));
+                      }
+                    }}
+                    className="w-10 text-center font-medium text-sm flex-shrink-0 bg-transparent border border-input rounded px-0 py-0.5 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                  />
                   <Button
                     variant="outline"
                     size="icon"
