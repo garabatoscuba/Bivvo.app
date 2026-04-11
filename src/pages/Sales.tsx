@@ -718,7 +718,9 @@ const Sales = () => {
                 </div>
                 <div className="text-muted-foreground">Estado</div>
                 <div>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors['completed']}`}>Completada</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[selectedEntry.status as SaleStatus] || statusColors['completed']}`}>
+                    {statusLabels[selectedEntry.status as SaleStatus] || 'Completada'}
+                  </span>
                 </div>
                 {selectedEntry.description && (
                   <>
@@ -734,6 +736,28 @@ const Sales = () => {
                   <span>${Number(selectedEntry.total).toFixed(2)}</span>
                 </div>
               </div>
+
+              {/* Cancel service button */}
+              {isServiceDetail && canCancel && selectedEntry.status !== 'cancelled' && (
+                <>
+                  <Separator />
+                  <div className="flex gap-2">
+                    <Button variant="destructive" onClick={() => { setCancelReason(''); setCancelDialogOpen(true); }}>
+                      <X className="mr-2 h-4 w-4" />Cancelar servicio
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {/* Cancellation reason display */}
+              {isServiceDetail && selectedEntry.status === 'cancelled' && selectedEntry.cancellation_reason && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-1">
+                  <div className="flex items-center gap-2 text-destructive text-sm font-medium">
+                    <AlertTriangle className="h-4 w-4" />Motivo de cancelación
+                  </div>
+                  <p className="text-sm text-muted-foreground">{selectedEntry.cancellation_reason}</p>
+                </div>
+              )}
             </div>
           )}
 
