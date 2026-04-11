@@ -67,6 +67,7 @@ const Sales = () => {
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const { businessId: resolvedBusinessId, branchId: resolvedBranchId } = useResolvedBusinessId();
   const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
   const isSellOnly = isSeller && !isPrivileged;
