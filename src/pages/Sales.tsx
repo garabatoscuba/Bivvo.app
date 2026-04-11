@@ -145,8 +145,13 @@ const Sales = () => {
         .eq('id', serviceId);
       if (error) throw error;
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['branch-service-entries'] });
+      toast({ title: 'Servicio cancelado' });
+      auditLog('sale_cancelled', `Servicio cancelado — motivo: ${variables.reason}`, variables.serviceId, 'service_entry');
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error al cancelar servicio', description: error.message, variant: 'destructive' });
     },
   });
 
