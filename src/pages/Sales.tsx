@@ -116,20 +116,35 @@ const Sales = () => {
         created_at: s.created_at,
         total: Number(s.amount),
         payment_type: s.payment_type as PaymentType,
-        status: 'completed' as SaleStatus,
+        status: (s.status || 'completed') as SaleStatus,
         sale_number: '',
         seller_name: '',
         customer_name: '',
-        product_names: s.service_categories?.name || 'Servicio',
+        product_names: s.service_categories?.name || s.service_name || 'Servicio',
         _type: 'service' as const,
         description: s.description,
         user_id: s.user_id,
         item_count: 1,
         cash_amount: 0,
         transfer_amount: 0,
+        cancellation_reason: s.cancellation_reason || null,
       }));
     },
     enabled: !!branchId && !!bizId,
+  });
+
+  // Mutation: cancel service entry
+  const cancelServiceMutation = useMutation({
+    mutationFn: async ({ serviceId, reason }: { serviceId: string; reason: string }) => {
+      const { error } = await supabase
+        .from('service_entries')
+        .update({ status: 'cancelled', cancellation_reason: reason } as any)
+        .eq('id', serviceId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['branch-service-entries'] });
+    },
   });
 
   // Fetch print jobs for copy_shop businesses
