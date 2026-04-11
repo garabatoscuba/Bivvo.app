@@ -896,7 +896,7 @@ const Sales = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>Volver</Button>
-            <Button variant="destructive" onClick={handleCancel} disabled={!cancelReason.trim() || cancelSale.isPending}>Confirmar cancelación</Button>
+            <Button variant="destructive" onClick={handleCancel} disabled={!cancelReason.trim() || cancelSale.isPending || cancelServiceMutation.isPending}>Confirmar cancelación</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
