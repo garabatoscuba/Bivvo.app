@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { KitchenOrderStatus } from '@/components/pos/KitchenOrderStatus';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2, Wrench, Search, ArrowUp, ArrowDown, ArrowUpDown, Printer } from 'lucide-react';
