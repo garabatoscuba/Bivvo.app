@@ -27,7 +27,7 @@ import { useBranches } from '@/hooks/useBranches';
 import {
   Users, UserPlus, Shield, ShieldCheck, Store, Calculator, ShoppingCart,
   Loader2, Pencil, Trash2, Activity, Mail, MapPin, StopCircle, Clock,
-  Play, Square, Plus, Save, ChefHat, QrCode, Wrench,
+  Play, Square, Plus, Save, ChefHat, QrCode, Wrench, Eye, EyeOff,
 } from 'lucide-react';
 import type { Database } from '@/integrations/supabase/types';
 import PerformanceChart from '@/components/employees/PerformanceChart';
@@ -1103,14 +1103,20 @@ const Employees = () => {
                     </p>
                     <div className="space-y-2">
                       <Label htmlFor="bivoo_password">Contraseña Inicial *</Label>
-                      <Input
-                        id="bivoo_password"
-                        type="password"
-                        value={form.bivoo_password}
-                        onChange={(e) => updateField('bivoo_password', e.target.value)}
-                        placeholder="Mínimo 6 caracteres"
-                        minLength={6}
-                      />
+                      <div className="relative">
+                        <Input
+                          id="bivoo_password"
+                          type={showBivooPassword ? "text" : "password"}
+                          value={form.bivoo_password}
+                          onChange={(e) => updateField('bivoo_password', e.target.value)}
+                          placeholder="Mínimo 6 caracteres"
+                          minLength={6}
+                          className="pr-10"
+                        />
+                        <button type="button" onClick={() => setShowBivooPassword(!showBivooPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                          {showBivooPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </button>
+                      </div>
                       <p className="text-xs text-muted-foreground">El empleado usará esta contraseña para entrar al sistema.</p>
                     </div>
                   </div>
@@ -1130,14 +1136,20 @@ const Employees = () => {
                 <div className="space-y-2">
                   <Label htmlFor="new_password">Nueva Contraseña</Label>
                   <div className="flex gap-2">
-                    <Input
-                      id="new_password"
-                      type="password"
-                      value={form.new_password || ''}
-                      onChange={(e) => setForm(prev => ({ ...prev, new_password: e.target.value }))}
-                      placeholder="Mínimo 6 caracteres"
-                      minLength={6}
-                    />
+                    <div className="relative flex-1">
+                      <Input
+                        id="new_password"
+                        type={showNewPassword ? "text" : "password"}
+                        value={form.new_password || ''}
+                        onChange={(e) => setForm(prev => ({ ...prev, new_password: e.target.value }))}
+                        placeholder="Mínimo 6 caracteres"
+                        minLength={6}
+                        className="pr-10"
+                      />
+                      <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
                     <Button
                       type="button"
                       size="sm"
