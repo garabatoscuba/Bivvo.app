@@ -888,7 +888,7 @@ const Sales = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{isServiceDetail ? 'Cancelar servicio' : 'Cancelar venta'}</DialogTitle>
-            <DialogDescription>Explica el motivo de la cancelación. Los productos se devolverán al inventario automáticamente.</DialogDescription>
+            <DialogDescription>{isServiceDetail ? 'Explica el motivo de la cancelación.' : 'Explica el motivo de la cancelación. Los productos se devolverán al inventario automáticamente.'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="cancel-reason">Motivo de cancelación *</Label>
