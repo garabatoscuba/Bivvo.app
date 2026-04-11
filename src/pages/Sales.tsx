@@ -64,6 +64,7 @@ const Sales = () => {
   const { profile, isOwner, isManager, isSuperAdmin, isSeller } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const { businessId: resolvedBusinessId, branchId: resolvedBranchId } = useResolvedBusinessId();
+  const queryClient = useQueryClient();
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
   const isSellOnly = isSeller && !isPrivileged;
