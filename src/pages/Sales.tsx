@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { KitchenOrderStatus } from '@/components/pos/KitchenOrderStatus';
 import { useResolvedBusinessId } from '@/hooks/useResolvedBusinessId';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Eye, DollarSign, ShoppingCart, TrendingUp, CreditCard, X, Banknote, AlertTriangle, Loader2, Wrench, Search, ArrowUp, ArrowDown, ArrowUpDown, Printer } from 'lucide-react';
@@ -10,6 +10,8 @@ import { isInPeriod } from '@/lib/periodUtils';
 import AppLayout from '@/components/layout/AppLayout';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSales } from '@/hooks/useSales';
+import { useAuditLog } from '@/hooks/useAuditLog';
+import { toast } from '@/hooks/use-toast';
 import { useJornadaActiva } from '@/hooks/useJornadaActiva';
 import SinJornadaActiva from '@/components/employees/SinJornadaActiva';
 import SinJornadaAutorizada from '@/components/employees/SinJornadaAutorizada';
@@ -64,6 +66,8 @@ const Sales = () => {
   const { profile, isOwner, isManager, isSuperAdmin, isSeller } = useAuth();
   const { jornadaActiva, jornada, isLoading: jornadaLoading } = useJornadaActiva();
   const { businessId: resolvedBusinessId, branchId: resolvedBranchId } = useResolvedBusinessId();
+  const queryClient = useQueryClient();
+  const auditLog = useAuditLog();
   const isPrivileged = isOwner || isManager || isSuperAdmin;
   const canBypassJornada = isOwner || isSuperAdmin;
   const isSellOnly = isSeller && !isPrivileged;
@@ -115,20 +119,40 @@ const Sales = () => {
         created_at: s.created_at,
         total: Number(s.amount),
         payment_type: s.payment_type as PaymentType,
-        status: 'completed' as SaleStatus,
+        status: (s.status || 'completed') as SaleStatus,
         sale_number: '',
         seller_name: '',
         customer_name: '',
-        product_names: s.service_categories?.name || 'Servicio',
+        product_names: s.service_categories?.name || s.service_name || 'Servicio',
         _type: 'service' as const,
         description: s.description,
         user_id: s.user_id,
         item_count: 1,
         cash_amount: 0,
         transfer_amount: 0,
+        cancellation_reason: s.cancellation_reason || null,
       }));
     },
     enabled: !!branchId && !!bizId,
+  });
+
+  // Mutation: cancel service entry
+  const cancelServiceMutation = useMutation({
+    mutationFn: async ({ serviceId, reason }: { serviceId: string; reason: string }) => {
+      const { error } = await supabase
+        .from('service_entries')
+        .update({ status: 'cancelled', cancellation_reason: reason } as any)
+        .eq('id', serviceId);
+      if (error) throw error;
+    },
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['branch-service-entries'] });
+      toast({ title: 'Servicio cancelado' });
+      auditLog('sale_cancelled', `Servicio cancelado — motivo: ${variables.reason}`, variables.serviceId, 'service_entry');
+    },
+    onError: (error: any) => {
+      toast({ title: 'Error al cancelar servicio', description: error.message, variant: 'destructive' });
+    },
   });
 
   // Fetch print jobs for copy_shop businesses
@@ -360,9 +384,15 @@ const Sales = () => {
 
   const handleCancel = () => {
     if (!selectedSaleId || !cancelReason.trim()) return;
-    cancelSale.mutate({ saleId: selectedSaleId, reason: cancelReason.trim() }, {
-      onSuccess: () => { setSheetOpen(false); setCancelDialogOpen(false); setCancelReason(''); },
-    });
+    if (isServiceDetail) {
+      cancelServiceMutation.mutate({ serviceId: selectedSaleId, reason: cancelReason.trim() }, {
+        onSuccess: () => { setSheetOpen(false); setCancelDialogOpen(false); setCancelReason(''); },
+      });
+    } else {
+      cancelSale.mutate({ saleId: selectedSaleId, reason: cancelReason.trim() }, {
+        onSuccess: () => { setSheetOpen(false); setCancelDialogOpen(false); setCancelReason(''); },
+      });
+    }
   };
 
   const handleRegisterPayment = () => {
@@ -452,11 +482,9 @@ const Sales = () => {
                     <span className="font-semibold text-base">${Number(sale.total).toFixed(2)}</span>
                     <div className="flex gap-1.5">
                       <PaymentDisplay sale={sale} />
-                      {sale._type !== 'service' && (
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusColors[sale.status as SaleStatus]}`}>
-                          {statusLabels[sale.status as SaleStatus]}
-                        </span>
-                      )}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusColors[sale.status as SaleStatus]}`}>
+                        {statusLabels[sale.status as SaleStatus]}
+                      </span>
                       {isRestaurantBiz && sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
                         <KitchenOrderStatus saleId={sale.id} businessId={resolvedBusinessId} />
                       )}
@@ -696,7 +724,9 @@ const Sales = () => {
                 </div>
                 <div className="text-muted-foreground">Estado</div>
                 <div>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors['completed']}`}>Completada</span>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${statusColors[selectedEntry.status as SaleStatus] || statusColors['completed']}`}>
+                    {statusLabels[selectedEntry.status as SaleStatus] || 'Completada'}
+                  </span>
                 </div>
                 {selectedEntry.description && (
                   <>
@@ -712,6 +742,28 @@ const Sales = () => {
                   <span>${Number(selectedEntry.total).toFixed(2)}</span>
                 </div>
               </div>
+
+              {/* Cancel service button */}
+              {isServiceDetail && canCancel && selectedEntry.status !== 'cancelled' && (
+                <>
+                  <Separator />
+                  <div className="flex gap-2">
+                    <Button variant="destructive" onClick={() => { setCancelReason(''); setCancelDialogOpen(true); }}>
+                      <X className="mr-2 h-4 w-4" />Cancelar servicio
+                    </Button>
+                  </div>
+                </>
+              )}
+
+              {/* Cancellation reason display */}
+              {isServiceDetail && selectedEntry.status === 'cancelled' && selectedEntry.cancellation_reason && (
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 p-3 space-y-1">
+                  <div className="flex items-center gap-2 text-destructive text-sm font-medium">
+                    <AlertTriangle className="h-4 w-4" />Motivo de cancelación
+                  </div>
+                  <p className="text-sm text-muted-foreground">{selectedEntry.cancellation_reason}</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -843,8 +895,8 @@ const Sales = () => {
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancelar venta</DialogTitle>
-            <DialogDescription>Explica el motivo de la cancelación. Los productos se devolverán al inventario automáticamente.</DialogDescription>
+            <DialogTitle>{isServiceDetail ? 'Cancelar servicio' : 'Cancelar venta'}</DialogTitle>
+            <DialogDescription>{isServiceDetail ? 'Explica el motivo de la cancelación.' : 'Explica el motivo de la cancelación. Los productos se devolverán al inventario automáticamente.'}</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
             <Label htmlFor="cancel-reason">Motivo de cancelación *</Label>
@@ -852,7 +904,7 @@ const Sales = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>Volver</Button>
-            <Button variant="destructive" onClick={handleCancel} disabled={!cancelReason.trim() || cancelSale.isPending}>Confirmar cancelación</Button>
+            <Button variant="destructive" onClick={handleCancel} disabled={!cancelReason.trim() || cancelSale.isPending || cancelServiceMutation.isPending}>Confirmar cancelación</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

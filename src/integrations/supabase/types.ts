@@ -4956,6 +4956,7 @@ export type Database = {
           archived_at: string | null
           branch_id: string
           business_id: string
+          cancellation_reason: string | null
           category_id: string | null
           created_at: string
           description: string | null
@@ -4963,6 +4964,7 @@ export type Database = {
           is_catalog: boolean
           payment_type: string
           service_name: string | null
+          status: string
           user_id: string
         }
         Insert: {
@@ -4971,6 +4973,7 @@ export type Database = {
           archived_at?: string | null
           branch_id: string
           business_id: string
+          cancellation_reason?: string | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -4978,6 +4981,7 @@ export type Database = {
           is_catalog?: boolean
           payment_type?: string
           service_name?: string | null
+          status?: string
           user_id: string
         }
         Update: {
@@ -4986,6 +4990,7 @@ export type Database = {
           archived_at?: string | null
           branch_id?: string
           business_id?: string
+          cancellation_reason?: string | null
           category_id?: string | null
           created_at?: string
           description?: string | null
@@ -4993,6 +4998,7 @@ export type Database = {
           is_catalog?: boolean
           payment_type?: string
           service_name?: string | null
+          status?: string
           user_id?: string
         }
         Relationships: [
