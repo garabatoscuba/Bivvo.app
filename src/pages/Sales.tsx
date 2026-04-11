@@ -474,11 +474,9 @@ const Sales = () => {
                     <span className="font-semibold text-base">${Number(sale.total).toFixed(2)}</span>
                     <div className="flex gap-1.5">
                       <PaymentDisplay sale={sale} />
-                      {sale._type !== 'service' && (
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusColors[sale.status as SaleStatus]}`}>
-                          {statusLabels[sale.status as SaleStatus]}
-                        </span>
-                      )}
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium ${statusColors[sale.status as SaleStatus]}`}>
+                        {statusLabels[sale.status as SaleStatus]}
+                      </span>
                       {isRestaurantBiz && sale._type === 'sale' && sale.status === 'completed' && resolvedBusinessId && (
                         <KitchenOrderStatus saleId={sale.id} businessId={resolvedBusinessId} />
                       )}
