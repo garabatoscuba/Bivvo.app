@@ -172,6 +172,8 @@ const Employees = () => {
   const [form, setForm] = useState<EmployeeForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
+  const [showBivooPassword, setShowBivooPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
 
   // Performance chart state
   const [perfEmployee, setPerfEmployee] = useState<Employee | null>(null);
