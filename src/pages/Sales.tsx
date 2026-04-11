@@ -887,7 +887,7 @@ const Sales = () => {
       <Dialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Cancelar venta</DialogTitle>
+            <DialogTitle>{isServiceDetail ? 'Cancelar servicio' : 'Cancelar venta'}</DialogTitle>
             <DialogDescription>Explica el motivo de la cancelación. Los productos se devolverán al inventario automáticamente.</DialogDescription>
           </DialogHeader>
           <div className="space-y-2">
