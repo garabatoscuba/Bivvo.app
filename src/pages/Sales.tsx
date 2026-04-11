@@ -376,9 +376,15 @@ const Sales = () => {
 
   const handleCancel = () => {
     if (!selectedSaleId || !cancelReason.trim()) return;
-    cancelSale.mutate({ saleId: selectedSaleId, reason: cancelReason.trim() }, {
-      onSuccess: () => { setSheetOpen(false); setCancelDialogOpen(false); setCancelReason(''); },
-    });
+    if (isServiceDetail) {
+      cancelServiceMutation.mutate({ serviceId: selectedSaleId, reason: cancelReason.trim() }, {
+        onSuccess: () => { setSheetOpen(false); setCancelDialogOpen(false); setCancelReason(''); },
+      });
+    } else {
+      cancelSale.mutate({ saleId: selectedSaleId, reason: cancelReason.trim() }, {
+        onSuccess: () => { setSheetOpen(false); setCancelDialogOpen(false); setCancelReason(''); },
+      });
+    }
   };
 
   const handleRegisterPayment = () => {
