@@ -292,7 +292,8 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
                 </div>
                 <div className="text-xs text-muted-foreground space-y-0.5">
                   <p className="font-medium">Foto del producto</p>
-                  <p>Máx. 500 KB · JPG, PNG, WebP</p>
+                  <p>JPG, PNG, WebP · Se optimiza automáticamente</p>
+                  <OptimizationStatus result={imgOptimizer.result} optimizing={imgOptimizer.optimizing} />
                 </div>
                 <input
                   ref={fileInputRef}
