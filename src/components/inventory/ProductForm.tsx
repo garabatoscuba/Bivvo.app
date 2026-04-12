@@ -75,6 +75,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
   const [recipeOpen, setRecipeOpen] = useState(false);
   const [insumoAreaId, setInsumoAreaId] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const imgOptimizer = useImageOptimizer();
 
   // Insumo areas for ingrediente products
   const { data: insumoAreas = [] } = useQuery({
@@ -140,17 +141,8 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
       const ext = imageFile.name.split('.').pop() || 'jpg';
       const path = `${profile?.business_id}/${productId}.${ext}`;
       
-      const { error } = await supabase.storage
-        .from('product-images')
-        .upload(path, imageFile, { upsert: true });
-
-      if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('product-images')
-        .getPublicUrl(path);
-
-      return publicUrl;
+      const result = await imgOptimizer.uploadAndOptimize(imageFile, 'product-images', path, 'product');
+      return result?.publicUrl || product?.image_url || null;
     } catch (err: any) {
       toast({ title: 'Error al subir imagen', description: err.message, variant: 'destructive' });
       return product?.image_url || null;
@@ -163,11 +155,6 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > MAX_IMAGE_SIZE) {
-      toast({ title: 'Imagen muy grande', description: 'El tamaño máximo es 500 KB', variant: 'destructive' });
-      return;
-    }
-
     if (!file.type.startsWith('image/')) {
       toast({ title: 'Archivo no válido', description: 'Solo se permiten imágenes', variant: 'destructive' });
       return;
@@ -175,6 +162,7 @@ export const ProductForm = ({ open, onOpenChange, product, defaultTipo }: Produc
 
     setImageFile(file);
     setImagePreview(URL.createObjectURL(file));
+    imgOptimizer.clearResult();
   };
 
   const removeImage = () => {
