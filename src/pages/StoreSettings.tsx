@@ -365,7 +365,7 @@ const StoreSettingsPage = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Logo del negocio</CardTitle>
-                  <CardDescription>Se mostrará en la barra de navegación de tu portal. Máx. 500 KB. Formatos: JPG, PNG, WebP. Recomendado: 256×256 px (cuadrado).</CardDescription>
+                  <CardDescription>Se mostrará en la barra de navegación de tu portal. Formatos: JPG, PNG, WebP, HEIC. Se optimiza automáticamente.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-4">
@@ -387,11 +387,12 @@ const StoreSettingsPage = () => {
                       </div>
                     )}
                     <div>
-                      <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoUpload} className="hidden" />
-                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}>
-                        {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                      <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={handleLogoUpload} className="hidden" />
+                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo || logoOptimizer.optimizing}>
+                        {(uploadingLogo || logoOptimizer.optimizing) ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
                         {logoUrl ? 'Cambiar logo' : 'Subir logo'}
                       </Button>
+                      <OptimizationStatus result={logoOptimizer.result} optimizing={logoOptimizer.optimizing} />
                     </div>
                   </div>
                 </CardContent>
