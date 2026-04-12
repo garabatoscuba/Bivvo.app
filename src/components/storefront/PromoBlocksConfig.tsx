@@ -38,6 +38,7 @@ const PromoBlockEditor = ({
   const fileRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [form, setForm] = useState<BlockData>(emptyBlock);
+  const imgOptimizer = useImageOptimizer();
 
   const { data: existing } = useQuery({
     queryKey: ['promo-block', branchId, blockNumber],
@@ -69,23 +70,19 @@ const PromoBlockEditor = ({
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const valid = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!valid.includes(file.type)) {
-      toast({ title: 'Formato no válido', description: 'Solo JPG, PNG o WebP', variant: 'destructive' });
-      return;
-    }
-    if (file.size > MAX_SIZE) {
-      toast({ title: 'Imagen muy pesada', description: 'Máximo 300 KB', variant: 'destructive' });
+    const valid = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+    if (!valid.includes(file.type) && !file.name.toLowerCase().endsWith('.heic')) {
+      toast({ title: 'Formato no válido', description: 'Solo JPG, PNG, WebP o HEIC', variant: 'destructive' });
       return;
     }
     setUploading(true);
     try {
       const ext = file.name.split('.').pop();
       const path = `promo-${branchId}-${blockNumber}.${ext}`;
-      const { error } = await supabase.storage.from('portal-promo').upload(path, file, { upsert: true, contentType: file.type });
-      if (error) throw error;
-      const { data: urlData } = supabase.storage.from('portal-promo').getPublicUrl(path);
-      setForm(prev => ({ ...prev, image_url: urlData.publicUrl }));
+      const result = await imgOptimizer.uploadAndOptimize(file, 'portal-promo', path, 'promo');
+      if (result) {
+        setForm(prev => ({ ...prev, image_url: result.publicUrl }));
+      }
       toast({ title: 'Imagen subida' });
     } catch (err: any) {
       toast({ title: 'Error', description: err.message, variant: 'destructive' });
@@ -162,12 +159,13 @@ const PromoBlockEditor = ({
               </Button>
             </div>
           )}
-          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleUpload} className="hidden" />
-          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading}>
-            {uploading ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={handleUpload} className="hidden" />
+          <Button variant="outline" size="sm" onClick={() => fileRef.current?.click()} disabled={uploading || imgOptimizer.optimizing}>
+            {(uploading || imgOptimizer.optimizing) ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
             Subir imagen
           </Button>
-          <p className="text-[10px] text-muted-foreground mt-1">Máx. 300 KB. Formatos: JPG, PNG, WebP.</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Formatos: JPG, PNG, WebP, HEIC. Se optimiza automáticamente.</p>
+          <OptimizationStatus result={imgOptimizer.result} optimizing={imgOptimizer.optimizing} />
         </div>
         <div>
           <Label className="text-xs text-muted-foreground">Texto principal</Label>
