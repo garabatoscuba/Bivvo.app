@@ -155,13 +155,9 @@ const StoreSettingsPage = () => {
     const file = e.target.files?.[0];
     if (!file || !branchId) return;
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      toastFn({ title: 'Formato no válido', description: 'Solo JPG, PNG o WebP', variant: 'destructive' });
-      return;
-    }
-    if (file.size > MAX_HERO_SIZE) {
-      toastFn({ title: 'Imagen muy pesada', description: 'Máximo 500 KB', variant: 'destructive' });
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+    if (!validTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.heic')) {
+      toastFn({ title: 'Formato no válido', description: 'Solo JPG, PNG, WebP o HEIC', variant: 'destructive' });
       return;
     }
 
@@ -169,14 +165,11 @@ const StoreSettingsPage = () => {
     try {
       const ext = file.name.split('.').pop();
       const path = `hero-${branchId}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from('product-images')
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-      setHeroImageUrl(urlData.publicUrl);
-      toastFn({ title: 'Imagen subida' });
+      const result = await heroOptimizer.uploadAndOptimize(file, 'product-images', path, 'hero');
+      if (result) {
+        setHeroImageUrl(result.publicUrl);
+        toastFn({ title: 'Imagen subida' });
+      }
     } catch (err: any) {
       toastFn({ title: 'Error al subir', description: err.message, variant: 'destructive' });
     } finally {
