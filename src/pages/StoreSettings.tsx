@@ -24,6 +24,8 @@ import PromoBlocksConfig from '@/components/storefront/PromoBlocksConfig';
 import GarabatosPromoCard from '@/components/GarabatosPromoCard';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { useImageOptimizer } from '@/hooks/useImageOptimizer';
+import OptimizationStatus from '@/components/ui/OptimizationStatus';
 
 const DAY_LABELS: Record<string, string> = {
   monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles', thursday: 'Jueves',
@@ -40,7 +42,7 @@ const BODY_FONTS = [
   'Lora', 'Merriweather',
 ];
 
-const MAX_HERO_SIZE = 500 * 1024; // 500 KB
+// Size limits removed — optimization handled by edge function
 
 const StoreSettingsPage = () => {
   const { settings, isLoading, defaultSchedule, save, isSaving } = useStoreSettings();
@@ -51,6 +53,8 @@ const StoreSettingsPage = () => {
   const queryClient = useQueryClient();
   const heroInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const logoOptimizer = useImageOptimizer();
+  const heroOptimizer = useImageOptimizer();
 
   const activeBranch = branches.find(b => b.id === profile?.branch_id);
   const branchId = profile?.branch_id;
@@ -74,29 +78,23 @@ const StoreSettingsPage = () => {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !profile?.business_id) return;
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      toastFn({ title: 'Formato no válido', description: 'Solo JPG, PNG o WebP', variant: 'destructive' });
-      return;
-    }
-    if (file.size > MAX_HERO_SIZE) {
-      toastFn({ title: 'Imagen muy pesada', description: 'Máximo 500 KB', variant: 'destructive' });
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+    if (!validTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.heic')) {
+      toastFn({ title: 'Formato no válido', description: 'Solo JPG, PNG, WebP o HEIC', variant: 'destructive' });
       return;
     }
     setUploadingLogo(true);
     try {
       const ext = file.name.split('.').pop();
       const path = `logo-${profile.business_id}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from('product-images')
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (uploadErr) throw uploadErr;
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-      const newUrl = urlData.publicUrl;
-      await supabase.from('businesses').update({ logo_url: newUrl }).eq('id', profile.business_id!);
-      setLogoUrl(newUrl);
-      queryClient.invalidateQueries({ queryKey: ['my-business-details', profile.business_id] });
-      toastFn({ title: 'Logo actualizado' });
+      const result = await logoOptimizer.uploadAndOptimize(file, 'product-images', path, 'logo');
+      if (result) {
+        const newUrl = result.publicUrl;
+        await supabase.from('businesses').update({ logo_url: newUrl }).eq('id', profile.business_id!);
+        setLogoUrl(newUrl);
+        queryClient.invalidateQueries({ queryKey: ['my-business-details', profile.business_id] });
+        toastFn({ title: 'Logo actualizado' });
+      }
     } catch (err: any) {
       toastFn({ title: 'Error al subir', description: err.message, variant: 'destructive' });
     } finally {
@@ -157,13 +155,9 @@ const StoreSettingsPage = () => {
     const file = e.target.files?.[0];
     if (!file || !branchId) return;
 
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      toastFn({ title: 'Formato no válido', description: 'Solo JPG, PNG o WebP', variant: 'destructive' });
-      return;
-    }
-    if (file.size > MAX_HERO_SIZE) {
-      toastFn({ title: 'Imagen muy pesada', description: 'Máximo 500 KB', variant: 'destructive' });
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+    if (!validTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.heic')) {
+      toastFn({ title: 'Formato no válido', description: 'Solo JPG, PNG, WebP o HEIC', variant: 'destructive' });
       return;
     }
 
@@ -171,14 +165,11 @@ const StoreSettingsPage = () => {
     try {
       const ext = file.name.split('.').pop();
       const path = `hero-${branchId}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from('product-images')
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (uploadErr) throw uploadErr;
-
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-      setHeroImageUrl(urlData.publicUrl);
-      toastFn({ title: 'Imagen subida' });
+      const result = await heroOptimizer.uploadAndOptimize(file, 'product-images', path, 'hero');
+      if (result) {
+        setHeroImageUrl(result.publicUrl);
+        toastFn({ title: 'Imagen subida' });
+      }
     } catch (err: any) {
       toastFn({ title: 'Error al subir', description: err.message, variant: 'destructive' });
     } finally {
@@ -374,7 +365,7 @@ const StoreSettingsPage = () => {
               <Card>
                 <CardHeader>
                   <CardTitle className="text-base flex items-center gap-2"><ImageIcon className="h-4 w-4" /> Logo del negocio</CardTitle>
-                  <CardDescription>Se mostrará en la barra de navegación de tu portal. Máx. 500 KB. Formatos: JPG, PNG, WebP. Recomendado: 256×256 px (cuadrado).</CardDescription>
+                  <CardDescription>Se mostrará en la barra de navegación de tu portal. Formatos: JPG, PNG, WebP, HEIC. Se optimiza automáticamente.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex items-center gap-4">
@@ -396,11 +387,12 @@ const StoreSettingsPage = () => {
                       </div>
                     )}
                     <div>
-                      <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleLogoUpload} className="hidden" />
-                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo}>
-                        {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                      <input ref={logoInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={handleLogoUpload} className="hidden" />
+                      <Button variant="outline" size="sm" onClick={() => logoInputRef.current?.click()} disabled={uploadingLogo || logoOptimizer.optimizing}>
+                        {(uploadingLogo || logoOptimizer.optimizing) ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
                         {logoUrl ? 'Cambiar logo' : 'Subir logo'}
                       </Button>
+                      <OptimizationStatus result={logoOptimizer.result} optimizing={logoOptimizer.optimizing} />
                     </div>
                   </div>
                 </CardContent>
@@ -453,7 +445,7 @@ const StoreSettingsPage = () => {
                   <div>
                     <Label className="text-xs text-muted-foreground mb-2 block">Imagen de hero</Label>
                     <p className="text-[10px] text-muted-foreground mb-2">
-                      Resolución recomendada: <strong>1920×1080 px</strong> (16:9) o <strong>1920×800 px</strong> (panorámica). Máx. <strong>500 KB</strong>. Formatos: JPG, PNG, WebP.
+                      Resolución recomendada: <strong>1920×1080 px</strong> (16:9) o <strong>1920×800 px</strong> (panorámica). Formatos: JPG, PNG, WebP, HEIC. Se optimiza automáticamente.
                     </p>
                     {heroImageUrl && (
                       <div className="relative mb-3 rounded-lg overflow-hidden border border-border">
@@ -468,11 +460,12 @@ const StoreSettingsPage = () => {
                         </Button>
                       </div>
                     )}
-                    <input ref={heroInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleHeroUpload} className="hidden" />
-                    <Button variant="outline" size="sm" onClick={() => heroInputRef.current?.click()} disabled={uploadingHero}>
-                      {uploadingHero ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                    <input ref={heroInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={handleHeroUpload} className="hidden" />
+                    <Button variant="outline" size="sm" onClick={() => heroInputRef.current?.click()} disabled={uploadingHero || heroOptimizer.optimizing}>
+                      {(uploadingHero || heroOptimizer.optimizing) ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
                       Subir imagen
                     </Button>
+                    <OptimizationStatus result={heroOptimizer.result} optimizing={heroOptimizer.optimizing} />
                   </div>
                 </CardContent>
               </Card>
