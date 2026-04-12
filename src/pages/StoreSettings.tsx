@@ -24,6 +24,8 @@ import PromoBlocksConfig from '@/components/storefront/PromoBlocksConfig';
 import GarabatosPromoCard from '@/components/GarabatosPromoCard';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useToast } from '@/hooks/use-toast';
+import { useImageOptimizer } from '@/hooks/useImageOptimizer';
+import OptimizationStatus from '@/components/ui/OptimizationStatus';
 
 const DAY_LABELS: Record<string, string> = {
   monday: 'Lunes', tuesday: 'Martes', wednesday: 'Miércoles', thursday: 'Jueves',
@@ -40,7 +42,7 @@ const BODY_FONTS = [
   'Lora', 'Merriweather',
 ];
 
-const MAX_HERO_SIZE = 500 * 1024; // 500 KB
+// Size limits removed — optimization handled by edge function
 
 const StoreSettingsPage = () => {
   const { settings, isLoading, defaultSchedule, save, isSaving } = useStoreSettings();
