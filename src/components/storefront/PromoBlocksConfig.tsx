@@ -10,8 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Upload, Trash2, Save, ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-const MAX_SIZE = 300 * 1024; // 300 KB
+import { useImageOptimizer } from '@/hooks/useImageOptimizer';
+import OptimizationStatus from '@/components/ui/OptimizationStatus';
 
 interface BlockData {
   image_url: string;
