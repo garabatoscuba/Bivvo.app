@@ -53,6 +53,8 @@ const StoreSettingsPage = () => {
   const queryClient = useQueryClient();
   const heroInputRef = useRef<HTMLInputElement>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+  const logoOptimizer = useImageOptimizer();
+  const heroOptimizer = useImageOptimizer();
 
   const activeBranch = branches.find(b => b.id === profile?.branch_id);
   const branchId = profile?.branch_id;
