@@ -445,7 +445,7 @@ const StoreSettingsPage = () => {
                   <div>
                     <Label className="text-xs text-muted-foreground mb-2 block">Imagen de hero</Label>
                     <p className="text-[10px] text-muted-foreground mb-2">
-                      Resolución recomendada: <strong>1920×1080 px</strong> (16:9) o <strong>1920×800 px</strong> (panorámica). Máx. <strong>500 KB</strong>. Formatos: JPG, PNG, WebP.
+                      Resolución recomendada: <strong>1920×1080 px</strong> (16:9) o <strong>1920×800 px</strong> (panorámica). Formatos: JPG, PNG, WebP, HEIC. Se optimiza automáticamente.
                     </p>
                     {heroImageUrl && (
                       <div className="relative mb-3 rounded-lg overflow-hidden border border-border">
@@ -460,11 +460,12 @@ const StoreSettingsPage = () => {
                         </Button>
                       </div>
                     )}
-                    <input ref={heroInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleHeroUpload} className="hidden" />
-                    <Button variant="outline" size="sm" onClick={() => heroInputRef.current?.click()} disabled={uploadingHero}>
-                      {uploadingHero ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
+                    <input ref={heroInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic" onChange={handleHeroUpload} className="hidden" />
+                    <Button variant="outline" size="sm" onClick={() => heroInputRef.current?.click()} disabled={uploadingHero || heroOptimizer.optimizing}>
+                      {(uploadingHero || heroOptimizer.optimizing) ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Upload className="h-3.5 w-3.5 mr-1.5" />}
                       Subir imagen
                     </Button>
+                    <OptimizationStatus result={heroOptimizer.result} optimizing={heroOptimizer.optimizing} />
                   </div>
                 </CardContent>
               </Card>
