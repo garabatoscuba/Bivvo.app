@@ -78,29 +78,23 @@ const StoreSettingsPage = () => {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !profile?.business_id) return;
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-      toastFn({ title: 'Formato no válido', description: 'Solo JPG, PNG o WebP', variant: 'destructive' });
-      return;
-    }
-    if (file.size > MAX_HERO_SIZE) {
-      toastFn({ title: 'Imagen muy pesada', description: 'Máximo 500 KB', variant: 'destructive' });
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/heic'];
+    if (!validTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.heic')) {
+      toastFn({ title: 'Formato no válido', description: 'Solo JPG, PNG, WebP o HEIC', variant: 'destructive' });
       return;
     }
     setUploadingLogo(true);
     try {
       const ext = file.name.split('.').pop();
       const path = `logo-${profile.business_id}.${ext}`;
-      const { error: uploadErr } = await supabase.storage
-        .from('product-images')
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (uploadErr) throw uploadErr;
-      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(path);
-      const newUrl = urlData.publicUrl;
-      await supabase.from('businesses').update({ logo_url: newUrl }).eq('id', profile.business_id!);
-      setLogoUrl(newUrl);
-      queryClient.invalidateQueries({ queryKey: ['my-business-details', profile.business_id] });
-      toastFn({ title: 'Logo actualizado' });
+      const result = await logoOptimizer.uploadAndOptimize(file, 'product-images', path, 'logo');
+      if (result) {
+        const newUrl = result.publicUrl;
+        await supabase.from('businesses').update({ logo_url: newUrl }).eq('id', profile.business_id!);
+        setLogoUrl(newUrl);
+        queryClient.invalidateQueries({ queryKey: ['my-business-details', profile.business_id] });
+        toastFn({ title: 'Logo actualizado' });
+      }
     } catch (err: any) {
       toastFn({ title: 'Error al subir', description: err.message, variant: 'destructive' });
     } finally {
