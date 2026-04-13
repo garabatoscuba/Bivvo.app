@@ -36,40 +36,26 @@ export function useImageOptimizer() {
       if (upErr) throw upErr;
 
       // 2. Call optimize edge function
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
+      const { data, error: fnErr } = await supabase.functions.invoke('optimize-image', {
+        body: { bucket, path, type },
+      });
 
-      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
-      const res = await fetch(
-        `https://${projectId}.supabase.co/functions/v1/optimize-image`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-            apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-          },
-          body: JSON.stringify({ bucket, path, type }),
-        },
-      );
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Error de optimización' }));
-        throw new Error(err.error || 'Error de optimización');
+      if (fnErr) {
+        throw new Error(fnErr.message || 'Error de optimización');
       }
 
-      const data: OptimizeResult = await res.json();
+      const optimizeData = data as OptimizeResult;
 
-      if (data.alreadyOptimal) {
+      if (optimizeData.alreadyOptimal) {
         setResult({ message: 'Imagen lista', variant: 'info' });
       } else {
         setResult({
-          message: `Imagen optimizada: de ${formatSize(data.originalSize)} → ${formatSize(data.newSize)}`,
+          message: `Imagen optimizada: de ${formatSize(optimizeData.originalSize)} → ${formatSize(optimizeData.newSize)}`,
           variant: 'success',
         });
       }
 
-      return { publicUrl: data.publicUrl };
+      return { publicUrl: optimizeData.publicUrl };
     } catch (err: any) {
       // If optimization fails, fallback to original URL
       const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
