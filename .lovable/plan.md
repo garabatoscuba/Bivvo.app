@@ -1,52 +1,47 @@
 
 
-## Plan: Cantidad multiplicadora + Cuenta abierta en Servicios
+## Plan: Arreglar imágenes de productos — eliminar edge function rota, optimizar en el cliente
 
-### Cambios en `src/pages/Services.tsx` (solo dentro de `EmployeeServicesView`)
+### Problema raíz
 
-#### 1 — Estado nuevo
-- `quantity: number` (default 1)
-- `tabItems: Array<{ id: string, catId: string|null, name: string, icon: string, description: string, quantity: number, unitPrice: number, isLive: boolean }>` (cuenta abierta)
-- Reset `quantity` a 1 cuando se selecciona un servicio diferente
+La edge function `optimize-image` tiene dos errores fatales que impiden que funcione en Deno Deploy (el runtime de las edge functions):
 
-#### 2 — Panel derecho: control de cantidad
-Debajo del campo Descripción (línea ~482), antes del campo Monto:
-- Reemplazar el input libre de monto por un control de cantidad: botones `−` `[cantidad]` `+` × `[precio]` = `$total`
-- El precio base viene del `fixed_price` de la categoría (o input manual si es "en vivo")
-- Si el servicio tiene precio fijo: mostrar `Precio base: $X` como referencia, permitir editar el precio unitario
-- Total línea = `quantity × precio_unitario`
-- El campo de monto actual se convierte en el precio unitario editable
+1. **`auth.getClaims()` no existe** en el SDK de Supabase JS — la autenticación falla silenciosamente
+2. **`createImageBitmap` y `OffscreenCanvas` no están disponibles** en Deno Deploy — solo existen en navegadores y Web Workers
 
-#### 3 — Sección "Cuenta abierta"
-Debajo del control de cantidad:
-- Botón "Agregar a cuenta" que añade el servicio actual (con su cantidad, precio, descripción) a `tabItems`
-- Lista de items agregados: cada uno muestra nombre, `qty × $precio`, total, botón × para eliminar
-- Subtotal de la cuenta
-- Al agregar, se resetea la selección actual (cantidad=1, descripción vacía)
+Resultado: la función falla, el catch del frontend genera una URL del archivo original (con extensión .jpg/.png), pero el archivo original ya fue borrado por el upload con `upsert: true` o nunca se guarda correctamente. La URL guardada en la base de datos apunta a un archivo que no existe o no es accesible.
 
-#### 4 — Total y botón Cobrar
-- `totalACobrar` = suma de tabItems + servicio seleccionado actual (si hay)
-- El botón "Cobrar" muestra el total combinado
-- Si no hay tabItems, el comportamiento es idéntico al actual (cobro individual)
+### Solución
 
-#### 5 — Payment Dialog y mutación
-- NO se modifica el componente `ServicePaymentSection` ni la estructura del dialog
-- Se actualiza el total mostrado en el dialog para usar `totalACobrar`
-- La mutación `createEntryMutation` se adapta para insertar múltiples registros:
-  - Cada item de la cuenta + el servicio actual se inserta como un `service_entry` individual
-  - Cada uno con su propio `amount = qty × unitPrice`
-  - Se usa un loop de inserts o un insert con array
-- Al confirmar: se limpia `tabItems`, se resetea todo
+Mover la optimización al navegador usando la Canvas API nativa (que sí soporta todo esto) y eliminar la dependencia de la edge function.
 
-#### 6 — Audit log
-- Se registra un solo audit log con el total combinado y cantidad de servicios
+### Cambios
 
-### Archivos a modificar
-- `src/pages/Services.tsx` (solo `EmployeeServicesView`, líneas ~200-553)
+**1. Reescribir `src/hooks/useImageOptimizer.ts`**
+- Optimizar la imagen en el navegador con `createImageBitmap` + `OffscreenCanvas` + `convertToBlob` (WebP)
+- Redimensionar y comprimir según los mismos límites (product: 1200px/150KB, hero: 1920px/300KB, promo: 1200px/200KB, logo: 512px/100KB)
+- Reducir calidad progresivamente hasta cumplir el peso
+- Subir el resultado ya optimizado directamente a Supabase Storage con extensión `.webp`
+- Devolver la URL pública del archivo subido
+- Mostrar el mismo feedback: "Imagen optimizada: de X → Y" o "Imagen lista"
 
-### Lo que NO se toca
-- `ServicePaymentSection` (componente de métodos de pago)
-- Vista Owner (`OwnerServicesView`)
-- POS, Inventario, Jornadas, Auth
-- Base de datos (no se necesitan cambios de schema)
+**2. Eliminar `supabase/functions/optimize-image/index.ts`**
+- Borrar el archivo de la edge function
+- Quitar la entrada `[functions.optimize-image]` de `supabase/config.toml`
 
+**3. Sin cambios en**
+- ProductForm, StoreSettings, PromoBlocksConfig (siguen llamando `imgOptimizer.uploadAndOptimize` igual)
+- OptimizationStatus (mismo contrato de props)
+- Base de datos, POS, ni ningún otro módulo
+
+### Detalle técnico
+
+```text
+Flujo actual (roto):
+  File → upload a Storage → invoke edge function → ❌ falla → URL rota
+
+Flujo nuevo:
+  File → Canvas resize+WebP en navegador → upload .webp a Storage → URL válida
+```
+
+La Canvas API del navegador soporta `createImageBitmap`, `OffscreenCanvas`, y `convertToBlob({ type: "image/webp" })` en todos los navegadores modernos. Si el navegador no soporta WebP encoding (Safari viejo), se sube como PNG como fallback.
