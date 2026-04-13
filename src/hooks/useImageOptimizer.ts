@@ -46,16 +46,16 @@ export function useImageOptimizer() {
 
       const optimizeData = data as OptimizeResult;
 
-      if (data.alreadyOptimal) {
+      if (optimizeData.alreadyOptimal) {
         setResult({ message: 'Imagen lista', variant: 'info' });
       } else {
         setResult({
-          message: `Imagen optimizada: de ${formatSize(data.originalSize)} → ${formatSize(data.newSize)}`,
+          message: `Imagen optimizada: de ${formatSize(optimizeData.originalSize)} → ${formatSize(optimizeData.newSize)}`,
           variant: 'success',
         });
       }
 
-      return { publicUrl: data.publicUrl };
+      return { publicUrl: optimizeData.publicUrl };
     } catch (err: any) {
       // If optimization fails, fallback to original URL
       const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(path);
