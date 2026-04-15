@@ -847,6 +847,7 @@ const OwnerServicesView = () => {
         amount: parseFloat(entryAmount),
         payment_type: entryIsMixed ? 'mixed' : entryPaymentType,
         is_catalog: !entryIsLive,
+        customer_id: entryClientId || null,
       };
       if (entryIsLive) {
         payload.service_name = entryLiveName.trim();
@@ -878,6 +879,7 @@ const OwnerServicesView = () => {
       setEntryMixedTransfer('0');
       setEntryIsLive(false);
       setEntryLiveName('');
+      setEntryClientId(null);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
