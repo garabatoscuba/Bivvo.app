@@ -639,6 +639,13 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
               <p className="text-xs text-muted-foreground mt-1">{tabItems.length + (currentItemValid ? 1 : 0)} servicio(s)</p>
             )}
           </div>
+          <ClientSearchSelect
+            businessId={businessId}
+            branchId={branchId}
+            selectedClientId={selectedClientId}
+            onSelect={setSelectedClientId}
+            createdBy={user?.id}
+          />
           <ServicePaymentSection
             paymentType={paymentType}
             setPaymentType={setPaymentType}
