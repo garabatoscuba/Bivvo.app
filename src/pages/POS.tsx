@@ -216,7 +216,7 @@ const POS = () => {
     setDiscount(0);
   }, []);
 
-  const handlePayment = async (paymentType: PaymentType, amountPaid: number, mixedAmounts?: { cash: number; transfer: number }) => {
+  const handlePayment = async (paymentType: PaymentType, amountPaid: number, mixedAmounts?: { cash: number; transfer: number }, customerId?: string | null) => {
     if (!currentBranch) return;
 
     const subtotal = cart.reduce((sum, item) => sum + item.total, 0);
@@ -247,6 +247,7 @@ const POS = () => {
       amountPaid,
       cashAmount,
       transferAmount,
+      customerId: customerId || undefined,
     });
 
     setPaymentOpen(false);
@@ -503,6 +504,9 @@ const POS = () => {
         discount={discount}
         onConfirm={handlePayment}
         isProcessing={isCreating}
+        businessId={resolvedBusinessId || undefined}
+        branchId={resolvedBranchId}
+        userId={user?.id}
       />
 
       <MermaDialog
