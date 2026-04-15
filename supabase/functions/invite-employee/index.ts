@@ -34,23 +34,12 @@ Deno.serve(async (req) => {
 
     const role = position || "seller";
 
-    // Try to find existing user by email using listUsers filter
-    const { data: listData, error: listError } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-    });
-
+    // Find existing user by email using listUsers (reliable, doesn't throw)
     let existingUserId: string | null = null;
-
-    // Use getUserByEmail wrapped safely
-    try {
-      const { data: userData, error: userError } = await admin.auth.admin.getUserByEmail(email);
-      if (!userError && userData?.user) {
-        existingUserId = userData.user.id;
-      }
-    } catch (_e) {
-      // User doesn't exist — will invite below
-      console.log("getUserByEmail threw (user likely doesn't exist):", email);
+    const { data: listData } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (listData?.users) {
+      const found = listData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+      if (found) existingUserId = found.id;
     }
 
     if (existingUserId) {
