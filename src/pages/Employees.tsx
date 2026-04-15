@@ -170,8 +170,12 @@ const Employees = () => {
   const [form, setForm] = useState<EmployeeForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
-  const [showBivooPassword, setShowBivooPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [emailSearch, setEmailSearch] = useState('');
+  const [emailSuggestions, setEmailSuggestions] = useState<{ user_id: string; email: string; full_name: string }[]>([]);
+  const [searchingEmail, setSearchingEmail] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [inviting, setInviting] = useState(false);
 
   // Performance chart state
   const [perfEmployee, setPerfEmployee] = useState<Employee | null>(null);
@@ -439,12 +443,6 @@ const Employees = () => {
     }
     if (!businessId) return;
 
-    // Validate @bivoo.app password
-    if (form.use_bivoo_id && !editingEmployee && form.bivoo_password.length < 6) {
-      sonnerToast.error('La contraseña del identificador @bivoo.app debe tener al menos 6 caracteres');
-      return;
-    }
-
     setSaving(true);
     try {
       let employeeId: string;
@@ -457,7 +455,7 @@ const Employees = () => {
             full_name: form.full_name.trim(),
             age: form.age ? parseInt(form.age) : null,
             ci: form.ci.trim(),
-            email: editingEmployee.email?.endsWith('@bivoo.app') ? editingEmployee.email : (form.email.trim() || null),
+            email: form.email.trim() || null,
             license_number: form.license_number.trim() || null,
             address: form.address.trim() || null,
             position: form.assigned_roles[0] || 'seller',
@@ -480,7 +478,7 @@ const Employees = () => {
             full_name: form.full_name.trim(),
             age: form.age ? parseInt(form.age) : null,
             ci: form.ci.trim(),
-            email: form.use_bivoo_id ? null : (form.email.trim() || null),
+            email: form.email.trim() || null,
             license_number: form.license_number.trim() || null,
             address: form.address.trim() || null,
             position: form.assigned_roles[0] || 'seller',
@@ -494,48 +492,29 @@ const Employees = () => {
         employeeId = data.id;
         auditLog('employee_created', `Empleado ${form.full_name} creado con rol ${form.assigned_roles[0] || 'seller'}`, data.id, 'employee');
 
-        if (form.use_bivoo_id) {
-          // Create @bivoo.app account via edge function
-          const resolvedPosition = form.assigned_roles[0] || form.position || 'seller';
-          const { data: bivooResult, error: bivooError } = await supabase.functions.invoke('create-bivoo-employee', {
-            body: {
-              full_name: form.full_name.trim(),
-              password: form.bivoo_password,
-              business_id: businessId,
-              branch_id: profile?.branch_id || null,
-              position: resolvedPosition,
-              employee_id: employeeId,
-            },
-          });
-          if (bivooError || bivooResult?.error) {
-            // ROLLBACK: delete the employee row to avoid phantoms
-            await supabase.from('employees').delete().eq('id', employeeId);
-            const errMsg = bivooResult?.error || bivooError?.message || 'Error al crear cuenta @bivoo.app';
-            sonnerToast.error(errMsg);
-            setSaving(false);
-            setEmployeeDialogOpen(false);
-            queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
-            return; // Abort — don't save salary/branches for a phantom employee
-          }
-          sonnerToast.success(`Cuenta ${bivooResult.email} creada exitosamente`);
-        } else if (form.email.trim()) {
-          // Auto-link: if email matches an existing profile, assign role + business
+        // If a user was selected from search, link via invite-employee (handles both existing and new)
+        if (form.email.trim()) {
           try {
-            const { data: linkResult } = await supabase.functions.invoke('employee-onboarding', {
+            const resolvedPosition = form.assigned_roles[0] || form.position || 'seller';
+            const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('invite-employee', {
               body: {
                 email: form.email.trim(),
-                position: form.position,
                 business_id: businessId,
                 branch_id: profile?.branch_id || null,
+                position: resolvedPosition,
+                employee_id: employeeId,
               },
             });
-            if (linkResult?.linked) {
-              sonnerToast.success(`${form.full_name.trim()} vinculado al negocio automáticamente`);
-            } else if (linkResult?.reason) {
-              sonnerToast.info(linkResult.reason);
+            if (inviteError || inviteResult?.error) {
+              const errMsg = inviteResult?.error || inviteError?.message || 'Error al vincular usuario';
+              sonnerToast.warning(errMsg);
+            } else if (inviteResult?.linked) {
+              sonnerToast.success(`${form.full_name.trim()} vinculado exitosamente`);
+            } else if (inviteResult?.invited) {
+              sonnerToast.success(`Invitación enviada a ${form.email.trim()}`);
             }
           } catch (linkErr) {
-            console.error('Error auto-linking employee:', linkErr);
+            console.error('Error linking employee:', linkErr);
           }
         }
 
@@ -737,8 +716,7 @@ const Employees = () => {
       assigned_roles: currentRoles,
       assigned_insumo_areas: loadedAreas,
       salary_assignments: generalLoaded,
-      use_bivoo_id: emp.email?.endsWith('@bivoo.app') || false,
-      bivoo_password: '',
+      linked_user_id: emp.auth_user_id || null,
       new_password: '',
       is_jefe: emp.is_jefe ?? false,
       is_cash_counter: (emp as any).is_cash_counter ?? false,
