@@ -131,6 +131,7 @@ const ServicePaymentSection = ({
   );
 };
 import IconSelector, { getIconComponent } from '@/components/services/IconSelector';
+import { ClientSearchSelect } from '@/components/clients/ClientSearchSelect';
 import ServiceCostSheet from '@/components/services/ServiceCostSheet';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -234,6 +235,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const [mixedCash, setMixedCash] = useState('0');
   const [mixedTransfer, setMixedTransfer] = useState('0');
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isLiveService, setIsLiveService] = useState(false);
   const [liveServiceName, setLiveServiceName] = useState('');
   const [tabItems, setTabItems] = useState<Array<{
@@ -311,6 +313,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
           amount: item.quantity * item.unitPrice,
           payment_type: isMixed ? 'mixed' : paymentType,
           is_catalog: !item.isLive,
+          customer_id: selectedClientId || null,
         };
         if (item.isLive) {
           payload.service_name = item.name;
@@ -345,6 +348,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       setIsLiveService(false);
       setLiveServiceName('');
       setTabItems([]);
+      setSelectedClientId(null);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
@@ -635,6 +639,13 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
               <p className="text-xs text-muted-foreground mt-1">{tabItems.length + (currentItemValid ? 1 : 0)} servicio(s)</p>
             )}
           </div>
+          <ClientSearchSelect
+            businessId={businessId}
+            branchId={branchId}
+            selectedClientId={selectedClientId}
+            onSelect={setSelectedClientId}
+            createdBy={user?.id}
+          />
           <ServicePaymentSection
             paymentType={paymentType}
             setPaymentType={setPaymentType}
@@ -707,6 +718,7 @@ const OwnerServicesView = () => {
   const [entryMixedTransfer, setEntryMixedTransfer] = useState('0');
   const [entryIsLive, setEntryIsLive] = useState(false);
   const [entryLiveName, setEntryLiveName] = useState('');
+  const [entryClientId, setEntryClientId] = useState<string | null>(null);
 
   // Promote dialog
   const [promoteEntry, setPromoteEntry] = useState<any>(null);
@@ -835,6 +847,7 @@ const OwnerServicesView = () => {
         amount: parseFloat(entryAmount),
         payment_type: entryIsMixed ? 'mixed' : entryPaymentType,
         is_catalog: !entryIsLive,
+        customer_id: entryClientId || null,
       };
       if (entryIsLive) {
         payload.service_name = entryLiveName.trim();
@@ -866,6 +879,7 @@ const OwnerServicesView = () => {
       setEntryMixedTransfer('0');
       setEntryIsLive(false);
       setEntryLiveName('');
+      setEntryClientId(null);
     },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
@@ -1207,6 +1221,13 @@ const OwnerServicesView = () => {
               <Label>Monto cobrado ($)</Label>
               <Input type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="0.00" />
             </div>
+            <ClientSearchSelect
+              businessId={businessId!}
+              branchId={branchId}
+              selectedClientId={entryClientId}
+              onSelect={setEntryClientId}
+              createdBy={user?.id}
+            />
             <ServicePaymentSection
               paymentType={entryPaymentType}
               setPaymentType={setEntryPaymentType}

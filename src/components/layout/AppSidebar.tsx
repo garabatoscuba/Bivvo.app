@@ -467,6 +467,7 @@ const AppSidebar = () => {
     Contabilidad: "/contabilidad",
     Impresiones: "/impresiones",
     Cocina: "/cocina",
+    Clientes: "/clients",
   };
 
   // Owner sees both Tesorería and Caja as separate sidebar items
@@ -485,7 +486,7 @@ const AppSidebar = () => {
   // Manager-allowed module names
   const MANAGER_ALLOWED_MODULES = new Set([
     "Punto de Venta", "Servicios", "Caja", "Inventario",
-    "Pedidos", "Reportes", "Recursos Humanos", "Ventas", "Impresiones",
+    "Pedidos", "Reportes", "Recursos Humanos", "Ventas", "Impresiones", "Clientes",
   ]);
   // Modules the manager can see WITHOUT an active jornada (only Empleados)
   const MANAGER_NO_JORNADA_MODULES = new Set(["Recursos Humanos"]);

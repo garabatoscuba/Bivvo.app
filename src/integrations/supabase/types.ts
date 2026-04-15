@@ -1390,8 +1390,10 @@ export type Database = {
       customers: {
         Row: {
           address: string | null
+          branch_id: string | null
           business_id: string
           created_at: string
+          created_by: string | null
           email: string | null
           id: string
           name: string
@@ -1401,8 +1403,10 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          branch_id?: string | null
           business_id: string
           created_at?: string
+          created_by?: string | null
           email?: string | null
           id?: string
           name: string
@@ -1412,8 +1416,10 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          branch_id?: string | null
           business_id?: string
           created_at?: string
+          created_by?: string | null
           email?: string | null
           id?: string
           name?: string
@@ -1422,6 +1428,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "customers_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "customers_business_id_fkey"
             columns: ["business_id"]
@@ -4959,6 +4972,7 @@ export type Database = {
           cancellation_reason: string | null
           category_id: string | null
           created_at: string
+          customer_id: string | null
           description: string | null
           id: string
           is_catalog: boolean
@@ -4976,6 +4990,7 @@ export type Database = {
           cancellation_reason?: string | null
           category_id?: string | null
           created_at?: string
+          customer_id?: string | null
           description?: string | null
           id?: string
           is_catalog?: boolean
@@ -4993,6 +5008,7 @@ export type Database = {
           cancellation_reason?: string | null
           category_id?: string | null
           created_at?: string
+          customer_id?: string | null
           description?: string | null
           id?: string
           is_catalog?: boolean
@@ -5021,6 +5037,13 @@ export type Database = {
             columns: ["category_id"]
             isOneToOne: false
             referencedRelation: "service_categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "service_entries_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
             referencedColumns: ["id"]
           },
         ]

@@ -13,14 +13,18 @@ import { Separator } from '@/components/ui/separator';
 import { CreditCard, Banknote, Smartphone, Loader2, CheckCircle, RotateCcw } from 'lucide-react';
 import type { CartItem, PaymentType } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { ClientSearchSelect } from '@/components/clients/ClientSearchSelect';
 
 interface PaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   items: CartItem[];
   discount: number;
-  onConfirm: (paymentType: PaymentType, amountPaid: number, mixedAmounts?: { cash: number; transfer: number }) => void;
+  onConfirm: (paymentType: PaymentType, amountPaid: number, mixedAmounts?: { cash: number; transfer: number }, customerId?: string | null) => void;
   isProcessing: boolean;
+  businessId?: string;
+  branchId?: string | null;
+  userId?: string;
 }
 
 const paymentOptions: { value: PaymentType; label: string; icon: React.ElementType }[] = [
@@ -37,12 +41,16 @@ export const PaymentDialog = ({
   discount,
   onConfirm,
   isProcessing,
+  businessId,
+  branchId,
+  userId,
 }: PaymentDialogProps) => {
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
   const total = subtotal - discount;
 
   const [paymentType, setPaymentType] = useState<PaymentType>('cash');
   const [amountPaid, setAmountPaid] = useState<string>('');
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   // Mixed payment state
   const [isMixed, setIsMixed] = useState(false);
@@ -56,6 +64,7 @@ export const PaymentDialog = ({
       setIsMixed(false);
       setMixedCash('0');
       setMixedTransfer('0');
+      setSelectedClientId(null);
     }
   }, [open]);
 
@@ -110,9 +119,9 @@ export const PaymentDialog = ({
     if (isMixed) {
       const cashVal = Number(mixedCash);
       const transferVal = Number(mixedTransfer);
-      onConfirm('mixed', cashVal + transferVal, { cash: cashVal, transfer: transferVal });
+      onConfirm('mixed', cashVal + transferVal, { cash: cashVal, transfer: transferVal }, selectedClientId);
     } else {
-      onConfirm(paymentType, Number(amountPaid));
+      onConfirm(paymentType, Number(amountPaid), undefined, selectedClientId);
     }
   };
 
@@ -149,6 +158,17 @@ export const PaymentDialog = ({
               <span className="text-primary">${total.toFixed(2)}</span>
             </div>
           </div>
+
+          {/* Client selector */}
+          {businessId && (
+            <ClientSearchSelect
+              businessId={businessId}
+              branchId={branchId}
+              selectedClientId={selectedClientId}
+              onSelect={setSelectedClientId}
+              createdBy={userId}
+            />
+          )}
 
           {/* Payment Type */}
           <div className="space-y-2">
