@@ -98,11 +98,8 @@ const Hub = () => {
     queryKey: ["hub-employments", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const res: any = await supabase
-        .from("employees")
-        .select("id, business_id, branch_id, position")
-        .eq("auth_user_id", user.id)
-        .eq("is_active", true);
+      const query = supabase.from("employees").select("id, business_id, branch_id, position");
+      const res = await (query as any).eq("auth_user_id", user.id).eq("is_active", true);
       const data = res.data as { id: string; business_id: string; branch_id: string | null; position: string | null }[] | null;
       if (!data?.length) return [];
 
