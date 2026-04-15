@@ -31,12 +31,15 @@ import {
 
 const Hub = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { profile, user, signOut, switchBranch } = useAuth();
   const { theme, setTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const isDark = theme === "dark";
   const redirectedRef = useRef(false);
+  // Only auto-redirect on fresh login, not when user explicitly navigates to hub
+  const explicitNav = !!(location.state as any)?.fromNav;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
