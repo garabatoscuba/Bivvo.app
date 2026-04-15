@@ -1221,6 +1221,13 @@ const OwnerServicesView = () => {
               <Label>Monto cobrado ($)</Label>
               <Input type="number" min="0" step="0.01" value={entryAmount} onChange={(e) => setEntryAmount(e.target.value)} placeholder="0.00" />
             </div>
+            <ClientSearchSelect
+              businessId={businessId!}
+              branchId={branchId}
+              selectedClientId={entryClientId}
+              onSelect={setEntryClientId}
+              createdBy={user?.id}
+            />
             <ServicePaymentSection
               paymentType={entryPaymentType}
               setPaymentType={setEntryPaymentType}
