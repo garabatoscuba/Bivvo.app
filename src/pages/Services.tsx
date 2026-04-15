@@ -348,6 +348,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       setLiveServiceName('');
       setTabItems([]);
       setSelectedClientId(null);
+    },
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
