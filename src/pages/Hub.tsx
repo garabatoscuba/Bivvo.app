@@ -102,7 +102,7 @@ const Hub = () => {
         .from("employees")
         .select("id, business_id, branch_id, position")
         .eq("auth_user_id", user.id)
-        .eq("is_active", true);
+        .eq("is_active", true) as { data: { id: string; business_id: string; branch_id: string | null; position: string | null }[] | null };
       if (!data?.length) return [];
 
       // Fetch business + branch names separately to avoid deep type issues
