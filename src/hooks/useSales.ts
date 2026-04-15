@@ -376,7 +376,7 @@ export const useSales = (branchId?: string | null) => {
       if (isOnline) {
         const { error } = await supabase
           .from('sales')
-          .update({ status: 'cancelled' as const, cancellation_reason: reason } as any)
+          .update({ status: 'cancelled', cancellation_reason: reason })
           .eq('id', saleId);
         if (error) throw error;
       } else {
