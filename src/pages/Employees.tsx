@@ -105,11 +105,10 @@ interface EmployeeForm {
   assigned_roles: AppRole[];
   assigned_insumo_areas: string[];
   salary_assignments: SalaryAssignmentEntry[];
-  use_bivoo_id: boolean;
-  bivoo_password: string;
   new_password: string;
   is_jefe: boolean;
   is_cash_counter: boolean;
+  linked_user_id: string | null;
   
   // Legacy single fields kept for backward compat
   modality_id: string;
@@ -140,11 +139,10 @@ const emptyForm: EmployeeForm = {
   assigned_roles: ['seller'],
   assigned_insumo_areas: [],
   salary_assignments: [],
-  use_bivoo_id: true,
-  bivoo_password: '',
   new_password: '',
   is_jefe: false,
   is_cash_counter: false,
+  linked_user_id: null,
   modality_id: '',
   preset_id: '',
   pay_frequency: 'monthly',
