@@ -1,59 +1,40 @@
 
 
-## Plan: Módulo de Clientes
+## Plan: Arreglar cancelaciones de ventas POS y servicios
 
-### Situación actual
+### Problemas identificados
 
-Ya existe una tabla `customers` con `id, business_id, name, email, phone, address, notes, created_at, updated_at`. Las ventas del POS ya tienen `customer_id` como FK a `customers`. El módulo "Clientes" ya existe en `platform_modules`. Falta la página, la ruta, el mapeo en sidebar, la columna `client_id` en `service_entries`, y los selectores de cliente en POS y Servicios.
+1. **Empleados (vendedores) no pueden cancelar**: Las políticas RLS de `sales` solo permiten UPDATE a `owner`/`manager`. La tabla `service_entries` tiene la misma restricción. Los vendedores están excluidos del UPDATE.
+
+2. **Stock no se revierte en POS (para dueño/empleado)**: El trigger `restore_stock_on_cancel` existe y está activo en la tabla `sales`. Si el dueño cancela y el estado no cambia a 'cancelled', hay un problema de RLS o del trigger. Revisando el trigger, la lógica parece correcta — actualiza `branch_stock` y crea `inventory_movements` de tipo 'return'. Es posible que el problema sea que el `cancelSale` en `useSales.ts` hace un cast incorrecto (`status: 'cancelled' as const`) que podría no coincidir con el enum. Verificaré y corregiré.
+
+3. **Servicios cancelados no revierten insumos ni registran devolución**: El trigger `deduct_service_recipe_ingredients` descuenta insumos al crear un `service_entry`, pero no existe un trigger inverso para restaurarlos al cancelar. Hay que crear uno.
 
 ### Cambios
 
 **1. Migración de base de datos**
-- Agregar columnas `branch_id` (uuid, nullable, FK a branches) y `created_by` (uuid, nullable) a `customers`
-- Agregar columna `customer_id` (uuid, nullable, FK a customers) a `service_entries`
-- Agregar RLS policy para sellers (insert) en `customers` para que vendedores puedan crear clientes desde POS/Servicios
 
-**2. Nueva página `src/pages/Clients.tsx`**
-- Lista de clientes con búsqueda por nombre o teléfono
-- Botón "Nuevo cliente" con formulario (nombre obligatorio, teléfono y email opcionales, notas opcionales)
-- Al tocar un cliente: ficha con datos + historial de ventas POS (`sales` con `customer_id`) + historial de servicios (`service_entries` con `customer_id`)
-- Editar datos del cliente
+- **RLS `sales`**: Agregar política UPDATE para vendedores (`seller` role) que pertenezcan al negocio, permitiendo solo cambiar el status a 'cancelled'.
+- **RLS `service_entries`**: Agregar política UPDATE para vendedores del negocio.
+- **Trigger `restore_service_ingredients_on_cancel`**: Crear trigger en `service_entries` que al cambiar status a 'cancelled' devuelva los insumos descontados por `deduct_service_recipe_ingredients` (usando la misma lógica inversa: incrementar `raw_materials.stock_vendedor`).
 
-**3. Ruta en `App.tsx`**
-- Agregar `/clients` con lazy load
+**2. `src/hooks/useSales.ts`**
+- En `cancelSale.mutationFn`, quitar el cast `as const` / `as any` y asegurar que el valor 'cancelled' se envía correctamente al update.
 
-**4. Sidebar en `AppSidebar.tsx`**
-- Agregar `Clientes: "/clients"` al `moduleUrlMap`
-- Agregar "Clientes" al set de módulos permitidos para gerente (`MANAGER_ALLOWED_MODULES`)
+**3. Sin cambios en**
+- `Sales.tsx` (el botón de cancelar ya aparece correctamente para `canCancel` que incluye `isSeller`)
+- POS, inventario, ni ningún otro módulo
 
-**5. Componente `ClientSearchSelect`**
-- Input con búsqueda por nombre o teléfono que muestra sugerencias de `customers`
-- Opción para crear cliente rápido si no existe
-- Reutilizable en POS y Servicios
+### Detalle técnico
 
-**6. POS — `PaymentDialog.tsx`**
-- Agregar el campo opcional "Cliente" usando `ClientSearchSelect` antes de los métodos de pago
-- Pasar `customerId` al `onConfirm` callback
-- Actualizar `PaymentDialogProps` y `POS.tsx` → `handlePayment` para enviar `customerId` a `createSale`
+```text
+Problema actual:
+  Vendedor → UPDATE sales → RLS DENY (solo owner/manager)
+  Dueño → cancela servicio → status='cancelled' → insumos NO se devuelven
 
-**7. Servicios — `Services.tsx`**
-- En ambas mutaciones de cobro (`chargeMutation` y `createEntryMutation`), agregar estado `selectedClientId`
-- Agregar `ClientSearchSelect` en el diálogo de pago de servicios
-- Incluir `customer_id` en el payload del insert a `service_entries`
-
-### Archivos nuevos
-- `src/pages/Clients.tsx`
-- `src/components/clients/ClientSearchSelect.tsx`
-
-### Archivos editados
-- `src/App.tsx` — nueva ruta
-- `src/components/layout/AppSidebar.tsx` — moduleUrlMap + MANAGER_ALLOWED_MODULES
-- `src/components/pos/PaymentDialog.tsx` — campo cliente opcional
-- `src/pages/POS.tsx` — pasar customerId
-- `src/pages/Services.tsx` — campo cliente opcional en cobros
-- `src/types/database.ts` — agregar customer_id a interfaces si es necesario
-
-### No se toca
-- Flujo de cobro existente (montos, métodos de pago, descuentos)
-- Edge functions, auth, roles, POS cart, inventario
+Solución:
+  1. RLS: permitir seller UPDATE en sales y service_entries
+  2. Trigger: restore_service_ingredients_on_cancel en service_entries
+  3. Verificar que el trigger existente restore_stock_on_cancel funciona
+```
 
