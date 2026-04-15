@@ -249,9 +249,12 @@ const Hub = () => {
           scrolled ? "hub-topbar-scrolled" : "bg-transparent border-b border-transparent"
         }`}
       >
-        <span className="font-['DM_Sans'] font-light text-xl tracking-[3px] hub-text cursor-pointer select-none" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-          Bivo<span className="text-[hsl(var(--primary))]">o</span>
-        </span>
+        <img
+          src={isDark ? "/logo-dark.png" : "/logo-light.png"}
+          alt="Bivoo"
+          className="h-6 w-auto cursor-pointer"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        />
 
         <div className="flex items-center gap-0.5">
           {/* Theme switch */}
