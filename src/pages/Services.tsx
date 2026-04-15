@@ -131,6 +131,7 @@ const ServicePaymentSection = ({
   );
 };
 import IconSelector, { getIconComponent } from '@/components/services/IconSelector';
+import { ClientSearchSelect } from '@/components/clients/ClientSearchSelect';
 import ServiceCostSheet from '@/components/services/ServiceCostSheet';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Cell } from 'recharts';
 
