@@ -100,29 +100,45 @@ const Hub = () => {
       if (!user?.id) return [];
       const { data } = await supabase
         .from("employees")
-        .select("id, business_id, branch_id, position, businesses!employees_business_id_fkey(name, business_type, slug), branches!employees_branch_id_fkey(name)")
+        .select("id, business_id, branch_id, position")
         .eq("auth_user_id", user.id)
         .eq("is_active", true);
       if (!data?.length) return [];
 
-      // Check active jornadas
+      // Fetch business + branch names separately to avoid deep type issues
+      const bizIds = [...new Set(data.map(e => e.business_id))];
+      const branchIds = data.map(e => e.branch_id).filter(Boolean) as string[];
+      const [bizRes, branchRes] = await Promise.all([
+        supabase.from("businesses").select("id, name, business_type, slug").in("id", bizIds),
+        branchIds.length ? supabase.from("branches").select("id, name").in("id", branchIds) : Promise.resolve({ data: [] as any[] }),
+      ]);
+      const bizMap = new Map((bizRes.data || []).map(b => [b.id, b]));
+      const branchMap = new Map((branchRes.data || []).map(b => [b.id, b]));
+
+      // Check active jornadas — uses empleado_id (profile id, not employee id)
+      // jornadas references profiles, so we need to map employee→profile
       const empIds = data.map((e) => e.id);
-      const { data: jornadas } = await supabase
+      const { data: jornadasData } = await supabase
         .from("jornadas")
-        .select("id, employee_id, started_at")
-        .in("employee_id", empIds)
-        .is("ended_at", null);
+        .select("id, empleado_id, apertura_at")
+        .in("empleado_id", empIds)
+        .is("cierre_at", null);
 
       return data.map((emp) => {
-        const jornada = (jornadas || []).find((j) => j.employee_id === emp.id);
-        const elapsed = jornada ? Math.floor((Date.now() - new Date(jornada.started_at).getTime()) / 60000) : 0;
+        const biz = bizMap.get(emp.business_id);
+        const branch = emp.branch_id ? branchMap.get(emp.branch_id) : null;
+        const jornada = (jornadasData || []).find((j) => j.empleado_id === emp.id);
+        const elapsed = jornada ? Math.floor((Date.now() - new Date(jornada.apertura_at).getTime()) / 60000) : 0;
         const hours = Math.floor(elapsed / 60);
         const mins = elapsed % 60;
         return {
-          ...emp,
-          businessName: (emp as any).businesses?.name || "Negocio",
-          businessType: (emp as any).businesses?.business_type || "",
-          branchName: (emp as any).branches?.name || "",
+          id: emp.id,
+          business_id: emp.business_id,
+          branch_id: emp.branch_id,
+          position: emp.position,
+          businessName: biz?.name || "Negocio",
+          businessType: biz?.business_type || "",
+          branchName: branch?.name || "",
           jornadaActiva: !!jornada,
           jornadaTime: jornada ? `${hours}h ${mins}m` : null,
         };

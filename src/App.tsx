@@ -92,7 +92,8 @@ const App = () => {
                       <Routes>
                         <Route path="/auth" element={<Auth />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
-                        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                        <Route path="/" element={<ProtectedRoute><Hub /></ProtectedRoute>} />
+                        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                         <Route path="/admin" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
                         <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
                         <Route path="/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
