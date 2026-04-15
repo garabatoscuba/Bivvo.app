@@ -32,23 +32,32 @@ Deno.serve(async (req) => {
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceRoleKey);
 
-    // Check if email already exists as auth user
+    const role = position || "seller";
+
+    // Try to find existing user by email using listUsers filter
+    const { data: listData, error: listError } = await admin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1,
+    });
+
     let existingUserId: string | null = null;
+
+    // Use getUserByEmail wrapped safely
     try {
-      const { data: existing } = await admin.auth.admin.getUserByEmail(email);
-      if (existing?.user) {
-        existingUserId = existing.user.id;
+      const { data: userData, error: userError } = await admin.auth.admin.getUserByEmail(email);
+      if (!userError && userData?.user) {
+        existingUserId = userData.user.id;
       }
-    } catch {
-      // User doesn't exist — will invite
+    } catch (_e) {
+      // User doesn't exist — will invite below
+      console.log("getUserByEmail threw (user likely doesn't exist):", email);
     }
 
     if (existingUserId) {
       // User already registered — link directly
-      // Update employee record
       const { error: empErr } = await admin
         .from("employees")
-        .update({ email, auth_user_id: existingUserId, position: position || "seller" })
+        .update({ email, auth_user_id: existingUserId, position: role })
         .eq("id", employee_id);
       if (empErr) {
         return new Response(
@@ -63,8 +72,10 @@ Deno.serve(async (req) => {
         .update({ business_id, branch_id: branch_id || null })
         .eq("user_id", existingUserId);
 
+      // Remove accidental owner role
+      await admin.from("user_roles").delete().eq("user_id", existingUserId).eq("role", "owner");
+
       // Sync role
-      const role = position || "seller";
       const { data: existingRole } = await admin
         .from("user_roles")
         .select("id")
@@ -83,12 +94,50 @@ Deno.serve(async (req) => {
 
     // User doesn't exist — send invitation
     const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: { invited_to_business: business_id, invited_position: position || "seller" },
+      data: { invited_to_business: business_id, invited_position: role },
     });
 
-    if (inviteError || !inviteData?.user) {
+    if (inviteError) {
+      // If the error is "already registered", try linking instead
+      if (inviteError.message?.includes("already been registered")) {
+        // Race condition: user was created between our check and invite
+        // Try getUserByEmail one more time
+        try {
+          const { data: retryData } = await admin.auth.admin.getUserByEmail(email);
+          if (retryData?.user) {
+            await admin
+              .from("employees")
+              .update({ email, auth_user_id: retryData.user.id, position: role })
+              .eq("id", employee_id);
+
+            await admin
+              .from("profiles")
+              .update({ business_id, branch_id: branch_id || null })
+              .eq("user_id", retryData.user.id);
+
+            await admin.from("user_roles").delete().eq("user_id", retryData.user.id).eq("role", "owner");
+            const { data: er } = await admin.from("user_roles").select("id").eq("user_id", retryData.user.id).eq("role", role).maybeSingle();
+            if (!er) await admin.from("user_roles").insert({ user_id: retryData.user.id, role });
+
+            return new Response(
+              JSON.stringify({ success: true, linked: true, user_id: retryData.user.id, message: "Usuario vinculado exitosamente" }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        } catch (_e2) {
+          // Fall through to error
+        }
+      }
+
       return new Response(
-        JSON.stringify({ error: inviteError?.message || "Error al enviar invitación" }),
+        JSON.stringify({ error: inviteError.message || "Error al enviar invitación" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!inviteData?.user) {
+      return new Response(
+        JSON.stringify({ error: "No se pudo crear la invitación" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -101,7 +150,7 @@ Deno.serve(async (req) => {
     // Update employee record with invited user
     await admin
       .from("employees")
-      .update({ email, auth_user_id: userId, position: position || "seller" })
+      .update({ email, auth_user_id: userId, position: role })
       .eq("id", employee_id);
 
     // Update profile with business/branch
@@ -114,7 +163,6 @@ Deno.serve(async (req) => {
     await admin.from("user_roles").delete().eq("user_id", userId).eq("role", "owner");
 
     // Assign role
-    const role = position || "seller";
     const { data: existingRole } = await admin
       .from("user_roles")
       .select("id")
