@@ -234,6 +234,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
   const [mixedCash, setMixedCash] = useState('0');
   const [mixedTransfer, setMixedTransfer] = useState('0');
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [isLiveService, setIsLiveService] = useState(false);
   const [liveServiceName, setLiveServiceName] = useState('');
   const [tabItems, setTabItems] = useState<Array<{
