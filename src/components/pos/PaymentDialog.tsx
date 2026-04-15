@@ -159,6 +159,17 @@ export const PaymentDialog = ({
             </div>
           </div>
 
+          {/* Client selector */}
+          {businessId && (
+            <ClientSearchSelect
+              businessId={businessId}
+              branchId={branchId}
+              selectedClientId={selectedClientId}
+              onSelect={setSelectedClientId}
+              createdBy={userId}
+            />
+          )}
+
           {/* Payment Type */}
           <div className="space-y-2">
             <Label>Método de Pago</Label>
