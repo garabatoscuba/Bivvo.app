@@ -173,7 +173,7 @@ const Hub = () => {
   // Auto-redirect if single context
   const loading = loadingOwned || loadingEmp;
   useEffect(() => {
-    if (loading || redirectedRef.current) return;
+    if (loading || redirectedRef.current || explicitNav) return;
     const total = ownedBusinesses.length + employments.length;
     if (total === 1) {
       redirectedRef.current = true;
@@ -188,7 +188,7 @@ const Hub = () => {
         navigate("/mi-empleo", { replace: true });
       }
     }
-  }, [loading, ownedBusinesses, employments, navigate, switchBranch]);
+  }, [loading, ownedBusinesses, employments, navigate, switchBranch, explicitNav]);
 
   const handleBusinessClick = async (biz: typeof ownedBusinesses[0]) => {
     if (biz.mainBranchId) {
