@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
         .eq("user_id", existingUserId);
 
       // Remove accidental owner role
-      await admin.from("user_roles").delete().eq("user_id", existingUserId).eq("role", "owner");
+      // Don't delete owner role for existing users — they may be legitimate owners
 
       // Sync role
       const { data: existingRole } = await admin
@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
               .update({ business_id, branch_id: branch_id || null })
               .eq("user_id", retryData.user.id);
 
-            await admin.from("user_roles").delete().eq("user_id", retryData.user.id).eq("role", "owner");
+            // Don't delete owner role for existing users
             const { data: er } = await admin.from("user_roles").select("id").eq("user_id", retryData.user.id).eq("role", role).maybeSingle();
             if (!er) await admin.from("user_roles").insert({ user_id: retryData.user.id, role });
 
