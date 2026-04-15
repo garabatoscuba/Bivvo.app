@@ -452,7 +452,7 @@ const AppSidebar = () => {
   });
 
   const moduleUrlMap: Record<string, string> = {
-    Dashboard: "/",
+    Dashboard: "/dashboard",
     Inventario: "/inventory",
     "Punto de Venta": "/pos",
     Servicios: "/services",
@@ -530,7 +530,7 @@ const AppSidebar = () => {
     if (ctxParam === "emp" && (url === "/pos" || url === "/sales" || url === "/services" || url === "/cobros" || url === "/caja")) {
       return false;
     }
-    if (url === "/") return location.pathname === "/";
+    if (url === "/dashboard") return location.pathname === "/dashboard";
     return location.pathname.startsWith(url);
   };
 
@@ -549,7 +549,7 @@ const AppSidebar = () => {
     <Sidebar>
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="flex items-center">
+          <Link to="/" className="flex items-center" title="Volver al Hub">
             <img src={isDark ? "/logo-dark.png" : "/logo-light.png"} alt="Bivoo" className="h-6 w-auto" />
           </Link>
           <div className="flex items-center gap-1">
@@ -967,44 +967,7 @@ const AppSidebar = () => {
         </>)}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/60 p-3 space-y-3">
-        {/* Theme toggle */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            {isDark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
-            <span className="text-xs">{isDark ? "Oscuro" : "Claro"}</span>
-          </div>
-          <Switch
-            checked={isDark}
-            onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-            className="scale-75"
-          />
-        </div>
-
-        <Separator />
-
-        <div className="flex items-center gap-2.5">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatar_url || ""} />
-            <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-              {profile?.full_name ? getInitials(profile.full_name) : "U"}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium leading-tight">{profile?.full_name || "Usuario"}</p>
-            <p className="truncate text-[11px] text-muted-foreground">{profile?.email}</p>
-            {activeBranch && (
-              <p className="truncate text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                <MapPin className="h-2.5 w-2.5 shrink-0" />
-                {activeBranch.name}
-              </p>
-            )}
-          </div>
-          <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={signOut} title="Cerrar sesión">
-            <LogOut className="h-3.5 w-3.5" />
-          </Button>
-        </div>
-      </SidebarFooter>
+      {/* Footer removed — theme toggle, avatar and logout moved to Hub topbar */}
 
       {/* Create Business Dialog */}
       <Dialog open={newBizOpen} onOpenChange={setNewBizOpen}>

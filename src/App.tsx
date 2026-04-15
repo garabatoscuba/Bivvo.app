@@ -20,6 +20,7 @@ import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 
 // Lazy loaded pages
+const Hub = lazy(() => import("./pages/Hub"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Inventory = lazy(() => import("./pages/Inventory"));
 const POS = lazy(() => import("./pages/POS"));
@@ -91,7 +92,8 @@ const App = () => {
                       <Routes>
                         <Route path="/auth" element={<Auth />} />
                         <Route path="/auth/callback" element={<AuthCallback />} />
-                        <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+                        <Route path="/" element={<ProtectedRoute><Hub /></ProtectedRoute>} />
+                        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
                         <Route path="/admin" element={<ProtectedRoute requireSuperAdmin><AdminDashboard /></ProtectedRoute>} />
                         <Route path="/inventory" element={<ProtectedRoute><Inventory /></ProtectedRoute>} />
                         <Route path="/pos" element={<ProtectedRoute><POS /></ProtectedRoute>} />
