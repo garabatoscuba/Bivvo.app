@@ -312,6 +312,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
           amount: item.quantity * item.unitPrice,
           payment_type: isMixed ? 'mixed' : paymentType,
           is_catalog: !item.isLive,
+          customer_id: selectedClientId || null,
         };
         if (item.isLive) {
           payload.service_name = item.name;
@@ -346,7 +347,7 @@ const EmployeeServicesView = ({ employeeBusinessId, employeeBranchId }: { employ
       setIsLiveService(false);
       setLiveServiceName('');
       setTabItems([]);
-    },
+      setSelectedClientId(null);
     onError: (err: any) => toast({ title: 'Error', description: err.message, variant: 'destructive' }),
   });
 
