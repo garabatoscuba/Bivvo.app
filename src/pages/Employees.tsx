@@ -644,6 +644,8 @@ const Employees = () => {
   const openAddEmployee = () => {
     setEditingEmployee(null);
     setForm(emptyForm);
+    setEmailSearch('');
+    setEmailSuggestions([]);
     setEmployeeDialogOpen(true);
   };
 
