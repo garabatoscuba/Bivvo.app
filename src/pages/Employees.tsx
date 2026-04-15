@@ -105,11 +105,10 @@ interface EmployeeForm {
   assigned_roles: AppRole[];
   assigned_insumo_areas: string[];
   salary_assignments: SalaryAssignmentEntry[];
-  use_bivoo_id: boolean;
-  bivoo_password: string;
   new_password: string;
   is_jefe: boolean;
   is_cash_counter: boolean;
+  linked_user_id: string | null;
   
   // Legacy single fields kept for backward compat
   modality_id: string;
@@ -140,11 +139,10 @@ const emptyForm: EmployeeForm = {
   assigned_roles: ['seller'],
   assigned_insumo_areas: [],
   salary_assignments: [],
-  use_bivoo_id: true,
-  bivoo_password: '',
   new_password: '',
   is_jefe: false,
   is_cash_counter: false,
+  linked_user_id: null,
   modality_id: '',
   preset_id: '',
   pay_frequency: 'monthly',
@@ -172,8 +170,12 @@ const Employees = () => {
   const [form, setForm] = useState<EmployeeForm>(emptyForm);
   const [saving, setSaving] = useState(false);
   const [updatingPassword, setUpdatingPassword] = useState(false);
-  const [showBivooPassword, setShowBivooPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
+  const [emailSearch, setEmailSearch] = useState('');
+  const [emailSuggestions, setEmailSuggestions] = useState<{ user_id: string; email: string; full_name: string }[]>([]);
+  const [searchingEmail, setSearchingEmail] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [inviting, setInviting] = useState(false);
 
   // Performance chart state
   const [perfEmployee, setPerfEmployee] = useState<Employee | null>(null);
@@ -441,12 +443,6 @@ const Employees = () => {
     }
     if (!businessId) return;
 
-    // Validate @bivoo.app password
-    if (form.use_bivoo_id && !editingEmployee && form.bivoo_password.length < 6) {
-      sonnerToast.error('La contraseña del identificador @bivoo.app debe tener al menos 6 caracteres');
-      return;
-    }
-
     setSaving(true);
     try {
       let employeeId: string;
@@ -459,7 +455,7 @@ const Employees = () => {
             full_name: form.full_name.trim(),
             age: form.age ? parseInt(form.age) : null,
             ci: form.ci.trim(),
-            email: editingEmployee.email?.endsWith('@bivoo.app') ? editingEmployee.email : (form.email.trim() || null),
+            email: form.email.trim() || null,
             license_number: form.license_number.trim() || null,
             address: form.address.trim() || null,
             position: form.assigned_roles[0] || 'seller',
@@ -482,7 +478,7 @@ const Employees = () => {
             full_name: form.full_name.trim(),
             age: form.age ? parseInt(form.age) : null,
             ci: form.ci.trim(),
-            email: form.use_bivoo_id ? null : (form.email.trim() || null),
+            email: form.email.trim() || null,
             license_number: form.license_number.trim() || null,
             address: form.address.trim() || null,
             position: form.assigned_roles[0] || 'seller',
@@ -496,48 +492,29 @@ const Employees = () => {
         employeeId = data.id;
         auditLog('employee_created', `Empleado ${form.full_name} creado con rol ${form.assigned_roles[0] || 'seller'}`, data.id, 'employee');
 
-        if (form.use_bivoo_id) {
-          // Create @bivoo.app account via edge function
-          const resolvedPosition = form.assigned_roles[0] || form.position || 'seller';
-          const { data: bivooResult, error: bivooError } = await supabase.functions.invoke('create-bivoo-employee', {
-            body: {
-              full_name: form.full_name.trim(),
-              password: form.bivoo_password,
-              business_id: businessId,
-              branch_id: profile?.branch_id || null,
-              position: resolvedPosition,
-              employee_id: employeeId,
-            },
-          });
-          if (bivooError || bivooResult?.error) {
-            // ROLLBACK: delete the employee row to avoid phantoms
-            await supabase.from('employees').delete().eq('id', employeeId);
-            const errMsg = bivooResult?.error || bivooError?.message || 'Error al crear cuenta @bivoo.app';
-            sonnerToast.error(errMsg);
-            setSaving(false);
-            setEmployeeDialogOpen(false);
-            queryClient.invalidateQueries({ queryKey: ['hr-employees'] });
-            return; // Abort — don't save salary/branches for a phantom employee
-          }
-          sonnerToast.success(`Cuenta ${bivooResult.email} creada exitosamente`);
-        } else if (form.email.trim()) {
-          // Auto-link: if email matches an existing profile, assign role + business
+        // If a user was selected from search, link via invite-employee (handles both existing and new)
+        if (form.email.trim()) {
           try {
-            const { data: linkResult } = await supabase.functions.invoke('employee-onboarding', {
+            const resolvedPosition = form.assigned_roles[0] || form.position || 'seller';
+            const { data: inviteResult, error: inviteError } = await supabase.functions.invoke('invite-employee', {
               body: {
                 email: form.email.trim(),
-                position: form.position,
                 business_id: businessId,
                 branch_id: profile?.branch_id || null,
+                position: resolvedPosition,
+                employee_id: employeeId,
               },
             });
-            if (linkResult?.linked) {
-              sonnerToast.success(`${form.full_name.trim()} vinculado al negocio automáticamente`);
-            } else if (linkResult?.reason) {
-              sonnerToast.info(linkResult.reason);
+            if (inviteError || inviteResult?.error) {
+              const errMsg = inviteResult?.error || inviteError?.message || 'Error al vincular usuario';
+              sonnerToast.warning(errMsg);
+            } else if (inviteResult?.linked) {
+              sonnerToast.success(`${form.full_name.trim()} vinculado exitosamente`);
+            } else if (inviteResult?.invited) {
+              sonnerToast.success(`Invitación enviada a ${form.email.trim()}`);
             }
           } catch (linkErr) {
-            console.error('Error auto-linking employee:', linkErr);
+            console.error('Error linking employee:', linkErr);
           }
         }
 
@@ -667,6 +644,8 @@ const Employees = () => {
   const openAddEmployee = () => {
     setEditingEmployee(null);
     setForm(emptyForm);
+    setEmailSearch('');
+    setEmailSuggestions([]);
     setEmployeeDialogOpen(true);
   };
 
@@ -739,8 +718,7 @@ const Employees = () => {
       assigned_roles: currentRoles,
       assigned_insumo_areas: loadedAreas,
       salary_assignments: generalLoaded,
-      use_bivoo_id: emp.email?.endsWith('@bivoo.app') || false,
-      bivoo_password: '',
+      linked_user_id: emp.auth_user_id || null,
       new_password: '',
       is_jefe: emp.is_jefe ?? false,
       is_cash_counter: (emp as any).is_cash_counter ?? false,
@@ -1080,56 +1058,90 @@ const Employees = () => {
                 <Label htmlFor="full_name">Nombre y Apellidos *</Label>
                 <Input id="full_name" value={form.full_name} onChange={(e) => updateField('full_name', e.target.value)} placeholder="Nombre completo" />
               </div>
-              {/* Email / @bivoo.app toggle */}
-              <div className="space-y-3">
-                {!editingEmployee && (
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="use_bivoo_id"
-                      checked={form.use_bivoo_id}
-                      onCheckedChange={(checked) => setForm(prev => ({
-                        ...prev,
-                        use_bivoo_id: !!checked,
-                        email: checked ? '' : prev.email,
-                      }))}
-                    />
-                    <Label htmlFor="use_bivoo_id" className="text-sm font-normal cursor-pointer">
-                      Crear identificador @bivoo.app (sin correo real)
-                    </Label>
-                  </div>
-                )}
-                {form.use_bivoo_id && !editingEmployee ? (
-                  <div className="space-y-3 rounded-lg border border-dashed p-3">
-                    <p className="text-xs text-muted-foreground">
-                      Se generará automáticamente un identificador basado en el nombre: <strong>{form.full_name ? `${form.full_name.toLowerCase().replace(/\s+/g, '.')}@bivoo.app` : 'nombre@bivoo.app'}</strong>
-                    </p>
-                    <div className="space-y-2">
-                      <Label htmlFor="bivoo_password">Contraseña Inicial *</Label>
-                      <div className="relative">
-                        <Input
-                          id="bivoo_password"
-                          type={showBivooPassword ? "text" : "password"}
-                          value={form.bivoo_password}
-                          onChange={(e) => updateField('bivoo_password', e.target.value)}
-                          placeholder="Mínimo 6 caracteres"
-                          minLength={6}
-                          className="pr-10"
-                        />
-                        <button type="button" onClick={() => setShowBivooPassword(!showBivooPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                          {showBivooPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">El empleado usará esta contraseña para entrar al sistema.</p>
-                    </div>
-                  </div>
+              {/* Email search */}
+              <div className="space-y-2 relative">
+                <Label htmlFor="email_search">Correo Electrónico</Label>
+                {editingEmployee ? (
+                  <Input
+                    id="email"
+                    type="email"
+                    value={form.email}
+                    onChange={(e) => updateField('email', e.target.value)}
+                    placeholder="empleado@correo.com"
+                    disabled={!!editingEmployee?.auth_user_id}
+                  />
                 ) : (
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Correo Electrónico</Label>
-                    <Input id="email" type="email" value={form.email} onChange={(e) => updateField('email', e.target.value)} placeholder="empleado@correo.com" disabled={editingEmployee?.email?.endsWith('@bivoo.app')} />
-                    {editingEmployee?.email?.endsWith('@bivoo.app') && (
-                      <p className="text-xs text-muted-foreground">Identificador @bivoo.app — no editable.</p>
+                  <>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email_search"
+                        type="email"
+                        value={emailSearch}
+                        onChange={async (e) => {
+                          const val = e.target.value;
+                          setEmailSearch(val);
+                          updateField('email', val);
+                          if (val.length < 3) {
+                            setEmailSuggestions([]);
+                            setShowSuggestions(false);
+                            return;
+                          }
+                          setSearchingEmail(true);
+                          try {
+                            const { data: results } = await supabase
+                              .from('profiles')
+                              .select('user_id, email, full_name')
+                              .ilike('email', `%${val}%`)
+                              .limit(5);
+                            setEmailSuggestions(results || []);
+                            setShowSuggestions(true);
+                          } catch { setEmailSuggestions([]); }
+                          setSearchingEmail(false);
+                        }}
+                        onFocus={() => { if (emailSuggestions.length > 0) setShowSuggestions(true); }}
+                        onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                        placeholder="Buscar por correo electrónico..."
+                        className="pl-9"
+                      />
+                      {searchingEmail && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
+                    </div>
+                    {showSuggestions && emailSuggestions.length > 0 && (
+                      <div className="absolute z-50 w-full mt-1 rounded-md border bg-popover shadow-md">
+                        {emailSuggestions.map((s) => (
+                          <button
+                            key={s.user_id}
+                            type="button"
+                            className="w-full px-3 py-2 text-left text-sm hover:bg-accent flex flex-col"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => {
+                              setForm(prev => ({
+                                ...prev,
+                                email: s.email,
+                                full_name: s.full_name || prev.full_name,
+                                linked_user_id: s.user_id,
+                              }));
+                              setEmailSearch(s.email);
+                              setShowSuggestions(false);
+                            }}
+                          >
+                            <span className="font-medium">{s.full_name}</span>
+                            <span className="text-xs text-muted-foreground">{s.email}</span>
+                          </button>
+                        ))}
+                      </div>
                     )}
-                  </div>
+                    {emailSearch.length >= 3 && !searchingEmail && emailSuggestions.length === 0 && emailSearch.includes('@') && (
+                      <div className="rounded-lg border border-dashed p-3 space-y-2">
+                        <p className="text-xs text-muted-foreground">
+                          No se encontró un usuario con este correo. Puedes registrar el empleado y se le enviará una invitación al guardar.
+                        </p>
+                      </div>
+                    )}
+                    {form.linked_user_id && (
+                      <p className="text-xs text-green-600">✓ Usuario existente seleccionado — se vinculará automáticamente</p>
+                    )}
+                  </>
                 )}
               </div>
 
