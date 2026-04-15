@@ -530,7 +530,7 @@ const AppSidebar = () => {
     if (ctxParam === "emp" && (url === "/pos" || url === "/sales" || url === "/services" || url === "/cobros" || url === "/caja")) {
       return false;
     }
-    if (url === "/") return location.pathname === "/";
+    if (url === "/dashboard") return location.pathname === "/dashboard";
     return location.pathname.startsWith(url);
   };
 
