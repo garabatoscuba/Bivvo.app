@@ -34,23 +34,12 @@ Deno.serve(async (req) => {
 
     const role = position || "seller";
 
-    // Try to find existing user by email using listUsers filter
-    const { data: listData, error: listError } = await admin.auth.admin.listUsers({
-      page: 1,
-      perPage: 1,
-    });
-
+    // Find existing user by email using listUsers (reliable, doesn't throw)
     let existingUserId: string | null = null;
-
-    // Use getUserByEmail wrapped safely
-    try {
-      const { data: userData, error: userError } = await admin.auth.admin.getUserByEmail(email);
-      if (!userError && userData?.user) {
-        existingUserId = userData.user.id;
-      }
-    } catch (_e) {
-      // User doesn't exist — will invite below
-      console.log("getUserByEmail threw (user likely doesn't exist):", email);
+    const { data: listData } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (listData?.users) {
+      const found = listData.users.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+      if (found) existingUserId = found.id;
     }
 
     if (existingUserId) {
@@ -102,30 +91,27 @@ Deno.serve(async (req) => {
       if (inviteError.message?.includes("already been registered")) {
         // Race condition: user was created between our check and invite
         // Try getUserByEmail one more time
-        try {
-          const { data: retryData } = await admin.auth.admin.getUserByEmail(email);
-          if (retryData?.user) {
+        // Race condition: user was created between our check and invite — find via listUsers
+        const { data: retryList } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+        const retryUser = retryList?.users?.find((u: any) => u.email?.toLowerCase() === email.toLowerCase());
+        if (retryUser) {
             await admin
               .from("employees")
-              .update({ email, auth_user_id: retryData.user.id, position: role })
+              .update({ email, auth_user_id: retryUser.id, position: role })
               .eq("id", employee_id);
 
             await admin
               .from("profiles")
               .update({ business_id, branch_id: branch_id || null })
-              .eq("user_id", retryData.user.id);
+              .eq("user_id", retryUser.id);
 
-            // Don't delete owner role for existing users
-            const { data: er } = await admin.from("user_roles").select("id").eq("user_id", retryData.user.id).eq("role", role).maybeSingle();
-            if (!er) await admin.from("user_roles").insert({ user_id: retryData.user.id, role });
+            const { data: er } = await admin.from("user_roles").select("id").eq("user_id", retryUser.id).eq("role", role).maybeSingle();
+            if (!er) await admin.from("user_roles").insert({ user_id: retryUser.id, role });
 
             return new Response(
-              JSON.stringify({ success: true, linked: true, user_id: retryData.user.id, message: "Usuario vinculado exitosamente" }),
+              JSON.stringify({ success: true, linked: true, user_id: retryUser.id, message: "Usuario vinculado exitosamente" }),
               { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
-          }
-        } catch (_e2) {
-          // Fall through to error
         }
       }
 
