@@ -64,6 +64,7 @@ export const PaymentDialog = ({
       setIsMixed(false);
       setMixedCash('0');
       setMixedTransfer('0');
+      setSelectedClientId(null);
     }
   }, [open]);
 
@@ -118,9 +119,9 @@ export const PaymentDialog = ({
     if (isMixed) {
       const cashVal = Number(mixedCash);
       const transferVal = Number(mixedTransfer);
-      onConfirm('mixed', cashVal + transferVal, { cash: cashVal, transfer: transferVal });
+      onConfirm('mixed', cashVal + transferVal, { cash: cashVal, transfer: transferVal }, selectedClientId);
     } else {
-      onConfirm(paymentType, Number(amountPaid));
+      onConfirm(paymentType, Number(amountPaid), undefined, selectedClientId);
     }
   };
 
