@@ -13,14 +13,18 @@ import { Separator } from '@/components/ui/separator';
 import { CreditCard, Banknote, Smartphone, Loader2, CheckCircle, RotateCcw } from 'lucide-react';
 import type { CartItem, PaymentType } from '@/types/database';
 import { cn } from '@/lib/utils';
+import { ClientSearchSelect } from '@/components/clients/ClientSearchSelect';
 
 interface PaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   items: CartItem[];
   discount: number;
-  onConfirm: (paymentType: PaymentType, amountPaid: number, mixedAmounts?: { cash: number; transfer: number }) => void;
+  onConfirm: (paymentType: PaymentType, amountPaid: number, mixedAmounts?: { cash: number; transfer: number }, customerId?: string | null) => void;
   isProcessing: boolean;
+  businessId?: string;
+  branchId?: string | null;
+  userId?: string;
 }
 
 const paymentOptions: { value: PaymentType; label: string; icon: React.ElementType }[] = [
@@ -37,12 +41,16 @@ export const PaymentDialog = ({
   discount,
   onConfirm,
   isProcessing,
+  businessId,
+  branchId,
+  userId,
 }: PaymentDialogProps) => {
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
   const total = subtotal - discount;
 
   const [paymentType, setPaymentType] = useState<PaymentType>('cash');
   const [amountPaid, setAmountPaid] = useState<string>('');
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   // Mixed payment state
   const [isMixed, setIsMixed] = useState(false);
