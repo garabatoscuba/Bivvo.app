@@ -220,3 +220,168 @@
   overflow-y: auto;
   min-height: 0;
 }
+
+/* ─── HUB ─── */
+:root {
+  --hub-bg: #f6f5f3;
+  --hub-s1: #ffffff;
+  --hub-s2: #f0efed;
+  --hub-s3: #e8e7e5;
+  --hub-border: rgba(0,0,0,0.06);
+  --hub-border2: rgba(0,0,0,0.12);
+  --hub-text: #1a1a1a;
+  --hub-text2: #6b6970;
+  --hub-text3: #9b99a0;
+  --hub-hover: rgba(0,0,0,0.03);
+  --hub-green: #1D9E75;
+  --hub-purple: #7b6fd4;
+  --hub-gold: #c9963a;
+  --hub-blue: #508cdc;
+  --hub-red: #e05555;
+  --hub-amber: #d4842a;
+}
+.dark {
+  --hub-bg: #0b0b0d;
+  --hub-s1: #111115;
+  --hub-s2: #16161b;
+  --hub-s3: #1e1e24;
+  --hub-border: rgba(255,255,255,0.06);
+  --hub-border2: rgba(255,255,255,0.12);
+  --hub-text: #eeeae4;
+  --hub-text2: #888690;
+  --hub-text3: #555360;
+  --hub-hover: rgba(255,255,255,0.05);
+  --hub-green: #1D9E75;
+  --hub-purple: #7b6fd4;
+  --hub-gold: #c9963a;
+  --hub-blue: #508cdc;
+  --hub-red: #e05555;
+  --hub-amber: #d4842a;
+}
+
+.hub-bg { background: var(--hub-bg); }
+.hub-text { color: var(--hub-text); }
+.hub-text-muted { color: var(--hub-text2); }
+.hub-text-dim { color: var(--hub-text3); }
+.hub-line { background: var(--hub-border); }
+.hub-divider { background: var(--hub-border); }
+.hub-btn-hover { transition: background 0.2s; }
+.hub-btn-hover:hover { background: var(--hub-hover); }
+.hub-switch-track { background: var(--hub-s3); border: 1px solid var(--hub-border2); }
+.hub-switch-thumb { background: var(--hub-text3); }
+
+.hub-topbar-scrolled {
+  background: color-mix(in srgb, var(--hub-bg) 88%, transparent);
+  border-bottom: 1px solid var(--hub-border);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.hub-icon-btn {
+  width: 34px; height: 34px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: none; cursor: pointer;
+  color: var(--hub-text3);
+  transition: color 0.2s, background 0.2s;
+}
+.hub-icon-btn:hover { color: var(--hub-text2); background: var(--hub-hover); }
+
+.hub-dropdown { background: var(--hub-s2) !important; border-color: var(--hub-border2) !important; }
+
+/* Cards */
+.hub-card {
+  background: var(--hub-s1); border: 1px solid var(--hub-border);
+  border-radius: 14px; padding: 18px; cursor: pointer;
+  position: relative; overflow: hidden;
+  transition: border-color 0.2s, transform 0.2s, background 0.2s;
+}
+.hub-card:hover { border-color: var(--hub-border2); transform: translateY(-2px); background: var(--hub-s2); }
+.hub-card::before {
+  content: ''; position: absolute;
+  left: -1px; top: 20%; bottom: 20%;
+  width: 2px; border-radius: 2px; opacity: 0;
+  transition: opacity 0.25s, top 0.25s, bottom 0.25s;
+}
+.hub-card-green::before { background: var(--hub-green); }
+.hub-card-purple::before { background: var(--hub-purple); }
+.hub-card:hover::before { opacity: 1; top: 15%; bottom: 15%; }
+
+.hub-card-icon {
+  width: 34px; height: 34px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 14px; background: var(--hub-hover);
+  transition: background 0.2s;
+}
+.hub-card-icon-green { background: rgba(29,158,117,0.1); color: var(--hub-green); }
+.hub-card-icon-purple { background: rgba(123,111,212,0.1); color: var(--hub-purple); }
+.hub-card-green:hover .hub-card-icon-green { background: rgba(29,158,117,0.15); }
+.hub-card-purple:hover .hub-card-icon-purple { background: rgba(123,111,212,0.15); }
+
+.hub-card-arrow {
+  position: absolute; top: 16px; right: 16px;
+  color: var(--hub-text3); font-size: 16px; opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.hub-card:hover .hub-card-arrow { opacity: 1; transform: translateX(0); }
+
+.hub-card-emp-active { border-color: rgba(123,111,212,0.15) !important; }
+.hub-card-emp-active::after {
+  content: ''; position: absolute;
+  top: 0; left: -100%; width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(123,111,212,0.04), transparent);
+  animation: hubSweep 5s linear infinite; pointer-events: none;
+}
+
+.hub-live-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--hub-green);
+  position: relative; flex-shrink: 0;
+}
+.hub-live-dot::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  border: 1px solid var(--hub-green); animation: hubRipple 2s ease infinite;
+}
+
+.hub-new-card {
+  background: transparent; border: 1px dashed var(--hub-border);
+  border-radius: 14px; padding: 18px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px;
+  cursor: pointer; transition: border-color 0.2s, background 0.15s;
+  min-height: 120px;
+}
+.hub-new-card:hover { border-color: var(--hub-border2); background: var(--hub-hover); }
+.hub-plus-circle {
+  width: 32px; height: 32px; border-radius: 50%;
+  background: var(--hub-s2);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--hub-text3);
+}
+
+/* Feed items */
+.hub-feed-item {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 16px; border-radius: 12px;
+  cursor: pointer; transition: background 0.15s;
+}
+.hub-feed-item:hover { background: var(--hub-hover); }
+.hub-feed-icon {
+  width: 36px; height: 36px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.hub-feed-icon-gold { background: rgba(201,150,58,0.12); color: var(--hub-gold); }
+.hub-feed-icon-blue { background: rgba(80,140,220,0.12); color: var(--hub-blue); }
+
+/* Animations */
+@keyframes hubFadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes hubRipple { 0% { opacity: 0.6; transform: scale(0.7); } 100% { opacity: 0; transform: scale(1.9); } }
+@keyframes hubSweep { 0% { left: -60%; } 100% { left: 160%; } }
+@keyframes hubDotPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(224,85,85,0.5); }
+  50% { box-shadow: 0 0 0 3px rgba(224,85,85,0); }
+}
+
+.animate-hub-fade-up { animation: hubFadeUp 0.55s ease both; }
+.hub-stagger-1 { animation-delay: 0.08s; }
+.hub-stagger-2 { animation-delay: 0.16s; }
+.hub-stagger-3 { animation-delay: 0.24s; }
