@@ -20,6 +20,7 @@ import Auth from "./pages/Auth";
 import AuthCallback from "./pages/AuthCallback";
 
 // Lazy loaded pages
+const Hub = lazy(() => import("./pages/Hub"));
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Inventory = lazy(() => import("./pages/Inventory"));
 const POS = lazy(() => import("./pages/POS"));
