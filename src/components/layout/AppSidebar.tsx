@@ -452,7 +452,7 @@ const AppSidebar = () => {
   });
 
   const moduleUrlMap: Record<string, string> = {
-    Dashboard: "/",
+    Dashboard: "/dashboard",
     Inventario: "/inventory",
     "Punto de Venta": "/pos",
     Servicios: "/services",
