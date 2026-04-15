@@ -718,6 +718,7 @@ const OwnerServicesView = () => {
   const [entryMixedTransfer, setEntryMixedTransfer] = useState('0');
   const [entryIsLive, setEntryIsLive] = useState(false);
   const [entryLiveName, setEntryLiveName] = useState('');
+  const [entryClientId, setEntryClientId] = useState<string | null>(null);
 
   // Promote dialog
   const [promoteEntry, setPromoteEntry] = useState<any>(null);
