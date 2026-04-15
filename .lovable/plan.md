@@ -1,47 +1,59 @@
 
 
-## Plan: Arreglar imágenes de productos — eliminar edge function rota, optimizar en el cliente
+## Plan: Módulo de Clientes
 
-### Problema raíz
+### Situación actual
 
-La edge function `optimize-image` tiene dos errores fatales que impiden que funcione en Deno Deploy (el runtime de las edge functions):
-
-1. **`auth.getClaims()` no existe** en el SDK de Supabase JS — la autenticación falla silenciosamente
-2. **`createImageBitmap` y `OffscreenCanvas` no están disponibles** en Deno Deploy — solo existen en navegadores y Web Workers
-
-Resultado: la función falla, el catch del frontend genera una URL del archivo original (con extensión .jpg/.png), pero el archivo original ya fue borrado por el upload con `upsert: true` o nunca se guarda correctamente. La URL guardada en la base de datos apunta a un archivo que no existe o no es accesible.
-
-### Solución
-
-Mover la optimización al navegador usando la Canvas API nativa (que sí soporta todo esto) y eliminar la dependencia de la edge function.
+Ya existe una tabla `customers` con `id, business_id, name, email, phone, address, notes, created_at, updated_at`. Las ventas del POS ya tienen `customer_id` como FK a `customers`. El módulo "Clientes" ya existe en `platform_modules`. Falta la página, la ruta, el mapeo en sidebar, la columna `client_id` en `service_entries`, y los selectores de cliente en POS y Servicios.
 
 ### Cambios
 
-**1. Reescribir `src/hooks/useImageOptimizer.ts`**
-- Optimizar la imagen en el navegador con `createImageBitmap` + `OffscreenCanvas` + `convertToBlob` (WebP)
-- Redimensionar y comprimir según los mismos límites (product: 1200px/150KB, hero: 1920px/300KB, promo: 1200px/200KB, logo: 512px/100KB)
-- Reducir calidad progresivamente hasta cumplir el peso
-- Subir el resultado ya optimizado directamente a Supabase Storage con extensión `.webp`
-- Devolver la URL pública del archivo subido
-- Mostrar el mismo feedback: "Imagen optimizada: de X → Y" o "Imagen lista"
+**1. Migración de base de datos**
+- Agregar columnas `branch_id` (uuid, nullable, FK a branches) y `created_by` (uuid, nullable) a `customers`
+- Agregar columna `customer_id` (uuid, nullable, FK a customers) a `service_entries`
+- Agregar RLS policy para sellers (insert) en `customers` para que vendedores puedan crear clientes desde POS/Servicios
 
-**2. Eliminar `supabase/functions/optimize-image/index.ts`**
-- Borrar el archivo de la edge function
-- Quitar la entrada `[functions.optimize-image]` de `supabase/config.toml`
+**2. Nueva página `src/pages/Clients.tsx`**
+- Lista de clientes con búsqueda por nombre o teléfono
+- Botón "Nuevo cliente" con formulario (nombre obligatorio, teléfono y email opcionales, notas opcionales)
+- Al tocar un cliente: ficha con datos + historial de ventas POS (`sales` con `customer_id`) + historial de servicios (`service_entries` con `customer_id`)
+- Editar datos del cliente
 
-**3. Sin cambios en**
-- ProductForm, StoreSettings, PromoBlocksConfig (siguen llamando `imgOptimizer.uploadAndOptimize` igual)
-- OptimizationStatus (mismo contrato de props)
-- Base de datos, POS, ni ningún otro módulo
+**3. Ruta en `App.tsx`**
+- Agregar `/clients` con lazy load
 
-### Detalle técnico
+**4. Sidebar en `AppSidebar.tsx`**
+- Agregar `Clientes: "/clients"` al `moduleUrlMap`
+- Agregar "Clientes" al set de módulos permitidos para gerente (`MANAGER_ALLOWED_MODULES`)
 
-```text
-Flujo actual (roto):
-  File → upload a Storage → invoke edge function → ❌ falla → URL rota
+**5. Componente `ClientSearchSelect`**
+- Input con búsqueda por nombre o teléfono que muestra sugerencias de `customers`
+- Opción para crear cliente rápido si no existe
+- Reutilizable en POS y Servicios
 
-Flujo nuevo:
-  File → Canvas resize+WebP en navegador → upload .webp a Storage → URL válida
-```
+**6. POS — `PaymentDialog.tsx`**
+- Agregar el campo opcional "Cliente" usando `ClientSearchSelect` antes de los métodos de pago
+- Pasar `customerId` al `onConfirm` callback
+- Actualizar `PaymentDialogProps` y `POS.tsx` → `handlePayment` para enviar `customerId` a `createSale`
 
-La Canvas API del navegador soporta `createImageBitmap`, `OffscreenCanvas`, y `convertToBlob({ type: "image/webp" })` en todos los navegadores modernos. Si el navegador no soporta WebP encoding (Safari viejo), se sube como PNG como fallback.
+**7. Servicios — `Services.tsx`**
+- En ambas mutaciones de cobro (`chargeMutation` y `createEntryMutation`), agregar estado `selectedClientId`
+- Agregar `ClientSearchSelect` en el diálogo de pago de servicios
+- Incluir `customer_id` en el payload del insert a `service_entries`
+
+### Archivos nuevos
+- `src/pages/Clients.tsx`
+- `src/components/clients/ClientSearchSelect.tsx`
+
+### Archivos editados
+- `src/App.tsx` — nueva ruta
+- `src/components/layout/AppSidebar.tsx` — moduleUrlMap + MANAGER_ALLOWED_MODULES
+- `src/components/pos/PaymentDialog.tsx` — campo cliente opcional
+- `src/pages/POS.tsx` — pasar customerId
+- `src/pages/Services.tsx` — campo cliente opcional en cobros
+- `src/types/database.ts` — agregar customer_id a interfaces si es necesario
+
+### No se toca
+- Flujo de cobro existente (montos, métodos de pago, descuentos)
+- Edge functions, auth, roles, POS cart, inventario
+
