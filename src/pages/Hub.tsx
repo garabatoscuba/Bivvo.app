@@ -98,7 +98,7 @@ const Hub = () => {
     queryKey: ["hub-employments", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const res = await supabase
+      const res: any = await supabase
         .from("employees")
         .select("id, business_id, branch_id, position")
         .eq("auth_user_id", user.id)
