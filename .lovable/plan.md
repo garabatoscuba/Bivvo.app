@@ -1,73 +1,53 @@
 
+Objetivo: hacer que la ruta raíz `/` funcione como Hub real y se quede en el Hub, sin el pestañeo ni el salto automático a `/dashboard`.
 
-## Plan: Implementar Hub Principal de Bivoo
+Hallazgo
+- La ruta ya está bien configurada: `src/App.tsx` ya apunta `/` → `Hub`.
+- El problema no es de publicación ni de hosting.
+- El salto ocurre dentro de `src/pages/Hub.tsx`: hay un `useEffect` que, si el usuario tiene exactamente 1 contexto, redirige automáticamente a `/dashboard` o `/mi-empleo`.
+- El parche actual con `location.state?.fromNav` solo cubre algunos clics desde la navegación, pero no resuelve acceso directo a `/`, refresh, login, ni apertura desde la URL publicada.
 
-### Resumen
+Implementación propuesta
+1. Quitar el auto-redirect de contexto único en `src/pages/Hub.tsx`.
+   - Eliminar la lógica que manda a `/dashboard` o `/mi-empleo` al entrar en `/`.
+   - Con esto, entrar a la raíz siempre mostrará el Hub completo.
 
-Crear una nueva página Hub (`/hub`) que actúa como punto de entrada post-login. Muestra tres secciones: negocios propios, empleos, y afiliaciones. Si el usuario tiene un solo contexto (solo un negocio propio, o solo un empleo), redirige directamente al dashboard sin mostrar el hub.
+2. Mantener intacta la navegación intencional desde el Hub.
+   - Las tarjetas de negocio seguirán entrando a `/dashboard`.
+   - Las tarjetas de empleo seguirán entrando a `/mi-empleo`.
+   - O sea: el dashboard se abre desde una tarjeta del Hub, no automáticamente al cargar `/`.
 
-### Arquitectura
+3. Limpiar solo lo que quede sobrando en `Hub.tsx`.
+   - `redirectedRef`
+   - `explicitNav`
+   - el `return null` usado solo para esconder la pantalla mientras redirigía
+   - sin tocar estilos, layout, buscador, secciones ni animaciones
 
-```text
-Login → ProtectedRoute "/" → Hub.tsx
-  ├─ Solo 1 contexto → redirect a /dashboard (o /mi-empleo)
-  └─ Múltiples contextos → Render Hub con topbar propia
-       ├─ Mis negocios (businesses donde owner_id = profile.id)
-       ├─ Donde trabajo (employees donde auth_user_id = user.id)
-       └─ Mis afiliaciones (affiliates donde email = profile.email)
-```
+Qué NO voy a tocar
+- `src/App.tsx` y el resto de rutas
+- `ProtectedRoute`
+- login, callback de auth, roles o permisos
+- estilos visuales del Hub
+- dashboard, POS, inventario, jornadas o cualquier módulo ajeno
 
-### Archivos
+Detalles técnicos
+- Archivo principal: `src/pages/Hub.tsx`
+- Cambio exacto:
+  - remover el `useEffect` de líneas donde calcula `total === 1`
+  - conservar `handleBusinessClick()` y `handleEmploymentClick()`
+  - conservar toda la UI actual del Hub tal como está
 
-**1. Crear `src/pages/Hub.tsx`** — Página principal del hub
-- Topbar flotante personalizada (sin sidebar): logo Bivoo, switch tema, nube, soporte WhatsApp, avatar dropdown (nombre, email, cerrar sesión)
-- Scroll listener para efecto transparent→blur
-- Query `businesses` por `owner_id = profile.id` con branches count
-- Query `employees` por `auth_user_id = user.id` con join a businesses y jornada activa
-- Query `affiliates` por `email = profile.email` con join a branches→businesses
-- Si total de contextos === 1: redirect automático
-- Click en negocio propio → switchBranch + navigate `/dashboard`
-- Click en empleo → navigate `/mi-empleo`
-- Click en afiliación → navigate `/s/{slug}`
-- "Crear negocio" → reutiliza la lógica existente de create-business
-- Estilos CSS exactos del HTML: colores, tipografías Cormorant Garamond + DM Sans, animaciones fadeUp con stagger, efectos hover (línea lateral, flecha, shimmer sweep)
-- Sin "Unirme a un negocio" ni "Afiliarme" — solo datos reales
-- Sin datos de dinero en tarjetas
+Validación después del cambio
+- Abrir `/` directamente: debe quedarse en el Hub
+- Hacer login: debe terminar en `/` y quedarse en el Hub
+- Tocar el logo/raíz desde `/dashboard`: debe abrir el Hub sin salto de vuelta
+- Probar un usuario con:
+  - 1 solo negocio
+  - 1 solo empleo
+  - sin contextos
+- Verificar que las tarjetas sigan entrando correctamente a `/dashboard` o `/mi-empleo`
 
-**2. Editar `src/index.css`**
-- Agregar import de Cormorant Garamond font
-- Agregar keyframes: `fadeUp`, `dotPulse`, `ripple`, `sweep`
-- Agregar CSS variables del hub (colores oscuro/claro)
-
-**3. Editar `src/App.tsx`**
-- Ruta `/` apunta a Hub (en vez de Dashboard)
-- Ruta `/dashboard` apunta a Dashboard (con AppLayout)
-- Hub envuelto en ProtectedRoute sin AppLayout
-
-**4. Editar `src/components/layout/AppSidebar.tsx`**
-- Eliminar el `SidebarFooter` completo (tema toggle, avatar, logout)
-- Agregar link al hub (logo/home) en el SidebarHeader
-
-**5. Editar `src/components/auth/ProtectedRoute.tsx`**
-- Sin cambios funcionales, solo asegurar que `/hub` no sea bloqueado por subscription
-
-### CSS del Hub (fidelidad total al HTML)
-
-Los colores, border-radius (14px), tipografías (Cormorant Garamond serif para nombres y números, DM Sans para body), tamaños de iconos (34px cards, 36px feed), espaciados (18px padding cards), y todas las transiciones/animaciones se replican exactamente del HTML adjunto. Soporte dark/light con variables CSS.
-
-### Lógica de auto-redirect
-
-```text
-contextos = owned_businesses.length + employments.length
-if contextos === 1:
-  if owned_businesses.length === 1 → switchBranch(main) → /dashboard
-  if employments.length === 1 → /mi-empleo
-// afiliaciones no cuentan como contexto operativo
-```
-
-### No se toca
-- Auth, roles, permisos
-- POS, Inventario, Jornadas, Tesorería
-- Módulos internos existentes
-- Lógica de sidebar (excepto footer)
-
+Resultado esperado
+- `/` pasa a ser siempre el Hub
+- desaparece el pestañeo
+- el dashboard solo se abre cuando el usuario elige un negocio desde el Hub
