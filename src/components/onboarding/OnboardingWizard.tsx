@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Check, ChevronLeft, ChevronRight, ArrowRight, Package, ShoppingCart, Users } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Check, ChevronLeft, ArrowRight, Package, ShoppingCart, Users, Store, Heart, Gift, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -12,20 +13,26 @@ interface OnboardingWizardProps {
   profile: { user_id: string; business_id: string | null; country: string | null };
 }
 
-type Step = "country" | "business_type" | "business_name" | "currency" | "checklist";
+type Step = "country" | "business" | "currency" | "checklist";
 
 const COUNTRIES = [
   { value: "cuba", label: "Cuba", flag: "🇨🇺" },
-  { value: "usa", label: "Estados Unidos", flag: "🇺🇸" },
+  { value: "mexico", label: "México", flag: "🇲🇽" },
   { value: "americas", label: "Américas", flag: "🌎" },
+  { value: "usa", label: "Estados Unidos", flag: "🇺🇸" },
   { value: "europe", label: "Europa", flag: "🇪🇺" },
-  { value: "asia", label: "Asia", flag: "🌏" },
   { value: "africa", label: "África", flag: "🌍" },
+  { value: "asia", label: "Asia", flag: "🌏" },
 ];
 
 const CURRENCY_BY_COUNTRY: Record<string, { code: string; symbol: string; name: string }[]> = {
   cuba: [
     { code: "CUP", symbol: "$", name: "Peso Cubano (CUP)" },
+    { code: "USD", symbol: "$", name: "Dólar (USD)" },
+    { code: "EUR", symbol: "€", name: "Euro (EUR)" },
+  ],
+  mexico: [
+    { code: "MXN", symbol: "$", name: "Peso Mexicano (MXN)" },
     { code: "USD", symbol: "$", name: "Dólar (USD)" },
     { code: "EUR", symbol: "€", name: "Euro (EUR)" },
   ],
@@ -61,11 +68,26 @@ const CURRENCY_BY_COUNTRY: Record<string, { code: string; symbol: string; name: 
 
 const DEFAULT_CURRENCY: Record<string, string> = {
   cuba: "CUP",
+  mexico: "MXN",
   usa: "USD",
   americas: "USD",
   europe: "EUR",
   asia: "USD",
   africa: "USD",
+};
+
+const STEP_TITLES: Record<Step, string> = {
+  country: "¿Dónde operas?",
+  business: "Tu negocio",
+  currency: "¿Cuál es tu moneda principal?",
+  checklist: "Todo listo",
+};
+
+const STEP_SUBTITLES: Record<Step, string> = {
+  country: "Configuraremos moneda y funciones regionales",
+  business: "Podrás cambiarlo después",
+  currency: "Se usará en POS, inventario y reportes",
+  checklist: "Tus primeros pasos con Bivoo",
 };
 
 const BIZ_TYPE_DESCRIPTIONS: Record<string, string> = {
@@ -74,34 +96,18 @@ const BIZ_TYPE_DESCRIPTIONS: Record<string, string> = {
   gym: "Membresías y control de acceso",
 };
 
-const STEPS: Step[] = ["country", "business_type", "business_name", "currency", "checklist"];
-
-const STEP_TITLES: Record<Step, string> = {
-  country: "¿Dónde operas?",
-  business_type: "¿Qué tipo de negocio tienes?",
-  business_name: "¿Cómo se llama tu negocio?",
-  currency: "¿Cuál es tu moneda principal?",
-  checklist: "Todo listo",
-};
-
-const STEP_SUBTITLES: Record<Step, string> = {
-  country: "Configuraremos moneda y funciones regionales",
-  business_type: "Esto define los módulos disponibles",
-  business_name: "Podrás cambiarlo después",
-  currency: "Se usará en POS, inventario y reportes",
-  checklist: "Tus primeros pasos con Bivoo",
-};
-
 const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedCountry, setSelectedCountry] = useState(profile.country || "");
   const [selectedBizType, setSelectedBizType] = useState("store");
   const [businessName, setBusinessName] = useState("");
+  const [keywords, setKeywords] = useState("");
   const [selectedCurrency, setSelectedCurrency] = useState("");
   const [saving, setSaving] = useState(false);
   const [direction, setDirection] = useState<"forward" | "back">("forward");
 
   const isCuba = selectedCountry === "cuba";
+  const hasBusinessName = businessName.trim().length >= 2;
 
   const { data: availableBusinessTypes = [] } = useQuery({
     queryKey: ["onboarding-business-types", isCuba],
@@ -116,7 +122,15 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
     enabled: !!selectedCountry,
   });
 
-  const step = STEPS[currentStep];
+  // Dynamic steps: currency only if user entered a business name
+  const steps = useMemo<Step[]>(() => {
+    if (hasBusinessName) {
+      return ["country", "business", "currency", "checklist"];
+    }
+    return ["country", "business", "checklist"];
+  }, [hasBusinessName]);
+
+  const step = steps[currentStep];
 
   const handleCountrySelect = (country: string) => {
     setSelectedCountry(country);
@@ -130,10 +144,8 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
     switch (step) {
       case "country":
         return !!selectedCountry;
-      case "business_type":
-        return !!selectedBizType;
-      case "business_name":
-        return businessName.trim().length >= 2;
+      case "business":
+        return true; // always can continue (with or without business name)
       case "currency":
         return !!selectedCurrency;
       case "checklist":
@@ -153,22 +165,40 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
     setCurrentStep((s) => s - 1);
   };
 
+  const handleSkip = () => {
+    // Skip goes directly to checklist (last step)
+    setDirection("forward");
+    setBusinessName("");
+    // steps without business: ["country", "business", "checklist"] → checklist is index 2
+    setCurrentStep(2);
+  };
+
   const handleFinish = async () => {
     setSaving(true);
     try {
-      const { data, error } = await supabase.functions.invoke('complete-onboarding', {
-        body: {
-          business_name: businessName.trim(),
-          business_type: selectedBizType,
-          base_currency: selectedCurrency,
-          country: selectedCountry,
-        },
-      });
+      const body: Record<string, unknown> = {
+        country: selectedCountry,
+      };
+
+      if (hasBusinessName) {
+        body.business_name = businessName.trim();
+        body.business_type = selectedBizType;
+        body.base_currency = selectedCurrency;
+        body.keywords = keywords.trim() || undefined;
+      } else {
+        body.skip_business = true;
+      }
+
+      const { data, error } = await supabase.functions.invoke('complete-onboarding', { body });
 
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
-      toast.success("¡Todo listo! Tu negocio está configurado 🎉");
+      toast.success(
+        hasBusinessName
+          ? "¡Todo listo! Tu negocio está configurado 🎉"
+          : "¡Bienvenido a Bivoo! 🎉"
+      );
       window.location.reload();
     } catch (err: any) {
       console.error('Onboarding error:', err);
@@ -196,7 +226,7 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
 
         {/* Progress dots */}
         <div className="flex items-center justify-center gap-2 mb-12">
-          {STEPS.map((_, i) => (
+          {steps.map((_, i) => (
             <div
               key={i}
               className={cn(
@@ -213,8 +243,8 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
 
         {/* Step content with animation */}
         <div
-          key={currentStep}
-          className={cn("flex-1 flex flex-col", direction === "forward" ? "animate-fade-in" : "animate-fade-in")}
+          key={`${step}-${currentStep}`}
+          className="flex-1 flex flex-col animate-fade-in"
         >
           {/* Title */}
           <div className="text-center mb-8">
@@ -255,55 +285,100 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
               </div>
             )}
 
-            {/* Business Type */}
-            {step === "business_type" && (
-              <div className="w-full space-y-3">
-                {availableBusinessTypes.map((bt) => (
-                  <button
-                    key={bt.key}
-                    type="button"
-                    onClick={() => setSelectedBizType(bt.key)}
-                    className={cn(
-                      "w-full flex items-center justify-between rounded-xl border px-5 py-5 text-left transition-all duration-200",
-                      selectedBizType === bt.key
-                        ? "border-primary bg-primary/5 shadow-sm"
-                        : "border-border hover:border-primary/30 hover:bg-muted/30",
-                    )}
-                  >
-                    <div>
-                      <p
-                        className={cn(
-                          "font-medium",
-                          selectedBizType === bt.key ? "text-foreground" : "text-foreground",
-                        )}
-                      >
-                        {bt.name}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">{BIZ_TYPE_DESCRIPTIONS[bt.key] || bt.name}</p>
-                    </div>
-                    {selectedBizType === bt.key && (
-                      <div className="shrink-0 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                        <Check className="w-3 h-3 text-primary-foreground" />
-                      </div>
-                    )}
-                  </button>
-                ))}
-                {availableBusinessTypes.length === 0 && (
-                  <p className="text-sm text-muted-foreground text-center py-8">Cargando...</p>
-                )}
-              </div>
-            )}
+            {/* Business — merged step */}
+            {step === "business" && (
+              <div className="w-full space-y-5">
+                {/* Business name input */}
+                <div>
+                  <Input
+                    placeholder="Nombre de tu negocio"
+                    value={businessName}
+                    onChange={(e) => setBusinessName(e.target.value)}
+                    autoFocus
+                    className="text-center text-lg h-14 border-border bg-transparent rounded-xl focus:border-primary focus:ring-primary/20"
+                  />
+                </div>
 
-            {/* Business Name */}
-            {step === "business_name" && (
-              <div className="w-full max-w-sm">
-                <Input
-                  placeholder="Nombre de tu negocio"
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  autoFocus
-                  className="text-center text-lg h-14 border-border bg-transparent rounded-xl focus:border-primary focus:ring-primary/20"
-                />
+                {/* Dynamic content based on whether name is filled */}
+                {hasBusinessName ? (
+                  <div className="space-y-4 animate-fade-in">
+                    {/* Business type selector */}
+                    <div className="space-y-3">
+                      {availableBusinessTypes.map((bt) => (
+                        <button
+                          key={bt.key}
+                          type="button"
+                          onClick={() => setSelectedBizType(bt.key)}
+                          className={cn(
+                            "w-full flex items-center justify-between rounded-xl border px-5 py-4 text-left transition-all duration-200",
+                            selectedBizType === bt.key
+                              ? "border-primary bg-primary/5 shadow-sm"
+                              : "border-border hover:border-primary/30 hover:bg-muted/30",
+                          )}
+                        >
+                          <div>
+                            <p className="font-medium text-foreground">{bt.name}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5">{BIZ_TYPE_DESCRIPTIONS[bt.key] || bt.name}</p>
+                          </div>
+                          {selectedBizType === bt.key && (
+                            <div className="shrink-0 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
+                              <Check className="w-3 h-3 text-primary-foreground" />
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Keywords field */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">
+                        ¿Cómo describirías tu negocio?
+                      </label>
+                      <Textarea
+                        placeholder="café, desayuno, La Habana"
+                        value={keywords}
+                        onChange={(e) => setKeywords(e.target.value)}
+                        rows={2}
+                        className="resize-none rounded-xl border-border bg-transparent text-sm focus:border-primary focus:ring-primary/20"
+                      />
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Escribe palabras separadas por comas. Ejemplo: café, desayuno, La Habana. Cuantas más palabras agregues, más fácil será que otros usuarios te encuentren cuando busquen negocios como el tuyo.
+                      </p>
+                    </div>
+
+                    {/* Public portal message */}
+                    <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/10 px-4 py-3">
+                      <Store className="w-4 h-4 text-primary shrink-0" />
+                      <p className="text-xs text-foreground">
+                        Tu negocio aparecerá en el portal público de Bivoo con prueba gratuita por tiempo ilimitado.
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-fade-in">
+                    {/* No-business explanation */}
+                    <div className="rounded-xl border border-border p-5 space-y-4">
+                      <p className="text-sm text-foreground font-medium text-center">
+                        Sin negocio también puedes disfrutar de Bivoo
+                      </p>
+                      <div className="space-y-3">
+                        {[
+                          { Icon: Heart, text: "Afiliarte a negocios locales y acumular puntos" },
+                          { Icon: Gift, text: "Ver ofertas exclusivas de tus negocios favoritos" },
+                          { Icon: ShoppingBag, text: "Hacer pedidos directamente desde los portales" },
+                        ].map((item, i) => (
+                          <div key={i} className="flex items-center gap-3">
+                            <item.Icon className="w-4 h-4 text-primary shrink-0" />
+                            <p className="text-xs text-muted-foreground">{item.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                      <p className="text-xs text-muted-foreground text-center pt-1">
+                        Puedes crear tu negocio en cualquier momento desde el hub.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -347,26 +422,53 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
             {/* Checklist */}
             {step === "checklist" && (
               <div className="w-full space-y-4">
-                {[
-                  { Icon: Package, text: "Agrega tu primer producto", sub: "Inventario" },
-                  { Icon: ShoppingCart, text: "Realiza tu primera venta", sub: "Punto de Venta" },
-                  { Icon: Users, text: "Agrega tu primer empleado", sub: "Recursos Humanos" },
-                ].map((item, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center justify-center gap-4 rounded-xl border border-border px-5 py-4"
-                    style={{ animationDelay: `${i * 100}ms` }}
-                  >
-                    <item.Icon className="w-5 h-5 text-primary shrink-0" />
-                    <div className="text-center">
-                      <p className="text-sm font-medium text-foreground">{item.text}</p>
-                      <p className="text-xs text-muted-foreground">{item.sub}</p>
-                    </div>
-                  </div>
-                ))}
-                <p className="text-xs text-muted-foreground text-center pt-4">
-                  Plan gratuito activo. Prueba planes superiores por 7 días sin compromiso.
-                </p>
+                {hasBusinessName ? (
+                  <>
+                    {[
+                      { Icon: Package, text: "Agrega tu primer producto", sub: "Inventario" },
+                      { Icon: ShoppingCart, text: "Realiza tu primera venta", sub: "Punto de Venta" },
+                      { Icon: Users, text: "Agrega tu primer empleado", sub: "Recursos Humanos" },
+                    ].map((item, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-center gap-4 rounded-xl border border-border px-5 py-4"
+                        style={{ animationDelay: `${i * 100}ms` }}
+                      >
+                        <item.Icon className="w-5 h-5 text-primary shrink-0" />
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-foreground">{item.text}</p>
+                          <p className="text-xs text-muted-foreground">{item.sub}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground text-center pt-4">
+                      Plan gratuito activo. Prueba planes superiores por 7 días sin compromiso.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    {[
+                      { Icon: Heart, text: "Explora negocios locales", sub: "Afiliaciones" },
+                      { Icon: Gift, text: "Descubre ofertas exclusivas", sub: "Portal público" },
+                      { Icon: Store, text: "Crea tu negocio cuando quieras", sub: "Hub" },
+                    ].map((item, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center justify-center gap-4 rounded-xl border border-border px-5 py-4"
+                        style={{ animationDelay: `${i * 100}ms` }}
+                      >
+                        <item.Icon className="w-5 h-5 text-primary shrink-0" />
+                        <div className="text-center">
+                          <p className="text-sm font-medium text-foreground">{item.text}</p>
+                          <p className="text-xs text-muted-foreground">{item.sub}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <p className="text-xs text-muted-foreground text-center pt-4">
+                      Puedes crear tu negocio en cualquier momento desde el hub.
+                    </p>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -374,20 +476,38 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
 
         {/* Navigation */}
         <div className="flex items-center justify-between pt-8 pb-4">
-          {currentStep > 0 ? (
-            <button
-              type="button"
-              onClick={goBack}
-              className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Atrás
-            </button>
-          ) : (
-            <div />
-          )}
+          <div className="flex items-center gap-3">
+            {currentStep > 0 && (
+              <button
+                type="button"
+                onClick={goBack}
+                className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Atrás
+              </button>
+            )}
+            {step === "business" && hasBusinessName && (
+              <button
+                type="button"
+                onClick={handleSkip}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Omitir por ahora
+              </button>
+            )}
+            {step === "business" && !hasBusinessName && (
+              <button
+                type="button"
+                onClick={handleSkip}
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Omitir por ahora
+              </button>
+            )}
+          </div>
 
-          {currentStep < STEPS.length - 1 ? (
+          {currentStep < steps.length - 1 ? (
             <Button onClick={goNext} disabled={!canNext()} className="rounded-full px-6 h-11 gap-2 text-sm font-medium">
               Continuar
               <ArrowRight className="w-4 h-4" />

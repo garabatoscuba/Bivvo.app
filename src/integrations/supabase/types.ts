@@ -1067,6 +1067,7 @@ export type Database = {
           dashboard_reset_at: string | null
           id: string
           is_active: boolean
+          keywords: string | null
           logo_url: string | null
           name: string
           owner_id: string | null
@@ -1080,6 +1081,7 @@ export type Database = {
           dashboard_reset_at?: string | null
           id?: string
           is_active?: boolean
+          keywords?: string | null
           logo_url?: string | null
           name: string
           owner_id?: string | null
@@ -1093,6 +1095,7 @@ export type Database = {
           dashboard_reset_at?: string | null
           id?: string
           is_active?: boolean
+          keywords?: string | null
           logo_url?: string | null
           name?: string
           owner_id?: string | null
