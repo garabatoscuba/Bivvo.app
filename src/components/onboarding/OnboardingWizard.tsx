@@ -350,7 +350,7 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
                     <div className="flex items-center gap-2 rounded-lg bg-primary/5 border border-primary/10 px-4 py-3">
                       <Store className="w-4 h-4 text-primary shrink-0" />
                       <p className="text-xs text-foreground">
-                        Tu negocio aparecerá en el portal público de Bivoo con prueba gratuita por tiempo ilimitado.
+                        Gestiona tu negocio con Bivoo — inventario, punto de venta, empleados y más. Crear tu negocio es gratuito por tiempo ilimitado.
                       </p>
                     </div>
                   </div>
