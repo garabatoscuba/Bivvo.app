@@ -5467,6 +5467,21 @@ export type Database = {
         Returns: boolean
       }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      list_public_storefronts: {
+        Args: never
+        Returns: {
+          accent_color: string
+          address: string
+          business_type: string
+          hero_image_url: string
+          id: string
+          keywords: string
+          logo_url: string
+          name: string
+          schedule: Json
+          slug: string
+        }[]
+      }
       recalculate_elaborado_stock: {
         Args: { _branch_id: string; _elaborado_id: string }
         Returns: undefined
