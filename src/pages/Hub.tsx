@@ -29,6 +29,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { HubSearchAndExplore } from "@/components/hub/HubSearchAndExplore";
+import CreateBusinessModal from "@/components/hub/CreateBusinessModal";
 
 const Hub = () => {
   const navigate = useNavigate();
@@ -36,6 +37,7 @@ const Hub = () => {
   const { theme, setTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [createBizOpen, setCreateBizOpen] = useState(false);
   const isDark = theme === "dark";
 
   useEffect(() => {
@@ -348,7 +350,7 @@ const Hub = () => {
               ))}
               <div
                 className="hub-new-card"
-                onClick={() => navigate("/plans")}
+                onClick={() => setCreateBizOpen(true)}
               >
                 <div className="hub-plus-circle">
                   <Plus className="h-3.5 w-3.5" />
@@ -433,6 +435,7 @@ const Hub = () => {
       </div>
 
       <SyncStatusModal open={syncOpen} onOpenChange={setSyncOpen} />
+      <CreateBusinessModal open={createBizOpen} onOpenChange={setCreateBizOpen} />
     </div>
   );
 };

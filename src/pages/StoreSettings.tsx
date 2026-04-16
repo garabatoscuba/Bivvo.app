@@ -62,7 +62,7 @@ const StoreSettingsPage = () => {
   const { data: business } = useQuery({
     queryKey: ['my-business-details', profile?.business_id],
     queryFn: async () => {
-      const { data } = await supabase.from('businesses').select('slug, name, logo_url').eq('id', profile!.business_id!).single();
+      const { data } = await supabase.from('businesses').select('slug, name, logo_url, keywords').eq('id', profile!.business_id!).single();
       return data;
     },
     enabled: !!profile?.business_id,
@@ -70,10 +70,27 @@ const StoreSettingsPage = () => {
 
   const [logoUrl, setLogoUrl] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [bizAddress, setBizAddress] = useState('');
+  const [bizKeywordsInput, setBizKeywordsInput] = useState('');
+  const [bizKeywords, setBizKeywords] = useState<string[]>([]);
+  const [savingBizInfo, setSavingBizInfo] = useState(false);
 
   useEffect(() => {
     if (business?.logo_url) setLogoUrl(business.logo_url);
+    // Load keywords
+    if (business?.keywords) {
+      setBizKeywords(business.keywords.split(',').map((k: string) => k.trim()).filter(Boolean));
+    }
   }, [business]);
+
+  // Load branch address
+  useEffect(() => {
+    if (branchId) {
+      supabase.from('branches').select('address').eq('id', branchId).single().then(({ data }) => {
+        if (data?.address) setBizAddress(data.address);
+      });
+    }
+  }, [branchId]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -395,6 +412,87 @@ const StoreSettingsPage = () => {
                       <OptimizationStatus result={logoOptimizer.result} optimizing={logoOptimizer.optimizing} />
                     </div>
                   </div>
+                </CardContent>
+              </Card>
+
+              {/* Dirección y Palabras clave */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2"><Globe className="h-4 w-4" /> Ubicación y descubrimiento</CardTitle>
+                  <CardDescription>Ayuda a que otros usuarios encuentren tu negocio.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Ciudad o dirección</Label>
+                    <Input
+                      value={bizAddress}
+                      onChange={(e) => setBizAddress(e.target.value)}
+                      placeholder="Ej: La Habana, Cuba"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-sm">Palabras clave</Label>
+                    <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 rounded-md border border-input bg-background">
+                      {bizKeywords.map((kw) => (
+                        <span
+                          key={kw}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px]"
+                        >
+                          {kw}
+                          <button
+                            type="button"
+                            onClick={() => setBizKeywords((prev) => prev.filter((k) => k !== kw))}
+                            className="hover:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </button>
+                        </span>
+                      ))}
+                      <input
+                        value={bizKeywordsInput}
+                        onChange={(e) => setBizKeywordsInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === ',' || e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = bizKeywordsInput.trim().replace(/,/g, '');
+                            if (val && !bizKeywords.includes(val)) {
+                              setBizKeywords((prev) => [...prev, val]);
+                            }
+                            setBizKeywordsInput('');
+                          }
+                        }}
+                        placeholder={bizKeywords.length === 0 ? 'Escribe y presiona coma o Enter' : ''}
+                        className="flex-1 min-w-[120px] bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+                      />
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Ayudan a otros usuarios a encontrar tu negocio en el directorio de Bivoo.
+                    </p>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="gap-2"
+                    disabled={savingBizInfo}
+                    onClick={async () => {
+                      setSavingBizInfo(true);
+                      try {
+                        const kwStr = bizKeywords.length > 0 ? bizKeywords.join(', ') : null;
+                        await Promise.all([
+                          supabase.from('businesses').update({ keywords: kwStr }).eq('id', profile!.business_id!),
+                          branchId ? supabase.from('branches').update({ address: bizAddress.trim() || null }).eq('id', branchId) : Promise.resolve(),
+                        ]);
+                        queryClient.invalidateQueries({ queryKey: ['my-business-details'] });
+                        toastFn({ title: 'Información guardada' });
+                      } catch {
+                        toastFn({ title: 'Error al guardar', variant: 'destructive' });
+                      } finally {
+                        setSavingBizInfo(false);
+                      }
+                    }}
+                  >
+                    {savingBizInfo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                    Guardar
+                  </Button>
                 </CardContent>
               </Card>
 
