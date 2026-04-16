@@ -62,45 +62,20 @@ export const HubSearchAndExplore = ({ showWelcome = false }: { showWelcome?: boo
   const { data: publicBusinesses = [] } = useQuery({
     queryKey: ["hub-public-businesses"],
     queryFn: async () => {
-      const { data: activeSettings } = await supabase
-        .from("store_settings")
-        .select("branch_id, hero_image_url, schedule, accent_color")
-        .eq("is_active", true);
-
-      if (!activeSettings?.length) return [];
-
-      const branchIds = activeSettings.map((s) => s.branch_id);
-      const { data: branches } = await supabase
-        .from("branches")
-        .select("id, business_id, address")
-        .in("id", branchIds);
-
-      if (!branches?.length) return [];
-
-      const bizIds = [...new Set(branches.map((b) => b.business_id))];
-      const { data: businesses } = await supabase
-        .from("businesses")
-        .select("id, name, slug, business_type, keywords, logo_url")
-        .in("id", bizIds)
-        .eq("is_active", true);
-
-      if (!businesses?.length) return [];
-
-      // Map store_settings and branch info to each business
-      const branchMap = new Map(branches.map((b) => [b.id, b]));
-      const settingsMap = new Map(activeSettings.map((s) => [s.branch_id, s]));
-
-      return businesses.map((biz) => {
-        const branch = branches.find((b) => b.business_id === biz.id);
-        const settings = branch ? settingsMap.get(branch.id) : null;
-        return {
-          ...biz,
-          hero_image_url: settings?.hero_image_url || null,
-          accent_color: settings?.accent_color || null,
-          schedule: (settings?.schedule as unknown as WeekSchedule) || null,
-          address: branch?.address || null,
-        } as PublicBusiness;
-      });
+      const { data, error } = await supabase.rpc("list_public_storefronts");
+      if (error || !data) return [];
+      return (data as any[]).map((row) => ({
+        id: row.id,
+        name: row.name,
+        slug: row.slug,
+        business_type: row.business_type,
+        keywords: row.keywords,
+        logo_url: row.logo_url,
+        hero_image_url: row.hero_image_url,
+        accent_color: row.accent_color,
+        schedule: row.schedule as WeekSchedule | null,
+        address: row.address,
+      })) as PublicBusiness[];
     },
   });
 
