@@ -451,6 +451,9 @@ const Hub = () => {
             </div>
           </div>
         )}
+
+        {/* Search + Explore (after personal sections) */}
+        {hasPersonalContent && <HubSearchAndExplore />}
       </div>
 
       <SyncStatusModal open={syncOpen} onOpenChange={setSyncOpen} />
