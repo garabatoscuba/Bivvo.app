@@ -62,7 +62,7 @@ const StoreSettingsPage = () => {
   const { data: business } = useQuery({
     queryKey: ['my-business-details', profile?.business_id],
     queryFn: async () => {
-      const { data } = await supabase.from('businesses').select('slug, name, logo_url').eq('id', profile!.business_id!).single();
+      const { data } = await supabase.from('businesses').select('slug, name, logo_url, keywords').eq('id', profile!.business_id!).single();
       return data;
     },
     enabled: !!profile?.business_id,
@@ -70,10 +70,27 @@ const StoreSettingsPage = () => {
 
   const [logoUrl, setLogoUrl] = useState('');
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [bizAddress, setBizAddress] = useState('');
+  const [bizKeywordsInput, setBizKeywordsInput] = useState('');
+  const [bizKeywords, setBizKeywords] = useState<string[]>([]);
+  const [savingBizInfo, setSavingBizInfo] = useState(false);
 
   useEffect(() => {
     if (business?.logo_url) setLogoUrl(business.logo_url);
+    // Load keywords
+    if (business?.keywords) {
+      setBizKeywords(business.keywords.split(',').map((k: string) => k.trim()).filter(Boolean));
+    }
   }, [business]);
+
+  // Load branch address
+  useEffect(() => {
+    if (branchId) {
+      supabase.from('branches').select('address').eq('id', branchId).single().then(({ data }) => {
+        if (data?.address) setBizAddress(data.address);
+      });
+    }
+  }, [branchId]);
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
