@@ -329,7 +329,7 @@ const Hub = () => {
         </div>
 
         {/* MIS NEGOCIOS */}
-        {(ownedBusinesses.length > 0 || true) && (
+        {ownedBusinesses.length > 0 && (
           <div className="mb-9 animate-hub-fade-up hub-stagger-1">
             <div className="text-[10px] tracking-[0.15em] uppercase hub-text-dim mb-3.5 flex items-center gap-3">
               Mis negocios
