@@ -217,6 +217,7 @@ const Hub = () => {
 
   const firstName = profile?.full_name?.split(" ")[0] || "Usuario";
   const totalContexts = ownedBusinesses.length + employments.length + affiliations.length;
+  const hasPersonalContent = ownedBusinesses.length > 0 || employments.length > 0 || affiliations.length > 0;
 
   const businessTypeLabel = (type: string) => {
     const map: Record<string, string> = {
@@ -328,6 +329,9 @@ const Hub = () => {
             {totalContexts} {totalContexts === 1 ? "espacio activo" : "espacios activos"} en Bivoo
           </p>
         </div>
+
+        {/* Search + Explore (shown first if no personal content) */}
+        {!hasPersonalContent && <HubSearchAndExplore showWelcome />}
 
         {/* MIS NEGOCIOS */}
         {ownedBusinesses.length > 0 && (
