@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -221,8 +221,6 @@ const Hub = () => {
     );
   }
 
-  // If auto-redirecting, show nothing
-  if (redirectedRef.current) return null;
 
   return (
     <div className="min-h-screen hub-bg hub-text pb-20 overflow-x-hidden">
