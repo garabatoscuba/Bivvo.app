@@ -36,14 +36,7 @@ Deno.serve(async (req) => {
     }
 
     const userId = claims.claims.sub as string;
-    const { business_name, business_type, base_currency, country } = await req.json();
-
-    if (!business_name || typeof business_name !== "string" || !business_name.trim()) {
-      return new Response(JSON.stringify({ error: "business_name is required" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    const { business_name, business_type, base_currency, country, keywords, skip_business } = await req.json();
 
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
@@ -80,18 +73,39 @@ Deno.serve(async (req) => {
       });
     }
 
+    // If skip_business flag is set, just mark onboarding complete without touching business
+    if (skip_business) {
+      return new Response(
+        JSON.stringify({ success: true, skipped_business: true }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!business_name || typeof business_name !== "string" || !business_name.trim()) {
+      return new Response(JSON.stringify({ error: "business_name is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Update business if exists
     if (profile.business_id) {
       const validTypes = ["store", "copy_shop", "gym"];
       const bizType = validTypes.includes(business_type) ? business_type : "store";
 
+      const updatePayload: Record<string, unknown> = {
+        name: business_name.trim(),
+        business_type: bizType,
+        base_currency: base_currency || "USD",
+      };
+
+      if (typeof keywords === "string") {
+        updatePayload.keywords = keywords.trim() || null;
+      }
+
       const { error: bizErr } = await admin
         .from("businesses")
-        .update({
-          name: business_name.trim(),
-          business_type: bizType,
-          base_currency: base_currency || "USD",
-        })
+        .update(updatePayload)
         .eq("id", profile.business_id);
 
       if (bizErr) {
