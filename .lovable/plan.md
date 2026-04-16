@@ -1,53 +1,40 @@
 
-Objetivo: hacer que la ruta raíz `/` funcione como Hub real y se quede en el Hub, sin el pestañeo ni el salto automático a `/dashboard`.
 
-Hallazgo
-- La ruta ya está bien configurada: `src/App.tsx` ya apunta `/` → `Hub`.
-- El problema no es de publicación ni de hosting.
-- El salto ocurre dentro de `src/pages/Hub.tsx`: hay un `useEffect` que, si el usuario tiene exactamente 1 contexto, redirige automáticamente a `/dashboard` o `/mi-empleo`.
-- El parche actual con `location.state?.fromNav` solo cubre algunos clics desde la navegación, pero no resuelve acceso directo a `/`, refresh, login, ni apertura desde la URL publicada.
+## Plan: Mejorar HubSearchAndExplore con directorio enriquecido
 
-Implementación propuesta
-1. Quitar el auto-redirect de contexto único en `src/pages/Hub.tsx`.
-   - Eliminar la lógica que manda a `/dashboard` o `/mi-empleo` al entrar en `/`.
-   - Con esto, entrar a la raíz siempre mostrará el Hub completo.
+### Contexto
+El componente `HubSearchAndExplore` ya existe con un buscador y sección "Explorar" basicos. Se necesita enriquecer con: placeholder actualizado, logo desde `store_settings` (no solo `businesses.logo_url`), keywords como chips, badge Abierto/Cerrado segun horario, y ciudad (campo `address` de `branches`).
 
-2. Mantener intacta la navegación intencional desde el Hub.
-   - Las tarjetas de negocio seguirán entrando a `/dashboard`.
-   - Las tarjetas de empleo seguirán entrando a `/mi-empleo`.
-   - O sea: el dashboard se abre desde una tarjeta del Hub, no automáticamente al cargar `/`.
+**Nota**: No existe columna `city` en branches, solo `address`. Se usara el address como referencia de ubicacion. El `schedule` en `store_settings` contiene el horario para determinar abierto/cerrado.
 
-3. Limpiar solo lo que quede sobrando en `Hub.tsx`.
-   - `redirectedRef`
-   - `explicitNav`
-   - el `return null` usado solo para esconder la pantalla mientras redirigía
-   - sin tocar estilos, layout, buscador, secciones ni animaciones
+### Cambios en `src/components/hub/HubSearchAndExplore.tsx`
 
-Qué NO voy a tocar
-- `src/App.tsx` y el resto de rutas
-- `ProtectedRoute`
-- login, callback de auth, roles o permisos
-- estilos visuales del Hub
-- dashboard, POS, inventario, jornadas o cualquier módulo ajeno
+1. **Actualizar query** para traer datos adicionales:
+   - De `store_settings`: `hero_image_url`, `schedule`, `accent_color` (para usar como logo del portal si no hay `logo_url` en businesses)
+   - De `branches`: `address` (para mostrar ciudad/ubicacion)
+   - Mapear cada negocio con su store_settings y branch info
 
-Detalles técnicos
-- Archivo principal: `src/pages/Hub.tsx`
-- Cambio exacto:
-  - remover el `useEffect` de líneas donde calcula `total === 1`
-  - conservar `handleBusinessClick()` y `handleEmploymentClick()`
-  - conservar toda la UI actual del Hub tal como está
+2. **Actualizar placeholder** del buscador a "Buscar negocios, servicios, productos..."
 
-Validación después del cambio
-- Abrir `/` directamente: debe quedarse en el Hub
-- Hacer login: debe terminar en `/` y quedarse en el Hub
-- Tocar el logo/raíz desde `/dashboard`: debe abrir el Hub sin salto de vuelta
-- Probar un usuario con:
-  - 1 solo negocio
-  - 1 solo empleo
-  - sin contextos
-- Verificar que las tarjetas sigan entrando correctamente a `/dashboard` o `/mi-empleo`
+3. **Funcion `isOpenNow`**: Parsear el campo `schedule` (JSON con dias y horarios) para determinar si el negocio esta abierto o cerrado en este momento.
 
-Resultado esperado
-- `/` pasa a ser siempre el Hub
-- desaparece el pestañeo
-- el dashboard solo se abre cuando el usuario elige un negocio desde el Hub
+4. **Tarjetas del directorio ("Explorar en Bivoo")**:
+   - Avatar cuadrado redondeado: logo del negocio (de `businesses.logo_url` o `store_settings.hero_image_url`) o iniciales con color de fondo generado del nombre
+   - Nombre del negocio
+   - Tipo de negocio
+   - Address/ciudad si disponible
+   - Keywords como chips pequenos (split por coma)
+   - Badge "Abierto" verde o "Cerrado" gris segun horario
+
+5. **Resultados de busqueda**: Mantener dropdown actual pero filtrar tambien en el grid de tarjetas (mostrar solo las que coinciden cuando hay busqueda activa).
+
+6. **Titulo de seccion**: Cambiar "Explorar" a "Explorar en Bivoo"
+
+### Archivos a modificar
+- `src/components/hub/HubSearchAndExplore.tsx` (unico archivo)
+
+### Lo que NO se toca
+- Hub.tsx ni su integracion
+- Estilos globales ni CSS del hub
+- Ninguna otra pagina o componente
+
