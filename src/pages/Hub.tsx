@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
@@ -32,15 +32,11 @@ import { HubSearchAndExplore } from "@/components/hub/HubSearchAndExplore";
 
 const Hub = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { profile, user, signOut, switchBranch } = useAuth();
   const { theme, setTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const isDark = theme === "dark";
-  const redirectedRef = useRef(false);
-  // Only auto-redirect on fresh login, not when user explicitly navigates to hub
-  const explicitNav = !!(location.state as any)?.fromNav;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -171,25 +167,7 @@ const Hub = () => {
     enabled: !!profile?.email,
   });
 
-  // Auto-redirect if single context
   const loading = loadingOwned || loadingEmp;
-  useEffect(() => {
-    if (loading || redirectedRef.current || explicitNav) return;
-    const total = ownedBusinesses.length + employments.length;
-    if (total === 1) {
-      redirectedRef.current = true;
-      if (ownedBusinesses.length === 1) {
-        const biz = ownedBusinesses[0];
-        if (biz.mainBranchId) {
-          switchBranch(biz.mainBranchId).then(() => navigate("/dashboard", { replace: true }));
-        } else {
-          navigate("/dashboard", { replace: true });
-        }
-      } else if (employments.length === 1) {
-        navigate("/mi-empleo", { replace: true });
-      }
-    }
-  }, [loading, ownedBusinesses, employments, navigate, switchBranch, explicitNav]);
 
   const handleBusinessClick = async (biz: typeof ownedBusinesses[0]) => {
     if (biz.mainBranchId) {
