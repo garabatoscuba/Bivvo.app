@@ -28,6 +28,7 @@ import {
   Plus,
   Loader2,
 } from "lucide-react";
+import { HubSearchAndExplore } from "@/components/hub/HubSearchAndExplore";
 
 const Hub = () => {
   const navigate = useNavigate();
