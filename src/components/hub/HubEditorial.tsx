@@ -347,12 +347,12 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       {/* CIERRE */}
       <section className="py-[72px] px-10 text-center border-t border-[var(--hub-border)]">
         <img
-          src={isDark ? logoDark : logoLight}
+          src={isDark ? logoLight : logoDark}
           alt="Bivoo"
           className="h-10 w-auto object-contain mx-auto mb-3"
         />
-        <div className="font-['Cormorant_Garamond'] text-[18px] italic hub-text-muted mb-8">
-          Automatización de empresas
+        <div className="text-[11px] font-medium tracking-widest uppercase hub-text-muted mb-8">
+          Automatización de Empresas
         </div>
         <div className="flex items-center justify-center gap-3">
           <button className="hub-cierre-btn-outline" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
