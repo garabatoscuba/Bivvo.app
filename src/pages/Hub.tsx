@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,8 +41,78 @@ const Hub = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
   const [city, setCity] = useState<string>("");
   const isDark = theme === "dark";
+
+  // Debounce search input (250ms)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Open dropdown when there's text; close when emptied
+  useEffect(() => {
+    if (search.trim().length >= 2) setSearchOpen(true);
+    else setSearchOpen(false);
+  }, [search]);
+
+  // Click-outside + Escape to close
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSearchOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  // Live search query
+  const { data: searchData, isFetching: searchLoading } = useQuery({
+    queryKey: ["hub-search", debouncedSearch],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("search_public_catalog", { q: debouncedSearch });
+      if (error) throw error;
+      return (data || []) as Array<{
+        kind: "business" | "product" | "service";
+        id: string;
+        name: string;
+        price: number | null;
+        business_id: string;
+        business_name: string;
+        business_slug: string;
+        business_type: string | null;
+      }>;
+    },
+    enabled: debouncedSearch.length >= 2,
+    staleTime: 30_000,
+  });
+
+  const businessHits = (searchData || []).filter((r) => r.kind === "business");
+  const itemHits = (searchData || []).filter((r) => r.kind !== "business");
+
+  const formatPrice = (n: number | null) => {
+    if (n == null) return "";
+    try { return new Intl.NumberFormat("es", { maximumFractionDigits: 2 }).format(n); }
+    catch { return String(n); }
+  };
+
+  const goToStorefront = (slug: string) => {
+    if (!slug) return;
+    setSearchOpen(false);
+    setSearch("");
+    navigate(`/s/${slug}`);
+  };
 
   // Try to get geolocation → reverse geocode to city (best-effort, silent on fail)
   useEffect(() => {
@@ -188,14 +258,82 @@ const Hub = () => {
         </div>
 
         {/* Search centered */}
-        <div className="hub-search-box">
-          <Search className="h-3.5 w-3.5 hub-text-dim flex-shrink-0" />
-          <input
-            className="hub-search-input"
-            placeholder="Buscar negocios, servicios, productos..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div ref={searchBoxRef} className="relative">
+          <div className="hub-search-box">
+            <Search className="h-3.5 w-3.5 hub-text-dim flex-shrink-0" />
+            <input
+              className="hub-search-input"
+              placeholder="Buscar negocios, servicios, productos..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => { if (search.trim().length >= 2) setSearchOpen(true); }}
+            />
+          </div>
+
+          {searchOpen && debouncedSearch.length >= 2 && (
+            <div
+              className="absolute left-0 right-0 top-[calc(100%+6px)] z-[60] hub-card rounded-xl shadow-xl border border-[var(--hub-border)] max-h-[420px] overflow-y-auto"
+            >
+              {searchLoading && (
+                <div className="flex items-center gap-2 px-3 py-3 text-[12px] hub-text-dim">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: "var(--hub-green)" }} />
+                  Buscando...
+                </div>
+              )}
+
+              {!searchLoading && businessHits.length === 0 && itemHits.length === 0 && (
+                <div className="px-3 py-4 text-[12px] hub-text-dim">
+                  Sin resultados para "{debouncedSearch}"
+                </div>
+              )}
+
+              {!searchLoading && businessHits.length > 0 && (
+                <div className="py-1">
+                  <div className="text-[10px] uppercase tracking-wider hub-text-dim px-3 py-1.5">Negocios</div>
+                  {businessHits.map((b) => (
+                    <button
+                      key={`b-${b.id}`}
+                      onClick={() => goToStorefront(b.business_slug)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--hub-hover)] text-left"
+                    >
+                      <div className="w-7 h-7 rounded-full bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.2)] flex items-center justify-center text-[11px] font-medium text-[hsl(var(--primary))] flex-shrink-0">
+                        {b.name?.[0]?.toUpperCase() || "B"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] hub-text truncate">{b.name}</div>
+                        {b.business_type && (
+                          <div className="text-[11px] hub-text-dim truncate">{b.business_type}</div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!searchLoading && itemHits.length > 0 && (
+                <div className="py-1 border-t border-[var(--hub-border)]">
+                  <div className="text-[10px] uppercase tracking-wider hub-text-dim px-3 py-1.5">Productos y servicios</div>
+                  {itemHits.map((it) => (
+                    <button
+                      key={`${it.kind}-${it.id}`}
+                      onClick={() => goToStorefront(it.business_slug)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--hub-hover)] text-left"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] hub-text truncate">{it.name}</div>
+                        <div className="text-[11px] hub-text-dim truncate">· {it.business_name}</div>
+                      </div>
+                      {it.price != null && (
+                        <div className="text-[12px] hub-text-muted font-medium flex-shrink-0 ml-2">
+                          {formatPrice(it.price)}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right cluster */}
