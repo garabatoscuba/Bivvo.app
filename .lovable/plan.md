@@ -1,41 +1,36 @@
 
-## Plan: buscador en vivo del Hub con resultados agrupados
 
-### Problema
-El input de la topbar (`Hub.tsx` líneas 191-199) hoy solo guarda el texto en `search` pero no muestra nada. Necesito un dropdown live con dos secciones, respetando que solo aparezcan negocios con portal activo.
+## Plan: optimizar espaciados y compactar ofertas/novedades del Hub
 
-### Backend — nueva RPC `search_public_catalog(q text)`
-Crear migración con función `SECURITY DEFINER` que devuelva resultados unificados (porque `products` y `service_categories` tienen RLS que bloquea acceso anónimo/cross-business). Devuelve filas con:
-- `kind` ('business' | 'product' | 'service')
-- `id`, `name`, `price` (nullable), `business_id`, `business_name`, `business_slug`
+### Problema (visto en captura)
+- Las tarjetas de "Ofertas/Novedades" (anuncios editoriales) ocupan **media pantalla cada una** porque el grid es `sm:grid-cols-2` → solo 2 por fila a todo lo ancho.
+- Falta separación visual clara entre el bloque de **portales (los 5 negocios)** y la fila de **anuncios** debajo.
+- Las secciones del Hub se ven pegadas, sin respiración.
 
-Lógica:
-- **Negocios**: igual que `list_public_storefronts` (JOIN a `branches` + `store_settings.is_active = true`), filtrando por `b.name ILIKE '%q%' OR b.keywords ILIKE '%q%'`. Limit 8.
-- **Productos**: `products` filtrado por `name ILIKE '%q%'`, solo de negocios cuyo branch tenga storefront activo, solo `tipo IN ('reventa','elaborado','granel')` y `status NOT IN ('discontinued','warehouse')`. Devuelve `sale_price` y nombre del negocio + slug. Limit 10.
-- **Servicios**: `service_categories` filtrado por `name ILIKE '%q%'`, solo de negocios con storefront activo. Devuelve `fixed_price`. Limit 10.
+### Cambios
 
-Permisos: `GRANT EXECUTE ... TO anon, authenticated`.
+**1. `src/components/hub/HubEditorial.tsx` — anuncios más pequeños**
+- Cambiar grid de anuncios a `grid-cols-2 md:grid-cols-3 lg:grid-cols-4` (4 por fila en desktop, en vez de 2).
+- Reducir padding interno de cada tarjeta (`p-4` → `p-3`), avatar más chico (`h-10 w-10` → `h-8 w-8`), título `text-sm` → `text-[13px]`, subtítulo más compacto.
+- Mantener el mismo estilo visual (badge "Oferta"/"Nuevo", colores, hover).
 
-### Frontend — `Hub.tsx`
+**2. `src/components/hub/HubEditorial.tsx` — separación entre secciones**
+- Aumentar el `space-y` entre el carrusel de portales y el grid de anuncios (`space-y-6` → `space-y-10`).
+- Añadir un separador sutil opcional (`border-t border-border/30 pt-8`) entre el carrusel de negocios y los anuncios para marcar el corte.
+- Header de la sección "Ayúdanos a crecer / Ofertas y novedades" con más margen inferior (`mb-3` → `mb-4`).
 
-1. **Estado nuevo**: `searchOpen` (boolean), `searchResults` agrupados, `searchLoading`. Usar `useQuery` con `queryKey: ['hub-search', search]`, `enabled: search.trim().length >= 2`, debounce simple con `useEffect` + `setTimeout(250ms)` que actualiza un `debouncedSearch` para evitar disparar en cada tecla.
-2. **Wrapper relativo** alrededor del input (`hub-search-box`) con `ref` para detectar clicks fuera (`useEffect` listener en `document.mousedown` → si target fuera del wrapper, cerrar).
-3. **Dropdown** posicionado `absolute` debajo del input, mismo ancho, fondo `hub-card`, sombra, `max-h-[420px] overflow-y-auto`, `z-[60]`. Solo render si `debouncedSearch.length >= 2 && searchOpen`.
-4. **Contenido del dropdown**:
-   - Loading: spinner pequeño verde inline.
-   - `businesses.length + items.length === 0`: `Sin resultados para "{search}"`.
-   - Sección **"Negocios"** (header tipo `text-[10px] uppercase tracking-wider hub-text-dim px-3 py-1.5`): cada item = avatar/inicial + nombre + tipo. Click → `navigate('/s/' + slug)` y cerrar.
-   - Sección **"Productos y servicios"**: cada item = nombre + `· {nombre del negocio}` + precio formateado a la derecha. Click → `navigate('/s/' + business_slug)` y cerrar.
-5. **Cerrar dropdown** cuando: (a) `search` queda vacío, (b) click fuera, (c) selección de un resultado, (d) `Escape`.
-6. Los estilos reutilizan tokens existentes (`hub-card`, `hub-text-dim`, `hub-text-muted`, etc.) — sin tocar CSS.
+**3. `src/pages/Hub.tsx` — respiración general entre bloques**
+- Confirmar que entre el hero (saludo + tarjetas), el editorial y la sección de explorar haya `space-y-10` o `gap-10` consistente (hoy es más apretado).
+- Solo tocar el contenedor principal del Hub, no los componentes internos.
 
 ### Lo que NO se toca
-- Topbar visual (logo, switch, iconos, avatar, dropdown de usuario).
-- Layout del input (`hub-search-box`, placeholder, icono Search).
-- HubEditorial, HubSearchAndExplore (este último vive en otra parte y queda igual).
-- Tarjetas, hero, modales, lógica de negocios/empleos/afiliaciones.
-- RPC `list_public_storefronts` existente.
+- Topbar, buscador, dropdown de búsqueda.
+- Tarjetas de "Mis negocios / Mi empleo / Afiliaciones".
+- Lógica de queries, navegación, modales.
+- Estilos globales (`hub-card`, `hub-text-*`).
+- Carrusel de portales (solo su separación con lo de abajo).
 
 ### Archivos
-- **Nueva migración**: crear RPC `search_public_catalog(q text)` con `GRANT EXECUTE ... TO anon, authenticated`.
-- **Editar**: `src/pages/Hub.tsx` (estado de búsqueda, debounce, query, dropdown JSX dentro del wrapper del input, listener click-fuera).
+- `src/components/hub/HubEditorial.tsx` (grid, padding, tipografía de anuncios + espaciados internos).
+- `src/pages/Hub.tsx` (espaciado vertical entre secciones principales).
+
