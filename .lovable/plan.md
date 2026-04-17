@@ -1,81 +1,41 @@
 
-<final-text>
-Hallazgo
-- Sí existen portales activos. La prueba es que `store_settings` ya está devolviendo 7 filas con `is_active = true`.
-- El problema real no es falta de datos: las consultas siguientes a `branches` y `businesses` están fallando con error 500.
-- El error exacto en red es: `infinite recursion detected in policy` para `branches` y `businesses`.
+## Plan: simplificar menú de usuario en Hub y mover Perfil a modal flotante
 
-Qué pasó
-- La última migración agregó estas políticas públicas:
-  - `Anyone can view active store settings`
-  - `Anyone can view branches with active storefront`
-  - `Anyone can view businesses with active storefront`
-- Esas políticas se cruzan con políticas previas ya existentes de `branches` y `businesses`, y terminan referenciándose entre sí.
-- Resultado: el hub no puede resolver ni el directorio “Explorar” ni algunas consultas personales del Hub.
+### Contexto
+En el header del Hub (imagen 1) el dropdown del avatar muestra: Mi perfil, Configuración, Cerrar sesión. Hoy "Mi perfil" / "Configuración" llevan a `/settings`, que está envuelto en `AppLayout` → renderiza el sidebar con módulos del negocio. Eso confunde cuando se accede desde el Hub.
 
-Plan de corrección
-1. Revertir solo la apertura pública defectuosa del último cambio.
-- Crear una nueva migración que haga `DROP POLICY IF EXISTS` de esas 3 políticas públicas recientes.
-- Esto elimina la recursión y devuelve estabilidad a `businesses`/`branches`.
+Quiero:
+1. Dejar SOLO **Perfil** y **Cerrar sesión** en el dropdown del Hub.
+2. **Perfil** no navega — abre un **modal flotante** con el mismo contenido de `Settings.tsx` (Perfil + Seguridad), **sin** el bloque "Gestión de Datos" (ese es de negocio).
 
-2. Exponer el directorio público de forma segura, sin abrir tablas completas.
-- Crear una función SQL `SECURITY DEFINER`, por ejemplo `public.list_public_storefronts()`.
-- Esa función hará internamente el join entre:
-  - `businesses`
-  - `branches`
-  - `store_settings`
-- Filtrará solo negocios con portal activo (`store_settings.is_active = true`) y negocio activo.
-- Devolverá únicamente los campos que el Hub necesita:
-  - id
-  - name
-  - slug
-  - business_type
-  - keywords
-  - logo_url
-  - hero_image_url
-  - accent_color
-  - schedule
-  - address
-- Así evitamos exponer columnas sensibles de tablas base y evitamos RLS recursivo.
+### Hallazgos clave
+- El dropdown del avatar está en `src/components/layout/AppHeader.tsx` (lo usan tanto Hub como AppLayout). Debo confirmar si el Hub usa `AppHeader` o tiene su propio header — voy a revisar `Hub.tsx` y el header que se ve en la imagen.
+- `Settings.tsx` ya tiene `ProfileSection` y `SecuritySection` como componentes locales en el mismo archivo + `<DataManagement />` (este último solo si `isOwner`).
+- Necesito extraer Perfil + Seguridad a un modal reutilizable **sin tocar** `Settings.tsx` (la ruta `/settings` sigue existiendo igual para quien la use desde el AppLayout del negocio).
 
-3. Cambiar solo la carga de datos del directorio en `src/components/hub/HubSearchAndExplore.tsx`.
-- Sustituir la cadena actual de 3 queries (`store_settings` → `branches` → `businesses`) por una sola llamada `supabase.rpc(...)`.
-- Mantener intactos:
-  - buscador
-  - dropdown en tiempo real
-  - tarjetas
-  - badge Abierto/Cerrado
-  - chips
-  - layout y estilos
+### Cambios
 
-4. No tocar nada más del Hub.
-- No cambiar `Hub.tsx`
-- No cambiar rutas
-- No tocar estilos visuales
-- No tocar dashboard, auth, sidebar ni otras pantallas
+**1. Nuevo componente `src/components/hub/ProfileModal.tsx`**
+- `Dialog` de shadcn, estilo Bivoo (mismo look que `CreateBusinessModal`).
+- Tabs internos: **Perfil** | **Seguridad** (mismos íconos `User` / `Shield`).
+- Reimplementa el contenido de `ProfileSection` y `SecuritySection` de `Settings.tsx` (copy/paste de la lógica: nombre, email, displayName, teléfono, cambio de contraseña con toggles de visibilidad).
+- **No incluye** `DataManagement`.
+- Header fijo + scroll interno (regla de modales móvil).
 
-Por qué esta es la solución correcta
-- Corrige la causa real del bug: la recursión en RLS.
-- Evita dejar lectura abierta sobre tablas completas como `businesses` y `branches`.
-- Mantiene el comportamiento visual ya implementado.
-- Además, al quitar la política recursiva de `businesses`, también debería volver a cargar bien la parte de “Mis negocios” del Hub sin tocar esa lógica.
+**2. Editar el header del Hub (probablemente `AppHeader.tsx` con un flag `isHub`, o un header propio del Hub)**
+- Detectar si estamos en contexto Hub (ruta `/`) o pasar prop.
+- En el dropdown del avatar, cuando es Hub, mostrar SOLO:
+  - **Perfil** → abre `ProfileModal` (no navega)
+  - **Cerrar sesión** → comportamiento actual
+- Eliminar la entrada "Configuración" y la duplicación Mi perfil/Configuración en ese contexto.
+- Fuera del Hub (dentro de un negocio en `AppLayout`), **no toco nada** — el menú actual sigue igual.
 
-Validación después del fix
-- Entrar a `/` y confirmar que ya no hay 500 en requests a `businesses` y `branches`.
-- Ver en “Explorar en Bivoo” negocios reales como “Vision Habana” y “Mercadito Dito”.
-- Buscar por nombre y keywords y confirmar resultados en tiempo real.
-- Tocar una tarjeta o resultado y abrir `/s/{slug}` correctamente.
-- Verificar dos casos:
-  - usuario sin contextos: bienvenida + buscador + directorio primero
-  - usuario con contextos: secciones personales arriba + directorio abajo
+### Lo que NO se toca
+- `src/pages/Settings.tsx` (ruta `/settings` sigue funcionando para el contexto de negocio).
+- `DataManagement.tsx`.
+- Sidebar, AppLayout, rutas, auth.
+- Otros menús o headers.
 
-Archivos implicados
-- Nueva migración SQL para quitar políticas recursivas y crear la función segura
-- `src/components/hub/HubSearchAndExplore.tsx`
-
-No voy a tocar
-- `src/pages/Hub.tsx`
-- estilos del Hub
-- otras rutas o módulos
-- auth, roles o permisos fuera de este fix puntual
-</final-text>
+### Archivos
+- **Nuevo**: `src/components/hub/ProfileModal.tsx`
+- **Editar**: el header que muestra ese dropdown en el Hub (lo confirmaré al implementar — `AppHeader.tsx` o el header propio del Hub).
