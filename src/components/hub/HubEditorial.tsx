@@ -256,7 +256,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
 
       {/* HERO 2 */}
       {hero2 && (
-        <section className="w-full mt-13">
+        <section className="w-full">
           <PortalCard
             biz={hero2}
             size="xl"
@@ -272,7 +272,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       )}
 
       {/* FRANJA PRUEBA */}
-      <section className="hub-franja mt-13" onClick={onCreateBusiness}>
+      <section className="hub-franja" onClick={onCreateBusiness}>
         <div className="flex items-center gap-4">
           <div className="hub-franja-icon">
             <Home className="h-[18px] w-[18px]" />
@@ -293,7 +293,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       </section>
 
       {/* GRID 3 */}
-      <section className="px-10 mt-13">
+      <section className="px-10">
         <div className="grid grid-cols-3 gap-1.5">
           {grid3.map((biz, i) => (
             <PortalCard
