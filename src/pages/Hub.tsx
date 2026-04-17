@@ -250,7 +250,7 @@ const Hub = () => {
         {/* Logo */}
         <div className="flex items-center">
           <img
-            src="/logo-dark.png"
+            src={isDark ? "/logo-dark.png" : "/logo-light.png"}
             alt="Bivoo"
             className="h-6 w-auto cursor-pointer"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
