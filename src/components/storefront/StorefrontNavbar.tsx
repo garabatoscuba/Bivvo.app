@@ -66,40 +66,23 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
             <img src="/logo-dark.png" alt="Bivoo" className="h-6 w-auto" />
           </a>
 
-          {/* Center — Business logo + name */}
-          <button
-            onClick={() => onTabChange('home')}
-            className="flex items-center gap-2.5 absolute left-1/2 -translate-x-1/2 hover:opacity-80 transition-opacity"
-          >
-            {data.business.logo_url ? (
-              <img src={data.business.logo_url} alt={data.business.name} className="h-7 w-7 rounded-lg object-cover" />
-            ) : (
-              <div className="h-7 w-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: accent }}>
-                <Store className="h-3.5 w-3.5 text-white" />
-              </div>
-            )}
-            <span className="text-sm font-bold tracking-tight text-white hidden sm:inline">
-              {data.business.name}
-            </span>
-          </button>
+          {/* Center — Tabs */}
+          <div className="hidden md:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
+            {tabs.map(t => (
+              <button
+                key={t.key}
+                onClick={() => onTabChange(t.key)}
+                className={`text-xs transition-colors ${
+                  activeTab === t.key ? 'text-white font-medium' : 'text-white/60 hover:text-white'
+                }`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
 
-          {/* Right — Tabs + Icons */}
+          {/* Right — Icons */}
           <div className="flex items-center gap-0.5 sm:gap-1">
-            {/* Tabs (desktop) */}
-            <div className="hidden md:flex items-center gap-4 mr-2">
-              {tabs.map(t => (
-                <button
-                  key={t.key}
-                  onClick={() => onTabChange(t.key)}
-                  className={`text-xs transition-colors ${
-                    activeTab === t.key ? 'text-white font-medium' : 'text-white/60 hover:text-white'
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-
             {hasAnnouncements && (
               <button
                 onClick={() => setShowAnnouncements(true)}
