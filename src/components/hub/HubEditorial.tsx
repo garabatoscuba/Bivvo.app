@@ -164,7 +164,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
   return (
     <>
       {/* COMUNIDAD */}
-      <section className="px-10 mb-12">
+      <section className="px-10 mb-16">
         <div className="flex items-baseline justify-between mb-5">
           <div className="font-['Cormorant_Garamond'] text-[13px] tracking-[0.12em] uppercase hub-text-muted">
             Ayúdanos a crecer como comunidad
@@ -173,42 +173,55 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
             Invitar a un amigo →
           </div>
         </div>
-        <div className="grid grid-cols-5 gap-1.5 mb-1.5">
+        <div className="grid grid-cols-5 gap-1.5">
           {comunidad.map((biz, i) => (
             <PortalCard key={`com-${biz.id}-${i}`} biz={biz} size="sm" aspectClass="aspect-[4/3]" rounded="rounded-[10px]" fillIdx={i} />
           ))}
         </div>
-        {/* Anuncios */}
-        <div className="grid grid-cols-2 gap-1.5">
-          {comunidad.slice(0, 2).map((biz, i) => (
-            <div key={`anu-${biz.id}`} className="hub-anuncio" onClick={() => biz.slug && navigate(`/s/${biz.slug}`)}>
-              <div
-                className="hub-anuncio-icon"
-                style={{
-                  background: i === 0 ? "rgba(29,158,117,0.1)" : "rgba(123,111,212,0.1)",
-                  color: i === 0 ? "var(--hub-green)" : "var(--hub-purple)",
-                }}
-              >
-                {biz.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="hub-anuncio-eyebrow">{biz.name} · {i === 0 ? "Oferta" : "Novedad"}</div>
-                <div className="hub-anuncio-title truncate">
-                  {i === 0 ? "Visita su portal y descubre sus ofertas" : "Nuevos productos disponibles"}
-                </div>
-                <div className="hub-anuncio-desc truncate">{biz.address || businessTypeLabel(biz.business_type)}</div>
-              </div>
-              <span
-                className="text-[10px] px-2 py-0.5 rounded-full ml-auto self-start flex-shrink-0"
-                style={{
-                  background: i === 0 ? "rgba(224,85,85,0.12)" : "rgba(29,158,117,0.12)",
-                  color: i === 0 ? "var(--hub-red)" : "var(--hub-green)",
-                }}
-              >
-                {i === 0 ? "Oferta" : "Nuevo"}
-              </span>
+
+        {/* Anuncios — separados con borde sutil y más compactos */}
+        <div className="mt-10 pt-8 border-t border-[var(--hub-border)]">
+          <div className="flex items-baseline justify-between mb-4">
+            <div className="font-['Cormorant_Garamond'] text-[13px] tracking-[0.12em] uppercase hub-text-muted">
+              Ofertas y novedades
             </div>
-          ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {comunidad.slice(0, 4).map((biz, i) => (
+              <div
+                key={`anu-${biz.id}-${i}`}
+                className="hub-anuncio !p-3 !gap-2"
+                onClick={() => biz.slug && navigate(`/s/${biz.slug}`)}
+              >
+                <div
+                  className="hub-anuncio-icon !h-8 !w-8 !text-[11px] flex-shrink-0"
+                  style={{
+                    background: i % 2 === 0 ? "rgba(29,158,117,0.1)" : "rgba(123,111,212,0.1)",
+                    color: i % 2 === 0 ? "var(--hub-green)" : "var(--hub-purple)",
+                  }}
+                >
+                  {biz.name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="hub-anuncio-eyebrow text-[10px] truncate">
+                    {biz.name} · {i % 2 === 0 ? "Oferta" : "Novedad"}
+                  </div>
+                  <div className="hub-anuncio-title text-[13px] leading-tight truncate">
+                    {i % 2 === 0 ? "Descubre sus ofertas" : "Nuevos productos"}
+                  </div>
+                </div>
+                <span
+                  className="text-[9px] px-1.5 py-0.5 rounded-full self-start flex-shrink-0"
+                  style={{
+                    background: i % 2 === 0 ? "rgba(224,85,85,0.12)" : "rgba(29,158,117,0.12)",
+                    color: i % 2 === 0 ? "var(--hub-red)" : "var(--hub-green)",
+                  }}
+                >
+                  {i % 2 === 0 ? "Oferta" : "Nuevo"}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
