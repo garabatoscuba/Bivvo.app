@@ -312,7 +312,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
 
       {/* HERO 3 */}
       {hero3 && (
-        <section className="w-full mt-13">
+        <section className="w-full">
           <PortalCard
             biz={hero3}
             size="xl"
@@ -328,7 +328,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       )}
 
       {/* GRID 3x2 FINAL */}
-      <section className="px-10 mt-13 mb-13">
+      <section className="px-10">
         <div className="grid grid-cols-3 gap-1.5">
           {grid3x2.map((biz, i) => (
             <PortalCard key={`g32-${biz.id}-${i}`} biz={biz} size="sm" aspectClass="aspect-[16/9]" fillIdx={i + 4} />
@@ -353,7 +353,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
           </button>
         </div>
       </section>
-    </>
+    </div>
   );
 };
 
