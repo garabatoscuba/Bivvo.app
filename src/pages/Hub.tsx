@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { HubSearchAndExplore } from "@/components/hub/HubSearchAndExplore";
 import CreateBusinessModal from "@/components/hub/CreateBusinessModal";
+import ProfileModal from "@/components/hub/ProfileModal";
 
 const Hub = () => {
   const navigate = useNavigate();
@@ -38,6 +39,7 @@ const Hub = () => {
   const [scrolled, setScrolled] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
   const [createBizOpen, setCreateBizOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const isDark = theme === "dark";
 
   useEffect(() => {
@@ -281,11 +283,8 @@ const Hub = () => {
                 <p className="text-[13px] hub-text">{profile?.full_name || "Usuario"}</p>
                 <p className="text-[11px] hub-text-dim mt-0.5">{profile?.email}</p>
               </div>
-              <DropdownMenuItem className="gap-2 text-[13px] hub-text-muted" onClick={() => navigate("/settings")}>
-                <User className="h-3.5 w-3.5" /> Mi perfil
-              </DropdownMenuItem>
-              <DropdownMenuItem className="gap-2 text-[13px] hub-text-muted" onClick={() => navigate("/settings")}>
-                <Settings className="h-3.5 w-3.5" /> Configuración
+              <DropdownMenuItem className="gap-2 text-[13px] hub-text-muted" onClick={() => setProfileOpen(true)}>
+                <User className="h-3.5 w-3.5" /> Perfil
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="gap-2 text-[13px] text-destructive" onClick={() => signOut()}>
