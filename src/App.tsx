@@ -13,7 +13,7 @@ import { SyncGate } from "@/components/layout/SyncGate";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import { usePWAUpdate } from "@/hooks/usePWAUpdate";
 import { useSessionKeepAlive } from "@/hooks/useSessionKeepAlive";
-import { Loader2 } from "lucide-react";
+import { AppLoader } from "@/components/ui/AppLoader";
 
 // Eagerly loaded (critical path)
 import Auth from "./pages/Auth";
@@ -67,11 +67,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-  </div>
-);
+const PageLoader = () => <AppLoader />;
 
 const App = () => {
   usePWAUpdate();

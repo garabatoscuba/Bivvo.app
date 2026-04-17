@@ -27,6 +27,7 @@ import {
 import HubEditorial from "@/components/hub/HubEditorial";
 import CreateBusinessModal from "@/components/hub/CreateBusinessModal";
 import ProfileModal from "@/components/hub/ProfileModal";
+import { AppLoader } from "@/components/ui/AppLoader";
 
 const Hub = () => {
   const navigate = useNavigate();
@@ -137,11 +138,7 @@ const Hub = () => {
   const firstName = profile?.full_name?.split(" ")[0] || "Usuario";
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center hub-bg">
-        <Loader2 className="h-6 w-6 animate-spin hub-text-muted" />
-      </div>
-    );
+    return <AppLoader />;
   }
 
   return (

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import { AppLoader } from '@/components/ui/AppLoader';
 import StorefrontNavbar from '@/components/storefront/StorefrontNavbar';
 import StorefrontHome from '@/components/storefront/StorefrontHome';
 import StorefrontCatalogView from '@/components/storefront/StorefrontCatalogView';
@@ -148,11 +149,7 @@ const PublicStorefront = ({ bizSlugOverride }: { bizSlugOverride?: string } = {}
   }, [bizSlug, branchSlug]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-      </div>
-    );
+    return <AppLoader />;
   }
 
   if (error || !data) {

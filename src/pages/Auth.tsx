@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Chrome, Apple, ArrowRight, ArrowLeft, Mail, Lock, User, Sun, Moon, WifiOff, Eye, EyeOff } from "lucide-react";
+import { AppLoader } from "@/components/ui/AppLoader";
 import { useTheme } from "next-themes";
 import { z } from "zod";
 import logoLight from "@/assets/logo-light.png";
@@ -196,11 +197,7 @@ const Auth = () => {
   };
 
   if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    );
+    return <AppLoader />;
   }
 
   const { theme, setTheme } = useTheme();
