@@ -1,50 +1,41 @@
 
-## Plan: limpiar tarjetas del Hub + selector de negocio cuando hay varios
+## Plan: buscador en vivo del Hub con resultados agrupados
 
-### Cambios en `src/pages/Hub.tsx`
+### Problema
+El input de la topbar (`Hub.tsx` líneas 191-199) hoy solo guarda el texto en `search` pero no muestra nada. Necesito un dropdown live con dos secciones, respetando que solo aparezcan negocios con portal activo.
 
-**1. Tarjetas condicionales (líneas 248-270)**
-Hoy siempre se renderizan las 3 tarjetas (Mis negocios, Mi empleo, Mis puntos). Cambio:
+### Backend — nueva RPC `search_public_catalog(q text)`
+Crear migración con función `SECURITY DEFINER` que devuelva resultados unificados (porque `products` y `service_categories` tienen RLS que bloquea acceso anónimo/cross-business). Devuelve filas con:
+- `kind` ('business' | 'product' | 'service')
+- `id`, `name`, `price` (nullable), `business_id`, `business_name`, `business_slug`
 
-- **Mis negocios**: 
-  - Si `ownedBusinesses.length === 0` → tarjeta "Agregar negocio" (estilo dashed/CTA, abre `setCreateBizOpen(true)`).
-  - Si hay 1+ → tarjeta normal con conteo y alertas.
-- **Mi empleo**: solo renderizar si `employments.length > 0`. Si es 0, nada.
-- **Mis puntos / afiliaciones**: solo renderizar si `affiliations.length > 0`. Si es 0, nada.
+Lógica:
+- **Negocios**: igual que `list_public_storefronts` (JOIN a `branches` + `store_settings.is_active = true`), filtrando por `b.name ILIKE '%q%' OR b.keywords ILIKE '%q%'`. Limit 8.
+- **Productos**: `products` filtrado por `name ILIKE '%q%'`, solo de negocios cuyo branch tenga storefront activo, solo `tipo IN ('reventa','elaborado','granel')` y `status NOT IN ('discontinued','warehouse')`. Devuelve `sale_price` y nombre del negocio + slug. Limit 10.
+- **Servicios**: `service_categories` filtrado por `name ILIKE '%q%'`, solo de negocios con storefront activo. Devuelve `fixed_price`. Limit 10.
 
-El contenedor `flex gap-2` se mantiene; simplemente filtra hijos.
+Permisos: `GRANT EXECUTE ... TO anon, authenticated`.
 
-**2. Selector de negocio al click en "Mis negocios"**
-Lógica nueva en el click handler de la tarjeta de negocios:
+### Frontend — `Hub.tsx`
 
-- `ownedBusinesses.length === 0` → abrir modal crear negocio (caso ya cubierto por la tarjeta CTA).
-- `ownedBusinesses.length === 1` → comportamiento actual: si el negocio activo en el perfil ya es ese, navegar `/dashboard`; si no, hacer `switchBusiness` (cambiar `profiles.business_id` + `branch_id` al main) y luego navegar a `/dashboard`.
-- `ownedBusinesses.length > 1` → abrir un nuevo modal **`BusinessSelectorModal`** con la lista de negocios del usuario. Click en uno → mismo `switchBusiness` y navegar a `/dashboard`.
-
-**3. Datos para el selector**
-La query `hub-owned-stat` hoy solo trae `id`. Ampliar el `select` a `id, name, business_type, base_currency` (los datos del negocio mismos no cambian la lógica de alertas; las alertas se siguen agregando) para mostrar nombre/tipo en el selector. Mantener compatibilidad: el conteo y `ownedAlerts` siguen igual.
-
-### Componente nuevo: `src/components/hub/BusinessSelectorModal.tsx`
-
-- Dialog simple, mismo estilo que `CreateBusinessModal` (header + lista vertical).
-- Cada item: avatar/letra + nombre + tipo de negocio + chip "Activo" si coincide con `profile.business_id`.
-- Botón inferior "Crear nuevo negocio" que cierra este modal y abre `CreateBusinessModal`.
-- Al seleccionar: 
-  ```ts
-  // Buscar main branch del biz, actualizar profile, recargar y navegar.
-  await supabase.from("branches").select("id").eq("business_id", bizId).eq("is_main", true).limit(1)
-  await supabase.from("profiles").update({ business_id, branch_id }).eq("user_id", profile.user_id)
-  navigate("/dashboard"); // y forzar refresh de auth context si hace falta
-  ```
-  (Reutilizar la misma lógica que `switchBusiness` del sidebar, en una helper local del Hub, evitando duplicar.)
+1. **Estado nuevo**: `searchOpen` (boolean), `searchResults` agrupados, `searchLoading`. Usar `useQuery` con `queryKey: ['hub-search', search]`, `enabled: search.trim().length >= 2`, debounce simple con `useEffect` + `setTimeout(250ms)` que actualiza un `debouncedSearch` para evitar disparar en cada tecla.
+2. **Wrapper relativo** alrededor del input (`hub-search-box`) con `ref` para detectar clicks fuera (`useEffect` listener en `document.mousedown` → si target fuera del wrapper, cerrar).
+3. **Dropdown** posicionado `absolute` debajo del input, mismo ancho, fondo `hub-card`, sombra, `max-h-[420px] overflow-y-auto`, `z-[60]`. Solo render si `debouncedSearch.length >= 2 && searchOpen`.
+4. **Contenido del dropdown**:
+   - Loading: spinner pequeño verde inline.
+   - `businesses.length + items.length === 0`: `Sin resultados para "{search}"`.
+   - Sección **"Negocios"** (header tipo `text-[10px] uppercase tracking-wider hub-text-dim px-3 py-1.5`): cada item = avatar/inicial + nombre + tipo. Click → `navigate('/s/' + slug)` y cerrar.
+   - Sección **"Productos y servicios"**: cada item = nombre + `· {nombre del negocio}` + precio formateado a la derecha. Click → `navigate('/s/' + business_slug)` y cerrar.
+5. **Cerrar dropdown** cuando: (a) `search` queda vacío, (b) click fuera, (c) selección de un resultado, (d) `Escape`.
+6. Los estilos reutilizan tokens existentes (`hub-card`, `hub-text-dim`, `hub-text-muted`, etc.) — sin tocar CSS.
 
 ### Lo que NO se toca
-- Lógica de auth, roles, permisos.
-- Sidebar, AppLayout, ruta `/dashboard`, ruta `/mi-empleo`.
-- HubEditorial, CreateBusinessModal, ProfileModal.
-- Queries de empleos y afiliaciones (solo cambia su renderizado).
-- Estilos globales del Hub (clases `hub-stat`, etc.). Se reutilizan.
+- Topbar visual (logo, switch, iconos, avatar, dropdown de usuario).
+- Layout del input (`hub-search-box`, placeholder, icono Search).
+- HubEditorial, HubSearchAndExplore (este último vive en otra parte y queda igual).
+- Tarjetas, hero, modales, lógica de negocios/empleos/afiliaciones.
+- RPC `list_public_storefronts` existente.
 
 ### Archivos
-- **Editar**: `src/pages/Hub.tsx` (bloque de tarjetas + handler + query select ampliado + import del nuevo modal).
-- **Nuevo**: `src/components/hub/BusinessSelectorModal.tsx`.
+- **Nueva migración**: crear RPC `search_public_catalog(q text)` con `GRANT EXECUTE ... TO anon, authenticated`.
+- **Editar**: `src/pages/Hub.tsx` (estado de búsqueda, debounce, query, dropdown JSX dentro del wrapper del input, listener click-fuera).
