@@ -413,9 +413,9 @@ const Hub = () => {
       </div>
 
       {/* HERO ROW — greeting + stats */}
-      <div className="flex items-center justify-between px-10 pt-8 pb-7 gap-6 animate-hub-fade-up">
-        <div>
-          <h1 className="font-['Cormorant_Garamond'] text-[46px] font-normal leading-[1.05] tracking-[-0.5px]">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between px-4 md:px-10 pt-5 md:pt-8 pb-7 gap-4 md:gap-6 animate-hub-fade-up">
+        <div className="min-w-0">
+          <h1 className="font-['Cormorant_Garamond'] text-[32px] md:text-[46px] font-normal leading-[1.05] tracking-[-0.5px]">
             ¡Hola, <em className="italic text-[hsl(var(--primary))]">{firstName}!</em>
           </h1>
           <p className="text-[13px] hub-text-dim mt-1.5">
@@ -433,7 +433,7 @@ const Hub = () => {
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 md:flex gap-2 w-full md:w-auto">
           {ownedBusinesses.length === 0 ? (
             <div
               className="hub-stat border border-dashed flex flex-col items-center justify-center cursor-pointer"

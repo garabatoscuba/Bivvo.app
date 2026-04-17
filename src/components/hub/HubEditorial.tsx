@@ -172,7 +172,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
   return (
     <div className="space-y-14">
       {/* COMUNIDAD */}
-      <section className="px-10">
+      <section className="px-4 md:px-10">
         <div className="flex items-baseline justify-between mb-5">
           <div className="font-['Cormorant_Garamond'] text-[13px] tracking-[0.12em] uppercase hub-text-muted">
             Ayúdanos a crecer como comunidad
@@ -181,7 +181,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
             Invitar a un amigo →
           </div>
         </div>
-        <div className="grid grid-cols-5 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
           {comunidad.map((biz, i) => (
             <PortalCard key={`com-${biz.id}-${i}`} biz={biz} size="sm" aspectClass="aspect-[4/3]" rounded="rounded-[10px]" fillIdx={i} />
           ))}
@@ -251,11 +251,11 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       )}
 
       {/* GRID 4x3 — Tu negocio puede estar en Bivoo */}
-      <section className="px-10">
-        <h2 className="font-['Cormorant_Garamond'] text-[40px] font-normal text-center mb-7 tracking-[-0.3px] hub-text">
+      <section className="px-4 md:px-10">
+        <h2 className="font-['Cormorant_Garamond'] text-[26px] md:text-[40px] font-normal text-center mb-5 md:mb-7 tracking-[-0.3px] hub-text">
           Tu negocio puede estar <em className="italic text-[hsl(var(--primary))]">en Bivoo</em>
         </h2>
-        <div className="grid grid-cols-4 gap-1.5">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-1.5">
           {grid4x3.map((biz, i) => (
             <PortalCard key={`g4-${biz.id}-${i}`} biz={biz} size="sm" aspectClass="aspect-[4/3]" fillIdx={i + 1} />
           ))}
@@ -301,8 +301,8 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       </section>
 
       {/* GRID 3 */}
-      <section className="px-10">
-        <div className="grid grid-cols-3 gap-1.5">
+      <section className="px-4 md:px-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5">
           {grid3.map((biz, i) => (
             <PortalCard
               key={`g3-${biz.id}-${i}`}
@@ -336,8 +336,8 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       )}
 
       {/* GRID 3x2 FINAL */}
-      <section className="px-10">
-        <div className="grid grid-cols-3 gap-1.5">
+      <section className="px-4 md:px-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-1.5">
           {grid3x2.map((biz, i) => (
             <PortalCard key={`g32-${biz.id}-${i}`} biz={biz} size="sm" aspectClass="aspect-[16/9]" fillIdx={i + 4} />
           ))}
@@ -345,7 +345,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       </section>
 
       {/* CIERRE */}
-      <section className="py-[72px] px-10 text-center border-t border-[var(--hub-border)]">
+      <section className="py-12 md:py-[72px] px-4 md:px-10 text-center border-t border-[var(--hub-border)]">
         <img
           src={isDark ? logoLight : logoDark}
           alt="Bivoo"
