@@ -45,6 +45,19 @@ const Hub = () => {
   const [searchOpen, setSearchOpen] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement>(null);
   const [city, setCity] = useState<string>("");
+  const [hideTopbar, setHideTopbar] = useState(false);
+  const lastScrollY = useRef(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < 80) { setHideTopbar(false); lastScrollY.current = y; return; }
+      if (y > lastScrollY.current + 8) setHideTopbar(true);
+      else if (y < lastScrollY.current - 8) setHideTopbar(false);
+      lastScrollY.current = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
   const isDark = theme === "dark";
 
   // Debounce search input (250ms)
