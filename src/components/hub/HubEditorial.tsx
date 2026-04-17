@@ -162,9 +162,9 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
   if (ordered.length === 0) return null;
 
   return (
-    <>
+    <div className="space-y-14">
       {/* COMUNIDAD */}
-      <section className="px-10 mb-16">
+      <section className="px-10">
         <div className="flex items-baseline justify-between mb-5">
           <div className="font-['Cormorant_Garamond'] text-[13px] tracking-[0.12em] uppercase hub-text-muted">
             Ayúdanos a crecer como comunidad
@@ -227,7 +227,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
 
       {/* HERO 1 */}
       {hero1 && (
-        <section className="w-full mt-13">
+        <section className="w-full">
           <PortalCard
             biz={hero1}
             size="xl"
@@ -243,7 +243,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       )}
 
       {/* GRID 4x3 — Tu negocio puede estar en Bivoo */}
-      <section className="px-10 pt-12 pb-7 mt-13">
+      <section className="px-10">
         <h2 className="font-['Cormorant_Garamond'] text-[40px] font-normal text-center mb-7 tracking-[-0.3px] hub-text">
           Tu negocio puede estar <em className="italic text-[hsl(var(--primary))]">en Bivoo</em>
         </h2>
@@ -256,7 +256,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
 
       {/* HERO 2 */}
       {hero2 && (
-        <section className="w-full mt-13">
+        <section className="w-full">
           <PortalCard
             biz={hero2}
             size="xl"
@@ -272,7 +272,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       )}
 
       {/* FRANJA PRUEBA */}
-      <section className="hub-franja mt-13" onClick={onCreateBusiness}>
+      <section className="hub-franja" onClick={onCreateBusiness}>
         <div className="flex items-center gap-4">
           <div className="hub-franja-icon">
             <Home className="h-[18px] w-[18px]" />
@@ -293,7 +293,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       </section>
 
       {/* GRID 3 */}
-      <section className="px-10 mt-13">
+      <section className="px-10">
         <div className="grid grid-cols-3 gap-1.5">
           {grid3.map((biz, i) => (
             <PortalCard
@@ -312,7 +312,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
 
       {/* HERO 3 */}
       {hero3 && (
-        <section className="w-full mt-13">
+        <section className="w-full">
           <PortalCard
             biz={hero3}
             size="xl"
@@ -328,7 +328,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       )}
 
       {/* GRID 3x2 FINAL */}
-      <section className="px-10 mt-13 mb-13">
+      <section className="px-10">
         <div className="grid grid-cols-3 gap-1.5">
           {grid3x2.map((biz, i) => (
             <PortalCard key={`g32-${biz.id}-${i}`} biz={biz} size="sm" aspectClass="aspect-[16/9]" fillIdx={i + 4} />
@@ -353,7 +353,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
           </button>
         </div>
       </section>
-    </>
+    </div>
   );
 };
 
