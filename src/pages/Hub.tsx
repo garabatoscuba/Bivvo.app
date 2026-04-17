@@ -149,11 +149,13 @@ const Hub = () => {
       {/* TOPBAR — solid sidebar color */}
       <div className="hub-topbar-solid sticky top-0 z-50 grid grid-cols-[1fr_2fr_1fr] items-center px-10 py-3 gap-4 backdrop-blur-md">
         {/* Logo */}
-        <div
-          className="font-['DM_Sans'] font-light text-xl tracking-[3px] hub-text cursor-pointer"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        >
-          Bivo<span className="text-[hsl(var(--primary))]">o</span>
+        <div className="flex items-center">
+          <img
+            src="/logo-dark.png"
+            alt="Bivoo"
+            className="h-6 w-auto cursor-pointer"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          />
         </div>
 
         {/* Search centered */}
