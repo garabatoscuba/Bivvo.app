@@ -56,11 +56,20 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
           ),
         }}
       >
-        <div className="flex items-center justify-between px-4 sm:px-10 py-3 sm:py-4">
-          {/* Left — Logo + name */}
+        <div className="relative flex items-center justify-between px-4 sm:px-10 py-3 sm:py-4">
+          {/* Left — Bivoo logo (back to Hub) */}
+          <a
+            href="/"
+            title="Volver a Bivoo"
+            className="flex items-center shrink-0 hover:opacity-80 transition-opacity"
+          >
+            <img src="/logo-dark.png" alt="Bivoo" className="h-6 w-auto" />
+          </a>
+
+          {/* Center — Business logo + name */}
           <button
             onClick={() => onTabChange('home')}
-            className="flex items-center gap-2.5 shrink-0 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-2.5 absolute left-1/2 -translate-x-1/2 hover:opacity-80 transition-opacity"
           >
             {data.business.logo_url ? (
               <img src={data.business.logo_url} alt={data.business.name} className="h-7 w-7 rounded-lg object-cover" />
@@ -73,21 +82,6 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
               {data.business.name}
             </span>
           </button>
-
-          {/* Center — Tabs (desktop) */}
-          <div className="hidden sm:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
-            {tabs.map(t => (
-              <button
-                key={t.key}
-                onClick={() => onTabChange(t.key)}
-                className={`text-sm transition-colors ${
-                  activeTab === t.key ? 'text-white font-medium' : 'text-white/60 hover:text-white'
-                }`}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
 
           {/* Right — Icons */}
           <div className="flex items-center gap-0.5 sm:gap-1">
