@@ -462,9 +462,18 @@
   background: var(--hub-s1);
   border-top: 1px solid var(--hub-border);
   border-bottom: 1px solid var(--hub-border);
-  padding: 36px 40px;
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 32px; cursor: pointer; transition: background 0.2s;
+  padding: 24px 16px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; cursor: pointer; transition: background 0.2s;
+  flex-direction: column;
+}
+@media (min-width: 768px) {
+  .hub-franja {
+    padding: 36px 40px;
+    flex-direction: row;
+    align-items: center;
+    gap: 32px;
+  }
 }
 .hub-franja:hover { background: var(--hub-s2); }
 .hub-franja-icon {
