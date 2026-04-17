@@ -41,8 +41,78 @@ const Hub = () => {
   const [profileOpen, setProfileOpen] = useState(false);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const searchBoxRef = useRef<HTMLDivElement>(null);
   const [city, setCity] = useState<string>("");
   const isDark = theme === "dark";
+
+  // Debounce search input (250ms)
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
+    return () => clearTimeout(t);
+  }, [search]);
+
+  // Open dropdown when there's text; close when emptied
+  useEffect(() => {
+    if (search.trim().length >= 2) setSearchOpen(true);
+    else setSearchOpen(false);
+  }, [search]);
+
+  // Click-outside + Escape to close
+  useEffect(() => {
+    const onDown = (e: MouseEvent) => {
+      if (searchBoxRef.current && !searchBoxRef.current.contains(e.target as Node)) {
+        setSearchOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSearchOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
+  // Live search query
+  const { data: searchData, isFetching: searchLoading } = useQuery({
+    queryKey: ["hub-search", debouncedSearch],
+    queryFn: async () => {
+      const { data, error } = await (supabase as any).rpc("search_public_catalog", { q: debouncedSearch });
+      if (error) throw error;
+      return (data || []) as Array<{
+        kind: "business" | "product" | "service";
+        id: string;
+        name: string;
+        price: number | null;
+        business_id: string;
+        business_name: string;
+        business_slug: string;
+        business_type: string | null;
+      }>;
+    },
+    enabled: debouncedSearch.length >= 2,
+    staleTime: 30_000,
+  });
+
+  const businessHits = (searchData || []).filter((r) => r.kind === "business");
+  const itemHits = (searchData || []).filter((r) => r.kind !== "business");
+
+  const formatPrice = (n: number | null) => {
+    if (n == null) return "";
+    try { return new Intl.NumberFormat("es", { maximumFractionDigits: 2 }).format(n); }
+    catch { return String(n); }
+  };
+
+  const goToStorefront = (slug: string) => {
+    if (!slug) return;
+    setSearchOpen(false);
+    setSearch("");
+    navigate(`/s/${slug}`);
+  };
 
   // Try to get geolocation → reverse geocode to city (best-effort, silent on fail)
   useEffect(() => {
