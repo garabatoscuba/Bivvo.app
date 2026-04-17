@@ -54,8 +54,8 @@ const Hub = () => {
     const onScroll = () => {
       const y = el.scrollTop;
       if (y < 80) { setHideTopbar(false); lastScrollY.current = y; return; }
-      if (y > lastScrollY.current + 8) setHideTopbar(true);
-      else if (y < lastScrollY.current - 8) setHideTopbar(false);
+      if (y > lastScrollY.current + 12) setHideTopbar(true);
+      else if (y < lastScrollY.current - 6) setHideTopbar(false);
       lastScrollY.current = y;
     };
     el.addEventListener("scroll", onScroll, { passive: true });
