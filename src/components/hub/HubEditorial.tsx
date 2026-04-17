@@ -227,7 +227,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
 
       {/* HERO 1 */}
       {hero1 && (
-        <section className="w-full mt-13">
+        <section className="w-full">
           <PortalCard
             biz={hero1}
             size="xl"
@@ -243,7 +243,7 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
       )}
 
       {/* GRID 4x3 — Tu negocio puede estar en Bivoo */}
-      <section className="px-10 pt-12 pb-7 mt-13">
+      <section className="px-10">
         <h2 className="font-['Cormorant_Garamond'] text-[40px] font-normal text-center mb-7 tracking-[-0.3px] hub-text">
           Tu negocio puede estar <em className="italic text-[hsl(var(--primary))]">en Bivoo</em>
         </h2>
