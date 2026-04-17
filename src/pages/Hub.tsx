@@ -262,153 +262,153 @@ const Hub = () => {
   return (
     <div ref={scrollRef} className="h-screen overflow-y-auto hub-bg hub-text pb-0 overflow-x-hidden">
       {/* TOPBAR — solid sidebar color */}
-      <div className={`hub-topbar-solid sticky top-0 z-50 flex flex-col md:grid md:grid-cols-[1fr_2fr_1fr] md:items-center px-4 md:px-10 py-3 gap-3 md:gap-4 backdrop-blur-md transition-transform duration-300 ${hideTopbar ? "-translate-y-full" : "translate-y-0"}`}>
-        {/* Mobile row: logo + actions */}
-        <div className="flex items-center justify-between md:contents">
-        {/* Logo */}
-        <div className="flex items-center">
-          <img
-            src={isDark ? "/logo-dark.png" : "/logo-light.png"}
-            alt="Bivoo"
-            className="h-6 w-auto cursor-pointer"
-            onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
-          />
-        </div>
-
-        {/* Search centered */}
-        <div ref={searchBoxRef} className="relative">
-          <div className="hub-search-box">
-            <Search className="h-3.5 w-3.5 hub-text-dim flex-shrink-0" />
-            <input
-              className="hub-search-input"
-              placeholder="Buscar negocios, servicios, productos..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onFocus={() => { if (search.trim().length >= 2) setSearchOpen(true); }}
+      <div className={`hub-topbar-solid sticky top-0 z-50 px-4 md:px-10 py-3 backdrop-blur-md transition-transform duration-300 ${hideTopbar ? "-translate-y-full" : "translate-y-0"}`}>
+        <div className="grid grid-cols-2 md:grid-cols-[1fr_2fr_1fr] items-center gap-3 md:gap-4">
+          {/* Logo */}
+          <div className="flex items-center md:order-1">
+            <img
+              src={isDark ? "/logo-dark.png" : "/logo-light.png"}
+              alt="Bivoo"
+              className="h-6 w-auto cursor-pointer"
+              onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
             />
           </div>
 
-          {searchOpen && debouncedSearch.length >= 2 && (
-            <div
-              className="absolute left-0 right-0 top-[calc(100%+6px)] z-[60] hub-card rounded-xl shadow-xl border border-[var(--hub-border)] max-h-[420px] overflow-y-auto"
+          {/* Right cluster */}
+          <div className="flex items-center gap-1 justify-end md:order-3">
+            {/* Theme switch */}
+            <button
+              className="flex items-center gap-1.5 px-1.5 h-8 rounded-lg hub-btn-hover cursor-pointer"
+              onClick={() => setTheme(isDark ? "light" : "dark")}
             >
-              {searchLoading && (
-                <div className="flex items-center gap-2 px-3 py-3 text-[12px] hub-text-dim">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: "var(--hub-green)" }} />
-                  Buscando...
-                </div>
-              )}
-
-              {!searchLoading && businessHits.length === 0 && itemHits.length === 0 && (
-                <div className="px-3 py-4 text-[12px] hub-text-dim">
-                  Sin resultados para "{debouncedSearch}"
-                </div>
-              )}
-
-              {!searchLoading && businessHits.length > 0 && (
-                <div className="py-1">
-                  <div className="text-[10px] uppercase tracking-wider hub-text-dim px-3 py-1.5">Negocios</div>
-                  {businessHits.map((b) => (
-                    <button
-                      key={`b-${b.id}`}
-                      onClick={() => goToStorefront(b.business_slug)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--hub-hover)] text-left"
-                    >
-                      <div className="w-7 h-7 rounded-full bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.2)] flex items-center justify-center text-[11px] font-medium text-[hsl(var(--primary))] flex-shrink-0">
-                        {b.name?.[0]?.toUpperCase() || "B"}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] hub-text truncate">{b.name}</div>
-                        {b.business_type && (
-                          <div className="text-[11px] hub-text-dim truncate">{b.business_type}</div>
-                        )}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {!searchLoading && itemHits.length > 0 && (
-                <div className="py-1 border-t border-[var(--hub-border)]">
-                  <div className="text-[10px] uppercase tracking-wider hub-text-dim px-3 py-1.5">Productos y servicios</div>
-                  {itemHits.map((it) => (
-                    <button
-                      key={`${it.kind}-${it.id}`}
-                      onClick={() => goToStorefront(it.business_slug)}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--hub-hover)] text-left"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[13px] hub-text truncate">{it.name}</div>
-                        <div className="text-[11px] hub-text-dim truncate">· {it.business_name}</div>
-                      </div>
-                      {it.price != null && (
-                        <div className="text-[12px] hub-text-muted font-medium flex-shrink-0 ml-2">
-                          {formatPrice(it.price)}
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Right cluster */}
-        <div className="flex items-center gap-1 justify-end">
-          {/* Theme switch */}
-          <button
-            className="flex items-center gap-1.5 px-1.5 h-8 rounded-lg hub-btn-hover cursor-pointer"
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-          >
-            {isDark ? <Moon className="h-[13px] w-[13px] hub-text-dim" /> : <Sun className="h-[13px] w-[13px] hub-text-dim" />}
-            <div className={`w-[26px] h-[15px] rounded-full relative flex-shrink-0 ${isDark ? "bg-[hsl(var(--primary)/0.25)] border border-[hsl(var(--primary)/0.3)]" : "hub-switch-track"}`}>
-              <div className={`absolute top-[2px] w-[9px] h-[9px] rounded-full transition-all ${isDark ? "left-[13px] bg-[hsl(var(--primary))]" : "left-[2px] hub-switch-thumb"}`} />
-            </div>
-          </button>
-
-          <div className="w-px h-4 hub-divider mx-1" />
-
-          <button className="hub-icon-btn" title="Sincronización" onClick={() => setSyncOpen(true)}>
-            <Cloud className="h-[15px] w-[15px]" />
-          </button>
-
-          <a
-            href="https://wa.me/message/JNVHILZDVTQAH1"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hub-icon-btn"
-            title="Soporte"
-          >
-            <MessageSquare className="h-[15px] w-[15px]" />
-          </a>
-
-          <div className="w-px h-4 hub-divider mx-1" />
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center gap-1.5 py-[3px] px-2 pl-[3px] rounded-full border border-transparent hover:border-[var(--hub-border2)] transition-all cursor-pointer">
-                <div className="w-[26px] h-[26px] rounded-full bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.2)] flex items-center justify-center text-[11px] font-medium text-[hsl(var(--primary))] flex-shrink-0">
-                  {profile?.full_name ? getInitials(profile.full_name) : "U"}
-                </div>
-                <span className="text-xs hub-text-muted">{firstName}</span>
-                <ChevronDown className="h-[11px] w-[11px] hub-text-dim" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="min-w-[176px] hub-dropdown">
-              <div className="px-2.5 py-2 border-b border-[var(--hub-border)] mb-1">
-                <p className="text-[13px] hub-text">{profile?.full_name || "Usuario"}</p>
-                <p className="text-[11px] hub-text-dim mt-0.5">{profile?.email}</p>
+              {isDark ? <Moon className="h-[13px] w-[13px] hub-text-dim" /> : <Sun className="h-[13px] w-[13px] hub-text-dim" />}
+              <div className={`w-[26px] h-[15px] rounded-full relative flex-shrink-0 ${isDark ? "bg-[hsl(var(--primary)/0.25)] border border-[hsl(var(--primary)/0.3)]" : "hub-switch-track"}`}>
+                <div className={`absolute top-[2px] w-[9px] h-[9px] rounded-full transition-all ${isDark ? "left-[13px] bg-[hsl(var(--primary))]" : "left-[2px] hub-switch-thumb"}`} />
               </div>
-              <DropdownMenuItem className="gap-2 text-[13px] hub-text-muted" onClick={() => setProfileOpen(true)}>
-                <User className="h-3.5 w-3.5" /> Perfil
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem className="gap-2 text-[13px] text-destructive" onClick={() => signOut()}>
-                <LogOut className="h-3.5 w-3.5" /> Cerrar sesión
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </button>
+
+            <div className="hidden sm:block w-px h-4 hub-divider mx-1" />
+
+            <button className="hub-icon-btn" title="Sincronización" onClick={() => setSyncOpen(true)}>
+              <Cloud className="h-[15px] w-[15px]" />
+            </button>
+
+            <a
+              href="https://wa.me/message/JNVHILZDVTQAH1"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hub-icon-btn"
+              title="Soporte"
+            >
+              <MessageSquare className="h-[15px] w-[15px]" />
+            </a>
+
+            <div className="hidden sm:block w-px h-4 hub-divider mx-1" />
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1.5 py-[3px] px-2 pl-[3px] rounded-full border border-transparent hover:border-[var(--hub-border2)] transition-all cursor-pointer">
+                  <div className="w-[26px] h-[26px] rounded-full bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.2)] flex items-center justify-center text-[11px] font-medium text-[hsl(var(--primary))] flex-shrink-0">
+                    {profile?.full_name ? getInitials(profile.full_name) : "U"}
+                  </div>
+                  <span className="hidden sm:inline text-xs hub-text-muted">{firstName}</span>
+                  <ChevronDown className="hidden sm:inline h-[11px] w-[11px] hub-text-dim" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[176px] hub-dropdown">
+                <div className="px-2.5 py-2 border-b border-[var(--hub-border)] mb-1">
+                  <p className="text-[13px] hub-text">{profile?.full_name || "Usuario"}</p>
+                  <p className="text-[11px] hub-text-dim mt-0.5">{profile?.email}</p>
+                </div>
+                <DropdownMenuItem className="gap-2 text-[13px] hub-text-muted" onClick={() => setProfileOpen(true)}>
+                  <User className="h-3.5 w-3.5" /> Perfil
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="gap-2 text-[13px] text-destructive" onClick={() => signOut()}>
+                  <LogOut className="h-3.5 w-3.5" /> Cerrar sesión
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+
+          {/* Search — full row on mobile, centered on desktop */}
+          <div ref={searchBoxRef} className="relative col-span-2 md:col-span-1 md:order-2">
+            <div className="hub-search-box">
+              <Search className="h-3.5 w-3.5 hub-text-dim flex-shrink-0" />
+              <input
+                className="hub-search-input"
+                placeholder="Buscar negocios, servicios, productos..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onFocus={() => { if (search.trim().length >= 2) setSearchOpen(true); }}
+              />
+            </div>
+
+            {searchOpen && debouncedSearch.length >= 2 && (
+              <div
+                className="absolute left-0 right-0 top-[calc(100%+6px)] z-[60] hub-card rounded-xl shadow-xl border border-[var(--hub-border)] max-h-[420px] overflow-y-auto"
+              >
+                {searchLoading && (
+                  <div className="flex items-center gap-2 px-3 py-3 text-[12px] hub-text-dim">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: "var(--hub-green)" }} />
+                    Buscando...
+                  </div>
+                )}
+
+                {!searchLoading && businessHits.length === 0 && itemHits.length === 0 && (
+                  <div className="px-3 py-4 text-[12px] hub-text-dim">
+                    Sin resultados para "{debouncedSearch}"
+                  </div>
+                )}
+
+                {!searchLoading && businessHits.length > 0 && (
+                  <div className="py-1">
+                    <div className="text-[10px] uppercase tracking-wider hub-text-dim px-3 py-1.5">Negocios</div>
+                    {businessHits.map((b) => (
+                      <button
+                        key={`b-${b.id}`}
+                        onClick={() => goToStorefront(b.business_slug)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--hub-hover)] text-left"
+                      >
+                        <div className="w-7 h-7 rounded-full bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.2)] flex items-center justify-center text-[11px] font-medium text-[hsl(var(--primary))] flex-shrink-0">
+                          {b.name?.[0]?.toUpperCase() || "B"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] hub-text truncate">{b.name}</div>
+                          {b.business_type && (
+                            <div className="text-[11px] hub-text-dim truncate">{b.business_type}</div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {!searchLoading && itemHits.length > 0 && (
+                  <div className="py-1 border-t border-[var(--hub-border)]">
+                    <div className="text-[10px] uppercase tracking-wider hub-text-dim px-3 py-1.5">Productos y servicios</div>
+                    {itemHits.map((it) => (
+                      <button
+                        key={`${it.kind}-${it.id}`}
+                        onClick={() => goToStorefront(it.business_slug)}
+                        className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--hub-hover)] text-left"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="text-[13px] hub-text truncate">{it.name}</div>
+                          <div className="text-[11px] hub-text-dim truncate">· {it.business_name}</div>
+                        </div>
+                        {it.price != null && (
+                          <div className="text-[12px] hub-text-muted font-medium flex-shrink-0 ml-2">
+                            {formatPrice(it.price)}
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
