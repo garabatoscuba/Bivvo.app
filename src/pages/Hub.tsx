@@ -260,7 +260,7 @@ const Hub = () => {
   }
 
   return (
-    <div className="min-h-screen hub-bg hub-text pb-0 overflow-x-hidden">
+    <div ref={scrollRef} className="h-screen overflow-y-auto hub-bg hub-text pb-0 overflow-x-hidden">
       {/* TOPBAR — solid sidebar color */}
       <div className={`hub-topbar-solid sticky top-0 z-50 grid grid-cols-[1fr_2fr_1fr] items-center px-10 py-3 gap-4 backdrop-blur-md transition-transform duration-300 ${hideTopbar ? "-translate-y-full" : "translate-y-0"}`}>
         {/* Logo */}
@@ -269,7 +269,7 @@ const Hub = () => {
             src={isDark ? "/logo-dark.png" : "/logo-light.png"}
             alt="Bivoo"
             className="h-6 w-auto cursor-pointer"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            onClick={() => scrollRef.current?.scrollTo({ top: 0, behavior: "smooth" })}
           />
         </div>
 
