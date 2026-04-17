@@ -1,9 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Home, ArrowRight } from "lucide-react";
 import type { WeekSchedule } from "@/hooks/useStoreSettings";
+import logoLight from "@/assets/logo-light.png";
+import logoDark from "@/assets/logo-dark.png";
 
 interface PublicBusiness {
   id: string;
@@ -121,6 +123,12 @@ interface HubEditorialProps {
 
 const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
   const navigate = useNavigate();
+  const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains("dark"));
+  useEffect(() => {
+    const obs = new MutationObserver(() => setIsDark(document.documentElement.classList.contains("dark")));
+    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => obs.disconnect();
+  }, []);
 
   const { data: portals = [] } = useQuery({
     queryKey: ["hub-editorial-portals"],
@@ -338,9 +346,11 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
 
       {/* CIERRE */}
       <section className="py-[72px] px-10 text-center border-t border-[var(--hub-border)]">
-        <div className="font-['DM_Sans'] font-light text-[32px] tracking-[4px] hub-text mb-2">
-          Bivo<span className="text-[hsl(var(--primary))]">o</span>
-        </div>
+        <img
+          src={isDark ? logoDark : logoLight}
+          alt="Bivoo"
+          className="h-10 w-auto object-contain mx-auto mb-3"
+        />
         <div className="font-['Cormorant_Garamond'] text-[18px] italic hub-text-muted mb-8">
           Automatización de empresas
         </div>
