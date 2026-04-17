@@ -27,7 +27,10 @@ import {
 import HubEditorial from "@/components/hub/HubEditorial";
 import CreateBusinessModal from "@/components/hub/CreateBusinessModal";
 import ProfileModal from "@/components/hub/ProfileModal";
+import BusinessSelectorModal from "@/components/hub/BusinessSelectorModal";
 import { AppLoader } from "@/components/ui/AppLoader";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 const Hub = () => {
   const navigate = useNavigate();
@@ -36,6 +39,7 @@ const Hub = () => {
   const [syncOpen, setSyncOpen] = useState(false);
   const [createBizOpen, setCreateBizOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [selectorOpen, setSelectorOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [city, setCity] = useState<string>("");
   const isDark = theme === "dark";
@@ -68,7 +72,7 @@ const Hub = () => {
       if (!profile?.id) return [];
       const { data: bizList } = await supabase
         .from("businesses")
-        .select("id")
+        .select("id, name, business_type")
         .eq("owner_id", profile.id)
         .eq("is_active", true);
       if (!bizList?.length) return [];
@@ -84,7 +88,7 @@ const Hub = () => {
       const alerts = (lowStock || []).filter(
         (s: any) => s.quantity <= (s.products?.min_stock || 0)
       ).length;
-      return bizList.map(b => ({ id: b.id, alerts }));
+      return bizList.map(b => ({ id: b.id, name: b.name, business_type: b.business_type, alerts }));
     },
     enabled: !!profile?.id,
   });
@@ -136,6 +140,34 @@ const Hub = () => {
     name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 
   const firstName = profile?.full_name?.split(" ")[0] || "Usuario";
+
+  const handleOpenBusinesses = async () => {
+    if (!ownedBusinesses.length) {
+      setCreateBizOpen(true);
+      return;
+    }
+    if (ownedBusinesses.length === 1) {
+      const biz = ownedBusinesses[0];
+      if (profile?.business_id === biz.id) {
+        navigate("/dashboard");
+        return;
+      }
+      try {
+        const { data: bizBranches } = await supabase
+          .from("branches").select("id").eq("business_id", biz.id).eq("is_main", true).limit(1);
+        const mainBranchId = bizBranches?.[0]?.id || null;
+        await supabase
+          .from("profiles")
+          .update({ business_id: biz.id, branch_id: mainBranchId })
+          .eq("user_id", profile!.user_id);
+        window.location.assign("/dashboard");
+      } catch {
+        toast.error("No se pudo abrir el negocio");
+      }
+      return;
+    }
+    setSelectorOpen(true);
+  };
 
   if (loading) {
     return <AppLoader />;
@@ -246,27 +278,44 @@ const Hub = () => {
         </div>
 
         <div className="flex gap-2">
-          <div className="hub-stat" onClick={() => ownedBusinesses[0] && navigate("/dashboard")}>
-            <div className="hub-stat-n" style={{ color: "var(--hub-green)" }}>{ownedBusinesses.length}</div>
-            <div className="hub-stat-label">Mis negocios</div>
-            <div className="hub-stat-sub" style={{ color: ownedAlerts > 0 ? "var(--hub-red)" : "var(--hub-text3)" }}>
-              {ownedAlerts > 0 ? `${ownedAlerts} alertas` : "Sin alertas"}
+          {ownedBusinesses.length === 0 ? (
+            <div
+              className="hub-stat border border-dashed flex flex-col items-center justify-center cursor-pointer"
+              onClick={() => setCreateBizOpen(true)}
+            >
+              <Plus className="h-4 w-4 mb-1" style={{ color: "var(--hub-green)" }} />
+              <div className="hub-stat-label">Agregar negocio</div>
+              <div className="hub-stat-sub">Comienza aquí</div>
             </div>
-          </div>
-          <div className="hub-stat" onClick={() => employments.length && navigate("/mi-empleo")}>
-            <div className="hub-stat-n" style={{ color: "var(--hub-purple)" }}>{employments.length}</div>
-            <div className="hub-stat-label">Mi empleo</div>
-            <div className="hub-stat-sub" style={{ color: empActive ? "var(--hub-green)" : "var(--hub-text3)" }}>
-              {empActive ? "Activa" : "Sin jornada"}
+          ) : (
+            <div className="hub-stat" onClick={handleOpenBusinesses}>
+              <div className="hub-stat-n" style={{ color: "var(--hub-green)" }}>{ownedBusinesses.length}</div>
+              <div className="hub-stat-label">Mis negocios</div>
+              <div className="hub-stat-sub" style={{ color: ownedAlerts > 0 ? "var(--hub-red)" : "var(--hub-text3)" }}>
+                {ownedAlerts > 0 ? `${ownedAlerts} alertas` : "Sin alertas"}
+              </div>
             </div>
-          </div>
-          <div className="hub-stat">
-            <div className="hub-stat-n" style={{ color: "var(--hub-gold)" }}>{totalPoints}</div>
-            <div className="hub-stat-label">Mis puntos</div>
-            <div className="hub-stat-sub" style={{ color: "var(--hub-gold)" }}>
-              {affiliations.length} {affiliations.length === 1 ? "afiliación" : "afiliaciones"}
+          )}
+
+          {employments.length > 0 && (
+            <div className="hub-stat" onClick={() => navigate("/mi-empleo")}>
+              <div className="hub-stat-n" style={{ color: "var(--hub-purple)" }}>{employments.length}</div>
+              <div className="hub-stat-label">Mi empleo</div>
+              <div className="hub-stat-sub" style={{ color: empActive ? "var(--hub-green)" : "var(--hub-text3)" }}>
+                {empActive ? "Activa" : "Sin jornada"}
+              </div>
             </div>
-          </div>
+          )}
+
+          {affiliations.length > 0 && (
+            <div className="hub-stat">
+              <div className="hub-stat-n" style={{ color: "var(--hub-gold)" }}>{totalPoints}</div>
+              <div className="hub-stat-label">Mis puntos</div>
+              <div className="hub-stat-sub" style={{ color: "var(--hub-gold)" }}>
+                {affiliations.length} {affiliations.length === 1 ? "afiliación" : "afiliaciones"}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -276,6 +325,12 @@ const Hub = () => {
       <SyncStatusModal open={syncOpen} onOpenChange={setSyncOpen} />
       <CreateBusinessModal open={createBizOpen} onOpenChange={setCreateBizOpen} />
       <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
+      <BusinessSelectorModal
+        open={selectorOpen}
+        onOpenChange={setSelectorOpen}
+        businesses={ownedBusinesses}
+        onCreateNew={() => setCreateBizOpen(true)}
+      />
     </div>
   );
 };
