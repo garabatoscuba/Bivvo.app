@@ -1,47 +1,43 @@
 
-El usuario quiere que el footer del Hub use el logo correcto según tema (igual al ejemplo: "Bivoo" en blanco/oscuro con la "o" verde, y debajo "AUTOMATIZACIÓN DE EMPRESAS" en sans-serif tracking ancho).
 
-Reviso el Auth para ver tipografía exacta del subtítulo.
-<lov-tool-use id="toolu_vrtx_01SSt2KZd8fXU4dL7usyGrzJ" name="code--search_files" integration-id="code" data="{\"query\": \"AUTOMATIZACIÓN DE EMPRESAS|Automatización de empresas|automatizacion\", \"include_patterns\": \"*.tsx,*.css\"}">
-</lov-tool-use>
+## Plan: arreglar topbar del Hub para que se oculte/muestre con scroll
 
-<lov-tool-use id="toolu_vrtx_01HrbtRSdvv7wpv1ryQmnFbE" name="code--search_files" integration-id="code" data="{\"query\": \"AUTOMATIZACIÓN|Automatización\", \"include_patterns\": \"*.tsx,*.css,*.html\"}">
-</lov-tool-use>
-I have what I need. The Auth/login uses `text-[11px] font-medium tracking-widest uppercase` (sans-serif default = Inter), not Cormorant.
+### Problema
+La topbar quedó fija arriba y no responde al scroll. Aunque añadimos `hideTopbar` state, el listener probablemente está escuchando `window` pero el scroll real ocurre dentro de un contenedor interno (overflow), por eso `window.scrollY` siempre es 0 y nunca cambia.
 
-Logo issue: currently uses `logoLight` for light mode and `logoDark` for dark mode. But the convention used in sidebar (per past message) is the opposite — `logo-dark.png` is the one with dark letters (used on light bg). The user says: dark mode → white letters, light mode → dark letters. So we need to swap.
+### Diagnóstico
+El Hub renderiza dentro de `AppLayout` o tiene su propio wrapper con `overflow-y-auto`. Necesito verificar:
+- En `Hub.tsx`: identificar el contenedor que scrollea (probablemente un `<div>` con `overflow-y-auto` o `h-screen overflow-auto`).
+- Adjuntar el listener a ese contenedor (via ref) en vez de `window`.
 
-<lov-plan>
+### Cambios en `src/pages/Hub.tsx`
 
-## Plan: arreglar logo y tipografía del cierre del Hub
+1. **Crear ref del contenedor scrolleable**: `scrollRef = useRef<HTMLDivElement>(null)` y asignarlo al div principal con overflow.
 
-### 1. Logo invertido (`src/components/hub/HubEditorial.tsx` línea ~351)
-Hoy:
+2. **Reemplazar listener `window`** por listener sobre `scrollRef.current`:
 ```tsx
-src={isDark ? logoDark : logoLight}
+useEffect(() => {
+  const el = scrollRef.current;
+  if (!el) return;
+  const onScroll = () => {
+    const y = el.scrollTop;
+    if (y < 80) { setHideTopbar(false); lastScrollY.current = y; return; }
+    if (y > lastScrollY.current + 8) setHideTopbar(true);
+    else if (y < lastScrollY.current - 8) setHideTopbar(false);
+    lastScrollY.current = y;
+  };
+  el.addEventListener('scroll', onScroll, { passive: true });
+  return () => el.removeEventListener('scroll', onScroll);
+}, []);
 ```
-El nombre engaña: `logoLight` = letras claras (para fondo oscuro), `logoDark` = letras oscuras (para fondo claro). Hay que invertir:
-```tsx
-src={isDark ? logoLight : logoDark}
-```
-Así en oscuro salen letras blancas y en claro letras oscuras (igual que el ejemplo subido).
 
-### 2. Tipografía del subtítulo (línea ~354)
-Cambiar de `Cormorant Garamond italic` al estilo del login (`Auth.tsx` línea 217):
-```tsx
-<div className="text-[11px] font-medium tracking-widest uppercase hub-text-muted mb-8">
-  Automatización de Empresas
-</div>
-```
-- Quita `font-['Cormorant_Garamond']` y `italic`.
-- Usa Inter por defecto, mayúsculas, `tracking-widest`, 11px medium.
-- Capitaliza "Empresas" para que coincida con el login y la imagen.
+3. **Topbar**: confirmar que tiene `sticky top-0 z-50 transition-transform duration-300` y aplica `-translate-y-full` cuando `hideTopbar`. Si está como `fixed`, cambiar a `sticky` para que viva dentro del contenedor scrolleable y la animación funcione.
 
 ### Lo que NO se toca
-- Resto del bloque cierre (botones, separador, padding).
-- Otros usos de logos en la app.
-- Tokens CSS.
+- Diseño visual de la barra (logo, dropdown, botones).
+- Resto del Hub (HubEditorial, HubSearchAndExplore).
+- Otras rutas/AppLayout.
 
 ### Archivo
-- `src/components/hub/HubEditorial.tsx` (2 líneas).
+- `src/pages/Hub.tsx` (ref + listener al contenedor + verificar `sticky`).
 
