@@ -262,7 +262,7 @@ const Hub = () => {
   return (
     <div ref={scrollRef} className="h-screen overflow-y-auto hub-bg hub-text pb-0 overflow-x-hidden">
       {/* TOPBAR — solid sidebar color */}
-      <div className={`hub-topbar-solid sticky top-0 z-50 px-4 md:px-10 py-3 backdrop-blur-md transition-transform duration-300 ${hideTopbar ? "-translate-y-full" : "translate-y-0"}`}>
+      <div className={`hub-topbar-solid sticky top-0 z-50 px-4 md:px-10 py-3 backdrop-blur-md transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${hideTopbar ? "-translate-y-full" : "translate-y-0"}`}>
         <div className="grid grid-cols-2 md:grid-cols-[1fr_2fr_1fr] items-center gap-3 md:gap-4">
           {/* Logo */}
           <div className="flex items-center md:order-1">
