@@ -77,6 +77,15 @@ const StorefrontHome = ({ data, accent, portalPath, onNavigate, currencySymbol }
             style={{ height: hasDelivery ? 'calc(100svh - 38px)' : '100svh' }}
           >
             <div className="max-w-5xl mx-auto px-6 sm:px-10 text-center pt-14">
+              {data.business.logo_url && (
+                <FadeInView>
+                  <img
+                    src={data.business.logo_url}
+                    alt={heroTitle}
+                    className="mx-auto mb-6 h-20 sm:h-28 w-auto rounded-2xl object-cover shadow-xl"
+                  />
+                </FadeInView>
+              )}
               <FadeInView>
                 <h1
                   className="text-4xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-foreground leading-[1.1]"
