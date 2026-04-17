@@ -1,5 +1,5 @@
 import { Component, type ReactNode } from "react";
-import { Loader2 } from "lucide-react";
+import { AppLoader } from "@/components/ui/AppLoader";
 
 interface Props {
   children: ReactNode;
@@ -30,11 +30,7 @@ export class LazyErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-background">
-          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-        </div>
-      );
+      return <AppLoader />;
     }
     return this.props.children;
   }

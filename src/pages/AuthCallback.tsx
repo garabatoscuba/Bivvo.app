@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { AppLoader } from "@/components/ui/AppLoader";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
@@ -54,11 +54,7 @@ const AuthCallback = () => {
     handleCallback();
   }, [navigate]);
 
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      <Loader2 className="h-8 w-8 animate-spin" />
-    </div>
-  );
+  return <AppLoader />;
 };
 
 export default AuthCallback;

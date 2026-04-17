@@ -137,11 +137,7 @@ const Hub = () => {
   const firstName = profile?.full_name?.split(" ")[0] || "Usuario";
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center hub-bg">
-        <Loader2 className="h-6 w-6 animate-spin hub-text-muted" />
-      </div>
-    );
+    return <AppLoader />;
   }
 
   return (
