@@ -1,48 +1,50 @@
 
-## Plan: loader único y consistente entre Hub, portales y negocios
+## Plan: limpiar tarjetas del Hub + selector de negocio cuando hay varios
 
-### Problema real (confirmado en el código)
-Cuando navegas Hub → /dashboard → portal, **se montan 3-4 loaders distintos en cascada**, cada uno con tamaño/color diferente. Eso es lo que se ve como "el círculo cargando que cambia mucho":
+### Cambios en `src/pages/Hub.tsx`
 
-1. **`App.tsx` `PageLoader`** — gris pequeño `h-5 text-muted-foreground` (carga el chunk lazy de la página).
-2. **`ProtectedRoute`** — **azul grande `h-8 text-primary`** (espera `loading` de auth y `subLoading` de subscription).
-3. **`Hub.tsx`** loader interno — verde apagado `h-6 hub-text-muted`.
-4. **`PublicStorefront.tsx`** — gris `h-5 text-muted-foreground`.
-5. **`LazyErrorBoundary`** fallback — gris pequeño.
+**1. Tarjetas condicionales (líneas 248-270)**
+Hoy siempre se renderizan las 3 tarjetas (Mis negocios, Mi empleo, Mis puntos). Cambio:
 
-Resultado: el spinner aparece, cambia de tamaño, cambia de color, salta de posición. Además `ProtectedRoute` re-monta el spinner cada vez que `useSubscription` re-corre (queries nuevas), lo que añade un parpadeo extra al cambiar de ruta.
+- **Mis negocios**: 
+  - Si `ownedBusinesses.length === 0` → tarjeta "Agregar negocio" (estilo dashed/CTA, abre `setCreateBizOpen(true)`).
+  - Si hay 1+ → tarjeta normal con conteo y alertas.
+- **Mi empleo**: solo renderizar si `employments.length > 0`. Si es 0, nada.
+- **Mis puntos / afiliaciones**: solo renderizar si `affiliations.length > 0`. Si es 0, nada.
 
-### Solución (mínima, sin romper nada)
+El contenedor `flex gap-2` se mantiene; simplemente filtra hijos.
 
-**1. Crear `src/components/ui/AppLoader.tsx`** — un único componente:
-```tsx
-<div className="min-h-screen flex items-center justify-center bg-background">
-  <Loader2 className="h-6 w-6 animate-spin" style={{ color: 'var(--hub-green)' }} />
-</div>
-```
-- Tamaño único `h-6 w-6`.
-- Color verde Bivoo (`--hub-green` = `#1D9E75`, ya definido y disponible en light y dark).
-- Fondo `bg-background` para que combine con cualquier ruta (Hub usa el mismo tono claro/oscuro que `--hub-bg` ≈ `bg-background`; el negocio usa `bg-background` directo; portal idem).
+**2. Selector de negocio al click en "Mis negocios"**
+Lógica nueva en el click handler de la tarjeta de negocios:
 
-**2. Sustituir todos los loaders de pantalla completa por `<AppLoader />`** en estos archivos (solo el bloque del spinner, nada más):
-- `src/App.tsx` → `PageLoader` usa `AppLoader`.
-- `src/components/auth/ProtectedRoute.tsx` → ambos `if (loading)` y `if (subLoading)`.
-- `src/pages/Hub.tsx` → el `if (loading)` del editorial.
-- `src/pages/PublicStorefront.tsx` → el `if (loading)`.
-- `src/components/LazyErrorBoundary.tsx` → fallback.
-- `src/pages/Auth.tsx` y `src/pages/AuthCallback.tsx` → spinners de pantalla completa.
+- `ownedBusinesses.length === 0` → abrir modal crear negocio (caso ya cubierto por la tarjeta CTA).
+- `ownedBusinesses.length === 1` → comportamiento actual: si el negocio activo en el perfil ya es ese, navegar `/dashboard`; si no, hacer `switchBusiness` (cambiar `profiles.business_id` + `branch_id` al main) y luego navegar a `/dashboard`.
+- `ownedBusinesses.length > 1` → abrir un nuevo modal **`BusinessSelectorModal`** con la lista de negocios del usuario. Click en uno → mismo `switchBusiness` y navegar a `/dashboard`.
 
-Esto garantiza que cuando un loader se desmonte y otro se monte, **sea visualmente idéntico** (mismo tamaño, mismo color verde, mismo fondo, misma posición centrada). El usuario percibe **un solo spinner continuo**.
+**3. Datos para el selector**
+La query `hub-owned-stat` hoy solo trae `id`. Ampliar el `select` a `id, name, business_type, base_currency` (los datos del negocio mismos no cambian la lógica de alertas; las alertas se siguen agregando) para mostrar nombre/tipo en el selector. Mantener compatibilidad: el conteo y `ownedAlerts` siguen igual.
 
-**3. Evitar parpadeo extra de `ProtectedRoute` al navegar entre rutas protegidas**
-- Hoy `ProtectedRoute` muestra spinner mientras `subLoading` sea true. `useSubscription` se ejecuta una vez y queda en cache de react-query, así que en navegaciones internas ya no debe mostrarse — pero conviene confirmar que no re-fetch en cada cambio de ruta. **No tocar la lógica**, solo el visual del spinner.
+### Componente nuevo: `src/components/hub/BusinessSelectorModal.tsx`
+
+- Dialog simple, mismo estilo que `CreateBusinessModal` (header + lista vertical).
+- Cada item: avatar/letra + nombre + tipo de negocio + chip "Activo" si coincide con `profile.business_id`.
+- Botón inferior "Crear nuevo negocio" que cierra este modal y abre `CreateBusinessModal`.
+- Al seleccionar: 
+  ```ts
+  // Buscar main branch del biz, actualizar profile, recargar y navegar.
+  await supabase.from("branches").select("id").eq("business_id", bizId).eq("is_main", true).limit(1)
+  await supabase.from("profiles").update({ business_id, branch_id }).eq("user_id", profile.user_id)
+  navigate("/dashboard"); // y forzar refresh de auth context si hace falta
+  ```
+  (Reutilizar la misma lógica que `switchBusiness` del sidebar, en una helper local del Hub, evitando duplicar.)
 
 ### Lo que NO se toca
-- Lógica de auth, subscription, sync, rutas, lazy loading.
-- Loaders **inline pequeños** dentro de botones, modales, tablas, cards (esos son contextuales y no causan el problema).
-- Sidebar, módulos, permisos.
-- Ningún flujo de Hub, portal o negocio fuera del componente del loader.
+- Lógica de auth, roles, permisos.
+- Sidebar, AppLayout, ruta `/dashboard`, ruta `/mi-empleo`.
+- HubEditorial, CreateBusinessModal, ProfileModal.
+- Queries de empleos y afiliaciones (solo cambia su renderizado).
+- Estilos globales del Hub (clases `hub-stat`, etc.). Se reutilizan.
 
 ### Archivos
-- **Nuevo**: `src/components/ui/AppLoader.tsx`
-- **Editar (solo el bloque del spinner full-screen)**: `src/App.tsx`, `src/components/auth/ProtectedRoute.tsx`, `src/pages/Hub.tsx`, `src/pages/PublicStorefront.tsx`, `src/components/LazyErrorBoundary.tsx`, `src/pages/Auth.tsx`, `src/pages/AuthCallback.tsx`
+- **Editar**: `src/pages/Hub.tsx` (bloque de tarjetas + handler + query select ampliado + import del nuevo modal).
+- **Nuevo**: `src/components/hub/BusinessSelectorModal.tsx`.
