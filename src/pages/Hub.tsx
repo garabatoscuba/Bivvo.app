@@ -27,6 +27,7 @@ import {
 import HubEditorial from "@/components/hub/HubEditorial";
 import CreateBusinessModal from "@/components/hub/CreateBusinessModal";
 import ProfileModal from "@/components/hub/ProfileModal";
+import { AppLoader } from "@/components/ui/AppLoader";
 
 const Hub = () => {
   const navigate = useNavigate();

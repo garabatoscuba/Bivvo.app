@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
+import { AppLoader } from '@/components/ui/AppLoader';
 import StorefrontNavbar from '@/components/storefront/StorefrontNavbar';
 import StorefrontHome from '@/components/storefront/StorefrontHome';
 import StorefrontCatalogView from '@/components/storefront/StorefrontCatalogView';
