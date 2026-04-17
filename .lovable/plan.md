@@ -1,33 +1,36 @@
 
 
-## Plan: separación uniforme y profesional entre secciones del Hub
+## Plan: logo del Hub según tema + mejor contraste de textos
 
-### Problema (visto en captura)
-El portal "Vision" (hero) queda pegado al bloque "Probar Bivoo como negocio ahora", y este pegado al grid de portales debajo. No hay respiración consistente entre secciones.
+### 1. Logo del Hub (modo claro arregla)
+**`src/pages/Hub.tsx` líneas 252-256**: hoy el `<img>` tiene `src="/logo-dark.png"` fijo. Replicar lo que hace el sidebar:
+```tsx
+src={isDark ? "/logo-dark.png" : "/logo-light.png"}
+```
+La variable `isDark` ya existe en el componente (línea 48). Cero lógica nueva.
 
-### Cambios
+### 2. Mejor contraste de textos (claro y oscuro)
+En `src/index.css`, los tokens del Hub `--hub-text2` y `--hub-text3` son los que generan los textos secundarios/dim que se ven lavados en la captura.
 
-**1. `src/components/hub/HubEditorial.tsx` — espaciado vertical uniforme**
-- Contenedor raíz del componente: pasar a `space-y-12` (o `space-y-14`) para que **todas** las secciones (hero del portal destacado, CTA "Probar Bivoo", grid de portales/comunidad, anuncios) tengan la misma separación profesional.
-- Ajustar márgenes internos hardcodeados que rompen el ritmo:
-  - Hero del portal destacado: quitar `mb-*` extra, dejar que el `space-y` del padre lo controle.
-  - Bloque CTA "Probar Bivoo como negocio ahora": quitar `mt-*`/`mb-*` propios.
-  - Grid de portales (Comunidad): mismo trato.
-  - Bloque de anuncios (ya tiene `mt-10 pt-8 border-t`): mantener el separador pero alinear el `mt` al ritmo general (`mt-12`).
+**Modo claro (`:root` bloque `─── HUB ───`):**
+- `--hub-text2`: `#6b6970` → `#3f3d44` (texto secundario más oscuro y legible sobre `#f6f5f3`).
+- `--hub-text3`: `#9b99a0` → `#6b6970` (dim/labels más visibles).
+- `--hub-text` ya es `#1a1a1a`, queda igual.
 
-**2. `src/pages/Hub.tsx` — ritmo del contenedor principal**
-- Confirmar que el wrapper que envuelve hero (saludo+tarjetas), `<HubEditorial />` y `<HubSearchAndExplore />` use `space-y-12` consistente, sin paddings extra que dupliquen separación.
+**Modo oscuro (`.dark` bloque Hub):**
+- `--hub-text2`: `#888690` → `#b8b6c0` (más claro sobre `#0b0b0d`).
+- `--hub-text3`: `#555360` → `#85838f` (dim ya no se pierde con el fondo).
+- `--hub-text` ya es `#eeeae4`, queda igual.
 
-### Resultado
-Todas las secciones del Hub separadas por el mismo gap vertical (~48-56px), look profesional y consistente.
+Estos tokens los consumen las clases `hub-text-muted`, `hub-text-dim`, `hub-search-input::placeholder`, `hub-stat-label`, `hub-anuncio-eyebrow`, `hub-anuncio-desc`, `hub-portal-type`, etc. → todo el Hub se beneficia automáticamente.
 
 ### Lo que NO se toca
-- Contenido de cada sección, tarjetas, tipografía, colores.
-- Topbar, buscador, dropdown, modales.
-- HubSearchAndExplore interno.
-- Lógica, queries, navegación.
+- Tipografías, tamaños, layout, espaciados.
+- Topbar visual (solo cambia el `src` del `<img>`).
+- Tokens `--foreground`, `--muted-foreground` globales (solo los `--hub-*`).
+- Dashboard, sidebar, módulos internos.
 
 ### Archivos
-- `src/components/hub/HubEditorial.tsx`
-- `src/pages/Hub.tsx`
+- `src/pages/Hub.tsx` (1 línea, el `src` del logo).
+- `src/index.css` (4 valores HEX dentro del bloque `─── HUB ───` claro y oscuro).
 
