@@ -5486,6 +5486,19 @@ export type Database = {
         Args: { _branch_id: string; _elaborado_id: string }
         Returns: undefined
       }
+      search_public_catalog: {
+        Args: { q: string }
+        Returns: {
+          business_id: string
+          business_name: string
+          business_slug: string
+          business_type: string
+          id: string
+          kind: string
+          name: string
+          price: number
+        }[]
+      }
     }
     Enums: {
       app_role:
