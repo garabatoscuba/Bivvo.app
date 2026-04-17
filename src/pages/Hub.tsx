@@ -435,6 +435,7 @@ const Hub = () => {
 
       <SyncStatusModal open={syncOpen} onOpenChange={setSyncOpen} />
       <CreateBusinessModal open={createBizOpen} onOpenChange={setCreateBizOpen} />
+      <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
     </div>
   );
 };
