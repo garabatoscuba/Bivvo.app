@@ -246,7 +246,7 @@ const Hub = () => {
   return (
     <div className="min-h-screen hub-bg hub-text pb-0 overflow-x-hidden">
       {/* TOPBAR — solid sidebar color */}
-      <div className="hub-topbar-solid sticky top-0 z-50 grid grid-cols-[1fr_2fr_1fr] items-center px-10 py-3 gap-4 backdrop-blur-md">
+      <div className={`hub-topbar-solid sticky top-0 z-50 grid grid-cols-[1fr_2fr_1fr] items-center px-10 py-3 gap-4 backdrop-blur-md transition-transform duration-300 ${hideTopbar ? "-translate-y-full" : "translate-y-0"}`}>
         {/* Logo */}
         <div className="flex items-center">
           <img
