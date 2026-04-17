@@ -83,8 +83,23 @@ const StorefrontNavbar = ({ data, isOpen, accent, activeTab, onTabChange, portal
             </span>
           </button>
 
-          {/* Right — Icons */}
+          {/* Right — Tabs + Icons */}
           <div className="flex items-center gap-0.5 sm:gap-1">
+            {/* Tabs (desktop) */}
+            <div className="hidden md:flex items-center gap-4 mr-2">
+              {tabs.map(t => (
+                <button
+                  key={t.key}
+                  onClick={() => onTabChange(t.key)}
+                  className={`text-xs transition-colors ${
+                    activeTab === t.key ? 'text-white font-medium' : 'text-white/60 hover:text-white'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
             {hasAnnouncements && (
               <button
                 onClick={() => setShowAnnouncements(true)}
