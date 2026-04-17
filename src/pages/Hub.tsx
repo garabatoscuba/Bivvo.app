@@ -93,15 +93,21 @@ const Hub = () => {
     queryKey: ["hub-emp-stat", user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data } = await supabase
-        .from("employees").select("id").eq("auth_user_id", user.id).eq("is_active", true);
-      if (!data?.length) return [];
+      const res: any = await (supabase.from("employees") as any)
+        .select("id")
+        .eq("auth_user_id", user.id)
+        .eq("is_active", true);
+      const data = (res.data || []) as { id: string }[];
+      if (!data.length) return [];
       const empIds = data.map(e => e.id);
-      const { data: jornadasData } = await supabase
-        .from("jornadas").select("empleado_id").in("empleado_id", empIds).is("cierre_at", null);
+      const jr: any = await (supabase.from("jornadas") as any)
+        .select("empleado_id")
+        .in("empleado_id", empIds)
+        .is("cierre_at", null);
+      const jornadasData = (jr.data || []) as { empleado_id: string }[];
       return data.map(e => ({
         id: e.id,
-        active: !!(jornadasData || []).find(j => j.empleado_id === e.id),
+        active: !!jornadasData.find(j => j.empleado_id === e.id),
       }));
     },
     enabled: !!user?.id,
