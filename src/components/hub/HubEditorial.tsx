@@ -340,9 +340,11 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
 
       {/* CIERRE */}
       <section className="py-[72px] px-10 text-center border-t border-[var(--hub-border)]">
-        <div className="font-['DM_Sans'] font-light text-[32px] tracking-[4px] hub-text mb-2">
-          Bivo<span className="text-[hsl(var(--primary))]">o</span>
-        </div>
+        <img
+          src={isDark ? logoDark : logoLight}
+          alt="Bivoo"
+          className="h-10 w-auto object-contain mx-auto mb-3"
+        />
         <div className="font-['Cormorant_Garamond'] text-[18px] italic hub-text-muted mb-8">
           Automatización de empresas
         </div>
