@@ -258,14 +258,82 @@ const Hub = () => {
         </div>
 
         {/* Search centered */}
-        <div className="hub-search-box">
-          <Search className="h-3.5 w-3.5 hub-text-dim flex-shrink-0" />
-          <input
-            className="hub-search-input"
-            placeholder="Buscar negocios, servicios, productos..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+        <div ref={searchBoxRef} className="relative">
+          <div className="hub-search-box">
+            <Search className="h-3.5 w-3.5 hub-text-dim flex-shrink-0" />
+            <input
+              className="hub-search-input"
+              placeholder="Buscar negocios, servicios, productos..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onFocus={() => { if (search.trim().length >= 2) setSearchOpen(true); }}
+            />
+          </div>
+
+          {searchOpen && debouncedSearch.length >= 2 && (
+            <div
+              className="absolute left-0 right-0 top-[calc(100%+6px)] z-[60] hub-card rounded-xl shadow-xl border border-[var(--hub-border)] max-h-[420px] overflow-y-auto"
+            >
+              {searchLoading && (
+                <div className="flex items-center gap-2 px-3 py-3 text-[12px] hub-text-dim">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" style={{ color: "var(--hub-green)" }} />
+                  Buscando...
+                </div>
+              )}
+
+              {!searchLoading && businessHits.length === 0 && itemHits.length === 0 && (
+                <div className="px-3 py-4 text-[12px] hub-text-dim">
+                  Sin resultados para "{debouncedSearch}"
+                </div>
+              )}
+
+              {!searchLoading && businessHits.length > 0 && (
+                <div className="py-1">
+                  <div className="text-[10px] uppercase tracking-wider hub-text-dim px-3 py-1.5">Negocios</div>
+                  {businessHits.map((b) => (
+                    <button
+                      key={`b-${b.id}`}
+                      onClick={() => goToStorefront(b.business_slug)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--hub-hover)] text-left"
+                    >
+                      <div className="w-7 h-7 rounded-full bg-[hsl(var(--primary)/0.1)] border border-[hsl(var(--primary)/0.2)] flex items-center justify-center text-[11px] font-medium text-[hsl(var(--primary))] flex-shrink-0">
+                        {b.name?.[0]?.toUpperCase() || "B"}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] hub-text truncate">{b.name}</div>
+                        {b.business_type && (
+                          <div className="text-[11px] hub-text-dim truncate">{b.business_type}</div>
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!searchLoading && itemHits.length > 0 && (
+                <div className="py-1 border-t border-[var(--hub-border)]">
+                  <div className="text-[10px] uppercase tracking-wider hub-text-dim px-3 py-1.5">Productos y servicios</div>
+                  {itemHits.map((it) => (
+                    <button
+                      key={`${it.kind}-${it.id}`}
+                      onClick={() => goToStorefront(it.business_slug)}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 hover:bg-[var(--hub-hover)] text-left"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[13px] hub-text truncate">{it.name}</div>
+                        <div className="text-[11px] hub-text-dim truncate">· {it.business_name}</div>
+                      </div>
+                      {it.price != null && (
+                        <div className="text-[12px] hub-text-muted font-medium flex-shrink-0 ml-2">
+                          {formatPrice(it.price)}
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Right cluster */}
