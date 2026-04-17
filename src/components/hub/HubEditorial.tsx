@@ -1,9 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { MapPin, Home, ArrowRight } from "lucide-react";
 import type { WeekSchedule } from "@/hooks/useStoreSettings";
+import logoLight from "@/assets/logo-light.png";
+import logoDark from "@/assets/logo-dark.png";
 
 interface PublicBusiness {
   id: string;
