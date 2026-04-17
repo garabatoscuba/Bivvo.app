@@ -162,9 +162,9 @@ const HubEditorial = ({ onCreateBusiness }: HubEditorialProps) => {
   if (ordered.length === 0) return null;
 
   return (
-    <>
+    <div className="space-y-14">
       {/* COMUNIDAD */}
-      <section className="px-10 mb-16">
+      <section className="px-10">
         <div className="flex items-baseline justify-between mb-5">
           <div className="font-['Cormorant_Garamond'] text-[13px] tracking-[0.12em] uppercase hub-text-muted">
             Ayúdanos a crecer como comunidad
