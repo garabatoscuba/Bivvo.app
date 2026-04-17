@@ -47,16 +47,19 @@ const Hub = () => {
   const [city, setCity] = useState<string>("");
   const [hideTopbar, setHideTopbar] = useState(false);
   const lastScrollY = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
     const onScroll = () => {
-      const y = window.scrollY;
+      const y = el.scrollTop;
       if (y < 80) { setHideTopbar(false); lastScrollY.current = y; return; }
       if (y > lastScrollY.current + 8) setHideTopbar(true);
       else if (y < lastScrollY.current - 8) setHideTopbar(false);
       lastScrollY.current = y;
     };
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => el.removeEventListener("scroll", onScroll);
   }, []);
   const isDark = theme === "dark";
 
