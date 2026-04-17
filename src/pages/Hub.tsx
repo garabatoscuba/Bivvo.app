@@ -141,6 +141,34 @@ const Hub = () => {
 
   const firstName = profile?.full_name?.split(" ")[0] || "Usuario";
 
+  const handleOpenBusinesses = async () => {
+    if (!ownedBusinesses.length) {
+      setCreateBizOpen(true);
+      return;
+    }
+    if (ownedBusinesses.length === 1) {
+      const biz = ownedBusinesses[0];
+      if (profile?.business_id === biz.id) {
+        navigate("/dashboard");
+        return;
+      }
+      try {
+        const { data: bizBranches } = await supabase
+          .from("branches").select("id").eq("business_id", biz.id).eq("is_main", true).limit(1);
+        const mainBranchId = bizBranches?.[0]?.id || null;
+        await supabase
+          .from("profiles")
+          .update({ business_id: biz.id, branch_id: mainBranchId })
+          .eq("user_id", profile!.user_id);
+        window.location.assign("/dashboard");
+      } catch {
+        toast.error("No se pudo abrir el negocio");
+      }
+      return;
+    }
+    setSelectorOpen(true);
+  };
+
   if (loading) {
     return <AppLoader />;
   }
@@ -250,27 +278,44 @@ const Hub = () => {
         </div>
 
         <div className="flex gap-2">
-          <div className="hub-stat" onClick={() => ownedBusinesses[0] && navigate("/dashboard")}>
-            <div className="hub-stat-n" style={{ color: "var(--hub-green)" }}>{ownedBusinesses.length}</div>
-            <div className="hub-stat-label">Mis negocios</div>
-            <div className="hub-stat-sub" style={{ color: ownedAlerts > 0 ? "var(--hub-red)" : "var(--hub-text3)" }}>
-              {ownedAlerts > 0 ? `${ownedAlerts} alertas` : "Sin alertas"}
+          {ownedBusinesses.length === 0 ? (
+            <div
+              className="hub-stat border border-dashed flex flex-col items-center justify-center cursor-pointer"
+              onClick={() => setCreateBizOpen(true)}
+            >
+              <Plus className="h-4 w-4 mb-1" style={{ color: "var(--hub-green)" }} />
+              <div className="hub-stat-label">Agregar negocio</div>
+              <div className="hub-stat-sub">Comienza aquí</div>
             </div>
-          </div>
-          <div className="hub-stat" onClick={() => employments.length && navigate("/mi-empleo")}>
-            <div className="hub-stat-n" style={{ color: "var(--hub-purple)" }}>{employments.length}</div>
-            <div className="hub-stat-label">Mi empleo</div>
-            <div className="hub-stat-sub" style={{ color: empActive ? "var(--hub-green)" : "var(--hub-text3)" }}>
-              {empActive ? "Activa" : "Sin jornada"}
+          ) : (
+            <div className="hub-stat" onClick={handleOpenBusinesses}>
+              <div className="hub-stat-n" style={{ color: "var(--hub-green)" }}>{ownedBusinesses.length}</div>
+              <div className="hub-stat-label">Mis negocios</div>
+              <div className="hub-stat-sub" style={{ color: ownedAlerts > 0 ? "var(--hub-red)" : "var(--hub-text3)" }}>
+                {ownedAlerts > 0 ? `${ownedAlerts} alertas` : "Sin alertas"}
+              </div>
             </div>
-          </div>
-          <div className="hub-stat">
-            <div className="hub-stat-n" style={{ color: "var(--hub-gold)" }}>{totalPoints}</div>
-            <div className="hub-stat-label">Mis puntos</div>
-            <div className="hub-stat-sub" style={{ color: "var(--hub-gold)" }}>
-              {affiliations.length} {affiliations.length === 1 ? "afiliación" : "afiliaciones"}
+          )}
+
+          {employments.length > 0 && (
+            <div className="hub-stat" onClick={() => navigate("/mi-empleo")}>
+              <div className="hub-stat-n" style={{ color: "var(--hub-purple)" }}>{employments.length}</div>
+              <div className="hub-stat-label">Mi empleo</div>
+              <div className="hub-stat-sub" style={{ color: empActive ? "var(--hub-green)" : "var(--hub-text3)" }}>
+                {empActive ? "Activa" : "Sin jornada"}
+              </div>
             </div>
-          </div>
+          )}
+
+          {affiliations.length > 0 && (
+            <div className="hub-stat">
+              <div className="hub-stat-n" style={{ color: "var(--hub-gold)" }}>{totalPoints}</div>
+              <div className="hub-stat-label">Mis puntos</div>
+              <div className="hub-stat-sub" style={{ color: "var(--hub-gold)" }}>
+                {affiliations.length} {affiliations.length === 1 ? "afiliación" : "afiliaciones"}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
