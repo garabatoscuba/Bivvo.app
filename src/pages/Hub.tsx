@@ -27,7 +27,10 @@ import {
 import HubEditorial from "@/components/hub/HubEditorial";
 import CreateBusinessModal from "@/components/hub/CreateBusinessModal";
 import ProfileModal from "@/components/hub/ProfileModal";
+import BusinessSelectorModal from "@/components/hub/BusinessSelectorModal";
 import { AppLoader } from "@/components/ui/AppLoader";
+import { Plus } from "lucide-react";
+import { toast } from "sonner";
 
 const Hub = () => {
   const navigate = useNavigate();
@@ -36,6 +39,7 @@ const Hub = () => {
   const [syncOpen, setSyncOpen] = useState(false);
   const [createBizOpen, setCreateBizOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [selectorOpen, setSelectorOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [city, setCity] = useState<string>("");
   const isDark = theme === "dark";
@@ -68,7 +72,7 @@ const Hub = () => {
       if (!profile?.id) return [];
       const { data: bizList } = await supabase
         .from("businesses")
-        .select("id")
+        .select("id, name, business_type")
         .eq("owner_id", profile.id)
         .eq("is_active", true);
       if (!bizList?.length) return [];
@@ -84,7 +88,7 @@ const Hub = () => {
       const alerts = (lowStock || []).filter(
         (s: any) => s.quantity <= (s.products?.min_stock || 0)
       ).length;
-      return bizList.map(b => ({ id: b.id, alerts }));
+      return bizList.map(b => ({ id: b.id, name: b.name, business_type: b.business_type, alerts }));
     },
     enabled: !!profile?.id,
   });
