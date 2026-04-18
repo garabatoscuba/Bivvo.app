@@ -1059,12 +1059,29 @@ const AppSidebar = () => {
         <DialogContent className="sm:max-w-sm">
           <DialogHeader>
             <DialogTitle>Configurar Negocio</DialogTitle>
-            <DialogDescription>Edita el nombre de tu negocio.</DialogDescription>
+            <DialogDescription>Edita el nombre y tipo de tu negocio.</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-2">
             <div className="space-y-1.5">
               <Label className="text-sm">Nombre del negocio</Label>
               <Input value={editBizName} onChange={(e) => setEditBizName(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Tipo de negocio</Label>
+              <select
+                value={editBizType}
+                onChange={(e) => setEditBizType(e.target.value)}
+                className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                {availableBusinessTypes.map((bt) => (
+                  <option key={bt.key} value={bt.key}>
+                    {bt.name}
+                  </option>
+                ))}
+                {availableBusinessTypes.find((bt) => bt.key === editBizType) ? null : (
+                  <option value={editBizType}>{editBizType}</option>
+                )}
+              </select>
             </div>
           </div>
           <DialogFooter>
@@ -1073,8 +1090,8 @@ const AppSidebar = () => {
             </Button>
             <Button
               size="sm"
-              onClick={() => updateBizMutation.mutate({ id: editBizId, name: editBizName })}
-              disabled={!editBizName.trim() || updateBizMutation.isPending}
+              onClick={() => updateBizMutation.mutate({ id: editBizId, name: editBizName, business_type: editBizType })}
+              disabled={!editBizName.trim() || !editBizType || updateBizMutation.isPending}
             >
               {updateBizMutation.isPending ? "Guardando..." : "Guardar"}
             </Button>
