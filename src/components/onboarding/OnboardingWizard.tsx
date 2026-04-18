@@ -302,31 +302,37 @@ const OnboardingWizard = ({ open, profile }: OnboardingWizardProps) => {
                 {/* Dynamic content based on whether name is filled */}
                 {hasBusinessName ? (
                   <div className="space-y-4 animate-fade-in">
-                    {/* Business type selector */}
-                    <div className="space-y-3">
-                      {availableBusinessTypes.map((bt) => (
-                        <button
-                          key={bt.key}
-                          type="button"
-                          onClick={() => setSelectedBizType(bt.key)}
-                          className={cn(
-                            "w-full flex items-center justify-between rounded-xl border px-5 py-4 text-left transition-all duration-200",
-                            selectedBizType === bt.key
-                              ? "border-primary bg-primary/5 shadow-sm"
-                              : "border-border hover:border-primary/30 hover:bg-muted/30",
-                          )}
-                        >
-                          <div>
-                            <p className="font-medium text-foreground">{bt.name}</p>
-                            <p className="text-xs text-muted-foreground mt-0.5">{BIZ_TYPE_DESCRIPTIONS[bt.key] || bt.name}</p>
-                          </div>
-                          {selectedBizType === bt.key && (
-                            <div className="shrink-0 w-5 h-5 rounded-full bg-primary flex items-center justify-center">
-                              <Check className="w-3 h-3 text-primary-foreground" />
-                            </div>
-                          )}
-                        </button>
-                      ))}
+                    {/* Business type free input */}
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground">
+                        Tipo de negocio
+                      </label>
+                      <Input
+                        value={selectedBizType}
+                        onChange={(e) => setSelectedBizType(e.target.value)}
+                        placeholder="Ej: Barbería, Floristería, Taller..."
+                        className="h-12 rounded-xl border-border bg-transparent focus:border-primary focus:ring-primary/20"
+                      />
+                      {availableBusinessTypes.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 pt-1">
+                          <span className="text-xs text-muted-foreground self-center">Sugerencias:</span>
+                          {availableBusinessTypes.map((bt) => (
+                            <button
+                              key={bt.key}
+                              type="button"
+                              onClick={() => setSelectedBizType(bt.key)}
+                              className={cn(
+                                "px-2.5 py-1 rounded-full text-xs border transition-colors",
+                                selectedBizType === bt.key
+                                  ? "bg-primary/10 border-primary/40 text-primary"
+                                  : "border-border hover:border-primary/30 hover:bg-muted/30",
+                              )}
+                            >
+                              {bt.name}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     {/* Keywords field */}
