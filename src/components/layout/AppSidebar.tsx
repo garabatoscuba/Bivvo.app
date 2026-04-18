@@ -1068,20 +1068,31 @@ const AppSidebar = () => {
             </div>
             <div className="space-y-1.5">
               <Label className="text-sm">Tipo de negocio</Label>
-              <select
+              <Input
                 value={editBizType}
                 onChange={(e) => setEditBizType(e.target.value)}
-                className="flex h-10 w-full items-center rounded-md border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                {availableBusinessTypes.map((bt) => (
-                  <option key={bt.key} value={bt.key}>
-                    {bt.name}
-                  </option>
-                ))}
-                {availableBusinessTypes.find((bt) => bt.key === editBizType) ? null : (
-                  <option value={editBizType}>{editBizType}</option>
-                )}
-              </select>
+                placeholder="Ej: Barbería, Floristería, Taller..."
+              />
+              {availableBusinessTypes.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  <span className="text-[11px] text-muted-foreground self-center">Sugerencias:</span>
+                  {availableBusinessTypes.map((bt) => (
+                    <button
+                      key={bt.key}
+                      type="button"
+                      onClick={() => setEditBizType(bt.key)}
+                      className={cn(
+                        "px-2 py-0.5 rounded-full text-[11px] border transition-colors",
+                        editBizType === bt.key
+                          ? "bg-primary/10 border-primary/40 text-primary"
+                          : "border-border hover:border-primary/30 hover:bg-muted",
+                      )}
+                    >
+                      {bt.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
