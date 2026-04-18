@@ -401,22 +401,14 @@ const AppSidebar = () => {
   // Use owner's business or fallback to resolved employee/manager business
   const resolvedBusiness = activeBusiness || managerBusiness || (employeeRecord as any)?.businesses || null;
 
-  // Fetch dynamic sidebar modules filtered by pricing availability
+  // Fetch dynamic sidebar modules — Bivoo es genérico: todos los módulos activos,
+  // filtrados solo por plan (y luego por rol/jornada/país más abajo).
   const { data: sidebarModules = [] } = useQuery({
-    queryKey: ["sidebar-modules", resolvedBusiness?.business_type, planType],
+    queryKey: ["sidebar-modules", planType],
     queryFn: async () => {
-      if (!resolvedBusiness?.business_type) return [];
-      const { data: btConfig } = await supabase
-        .from("business_type_configs")
-        .select("module_ids")
-        .eq("key", resolvedBusiness.business_type)
-        .eq("is_active", true)
-        .maybeSingle();
-      if (!btConfig?.module_ids?.length) return [];
       const { data: mods } = await supabase
         .from("platform_modules")
         .select("id, name, sidebar_label, icon")
-        .in("id", btConfig.module_ids)
         .eq("is_active", true)
         .order("sort_order");
       if (!mods?.length) return [];
@@ -438,7 +430,7 @@ const AppSidebar = () => {
         return avail !== 'unavailable' && avail !== 'not_available';
       });
     },
-    enabled: !!resolvedBusiness?.business_type,
+    enabled: !!planType,
   });
 
   // Fetch available business types for "new business" dropdown/dialog

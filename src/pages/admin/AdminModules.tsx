@@ -163,13 +163,7 @@ const SortableModuleRow = ({ module, onEdit, onToggle, businessTypeLabels }: { m
         </div>
       </TableCell>
       <TableCell><Badge variant="outline" className="text-[11px]">{module.sidebar_label}</Badge></TableCell>
-      <TableCell>
-        <div className="flex gap-1 flex-wrap">
-          {module.business_types.map(t => (
-            <Badge key={t} variant="secondary" className="text-[10px]">{businessTypeLabels[t] || t}</Badge>
-          ))}
-        </div>
-      </TableCell>
+      {/* Columna "Tipos" oculta — Bivoo es genérico */}
       <TableCell>
         {module.countries.length === 0
           ? <span className="text-[11px] text-muted-foreground">Global</span>
@@ -405,7 +399,7 @@ const ModulesTab = () => {
                   <TableHead className="text-[11px] uppercase tracking-wide w-8"></TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Módulo</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide">Sidebar</TableHead>
-                  <TableHead className="text-[11px] uppercase tracking-wide">Tipos</TableHead>
+                  {/* Header "Tipos" oculto */}
                   <TableHead className="text-[11px] uppercase tracking-wide">País</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide text-center">Activo</TableHead>
                   <TableHead className="text-[11px] uppercase tracking-wide w-10"></TableHead>
@@ -457,20 +451,7 @@ const ModulesTab = () => {
               <Label className="text-sm">Descripción</Label>
               <Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} rows={2} />
             </div>
-            <div className="space-y-1.5">
-              <Label className="text-sm">Tipos de negocio</Label>
-              <div className="flex flex-wrap gap-3 pt-1">
-                {BUSINESS_TYPES.map(bt => (
-                  <label key={bt.value} className="flex items-center gap-1.5 text-sm">
-                    <Checkbox
-                      checked={form.business_types.includes(bt.value)}
-                      onCheckedChange={() => setForm(f => ({ ...f, business_types: toggleArrayItem(f.business_types, bt.value) }))}
-                    />
-                    {bt.label}
-                  </label>
-                ))}
-              </div>
-            </div>
+            {/* Tipos de negocio: oculto — Bivoo es genérico, todos los módulos disponibles para cualquier tipo */}
             <div className="space-y-1.5">
               <Label className="text-sm">País (vacío = global)</Label>
               <div className="flex flex-wrap gap-3 pt-1">
