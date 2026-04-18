@@ -1,38 +1,40 @@
 
 
-## Plan: tipo de negocio con nombre libre
+## Problema
+Al permitir nombre libre de tipo de negocio (ej "Local del Tecnología"), el sidebar se queda en blanco porque la resolución de módulos depende de `business_type_configs.module_ids` filtrando por `key` exacto. Si el `business_type` no coincide con `store`/`estaurente/safetería`/`copy_shop`/`gym`, no encuentra módulos y no renderiza nada.
 
-### Entendimiento
-El usuario no quiere un dropdown con 4 opciones fijas. Quiere escribir libremente el nombre del tipo de negocio (ej. "Barbería", "Taller mecánico", "Floristería"). Los 4 tipos preconfigurados (Tienda, Restaurante, Punto de Copias, Gimnasio) siguen siendo válidos como atajos rápidos, pero debe poder poner cualquier texto.
+Además, en el admin (segunda imagen) cada módulo tiene checkboxes "Tipos de negocio" para limitar dónde aparece. Esto ya no tiene sentido si Bivoo es genérico.
 
-### Decisión clave
-Mantener `business_type` como string libre en `businesses`. Cambiar el `<select>` por un **input de texto** con sugerencias rápidas de los 4 tipos preconfigurados (chips clickeables que rellenan el input). Así se respeta:
-- Lógica de módulos: si el tipo coincide con un `key` de `business_type_configs` (`store`, `estaurente/safetería`, `copy_shop`, `gym`), aplica módulos de ese tipo. Si es libre, cae en comportamiento por defecto (genérico = como tienda).
-- El campo es solo etiqueta visual cuando es libre.
+## Decisión
+Bivoo pasa a ser **genérico**: todos los módulos disponibles para todos los negocios (sujeto a plan, rol y país). El `business_type` queda solo como **etiqueta visual**.
 
-### Cambios
+## Cambios
 
-**1. `src/components/layout/AppSidebar.tsx` — modal "Configurar Negocio"**
-- Reemplazar `<select>` por `<Input>` de texto libre para `editBizType`.
-- Debajo, una fila de chips "Sugerencias:" con los 4 tipos activos de `availableBusinessTypes` (al hacer clic, rellenan el input con su `key`).
-- `updateBizMutation` sigue enviando el string tal cual al campo `business_type`.
+### 1. Resolución de módulos (sidebar)
+Localizar la query en `AppSidebar.tsx` (o hook relacionado) que hace `business_type_configs → module_ids → platform_modules`. Reemplazar por:
+- Cargar **todos** los `platform_modules` activos directamente.
+- Filtrar por `module_plugin_pricing` según plan del negocio (excluir `unavailable`/`not_available`).
+- Mantener filtros por rol, país y jornada (sin tocar esa lógica).
 
-**2. `src/components/hub/CreateBusinessModal.tsx` — crear negocio**
-- Misma sustitución: input libre + chips de sugerencias.
+Esto garantiza que el sidebar funcione con cualquier `business_type`, incluido el legacy `estaurente/safetería`.
 
-**3. `src/components/onboarding/OnboardingWizard.tsx` — onboarding inicial**
-- Misma sustitución: input libre + chips de sugerencias.
+### 2. Admin de módulos (`AdminModules`)
+- Ocultar la sección "Tipos de negocio" del editor de módulo (segunda imagen) — ya no se usa para filtrar.
+- Mantener: Ícono, Nombre, Descripción, País, Asignación específica, configuración por plan.
+- No borrar la columna `business_type_keys` en BD (regla irrompible: solo añadir). Solo dejar de leerla/escribirla desde la UI.
 
-**4. Visualización del tipo (Sidebar líneas 750-806, etc.)**
-- El mapping actual traduce `key` → label bonito ("Tienda", "Restaurante / Cafetería"...). Si el valor no coincide con ningún key conocido, mostrar el string tal cual (capitalizado). Pequeño helper `formatBusinessTypeLabel(type)`.
+### 3. Compatibilidad legacy
+- `estaurente/safetería` sigue activando KDS/Cocina (regla irrompible). Esa lógica vive en otros lugares (Pedidos, kitchen_orders) y se mantiene intacta — solo aplica si el `business_type` es exactamente ese key.
+- Otros módulos especiales por tipo (ej. inventario por área) se mantienen igual; solo cambia la **lista base de módulos visibles**.
 
-### Lo que NO se toca
-- Tabla `business_type_configs` (sigue con sus 4 entradas para módulos).
-- Lógica de módulos por tipo (solo se activan módulos especiales si el tipo coincide con un `key` conocido).
-- Roles, auth, POS, inventario.
+## Archivos
+- `src/components/layout/AppSidebar.tsx` (resolución de módulos).
+- Hook de módulos si existe separado (a confirmar al explorar).
+- `src/pages/admin/AdminModules.tsx` (ocultar selector de tipos de negocio).
 
-### Archivos
-- `src/components/layout/AppSidebar.tsx`
-- `src/components/hub/CreateBusinessModal.tsx`
-- `src/components/onboarding/OnboardingWizard.tsx`
+## Lo que NO se toca
+- Tablas BD (no borrar columnas).
+- Lógica KDS/Cocina/restaurante.
+- Roles, jornada, POS, inventario, planes.
+- Filtros por país y plan.
 
