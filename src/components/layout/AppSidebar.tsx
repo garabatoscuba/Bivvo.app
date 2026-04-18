@@ -314,9 +314,10 @@ const AppSidebar = () => {
     setNewBizOpen(true);
   };
 
-  const openEditBiz = (biz: { id: string; name: string }) => {
+  const openEditBiz = (biz: { id: string; name: string; business_type?: string }) => {
     setEditBizId(biz.id);
     setEditBizName(biz.name);
+    setEditBizType(biz.business_type || "store");
     setEditBizOpen(true);
   };
 
