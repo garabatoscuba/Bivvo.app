@@ -155,22 +155,32 @@ const CreateBusinessModal = ({ open, onOpenChange }: CreateBusinessModalProps) =
 
           {/* Type */}
           <div className="space-y-1.5">
-            <Label className="text-[13px]">Tipo de negocio</Label>
-            <Select value={businessType} onValueChange={setBusinessType}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
+            <Label htmlFor="biz-type" className="text-[13px]">Tipo de negocio</Label>
+            <Input
+              id="biz-type"
+              value={businessType}
+              onChange={(e) => setBusinessType(e.target.value)}
+              placeholder="Ej: Barbería, Floristería, Taller..."
+            />
+            {businessTypes.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <span className="text-[11px] text-muted-foreground self-center">Sugerencias:</span>
                 {businessTypes.map((bt) => (
-                  <SelectItem key={bt.key} value={bt.key}>
+                  <button
+                    key={bt.key}
+                    type="button"
+                    onClick={() => setBusinessType(bt.key)}
+                    className={`px-2 py-0.5 rounded-full text-[11px] border transition-colors ${
+                      businessType === bt.key
+                        ? "bg-primary/10 border-primary/40 text-primary"
+                        : "border-border hover:border-primary/30 hover:bg-muted"
+                    }`}
+                  >
                     {bt.name}
-                  </SelectItem>
+                  </button>
                 ))}
-                {businessTypes.length === 0 && (
-                  <SelectItem value="store">Tienda</SelectItem>
-                )}
-              </SelectContent>
-            </Select>
+              </div>
+            )}
           </div>
 
           {/* Address */}
