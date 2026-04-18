@@ -228,8 +228,8 @@ const AppSidebar = () => {
   });
 
   const updateBizMutation = useMutation({
-    mutationFn: async ({ id, name }: { id: string; name: string }) => {
-      const { error } = await supabase.from("businesses").update({ name }).eq("id", id);
+    mutationFn: async ({ id, name, business_type }: { id: string; name: string; business_type: string }) => {
+      const { error } = await supabase.from("businesses").update({ name, business_type }).eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
