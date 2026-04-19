@@ -263,7 +263,7 @@ const Hub = () => {
     <div ref={scrollRef} className="h-screen overflow-y-auto hub-bg hub-text pb-0 overflow-x-hidden">
       {/* TOPBAR — solid sidebar color */}
       <div className={`hub-topbar-solid sticky top-0 z-50 px-4 md:px-10 py-3 backdrop-blur-md transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] will-change-transform ${hideTopbar ? "-translate-y-full" : "translate-y-0"}`}>
-        <div className="grid grid-cols-2 md:grid-cols-[1fr_2fr_1fr] items-center gap-3 md:gap-4">
+        <div className="flex flex-wrap md:grid md:grid-cols-[1fr_2fr_1fr] items-center justify-between gap-3 md:gap-4">
           {/* Logo */}
           <div className="flex items-center md:order-1">
             <img
@@ -275,14 +275,15 @@ const Hub = () => {
           </div>
 
           {/* Right cluster */}
-          <div className="flex items-center gap-1 justify-end md:order-3">
-            {/* Theme switch */}
+          <div className="flex items-center gap-0.5 sm:gap-1 justify-end md:order-3">
+            {/* Theme switch — icon only on mobile, full pill from sm */}
             <button
               className="flex items-center gap-1.5 px-1.5 h-8 rounded-lg hub-btn-hover cursor-pointer"
               onClick={() => setTheme(isDark ? "light" : "dark")}
+              aria-label="Cambiar tema"
             >
               {isDark ? <Moon className="h-[13px] w-[13px] hub-text-dim" /> : <Sun className="h-[13px] w-[13px] hub-text-dim" />}
-              <div className={`w-[26px] h-[15px] rounded-full relative flex-shrink-0 ${isDark ? "bg-[hsl(var(--primary)/0.25)] border border-[hsl(var(--primary)/0.3)]" : "hub-switch-track"}`}>
+              <div className={`hidden sm:block w-[26px] h-[15px] rounded-full relative flex-shrink-0 ${isDark ? "bg-[hsl(var(--primary)/0.25)] border border-[hsl(var(--primary)/0.3)]" : "hub-switch-track"}`}>
                 <div className={`absolute top-[2px] w-[9px] h-[9px] rounded-full transition-all ${isDark ? "left-[13px] bg-[hsl(var(--primary))]" : "left-[2px] hub-switch-thumb"}`} />
               </div>
             </button>

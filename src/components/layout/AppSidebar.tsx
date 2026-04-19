@@ -235,8 +235,13 @@ const AppSidebar = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["user-businesses-with-branches"] });
+      queryClient.invalidateQueries({ queryKey: ["sidebar-modules"] });
+      queryClient.invalidateQueries({ queryKey: ["manager-business-type"] });
+      queryClient.invalidateQueries({ queryKey: ["app-sidebar-employee-session-record"] });
       toast({ title: "Negocio actualizado" });
       setEditBizOpen(false);
+      // Reload to ensure all business_type-derived state refreshes cleanly
+      setTimeout(() => window.location.reload(), 300);
     },
     onError: (err: any) => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
