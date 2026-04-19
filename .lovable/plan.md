@@ -1,40 +1,46 @@
 
 
-## Problema
-Al permitir nombre libre de tipo de negocio (ej "Local del Tecnología"), el sidebar se queda en blanco porque la resolución de módulos depende de `business_type_configs.module_ids` filtrando por `key` exacto. Si el `business_type` no coincide con `store`/`estaurente/safetería`/`copy_shop`/`gym`, no encuentra módulos y no renderiza nada.
+## Diagnóstico
 
-Además, en el admin (segunda imagen) cada módulo tiene checkboxes "Tipos de negocio" para limitar dónde aparece. Esto ya no tiene sentido si Bivoo es genérico.
+### Problema 1 — Hub móvil
+En `Hub.tsx` el topbar usa `grid-cols-2` en móvil con el cluster derecho saturado (theme switch ancho + cloud + soporte + avatar). En 360–414px se desborda y rompe el layout.
 
-## Decisión
-Bivoo pasa a ser **genérico**: todos los módulos disponibles para todos los negocios (sujeto a plan, rol y país). El `business_type` queda solo como **etiqueta visual**.
+### Problema 2 — Sidebar en blanco al renombrar tipo
+La query `sidebar-modules` ya no filtra por `business_type` (correcto). Pero al guardar el cambio en el modal de edición:
+- `updateBizMutation` invalida `user-businesses-with-branches` pero **no recarga** la página ni invalida otras queries cacheadas (`manager-business-type`, `sidebar-modules`).
+- El `activeBusiness` se actualiza en cliente, pero queries que dependen de `resolvedBusiness?.business_type` (ej. `isOwnerRestaurant` línea 471) no se reevalúan limpiamente.
+- Resultado: el sidebar puede quedar en estado intermedio sin renderizar `businessItems`.
+
+Además, el `useSubscription` puede devolver `loading: true` momentáneamente si `serverNow` no está, y como la query `sidebar-modules` está `enabled: !!planType`, mientras `planType` no esté disponible no carga módulos. Al recargar la página tras editar, esto se nota más.
 
 ## Cambios
 
-### 1. Resolución de módulos (sidebar)
-Localizar la query en `AppSidebar.tsx` (o hook relacionado) que hace `business_type_configs → module_ids → platform_modules`. Reemplazar por:
-- Cargar **todos** los `platform_modules` activos directamente.
-- Filtrar por `module_plugin_pricing` según plan del negocio (excluir `unavailable`/`not_available`).
-- Mantener filtros por rol, país y jornada (sin tocar esa lógica).
+### 1. `src/pages/Hub.tsx` — topbar móvil compacto
+- En móvil (`< sm` = 640px) reducir el cluster derecho:
+  - **Theme switch**: en móvil mostrar solo el icono (sun/moon) sin el toggle pill. El pill solo desde `sm:`.
+  - Quitar el divider entre cloud/soporte y avatar en móvil (ya está `hidden sm:block`, OK).
+  - Reducir `gap` del cluster de `gap-1` a `gap-0.5` en móvil.
+- Mantener el avatar siempre visible (sin nombre en móvil, ya está `hidden sm:inline`).
+- Layout: cambiar `grid-cols-2` por `flex items-center justify-between` en móvil para mejor distribución, y mantener el grid `md:grid-cols-[1fr_2fr_1fr]` desde `md:`.
+- Search siempre debajo en móvil (ya está `col-span-2`), conservar comportamiento.
 
-Esto garantiza que el sidebar funcione con cualquier `business_type`, incluido el legacy `estaurente/safetería`.
+### 2. `src/components/layout/AppSidebar.tsx` — refresh tras editar tipo
+- En `updateBizMutation.onSuccess` (línea 236) invalidar también:
+  - `["sidebar-modules"]`
+  - `["manager-business-type"]`
+  - `["app-sidebar-employee-session-record"]`
+- Tras guardar, hacer `window.location.reload()` (igual que `switchBusiness`) para garantizar que toda la cadena de queries y el contexto auth se reevalúen con el nuevo `business_type`. Es la solución más robusta y consistente con el patrón ya usado en el archivo.
 
-### 2. Admin de módulos (`AdminModules`)
-- Ocultar la sección "Tipos de negocio" del editor de módulo (segunda imagen) — ya no se usa para filtrar.
-- Mantener: Ícono, Nombre, Descripción, País, Asignación específica, configuración por plan.
-- No borrar la columna `business_type_keys` en BD (regla irrompible: solo añadir). Solo dejar de leerla/escribirla desde la UI.
-
-### 3. Compatibilidad legacy
-- `estaurente/safetería` sigue activando KDS/Cocina (regla irrompible). Esa lógica vive en otros lugares (Pedidos, kitchen_orders) y se mantiene intacta — solo aplica si el `business_type` es exactamente ese key.
-- Otros módulos especiales por tipo (ej. inventario por área) se mantienen igual; solo cambia la **lista base de módulos visibles**.
-
-## Archivos
-- `src/components/layout/AppSidebar.tsx` (resolución de módulos).
-- Hook de módulos si existe separado (a confirmar al explorar).
-- `src/pages/admin/AdminModules.tsx` (ocultar selector de tipos de negocio).
+### 3. Helper de etiqueta (opcional, mejora visual)
+- En `AppSidebar.tsx` extraer las cadenas ternarias de `business_type → label` (líneas 747-755 y 793-801) a un helper local `formatBusinessTypeLabel(type)`. Si el tipo no coincide con un key conocido, retornar el string capitalizado tal cual. Sin cambios funcionales — solo limpieza.
 
 ## Lo que NO se toca
-- Tablas BD (no borrar columnas).
-- Lógica KDS/Cocina/restaurante.
-- Roles, jornada, POS, inventario, planes.
-- Filtros por país y plan.
+- Lógica de módulos por plan (ya genérica, correcta).
+- KDS/Cocina (sigue dependiendo de `estaurente/safetería` exacto — regla irrompible).
+- Roles, jornada, POS, inventario.
+- Tabla `business_type_configs` ni schemas.
+
+## Archivos
+- `src/pages/Hub.tsx` (topbar móvil).
+- `src/components/layout/AppSidebar.tsx` (invalidación + reload tras editar tipo, helper de label).
 
