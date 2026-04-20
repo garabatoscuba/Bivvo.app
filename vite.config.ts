@@ -57,7 +57,7 @@ export default defineConfig(({ mode }) => ({
             urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'supabase-api-cache',
+              cacheName: 'supabase-api-cache-v2',
               expiration: {
                 maxEntries: 200,
                 maxAgeSeconds: 60 * 60 * 24, // 24 hours
@@ -73,7 +73,7 @@ export default defineConfig(({ mode }) => ({
             urlPattern: /^https:\/\/.*\.supabase\.co\/auth\/v1\/.*/i,
             handler: 'NetworkFirst',
             options: {
-              cacheName: 'supabase-auth-cache',
+              cacheName: 'supabase-auth-cache-v2',
               expiration: {
                 maxEntries: 10,
                 maxAgeSeconds: 60 * 60, // 1 hour

@@ -88,11 +88,28 @@ function loadAllOfflineCredentials(): OfflineCredential[] {
   }
 }
 
+function isValidSession(data: any): data is OfflineSessionData {
+  return !!(
+    data &&
+    typeof data === "object" &&
+    data.user?.id &&
+    data.session?.access_token &&
+    data.profile?.user_id &&
+    data.profile?.email
+  );
+}
+
 export function loadOfflineSession(): OfflineSessionData | null {
   try {
     const raw = localStorage.getItem(OFFLINE_SESSION_KEY);
     if (!raw) return null;
-    return JSON.parse(raw) as OfflineSessionData;
+    const parsed = JSON.parse(raw);
+    if (!isValidSession(parsed)) {
+      console.warn("[offlineSession] Discarded invalid cached session");
+      localStorage.removeItem(OFFLINE_SESSION_KEY);
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -112,8 +129,10 @@ export function loadOfflineSessionByEmail(email: string): OfflineSessionData | n
   try {
     const raw = localStorage.getItem(OFFLINE_SESSION_MULTI_KEY);
     if (!raw) return null;
-    const all: Record<string, OfflineSessionData> = JSON.parse(raw);
-    return all[normalizedEmail] || null;
+    const all: Record<string, any> = JSON.parse(raw);
+    const candidate = all[normalizedEmail];
+    if (!candidate || !isValidSession(candidate)) return null;
+    return candidate;
   } catch {
     return null;
   }
