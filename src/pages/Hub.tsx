@@ -259,6 +259,29 @@ const Hub = () => {
     return <AppLoader />;
   }
 
+  if (!profile?.user_id || !profile?.email) {
+    return (
+      <div className="h-screen flex items-center justify-center hub-bg hub-text px-6">
+        <div className="max-w-md text-center space-y-4">
+          <h1 className="text-2xl font-semibold">No se pudo cargar tu Hub</h1>
+          <p className="text-sm text-muted-foreground">
+            Detectamos datos antiguos en tu dispositivo. Pulsa el botón para limpiar la caché y recargar.
+            Tu sesión se mantendrá activa.
+          </p>
+          <button
+            onClick={async () => {
+              const { manualRepairAndReload } = await import("@/lib/cacheReset");
+              await manualRepairAndReload();
+            }}
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-md bg-primary text-primary-foreground hover:opacity-90 transition"
+          >
+            Reparar y recargar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div ref={scrollRef} className="h-screen overflow-y-auto hub-bg hub-text pb-0 overflow-x-hidden">
       {/* TOPBAR — solid sidebar color */}
