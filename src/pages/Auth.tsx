@@ -40,7 +40,7 @@ const Auth = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [whatIsOpen, setWhatIsOpen] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  // terms acceptance is implicit on continue
   const [termsOpen, setTermsOpen] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
