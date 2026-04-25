@@ -77,7 +77,38 @@ const CreateBusinessModal = ({ open, onOpenChange }: CreateBusinessModalProps) =
     try {
       const keywordsStr = keywords.length > 0 ? keywords.join(", ") : null;
 
-      // Create business
+      // Check how many businesses the user already owns
+      const { count: ownedCount } = await supabase
+        .from("businesses")
+        .select("id", { count: "exact", head: true })
+        .eq("owner_id", profile.id);
+
+      const isFirst = (ownedCount ?? 0) === 0;
+
+      if (!isFirst) {
+        // Subsequent businesses require admin approval
+        const { error: reqErr } = await supabase
+          .from("business_requests")
+          .insert({
+            user_id: profile.user_id,
+            request_type: "business",
+            business_name: name.trim(),
+            business_type: businessType,
+            status: "pending",
+            is_free: false,
+          });
+        if (reqErr) throw reqErr;
+
+        toast.success("Solicitud enviada", {
+          description:
+            "Tu primer negocio es gratis. Para crear negocios adicionales, la administración debe revisar y aprobar tu solicitud. Te notificaremos cuando esté lista.",
+          duration: 8000,
+        });
+        onOpenChange(false);
+        return;
+      }
+
+      // First business: create directly
       const { data: newBiz, error: bizErr } = await supabase
         .from("businesses")
         .insert({

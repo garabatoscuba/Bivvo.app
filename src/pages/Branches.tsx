@@ -67,15 +67,28 @@ const Branches = () => {
           .eq('id', editing.id);
         if (error) throw error;
         toast.success('Sucursal actualizada');
+        queryClient.invalidateQueries({ queryKey: ['branches'] });
+        setDialogOpen(false);
       } else {
+        // New branches require admin approval
         const { error } = await supabase
-          .from('branches')
-          .insert({ business_id: profile.business_id, name: name.trim(), address: address.trim() || null, phone: phone.trim() || null });
+          .from('business_requests')
+          .insert({
+            user_id: profile.user_id,
+            request_type: 'branch',
+            branch_business_id: profile.business_id,
+            branch_name: name.trim(),
+            status: 'pending',
+            is_free: false,
+          });
         if (error) throw error;
-        toast.success('Sucursal creada');
+        toast.success('Solicitud enviada', {
+          description:
+            'La creación de sucursales adicionales requiere aprobación de la administración. Te notificaremos cuando esté lista.',
+          duration: 8000,
+        });
+        setDialogOpen(false);
       }
-      queryClient.invalidateQueries({ queryKey: ['branches'] });
-      setDialogOpen(false);
     } catch (err: any) {
       toast.error(err.message || 'Error al guardar');
     } finally {
@@ -112,7 +125,7 @@ const Branches = () => {
         {canManage && (
           <div className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-sm text-muted-foreground">
             <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
-            <span>Cada sucursal adicional incrementará el costo de tu plan.</span>
+            <span>Crear una sucursal adicional requiere aprobación de la administración e incrementará el costo de tu plan.</span>
           </div>
         )}
 
@@ -181,7 +194,9 @@ const Branches = () => {
           <DialogHeader>
             <DialogTitle>{editing ? 'Editar Sucursal' : 'Nueva Sucursal'}</DialogTitle>
             <DialogDescription>
-              {editing ? 'Actualiza los datos de la sucursal.' : 'Agrega una nueva sucursal a tu negocio.'}
+              {editing
+                ? 'Actualiza los datos de la sucursal.'
+                : 'Tu solicitud será revisada por la administración antes de crear la sucursal.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -201,7 +216,7 @@ const Branches = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Crear sucursal'}
+              {saving ? 'Enviando...' : editing ? 'Guardar cambios' : 'Enviar solicitud'}
             </Button>
           </DialogFooter>
         </DialogContent>
