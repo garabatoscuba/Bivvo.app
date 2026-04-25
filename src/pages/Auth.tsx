@@ -304,7 +304,7 @@ const Auth = () => {
                   {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
                   Continuar con Google
                 </Button>
-                <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading || !termsAccepted || isOffline}>
+                <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading || isOffline}>
                   {appleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Apple className="mr-2 h-4 w-4" />}
                   Continuar con Apple
                 </Button>
