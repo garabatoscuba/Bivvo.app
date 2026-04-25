@@ -98,6 +98,8 @@ const AppSidebar = () => {
   const [editBizId, setEditBizId] = useState("");
   const [editBizName, setEditBizName] = useState("");
   const [editBizType, setEditBizType] = useState("");
+  const [editBizKeywords, setEditBizKeywords] = useState<string[]>([]);
+  const [editBizKeywordsInput, setEditBizKeywordsInput] = useState("");
 
   // Branch dialog state
   const [branchDialogOpen, setBranchDialogOpen] = useState(false);
