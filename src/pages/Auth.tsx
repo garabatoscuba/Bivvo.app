@@ -14,7 +14,7 @@ import { z } from "zod";
 import logoLight from "@/assets/logo-light.png";
 import logoDark from "@/assets/logo-dark.png";
 import WhatIsBivooPanel from "@/components/auth/WhatIsBivooPanel";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { loadOfflineSession } from "@/lib/offlineSession";
@@ -40,7 +40,7 @@ const Auth = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
   const [whatIsOpen, setWhatIsOpen] = useState(false);
-  const [termsAccepted, setTermsAccepted] = useState(false);
+  // terms acceptance is implicit on continue
   const [termsOpen, setTermsOpen] = useState(false);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
 
@@ -253,25 +253,18 @@ const Auth = () => {
             </div>
           )}
 
-          {/* Terms checkbox + modal */}
-          <div className="flex items-center justify-center gap-2">
-            <Checkbox
-              id="terms"
-              checked={termsAccepted}
-              onCheckedChange={(v) => setTermsAccepted(v === true)}
-              className="mt-0.5"
-            />
-            <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight cursor-pointer">
-              He leído y acepto los{" "}
-              <button
-                type="button"
-                onClick={(e) => { e.preventDefault(); setTermsOpen(true); }}
-                className="text-primary underline underline-offset-2 hover:text-primary/80"
-              >
-                Términos de uso y Aviso Legal
-              </button>
-            </label>
-          </div>
+          {/* Terms notice */}
+          <p className="text-xs text-muted-foreground leading-tight text-center px-2">
+            Al continuar, aceptas los{" "}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); setTermsOpen(true); }}
+              className="text-primary underline underline-offset-2 hover:text-primary/80"
+            >
+              Términos de uso y Condiciones Legales
+            </button>
+            .
+          </p>
 
           <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
             <DialogContent className="max-w-lg">
@@ -307,11 +300,11 @@ const Auth = () => {
           {step === "email" && (
             <>
               <div className="space-y-3">
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading || !termsAccepted || isOffline}>
+                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading || isOffline}>
                   {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
                   Continuar con Google
                 </Button>
-                <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading || !termsAccepted || isOffline}>
+                <Button variant="outline" className="w-full" onClick={handleAppleSignIn} disabled={appleLoading || isOffline}>
                   {appleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Apple className="mr-2 h-4 w-4" />}
                   Continuar con Apple
                 </Button>
@@ -340,7 +333,7 @@ const Auth = () => {
                     autoFocus
                   />
                 </div>
-                <Button type="submit" className="w-full gap-2" disabled={!termsAccepted}>
+                <Button type="submit" className="w-full gap-2">
                   Continuar <ArrowRight className="h-4 w-4" />
                 </Button>
               </form>
