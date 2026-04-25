@@ -49,17 +49,12 @@ const CreateBusinessModal = ({ open, onOpenChange }: CreateBusinessModalProps) =
   const [keywords, setKeywords] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const { data: businessTypes = [] } = useQuery({
-    queryKey: ["create-biz-types"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("business_type_configs")
-        .select("key, name, icon")
-        .eq("is_active", true)
-        .order("sort_order");
-      return data || [];
-    },
-  });
+  const businessTypes = [
+    { key: "Tienda", name: "Tienda" },
+    { key: "Restaurante", name: "Restaurante" },
+    { key: "Cocina", name: "Cocina" },
+  ];
+
 
   const handleKeywordsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "," || e.key === "Enter") {
