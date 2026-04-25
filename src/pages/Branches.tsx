@@ -194,7 +194,9 @@ const Branches = () => {
           <DialogHeader>
             <DialogTitle>{editing ? 'Editar Sucursal' : 'Nueva Sucursal'}</DialogTitle>
             <DialogDescription>
-              {editing ? 'Actualiza los datos de la sucursal.' : 'Agrega una nueva sucursal a tu negocio.'}
+              {editing
+                ? 'Actualiza los datos de la sucursal.'
+                : 'Tu solicitud será revisada por la administración antes de crear la sucursal.'}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -214,7 +216,7 @@ const Branches = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancelar</Button>
             <Button onClick={handleSave} disabled={saving}>
-              {saving ? 'Guardando...' : editing ? 'Guardar cambios' : 'Crear sucursal'}
+              {saving ? 'Enviando...' : editing ? 'Guardar cambios' : 'Enviar solicitud'}
             </Button>
           </DialogFooter>
         </DialogContent>
