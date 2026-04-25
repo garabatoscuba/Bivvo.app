@@ -300,7 +300,7 @@ const Auth = () => {
           {step === "email" && (
             <>
               <div className="space-y-3">
-                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading || !termsAccepted || isOffline}>
+                <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={googleLoading || isOffline}>
                   {googleLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Chrome className="mr-2 h-4 w-4" />}
                   Continuar con Google
                 </Button>
