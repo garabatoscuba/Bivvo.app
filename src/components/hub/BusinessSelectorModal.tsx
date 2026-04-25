@@ -49,12 +49,12 @@ const BusinessSelectorModal = ({ open, onOpenChange, businesses, onCreateNew }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md w-[calc(100vw-2rem)] max-h-[90vh] flex flex-col p-4 sm:p-6">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-md w-[calc(100vw-2rem)] p-4 sm:p-6">
+        <DialogHeader>
           <DialogTitle>Elige un negocio</DialogTitle>
         </DialogHeader>
 
-        <div className="flex flex-col gap-2 flex-1 overflow-y-auto -mx-1 px-1">
+        <div className="flex flex-col gap-2 min-h-0 overflow-y-auto -mx-1 px-1">
           {businesses.map((b) => {
             const isActive = profile?.business_id === b.id;
             const isLoading = loadingId === b.id;
