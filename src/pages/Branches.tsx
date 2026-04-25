@@ -125,7 +125,7 @@ const Branches = () => {
         {canManage && (
           <div className="flex items-start gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-3 text-sm text-muted-foreground">
             <AlertTriangle className="h-4 w-4 text-yellow-500 mt-0.5 shrink-0" />
-            <span>Cada sucursal adicional incrementará el costo de tu plan.</span>
+            <span>Crear una sucursal adicional requiere aprobación de la administración e incrementará el costo de tu plan.</span>
           </div>
         )}
 
