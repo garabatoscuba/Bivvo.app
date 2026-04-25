@@ -52,7 +52,7 @@ const CreateBusinessModal = ({ open, onOpenChange }: CreateBusinessModalProps) =
   const businessTypes = [
     { key: "Tienda", name: "Tienda" },
     { key: "Restaurante", name: "Restaurante" },
-    { key: "Cocina", name: "Cocina" },
+    { key: "Cafetería", name: "Cafetería" },
   ];
 
 
