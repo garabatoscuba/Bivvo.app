@@ -253,25 +253,18 @@ const Auth = () => {
             </div>
           )}
 
-          {/* Terms checkbox + modal */}
-          <div className="flex items-center justify-center gap-2">
-            <Checkbox
-              id="terms"
-              checked={termsAccepted}
-              onCheckedChange={(v) => setTermsAccepted(v === true)}
-              className="mt-0.5"
-            />
-            <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight cursor-pointer">
-              He leído y acepto los{" "}
-              <button
-                type="button"
-                onClick={(e) => { e.preventDefault(); setTermsOpen(true); }}
-                className="text-primary underline underline-offset-2 hover:text-primary/80"
-              >
-                Términos de uso y Aviso Legal
-              </button>
-            </label>
-          </div>
+          {/* Terms notice */}
+          <p className="text-xs text-muted-foreground leading-tight text-center px-2">
+            Al continuar, aceptas los{" "}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); setTermsOpen(true); }}
+              className="text-primary underline underline-offset-2 hover:text-primary/80"
+            >
+              Términos de uso y Condiciones Legales
+            </button>
+            .
+          </p>
 
           <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
             <DialogContent className="max-w-lg">
