@@ -333,7 +333,7 @@ const Auth = () => {
                     autoFocus
                   />
                 </div>
-                <Button type="submit" className="w-full gap-2" disabled={!termsAccepted}>
+                <Button type="submit" className="w-full gap-2">
                   Continuar <ArrowRight className="h-4 w-4" />
                 </Button>
               </form>
