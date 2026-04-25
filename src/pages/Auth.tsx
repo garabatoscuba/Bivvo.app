@@ -14,7 +14,7 @@ import { z } from "zod";
 import logoLight from "@/assets/logo-light.png";
 import logoDark from "@/assets/logo-dark.png";
 import WhatIsBivooPanel from "@/components/auth/WhatIsBivooPanel";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { loadOfflineSession } from "@/lib/offlineSession";
