@@ -1088,7 +1088,7 @@ const AppSidebar = () => {
             <DialogTitle>Configurar Negocio</DialogTitle>
             <DialogDescription>Edita el nombre y tipo de tu negocio.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-3 py-2">
+          <div className="space-y-3 py-2 max-h-[65vh] overflow-y-auto">
             <div className="space-y-1.5">
               <Label className="text-sm">Nombre del negocio</Label>
               <Input value={editBizName} onChange={(e) => setEditBizName(e.target.value)} />
@@ -1100,26 +1100,58 @@ const AppSidebar = () => {
                 onChange={(e) => setEditBizType(e.target.value)}
                 placeholder="Ej: Barbería, Floristería, Taller..."
               />
-              {availableBusinessTypes.length > 0 && (
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  <span className="text-[11px] text-muted-foreground self-center">Sugerencias:</span>
-                  {availableBusinessTypes.map((bt) => (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                <span className="text-[11px] text-muted-foreground self-center">Sugerencias:</span>
+                {[
+                  { key: "Tienda", name: "Tienda" },
+                  { key: "Restaurante", name: "Restaurante" },
+                  { key: "Cafetería", name: "Cafetería" },
+                ].map((bt) => (
+                  <button
+                    key={bt.key}
+                    type="button"
+                    onClick={() => setEditBizType(bt.key)}
+                    className={cn(
+                      "px-2 py-0.5 rounded-full text-[11px] border transition-colors",
+                      editBizType === bt.key
+                        ? "bg-primary/10 border-primary/40 text-primary"
+                        : "border-border hover:border-primary/30 hover:bg-muted",
+                    )}
+                  >
+                    {bt.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm">Palabras clave</Label>
+              <div className="flex flex-wrap gap-1.5 min-h-[36px] p-2 rounded-md border border-input bg-background">
+                {editBizKeywords.map((kw) => (
+                  <span
+                    key={kw}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[11px]"
+                  >
+                    {kw}
                     <button
-                      key={bt.key}
                       type="button"
-                      onClick={() => setEditBizType(bt.key)}
-                      className={cn(
-                        "px-2 py-0.5 rounded-full text-[11px] border transition-colors",
-                        editBizType === bt.key
-                          ? "bg-primary/10 border-primary/40 text-primary"
-                          : "border-border hover:border-primary/30 hover:bg-muted",
-                      )}
+                      onClick={() => removeEditKeyword(kw)}
+                      className="hover:text-destructive"
                     >
-                      {bt.name}
+                      <X className="h-3 w-3" />
                     </button>
-                  ))}
-                </div>
-              )}
+                  </span>
+                ))}
+                <input
+                  value={editBizKeywordsInput}
+                  onChange={(e) => setEditBizKeywordsInput(e.target.value)}
+                  onKeyDown={handleEditKeywordsKeyDown}
+                  placeholder={editBizKeywords.length === 0 ? "Escribe y presiona coma o Enter" : ""}
+                  className="flex-1 min-w-[120px] bg-transparent outline-none text-sm placeholder:text-muted-foreground"
+                />
+              </div>
+              <p className="text-[11px] text-muted-foreground">
+                Ayudan a otros usuarios a encontrar tu negocio en el directorio de Bivoo.
+              </p>
             </div>
           </div>
           <DialogFooter>
@@ -1128,7 +1160,12 @@ const AppSidebar = () => {
             </Button>
             <Button
               size="sm"
-              onClick={() => updateBizMutation.mutate({ id: editBizId, name: editBizName, business_type: editBizType })}
+              onClick={() => updateBizMutation.mutate({
+                id: editBizId,
+                name: editBizName,
+                business_type: editBizType,
+                keywords: editBizKeywords.length > 0 ? editBizKeywords.join(", ") : null,
+              })}
               disabled={!editBizName.trim() || !editBizType || updateBizMutation.isPending}
             >
               {updateBizMutation.isPending ? "Guardando..." : "Guardar"}
