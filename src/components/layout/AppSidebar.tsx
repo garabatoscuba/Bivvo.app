@@ -322,11 +322,38 @@ const AppSidebar = () => {
     setNewBizOpen(true);
   };
 
-  const openEditBiz = (biz: { id: string; name: string; business_type?: string }) => {
+  const openEditBiz = async (biz: { id: string; name: string; business_type?: string }) => {
     setEditBizId(biz.id);
     setEditBizName(biz.name);
     setEditBizType(biz.business_type || "store");
+    setEditBizKeywordsInput("");
+    setEditBizKeywords([]);
     setEditBizOpen(true);
+    // Fetch current keywords
+    const { data } = await supabase
+      .from("businesses")
+      .select("keywords")
+      .eq("id", biz.id)
+      .maybeSingle();
+    const kwStr = (data as any)?.keywords as string | null | undefined;
+    if (kwStr) {
+      setEditBizKeywords(kwStr.split(",").map((s) => s.trim()).filter(Boolean));
+    }
+  };
+
+  const handleEditKeywordsKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "," || e.key === "Enter") {
+      e.preventDefault();
+      const val = editBizKeywordsInput.trim().replace(/,/g, "");
+      if (val && !editBizKeywords.includes(val)) {
+        setEditBizKeywords((prev) => [...prev, val]);
+      }
+      setEditBizKeywordsInput("");
+    }
+  };
+
+  const removeEditKeyword = (kw: string) => {
+    setEditBizKeywords((prev) => prev.filter((k) => k !== kw));
   };
 
   const openCreateBranch = (bizId: string) => {
