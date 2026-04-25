@@ -88,7 +88,7 @@ const BusinessSelectorModal = ({ open, onOpenChange, businesses, onCreateNew }: 
 
         <Button
           variant="outline"
-          className="w-full gap-2 mt-2"
+          className="w-full gap-2 mt-2 flex-shrink-0"
           onClick={() => {
             onOpenChange(false);
             onCreateNew();
