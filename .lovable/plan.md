@@ -1,50 +1,42 @@
-
-
 ## Diagnóstico
 
-Usuarios antiguos no ven el Hub en móvil; usuarios nuevos sí. Causa raíz: **caché obsoleta acumulada en dispositivos antiguos**:
+### 1. Error al crear negocio (RLS violation)
+La tabla `businesses` **no tiene política INSERT** para usuarios normales. Las políticas existentes son solo:
+- SELECT (varias variantes para ver)
+- UPDATE (owners)
+- DELETE / ALL (solo super_admin)
+- **No hay INSERT para usuarios autenticados** → cualquier intento desde `CreateBusinessModal` falla con "new row violates row-level security policy for table businesses".
 
-1. **Service Worker viejo** (`vite-plugin-pwa` con `autoUpdate`): ya tiene `skipWaiting/clientsClaim`, pero usuarios que estuvieron offline o sin abrir la app durante el cambio Hub pueden tener un SW de hace semanas que sirve `index.html` cacheado apuntando a chunks JS que ya no existen → pantalla en blanco silenciosa.
-2. **`supabase-api-cache` y `supabase-auth-cache`**: respuestas viejas (perfiles sin campos nuevos, sesiones con `business_type` legacy) servidas por NetworkFirst cuando hay timeout (5s en móvil con mala señal = común).
-3. **localStorage `bivoo-offline-session`**: estructura vieja del perfil sin validación de shape al restaurar → `AuthContext` hidrata estado inválido y Hub falla al renderizar.
-4. **Sin guard de versión**: no hay forma de forzar reset del lado cliente cuando se hace un cambio estructural.
+Mismo problema potencial con `branches` (verificar y agregar si falta).
 
-Usuarios nuevos no tienen nada de esto cacheado → todo carga limpio.
+### 2. Módulos invisibles al usar nombre custom de tipo
+Revisé el código:
+- **`AppSidebar.tsx`** ya es genérico: lee TODOS los módulos activos de `platform_modules` y solo filtra por plan. **No depende del `business_type` ni de `business_type_configs.module_ids`**. ✓
+- Sin embargo, la pestaña **"Tipos de Negocio"** en `/admin/modules` sigue exponiendo configuración (`module_ids` por tipo) que ya no se usa para decidir qué ve cada negocio. Solo se usa en `AdminDashboard` y `BusinessDetailSheet` para mostrar estadísticas/info histórica.
+- Lo único que aún depende del nombre concreto `'estaurente/safetería'` es la lógica de Cocina (KDS restaurant). Eso se mantiene como excepción de comportamiento (no de visibilidad de módulos).
 
-## Solución: limpieza total automática por versión
+Conclusión: la pestaña ya no decide nada operativo. La quitamos del admin tal como pides.
 
-### 1. Bump de versión de app + guard al arranque (`src/main.tsx`)
-Añadir antes de `createRoot`:
-- Constante `APP_CACHE_VERSION = "2026-04-20-hub-v1"`.
-- Leer `localStorage["bivoo-cache-version"]`.
-- Si difiere o no existe (y existe alguna clave `bivoo-*` previa, indicando usuario antiguo):
-  - `await caches.keys()` → `caches.delete()` para todas.
-  - `navigator.serviceWorker.getRegistrations()` → `unregister()` todas.
-  - `indexedDB.databases()` → borrar las que empiecen por `bivoo` o sean del offline cache (preservando las de Supabase auth `sb-*` para no cerrar sesión).
-  - Limpiar `localStorage` excepto: claves `sb-*` (tokens Supabase), `bivoo-offline-credentials`, `bivoo-offline-session`, `bivoo-offline-session-multi` (para no romper login offline existente).
-  - Setear `localStorage["bivoo-cache-version"] = APP_CACHE_VERSION`.
-  - `window.location.reload()`.
-- Usuarios nuevos (sin claves previas) solo escriben la versión y siguen normal.
+## Cambios
 
-### 2. Validación shape en sesión offline (`src/lib/offlineSession.ts`)
-En `loadOfflineSession` y `loadOfflineSessionByEmail`: validar que `data.profile?.user_id` y `data.profile?.email` existan. Si no, devolver `null` (en vez de hidratar basura).
+### A. Migración SQL
+1. **Crear política INSERT en `public.businesses`** permitiendo a cualquier usuario autenticado insertar SI `owner_id = get_user_profile_id(auth.uid())` (es decir, solo se asigna a sí mismo como dueño).
+2. **Asegurar política INSERT en `public.branches`** para que el dueño del negocio pueda crear sucursales (`business_id IN (negocios cuyo owner_id sea el profile del usuario)`). Verificar si ya existe; si no, crearla.
+3. No se tocan políticas existentes ni otras tablas.
 
-### 3. Vite PWA: bump de `cacheName`
-En `vite.config.ts`, renombrar `supabase-api-cache` → `supabase-api-cache-v2` y `supabase-auth-cache` → `supabase-auth-cache-v2`. Workbox descarta automáticamente los caches con nombres viejos.
+### B. Admin: quitar pestaña "Tipos de Negocio"
+En `src/pages/admin/AdminModules.tsx`:
+- Eliminar el `TabsTrigger` "Tipos de Negocio" y su `TabsContent` correspondiente (todo el bloque de gestión de `business_type_configs`).
+- Mantener las pestañas: **Módulos**, **Plugins**, **Precios**.
+- No borrar la tabla `business_type_configs` (sigue alimentando sugerencias de nombre en `CreateBusinessModal` y `OnboardingWizard`, y stats en AdminDashboard).
 
-### 4. Hub defensivo (`src/pages/Hub.tsx`)
-Si `profile` es `null` o la query de negocios falla, mostrar estado vacío con mensaje "No se pudo cargar tu Hub" + botón "Reparar y recargar" que ejecuta la limpieza manual (mismo helper del paso 1, exportado).
-
-## Lo que NO se toca
-- Auth tokens Supabase (sesión activa se preserva).
-- Credenciales offline (login offline sigue funcionando).
-- Tablas BD, RLS, edge functions.
-- POS, Inventario, Tesorería, Jornadas, Roles.
-- Lógica de módulos por plan.
+### C. Lo que NO se toca
+- `CreateBusinessModal` (la lógica está bien, solo falla por RLS).
+- `AppSidebar` (ya es genérico).
+- Lógica de Cocina/Restaurante (sigue usando `business_type === 'estaurente/safetería'` como caso especial documentado).
+- `business_type_configs` como tabla (se conserva para sugerencias y stats).
+- POS, Inventario, Caja, Tesorería, Empleados, etc.
 
 ## Archivos
-- `src/main.tsx` — guard de versión + helper de limpieza.
-- `src/lib/offlineSession.ts` — validación shape.
-- `src/pages/Hub.tsx` — estado vacío + botón reparar.
-- `vite.config.ts` — bump nombres de cache.
-
+- `supabase/migrations/<nuevo>.sql` — políticas INSERT para `businesses` y (si falta) `branches`.
+- `src/pages/admin/AdminModules.tsx` — eliminar pestaña "Tipos de Negocio".
