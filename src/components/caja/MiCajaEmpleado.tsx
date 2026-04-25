@@ -86,9 +86,10 @@ const MiCajaEmpleado = ({ businessId, branchId }: MiCajaEmpleadoProps) => {
       if (!branchId || !activeRegister?.opened_at) return { cash: 0, transfer: 0 };
       const { data } = await supabase
         .from("service_entries")
-        .select("amount, payment_type")
+        .select("amount, payment_type, status")
         .eq("branch_id", branchId)
         .eq("user_id", profile!.user_id)
+        .neq("status", "cancelled")
         .gte("created_at", activeRegister.opened_at);
       const cash = data?.filter(s => s.payment_type === "cash").reduce((s, r) => s + Number(r.amount || 0), 0) || 0;
       const transfer = data?.filter(s => s.payment_type !== "cash").reduce((s, r) => s + Number(r.amount || 0), 0) || 0;

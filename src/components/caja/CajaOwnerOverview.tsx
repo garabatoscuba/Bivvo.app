@@ -162,8 +162,9 @@ const CajaOwnerOverview = () => {
       if (!selectedBranchId || !earliestOpen) return {};
       const { data } = await supabase
         .from("service_entries")
-        .select("user_id, amount, payment_type, created_at")
+        .select("user_id, amount, payment_type, created_at, status")
         .eq("branch_id", selectedBranchId)
+        .neq("status", "cancelled")
         .gte("created_at", earliestOpen);
       const map: Record<string, { cash: number; transfer: number }> = {};
       openRegisters.forEach((r) => {

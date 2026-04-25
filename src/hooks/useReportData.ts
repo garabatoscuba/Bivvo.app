@@ -72,8 +72,9 @@ export function useReportData(period: Period) {
     queryFn: async () => {
       let query = supabase
         .from('service_entries')
-        .select('id, created_at, amount, payment_type, user_id')
+        .select('id, created_at, amount, payment_type, user_id, status')
         .eq('business_id', businessId!)
+        .neq('status', 'cancelled')
         .order('created_at', { ascending: false });
       if (branchId) query = query.eq('branch_id', branchId);
       const { data } = await query;
