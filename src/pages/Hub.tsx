@@ -179,15 +179,28 @@ const Hub = () => {
     enabled: !!profile?.id,
   });
 
-  // Employments stat
+  // Employments stat — buscar por auth_user_id Y por email (fallback si aún no se vinculó)
   const { data: employments = [], isLoading: loadingEmp } = useQuery({
-    queryKey: ["hub-emp-stat", user?.id],
+    queryKey: ["hub-emp-stat", user?.id, profile?.email],
     queryFn: async () => {
       if (!user?.id) return [];
-      const res: any = await (supabase.from("employees") as any)
+      const found = new Map<string, { id: string }>();
+
+      const byAuth: any = await (supabase.from("employees") as any)
         .select("id")
         .eq("auth_user_id", user.id);
-      const data = (res.data || []) as { id: string }[];
+      ((byAuth.data || []) as { id: string }[]).forEach(e => found.set(e.id, e));
+
+      if (profile?.email) {
+        const byEmail: any = await (supabase.from("employees") as any)
+          .select("id, auth_user_id")
+          .ilike("email", profile.email);
+        ((byEmail.data || []) as { id: string; auth_user_id: string | null }[]).forEach(e => {
+          if (!found.has(e.id)) found.set(e.id, { id: e.id });
+        });
+      }
+
+      const data = Array.from(found.values());
       if (!data.length) return [];
       const empIds = data.map(e => e.id);
       const jr: any = await (supabase.from("jornadas") as any)
@@ -201,6 +214,8 @@ const Hub = () => {
       }));
     },
     enabled: !!user?.id,
+    refetchOnMount: "always",
+    staleTime: 0,
   });
 
   // Affiliations stat
