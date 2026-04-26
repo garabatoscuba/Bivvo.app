@@ -1086,7 +1086,9 @@ const Employees = () => {
                           const val = e.target.value;
                           setEmailSearch(val);
                           updateField('email', val);
-                          if (val.length < 3) {
+                          // Reset link if user edits the email manually
+                          setForm(prev => ({ ...prev, linked_user_id: '' }));
+                          if (val.length < 5) {
                             setEmailSuggestions([]);
                             setShowSuggestions(false);
                             return;
@@ -1105,7 +1107,7 @@ const Employees = () => {
                         }}
                         onFocus={() => { if (emailSuggestions.length > 0) setShowSuggestions(true); }}
                         onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                        placeholder="Buscar por correo electrónico..."
+                        placeholder="Escribe al menos 5 caracteres del correo..."
                         className="pl-9"
                       />
                       {searchingEmail && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
@@ -1135,10 +1137,10 @@ const Employees = () => {
                         ))}
                       </div>
                     )}
-                    {emailSearch.length >= 3 && !searchingEmail && emailSuggestions.length === 0 && emailSearch.includes('@') && (
-                      <div className="rounded-lg border border-dashed p-3 space-y-2">
-                        <p className="text-xs text-muted-foreground">
-                          No se encontró un usuario con este correo. Puedes registrar el empleado y se le enviará una invitación al guardar.
+                    {emailSearch.length >= 5 && !searchingEmail && emailSuggestions.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-destructive/40 p-3">
+                        <p className="text-xs text-destructive">
+                          No se encontró ningún usuario con este correo. El empleado debe registrarse primero en Bivoo con su cuenta antes de poder ser añadido.
                         </p>
                       </div>
                     )}
