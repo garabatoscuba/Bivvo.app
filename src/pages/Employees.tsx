@@ -441,6 +441,10 @@ const Employees = () => {
       sonnerToast.error('No. de contrato, nombre y CI son obligatorios');
       return;
     }
+    if (!editingEmployee && !form.linked_user_id) {
+      sonnerToast.error('Debes seleccionar un correo existente. El empleado debe haber creado su cuenta antes.');
+      return;
+    }
     if (!businessId) return;
 
     setSaving(true);
@@ -1082,7 +1086,9 @@ const Employees = () => {
                           const val = e.target.value;
                           setEmailSearch(val);
                           updateField('email', val);
-                          if (val.length < 3) {
+                          // Reset link if user edits the email manually
+                          setForm(prev => ({ ...prev, linked_user_id: '' }));
+                          if (val.length < 5) {
                             setEmailSuggestions([]);
                             setShowSuggestions(false);
                             return;
@@ -1101,7 +1107,7 @@ const Employees = () => {
                         }}
                         onFocus={() => { if (emailSuggestions.length > 0) setShowSuggestions(true); }}
                         onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                        placeholder="Buscar por correo electrónico..."
+                        placeholder="Escribe al menos 5 caracteres del correo..."
                         className="pl-9"
                       />
                       {searchingEmail && <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />}
@@ -1131,10 +1137,10 @@ const Employees = () => {
                         ))}
                       </div>
                     )}
-                    {emailSearch.length >= 3 && !searchingEmail && emailSuggestions.length === 0 && emailSearch.includes('@') && (
-                      <div className="rounded-lg border border-dashed p-3 space-y-2">
-                        <p className="text-xs text-muted-foreground">
-                          No se encontró un usuario con este correo. Puedes registrar el empleado y se le enviará una invitación al guardar.
+                    {emailSearch.length >= 5 && !searchingEmail && emailSuggestions.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-destructive/40 p-3">
+                        <p className="text-xs text-destructive">
+                          No se encontró ningún usuario con este correo. El empleado debe registrarse primero en Bivoo con su cuenta antes de poder ser añadido.
                         </p>
                       </div>
                     )}
@@ -1145,67 +1151,7 @@ const Employees = () => {
                 )}
               </div>
 
-              {/* Password update for linked employees */}
-              {editingEmployee?.auth_user_id && (
-                <div className="space-y-2">
-                  <Label htmlFor="new_password">Nueva Contraseña</Label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1">
-                      <Input
-                        id="new_password"
-                        type={showNewPassword ? "text" : "password"}
-                        value={form.new_password || ''}
-                        onChange={(e) => setForm(prev => ({ ...prev, new_password: e.target.value }))}
-                        placeholder="Mínimo 6 caracteres"
-                        minLength={6}
-                        className="pr-10"
-                      />
-                      <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                      </button>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      className="shrink-0"
-                      disabled={!form.new_password || form.new_password.length < 6 || updatingPassword}
-                      onClick={async () => {
-                        if (!editingEmployee?.auth_user_id || !form.new_password) return;
-                        setUpdatingPassword(true);
-                        try {
-                          const { data: sessionData } = await supabase.auth.getSession();
-                          const res = await fetch(
-                            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-employee-password`,
-                            {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                Authorization: `Bearer ${sessionData.session?.access_token}`,
-                              },
-                              body: JSON.stringify({
-                                auth_user_id: editingEmployee.auth_user_id,
-                                new_password: form.new_password,
-                              }),
-                            }
-                          );
-                          const result = await res.json();
-                          if (!res.ok) throw new Error(result.error || 'Error');
-                          toast({ title: 'Contraseña actualizada' });
-                          setForm(prev => ({ ...prev, new_password: '' }));
-                        } catch (err: any) {
-                          toast({ title: 'Error', description: err.message, variant: 'destructive' });
-                        } finally {
-                          setUpdatingPassword(false);
-                        }
-                      }}
-                    >
-                      {updatingPassword ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar'}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Cambia la contraseña de acceso del empleado.</p>
-                </div>
-              )}
+              {/* La contraseña la gestiona el propio empleado desde su cuenta */}
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
