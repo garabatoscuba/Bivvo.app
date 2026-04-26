@@ -186,8 +186,7 @@ const Hub = () => {
       if (!user?.id) return [];
       const res: any = await (supabase.from("employees") as any)
         .select("id")
-        .eq("auth_user_id", user.id)
-        .eq("is_active", true);
+        .eq("auth_user_id", user.id);
       const data = (res.data || []) as { id: string }[];
       if (!data.length) return [];
       const empIds = data.map(e => e.id);
