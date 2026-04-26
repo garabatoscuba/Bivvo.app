@@ -441,6 +441,10 @@ const Employees = () => {
       sonnerToast.error('No. de contrato, nombre y CI son obligatorios');
       return;
     }
+    if (!editingEmployee && !form.linked_user_id) {
+      sonnerToast.error('Debes seleccionar un correo existente. El empleado debe haber creado su cuenta antes.');
+      return;
+    }
     if (!businessId) return;
 
     setSaving(true);
