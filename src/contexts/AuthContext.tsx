@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           fetchRoles(freshSession.user.id),
         ]);
 
-        if (!mountedRef.current || !p) return;
+        if (!mountedRef.current || !p || p === 'error') return;
 
         setUser(freshSession.user);
         setSession(freshSession);
