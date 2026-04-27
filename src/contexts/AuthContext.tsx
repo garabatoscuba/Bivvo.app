@@ -234,6 +234,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             fetchRoles(existingSession.user.id),
           ]);
           if (!mountedRef.current) return;
+          if (p === 'error') {
+            // Transient fetch failure — try cached offline data instead of signing out
+            console.warn('[Auth] Initial profile fetch failed — falling back to cached session');
+            const cached = loadOfflineSession();
+            restoreOfflineState(cached);
+            return;
+          }
           if (!p) {
             await handleMissingProfile();
             return;
