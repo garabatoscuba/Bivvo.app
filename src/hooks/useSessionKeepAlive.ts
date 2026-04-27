@@ -12,61 +12,53 @@ import { supabase } from '@/integrations/supabase/client';
  *   caso de tabs/PWAs que estuvieron pausadas mucho tiempo.
  */
 export const useSessionKeepAlive = () => {
-  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastRefreshRef = useRef<number>(0);
+  const stateRef = useRef<{
+    interval: ReturnType<typeof setInterval> | null;
+    lastRefresh: number;
+  }>({ interval: null, lastRefresh: 0 });
 
   useEffect(() => {
-    const REFRESH_THRESHOLD_SEC = 5 * 60; // refrescar si quedan <5 min
-    const MIN_INTERVAL_MS = 2 * 60 * 1000; // no refrescar más seguido que cada 2 min
+    const REFRESH_THRESHOLD_SEC = 5 * 60;
+    const MIN_INTERVAL_MS = 2 * 60 * 1000;
 
     const maybeRefreshSession = async () => {
       if (!navigator.onLine) return;
 
-      // Throttle: evita ráfagas de refresh por focus/visibilitychange repetidos
       const now = Date.now();
-      if (now - lastRefreshRef.current < MIN_INTERVAL_MS) return;
+      if (now - stateRef.current.lastRefresh < MIN_INTERVAL_MS) return;
 
       try {
         const { data } = await supabase.auth.getSession();
         const session = data.session;
         if (!session) return;
 
-        const expiresAt = session.expires_at; // segundos epoch
+        const expiresAt = session.expires_at;
         const nowSec = Math.floor(now / 1000);
         const secondsLeft = expiresAt ? expiresAt - nowSec : 0;
 
-        if (secondsLeft > REFRESH_THRESHOLD_SEC) {
-          // Token todavía válido — no hacer nada (evita TOKEN_REFRESHED y re-renders).
-          return;
-        }
+        if (secondsLeft > REFRESH_THRESHOLD_SEC) return;
 
-        lastRefreshRef.current = now;
+        stateRef.current.lastRefresh = now;
         await supabase.auth.refreshSession();
       } catch {
-        // Silencioso — no romper la app si el refresh falla
+        // silencioso
       }
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible') {
-        maybeRefreshSession();
-      }
+      if (document.visibilityState === 'visible') maybeRefreshSession();
     };
-
-    const handleFocus = () => {
-      maybeRefreshSession();
-    };
+    const handleFocus = () => maybeRefreshSession();
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleFocus);
 
-    // Chequeo periódico cada 10 minutos
-    intervalRef.current = setInterval(maybeRefreshSession, 10 * 60 * 1000);
+    stateRef.current.interval = setInterval(maybeRefreshSession, 10 * 60 * 1000);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleFocus);
-      if (intervalRef.current) clearInterval(intervalRef.current);
+      if (stateRef.current.interval) clearInterval(stateRef.current.interval);
     };
   }, []);
 };
