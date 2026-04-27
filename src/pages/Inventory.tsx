@@ -160,8 +160,21 @@ const Inventory = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<(Product & { category: Category | null }) | null>(null);
-  const [mainTab, setMainTab] = useState<string>('products');
-  const [productTypeTab, setProductTypeTab] = useState<'reventa' | 'cocina'>('reventa');
+  const [mainTab, setMainTab] = useState<string>(() => {
+    try { return sessionStorage.getItem('inventory-main-tab') || 'products'; } catch { return 'products'; }
+  });
+  const [productTypeTab, setProductTypeTab] = useState<'reventa' | 'cocina'>(() => {
+    try {
+      const v = sessionStorage.getItem('inventory-product-type-tab');
+      return (v === 'cocina' || v === 'reventa') ? v : 'reventa';
+    } catch { return 'reventa'; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem('inventory-main-tab', mainTab); } catch {}
+  }, [mainTab]);
+  useEffect(() => {
+    try { sessionStorage.setItem('inventory-product-type-tab', productTypeTab); } catch {}
+  }, [productTypeTab]);
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
   const [stockEntryProduct, setStockEntryProduct] = useState<Product | null>(null);
   const [stockMoveProduct, setStockMoveProduct] = useState<Product | null>(null);
