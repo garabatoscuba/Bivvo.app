@@ -89,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           fetchRoles(freshSession.user.id),
         ]);
 
-        if (!mountedRef.current || !p) return;
+        if (!mountedRef.current || !p || p === 'error') return;
 
         setUser(freshSession.user);
         setSession(freshSession);
@@ -110,7 +110,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     window.addEventListener('online', handleOnline);
   };
 
-  const fetchProfile = async (userId: string): Promise<Profile | null> => {
+  // Returns: Profile | null (no profile exists) | 'error' (fetch failed — do NOT sign out)
+  const fetchProfile = async (userId: string): Promise<Profile | null | 'error'> => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -119,13 +120,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .maybeSingle();
       if (error) {
         console.error('Error fetching profile:', error);
-        return null;
+        return 'error';
       }
       // Profile might not exist yet (e.g. deleted user re-registering)
       return data as Profile | null;
     } catch (err) {
       console.error('Exception fetching profile:', err);
-      return null;
+      return 'error';
     }
   };
 
@@ -178,6 +179,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               fetchRoles(newSession.user.id),
             ]);
             if (!mountedRef.current) return;
+            if (p === 'error') {
+              // Transient fetch failure (network/timeout). Keep existing session — do NOT sign out.
+              console.warn('[Auth] Profile fetch failed transiently — keeping session');
+              return;
+            }
             if (!p) {
               await handleMissingProfile();
               return;
@@ -228,6 +234,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             fetchRoles(existingSession.user.id),
           ]);
           if (!mountedRef.current) return;
+          if (p === 'error') {
+            // Transient fetch failure — try cached offline data instead of signing out
+            console.warn('[Auth] Initial profile fetch failed — falling back to cached session');
+            const cached = loadOfflineSession();
+            restoreOfflineState(cached);
+            return;
+          }
           if (!p) {
             await handleMissingProfile();
             return;
