@@ -179,6 +179,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               fetchRoles(newSession.user.id),
             ]);
             if (!mountedRef.current) return;
+            if (p === 'error') {
+              // Transient fetch failure (network/timeout). Keep existing session — do NOT sign out.
+              console.warn('[Auth] Profile fetch failed transiently — keeping session');
+              return;
+            }
             if (!p) {
               await handleMissingProfile();
               return;
