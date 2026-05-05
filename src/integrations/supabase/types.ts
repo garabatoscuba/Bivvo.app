@@ -5499,6 +5499,20 @@ export type Database = {
           price: number
         }[]
       }
+      validate_onboarding_token: {
+        Args: { _token: string }
+        Returns: {
+          branch_id: string
+          business_id: string
+          business_name: string
+          employee_full_name: string
+          employee_id: string
+          expires_at: string
+          id: string
+          token: string
+          used_at: string
+        }[]
+      }
     }
     Enums: {
       app_role:
