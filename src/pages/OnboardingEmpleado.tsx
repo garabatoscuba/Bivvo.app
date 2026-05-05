@@ -41,10 +41,7 @@ const OnboardingEmpleado = () => {
 
     const validateToken = async () => {
       const { data, error } = await supabase
-        .from('employee_onboarding_tokens')
-        .select('*, employees(full_name), businesses(name)')
-        .eq('token', token)
-        .is('used_at', null)
+        .rpc('validate_onboarding_token', { _token: token })
         .maybeSingle();
 
       if (error || !data) {
@@ -53,16 +50,16 @@ const OnboardingEmpleado = () => {
         return;
       }
 
-      if (new Date(data.expires_at) < new Date()) {
+      if (new Date((data as any).expires_at) < new Date()) {
         setStep('invalid');
         setErrorMsg('Esta invitación ha expirado. Solicita una nueva a tu gerente.');
         return;
       }
 
       setTokenInfo(data);
-      setEmployeeName((data as any).employees?.full_name || '');
-      setBusinessName((data as any).businesses?.name || '');
-      setFullName((data as any).employees?.full_name || '');
+      setEmployeeName((data as any).employee_full_name || '');
+      setBusinessName((data as any).business_name || '');
+      setFullName((data as any).employee_full_name || '');
 
       if (!user || !profile) {
         setStep('auth');
