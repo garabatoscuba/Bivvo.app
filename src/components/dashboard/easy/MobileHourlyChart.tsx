@@ -1,29 +1,26 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { Calendar } from 'lucide-react';
 import { Area, AreaChart, ResponsiveContainer, XAxis, YAxis, ReferenceLine } from 'recharts';
+import type { Period } from '@/components/ui/period-filter';
 
 interface Props {
   /** 7x24 matrix; row 6 = today */
   matrix?: number[][];
+  period?: Period;
 }
 
-type Range = 'hoy' | '7d' | '30d';
-
-const MobileHourlyChart = ({ matrix }: Props) => {
-  const [range, setRange] = useState<Range>('hoy');
-
+const MobileHourlyChart = ({ matrix, period = 'today' }: Props) => {
   const hourly = useMemo(() => {
     const arr = Array(24).fill(0) as number[];
     if (!matrix || matrix.length === 0) return arr;
-    if (range === 'hoy') {
+    if (period === 'today') {
       const today = matrix[6] || [];
       today.forEach((v, h) => (arr[h] = v));
     } else {
-      // 7d y 30d: por ahora solo tenemos 7 días reales; mostramos el mismo agregado
       matrix.forEach((row) => row.forEach((v, h) => (arr[h] += v)));
     }
     return arr;
-  }, [matrix, range]);
+  }, [matrix, period]);
 
   const data = hourly.map((v, h) => ({ hour: h, value: v }));
   const total = hourly.reduce((a, b) => a + b, 0);
@@ -31,12 +28,6 @@ const MobileHourlyChart = ({ matrix }: Props) => {
   let peakHour = 0;
   let peakVal = -1;
   hourly.forEach((v, h) => { if (v > peakVal) { peakVal = v; peakHour = h; } });
-
-  const tabs: { id: Range; label: string }[] = [
-    { id: 'hoy', label: 'Hoy' },
-    { id: '7d', label: '7 días' },
-    { id: '30d', label: '30 días' },
-  ];
 
   return (
     <section className="overflow-hidden flex flex-col rounded-[var(--te-r-lg)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] mb-4">
@@ -52,42 +43,18 @@ const MobileHourlyChart = ({ matrix }: Props) => {
         </span>
       </div>
 
-      <div className="px-3.5 pb-2">
-        <div className="inline-flex gap-1 p-0.5 rounded-[var(--te-r-md)] bg-[var(--bg-surface-elevated)]">
-          {tabs.map((t) => {
-            const active = range === t.id;
-            return (
-              <button
-                key={t.id}
-                onClick={() => setRange(t.id)}
-                className={`px-2.5 py-1 rounded-[6px] text-[11.5px] font-medium transition-colors ${
-                  active
-                    ? 'bg-[var(--te-brand)] text-[var(--te-brand-text)]'
-                    : 'text-[var(--te-text-tertiary)]'
-                }`}
-              >
-                {t.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       <div className="px-1 pb-3">
         <div className="relative" style={{ height: 170 }}>
           {peakVal > 0 && (
             <div
-              className="absolute z-10 pointer-events-none te-font-serif italic text-[11.5px] text-[var(--te-text-secondary)] whitespace-nowrap"
+              className="absolute z-10 pointer-events-none te-font-mono text-[11.5px] font-semibold text-[var(--te-brand)] whitespace-nowrap"
               style={{
                 left: `${(peakHour / 23) * 100}%`,
                 transform: 'translate(-50%, 0)',
                 top: 2,
               }}
             >
-              Pico a las{' '}
-              <strong className="not-italic font-semibold text-[var(--te-brand)] te-font-mono">
-                {String(peakHour).padStart(2, '0')}:00
-              </strong>
+              {String(peakHour).padStart(2, '0')}:00
             </div>
           )}
           <ResponsiveContainer width="100%" height="100%">
