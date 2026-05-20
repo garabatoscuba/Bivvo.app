@@ -85,7 +85,7 @@
     --sidebar-primary-foreground: 165 91% 9%;
     --sidebar-accent: 240 6% 11%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 100% / 0.06;
+    --sidebar-border: 240 6% 9%;
     --sidebar-ring: 161 86% 46%;
 
     /* Charts */
@@ -148,7 +148,7 @@
     --sidebar-primary-foreground: 165 91% 9%;
     --sidebar-accent: 240 6% 11%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 100% / 0.06;
+    --sidebar-border: 240 6% 9%;
     --sidebar-ring: 161 86% 46%;
 
     --chart-1: 156 71% 66%;
@@ -213,6 +213,13 @@
     outline-offset: 2px;
     --tw-ring-shadow: 0 0 0 0 transparent !important;
   }
+}
+
+/* Sidebar borders: ultra subtle on dark sidebar bg */
+.peer[data-side="left"] > div.fixed,
+.peer[data-side="right"] > div.fixed,
+[data-sidebar="sidebar"] {
+  border-color: hsl(var(--sidebar-border)) !important;
 }
 
 /* Global: modal/sheet/drawer content scrolls between header & footer */
