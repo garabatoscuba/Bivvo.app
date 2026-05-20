@@ -604,28 +604,45 @@ const AppSidebar = () => {
         ) : (<>
         {isSuperAdmin && (
           <SidebarGroup>
-            <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
-              Admin
+            <SidebarGroupLabel asChild className="text-[10px] uppercase tracking-widest text-muted-foreground/70">
+              <button
+                type="button"
+                onClick={() => setAdminOpen((v) => !v)}
+                className="flex w-full items-center justify-between hover:text-foreground transition-colors"
+                aria-expanded={adminOpen}
+              >
+                <span className="flex items-center gap-1.5">
+                  Admin
+                  {!adminOpen && pendingRequestsCount > 0 && (
+                    <Badge variant="destructive" className="h-3.5 min-w-3.5 px-1 text-[9px] leading-none">
+                      {pendingRequestsCount}
+                    </Badge>
+                  )}
+                </span>
+                <ChevronDown className={`h-3 w-3 transition-transform ${adminOpen ? '' : '-rotate-90'}`} />
+              </button>
             </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {superAdminItems.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton asChild isActive={isActive(item.url)}>
-                      <Link to={item.url}>
-                        <item.icon className="h-4 w-4" />
-                        <span className="text-sm">{item.title}</span>
-                        {'badge' in item && (item as any).badge > 0 && (
-                          <Badge variant="destructive" className="ml-auto h-4 min-w-4 px-1 text-[10px] leading-none">
-                            {(item as any).badge}
-                          </Badge>
-                        )}
-                      </Link>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
+            {adminOpen && (
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {superAdminItems.map((item) => (
+                    <SidebarMenuItem key={item.title}>
+                      <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                        <Link to={item.url}>
+                          <item.icon className="h-4 w-4" />
+                          <span className="text-sm">{item.title}</span>
+                          {'badge' in item && (item as any).badge > 0 && (
+                            <Badge variant="destructive" className="ml-auto h-4 min-w-4 px-1 text-[10px] leading-none">
+                              {(item as any).badge}
+                            </Badge>
+                          )}
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            )}
           </SidebarGroup>
         )}
 
