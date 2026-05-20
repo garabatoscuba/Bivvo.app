@@ -80,8 +80,8 @@ const EasyDashboard = ({ period, onPeriodChange, businessName }: Props) => {
     <div className="theme-easy min-h-screen">
       <EasyTopbar businessName={businessName} pageTitle="Dashboard" />
 
-      <div className="mx-auto w-full pb-12 pt-7 px-4 sm:px-10" style={{ maxWidth: 1400 }}>
-        <header className="flex items-start justify-between gap-6 mb-7 pt-1 flex-wrap">
+      <div className="mx-auto w-full pb-12 pt-5 sm:pt-7 px-3 sm:px-10" style={{ maxWidth: 1400 }}>
+        <header className="flex items-start justify-between gap-4 sm:gap-6 mb-5 sm:mb-7 pt-1 flex-wrap">
           <HumanGreeting
             name={firstName}
             salesCount={stats?.salesCount || 0}
@@ -93,7 +93,7 @@ const EasyDashboard = ({ period, onPeriodChange, businessName }: Props) => {
 
         <EasyAlertsCard alerts={alerts} />
 
-        <section className="grid gap-3.5 mb-5" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+        <section className="grid gap-3 sm:gap-3.5 mb-4 sm:mb-5 grid-cols-1 sm:grid-cols-3">
           <KPICard
             label="Ventas"
             value={`$${new Intl.NumberFormat('es-CU', { maximumFractionDigits: 0 }).format(stats?.totalSales || 0)}`}
@@ -133,7 +133,7 @@ const EasyDashboard = ({ period, onPeriodChange, businessName }: Props) => {
           />
         </section>
 
-        <div className="grid gap-3.5 mb-5 items-stretch" style={{ gridTemplateColumns: '1fr 1.2fr' }}>
+        <div className="grid gap-3 sm:gap-3.5 mb-4 sm:mb-5 items-stretch grid-cols-1 lg:[grid-template-columns:1fr_1.2fr]">
           <TopProductsCard
             products={(stats?.topProducts || []).map((p) => ({
               name: p.name,
