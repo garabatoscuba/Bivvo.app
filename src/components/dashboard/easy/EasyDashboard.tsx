@@ -4,6 +4,7 @@ import { useProducts, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
 import { useDashboardStats } from '@/hooks/useDashboardStats';
 import { useLatestSales } from '@/hooks/useLatestSales';
+import { useWeeklySalesHeatmap } from '@/hooks/useWeeklySalesHeatmap';
 import { useRawMaterials } from '@/hooks/usePrintData';
 import type { Period } from '@/components/ui/period-filter';
 
@@ -33,6 +34,7 @@ const EasyDashboard = ({ period, onPeriodChange, businessName }: Props) => {
   const { data: stats } = useDashboardStats(currentBranch, period);
   const { data: latestSales = [] } = useLatestSales(currentBranch, 6);
   const { data: rawMaterials = [] } = useRawMaterials();
+  const { data: weeklyMatrix } = useWeeklySalesHeatmap(currentBranch);
 
   const lowStockProducts = (branchStock || []).filter((bs: any) => {
     const product = products.find((p) => p.id === bs.product_id);
@@ -157,7 +159,7 @@ const EasyDashboard = ({ period, onPeriodChange, businessName }: Props) => {
           />
         </div>
 
-        <WeeklyHeatmap />
+        <WeeklyHeatmap matrix={weeklyMatrix} />
 
         <RecommendationCard
           variant="garabatos"
