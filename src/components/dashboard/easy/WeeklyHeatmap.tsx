@@ -107,13 +107,13 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
             return (
               <div key={dIdx} className="contents">
                 <div
-                  className={`text-[11px] tracking-[0.4px] uppercase text-right font-medium tabular-nums ${
+                  className={`text-[9.5px] sm:text-[11px] tracking-[0.3px] sm:tracking-[0.4px] uppercase text-right font-medium tabular-nums truncate ${
                     isToday ? 'text-[var(--te-brand)] font-semibold' : 'text-[var(--te-text-tertiary)]'
                   }`}
                 >
                   {dayLabels[dIdx]}
                 </div>
-                <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+                <div className="grid gap-[2px] sm:gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
                   {row.map((v, h) => {
                     const lvl = levelFor(v);
                     return (
@@ -123,9 +123,9 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                         className="hover:scale-[1.35] hover:z-10 hover:shadow-[0_0_0_1px_var(--te-brand),0_4px_12px_rgba(16,217,160,0.35)]"
                         style={{
                           aspectRatio: '1',
-                          width: '88%',
+                          width: '92%',
                           margin: '0 auto',
-                          borderRadius: 2.5,
+                          borderRadius: 2,
                           background: cellBg(lvl),
                           border: lvl === 0 ? '1px solid var(--border-subtle)' : undefined,
                           cursor: 'pointer',
@@ -137,7 +137,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                   })}
                 </div>
                 <div
-                  className={`te-font-mono text-right text-[12px] tabular-nums font-medium ${
+                  className={`te-font-mono text-right text-[10.5px] sm:text-[12px] tabular-nums font-medium ${
                     isToday ? 'text-[var(--te-brand)] font-semibold' : 'text-[var(--te-text-secondary)]'
                   }`}
                 >
@@ -150,21 +150,21 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
         </div>
 
         <div
-          className="grid mt-3.5 pt-3 border-t border-[var(--border-subtle)]"
-          style={{ gridTemplateColumns: '56px 1fr 62px', columnGap: 12 }}
+          className="grid mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-[var(--border-subtle)] [grid-template-columns:38px_1fr_38px] sm:[grid-template-columns:56px_1fr_62px] gap-x-2 sm:gap-x-3"
         >
-          <div className="text-[10px] text-[var(--te-text-quaternary)] tracking-[0.6px] uppercase text-right font-medium">
+          <div className="text-[9px] sm:text-[10px] text-[var(--te-text-quaternary)] tracking-[0.5px] sm:tracking-[0.6px] uppercase text-right font-medium">
             hora
           </div>
-          <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+          <div className="grid gap-[2px] sm:gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
             {Array.from({ length: 24 }).map((_, h) => {
-              const show = h % 3 === 0;
+              const show = h % 6 === 0;
+              const showSm = h % 3 === 0;
               const isPeak = h === peakHour;
               return (
                 <span
                   key={h}
-                  className={`text-center text-[9.5px] tabular-nums ${
-                    show ? 'opacity-100' : 'opacity-0'
+                  className={`text-center text-[8.5px] sm:text-[9.5px] tabular-nums ${
+                    show ? 'opacity-100' : showSm ? 'opacity-0 sm:opacity-100' : 'opacity-0'
                   } ${isPeak ? 'text-[var(--te-brand)] font-semibold' : 'text-[var(--te-text-quaternary)]'}`}
                 >
                   {String(h).padStart(2, '0')}
@@ -172,13 +172,13 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
               );
             })}
           </div>
-          <div className="text-[10px] text-[var(--te-text-quaternary)] tracking-[0.6px] uppercase text-right font-medium">
+          <div className="text-[9px] sm:text-[10px] text-[var(--te-text-quaternary)] tracking-[0.5px] sm:tracking-[0.6px] uppercase text-right font-medium">
             total
           </div>
         </div>
 
         <div
-          className="mt-[18px] py-3.5 px-4 rounded-[var(--te-r-md)] bg-[var(--bg-surface-elevated)] text-[13.5px] text-[var(--te-text-primary)] leading-[1.5]"
+          className="mt-3.5 sm:mt-[18px] py-3 sm:py-3.5 px-3 sm:px-4 rounded-[var(--te-r-md)] bg-[var(--bg-surface-elevated)] text-[12px] sm:text-[13.5px] text-[var(--te-text-primary)] leading-[1.5]"
           style={{ borderLeft: '2px solid var(--te-brand)' }}
         >
           Tu patrón es <strong className="font-semibold text-[var(--te-brand)]">consistente</strong>: el almuerzo concentra el día. Tu mejor día fue el{' '}
