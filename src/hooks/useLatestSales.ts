@@ -35,7 +35,7 @@ export const useLatestSales = (branchId?: string, limit = 6) =>
 
       const countMap = new Map<string, number>();
       (items || []).forEach((it: any) => {
-        countMap.set(it.sale_id, (countMap.get(it.sale_id) || 0) + 1);
+        countMap.set(it.sale_id, (countMap.get(it.sale_id) || 0) + Number(it.quantity || 0));
       });
 
       return sales.map((s: any) => ({
