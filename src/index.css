@@ -78,15 +78,15 @@
 
     --radius: 0.75rem;
 
-    /* Sidebar */
-    --sidebar-background: 159 23% 95%;
-    --sidebar-foreground: 0 0% 9%;
-    --sidebar-primary: 161 93% 30%;
-    --sidebar-primary-foreground: 151 80% 95%;
-    --sidebar-accent: 0 0% 32%;
+    /* Sidebar — dark "modo easy" look in both themes */
+    --sidebar-background: 240 7% 4%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 161 86% 46%;
+    --sidebar-primary-foreground: 165 91% 9%;
+    --sidebar-accent: 240 6% 11%;
     --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 83%;
-    --sidebar-ring: 161 93% 30%;
+    --sidebar-border: 0 0% 100% / 0.06;
+    --sidebar-ring: 161 86% 46%;
 
     /* Charts */
     --chart-1: 158 64% 51%;
@@ -95,7 +95,7 @@
     --chart-4: 82 77% 55%;
     --chart-5: 0 0% 45%;
 
-    --sidebar: 0 0% 98%;
+    --sidebar: 240 7% 4%;
 
     --font-sans: 'Work Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
     --font-mono: 'Inconsolata', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
