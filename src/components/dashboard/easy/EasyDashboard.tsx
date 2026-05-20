@@ -16,6 +16,7 @@ import KPICard from './KPICard';
 import TopProductsCard from './TopProductsCard';
 import LatestSalesCard from './LatestSalesCard';
 import WeeklyHeatmap from './WeeklyHeatmap';
+import MobileHourlyChart from './MobileHourlyChart';
 import RecommendationCard from './RecommendationCard';
 
 interface Props {
