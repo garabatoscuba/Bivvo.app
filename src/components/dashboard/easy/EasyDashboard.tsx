@@ -148,8 +148,10 @@ const EasyDashboard = ({ period, onPeriodChange, businessName }: Props) => {
           <LatestSalesCard
             sales={latestSales.map((s) => ({
               id: s.id,
+              kind: s.kind,
               saleNumber: s.saleNumber,
               itemsCount: s.itemsCount,
+              productName: s.productName,
               customerName: s.customerName,
               paymentType: s.paymentType,
               total: s.total,
