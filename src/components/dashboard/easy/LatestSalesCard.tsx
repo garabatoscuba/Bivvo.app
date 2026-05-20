@@ -30,23 +30,23 @@ const fmt = (n: number) => new Intl.NumberFormat('es-CU', { maximumFractionDigit
 
 const LatestSalesCard = ({ sales, onViewAll }: Props) => (
   <section className="overflow-hidden flex flex-col rounded-[var(--te-r-lg)] bg-[var(--bg-surface)] border border-[var(--border-subtle)]">
-    <div className="flex items-center justify-between pt-[18px] px-[22px] pb-3.5">
-      <div className="flex items-center gap-2.5 text-[14.5px] font-semibold text-[var(--te-text-primary)]">
-        <div className="w-7 h-7 flex items-center justify-center rounded-[var(--te-r-sm)] bg-[var(--bg-surface-elevated)] text-[var(--te-text-secondary)]">
-          <Receipt className="w-3.5 h-3.5" strokeWidth={1.8} />
+    <div className="flex items-center justify-between pt-3.5 sm:pt-[18px] px-3.5 sm:px-[22px] pb-3 sm:pb-3.5">
+      <div className="flex items-center gap-2 sm:gap-2.5 text-[13px] sm:text-[14.5px] font-semibold text-[var(--te-text-primary)]">
+        <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-[var(--te-r-sm)] bg-[var(--bg-surface-elevated)] text-[var(--te-text-secondary)]">
+          <Receipt className="w-3 h-3 sm:w-3.5 sm:h-3.5" strokeWidth={1.8} />
         </div>
         Últimas ventas
       </div>
       <button
         onClick={onViewAll}
-        className="inline-flex items-center gap-1 text-[12.5px] text-[var(--te-text-tertiary)] hover:text-[var(--te-text-primary)] transition-colors bg-transparent border-0 cursor-pointer"
+        className="inline-flex items-center gap-1 text-[11.5px] sm:text-[12.5px] text-[var(--te-text-tertiary)] hover:text-[var(--te-text-primary)] transition-colors bg-transparent border-0 cursor-pointer"
       >
         Ver todas
         <ArrowRight className="w-3 h-3" strokeWidth={2} />
       </button>
     </div>
 
-    <div className="px-[22px] pb-[22px] flex-1">
+    <div className="px-3.5 sm:px-[22px] pb-3.5 sm:pb-[22px] flex-1">
       {sales.length === 0 && (
         <div className="text-[12.5px] text-[var(--te-text-tertiary)] py-6 text-center">
           Sin ventas recientes.
@@ -58,14 +58,13 @@ const LatestSalesCard = ({ sales, onViewAll }: Props) => (
         return (
           <div
             key={s.id}
-            className="grid items-center cursor-pointer transition-colors border-t border-[var(--border-subtle)] hover:bg-white/[0.015]"
-            style={{ gridTemplateColumns: '32px 1fr auto auto', gap: 14, padding: '17px 0' }}
+            className="grid items-center cursor-pointer transition-colors border-t border-[var(--border-subtle)] hover:bg-white/[0.015] [grid-template-columns:28px_1fr_auto_auto] sm:[grid-template-columns:32px_1fr_auto_auto] gap-2.5 sm:gap-3.5 py-3 sm:py-[17px]"
           >
-            <div className={`w-8 h-8 rounded-[var(--te-r-sm)] flex items-center justify-center text-[11.5px] font-semibold ${meta.cls}`}>
+            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-[var(--te-r-sm)] flex items-center justify-center text-[10.5px] sm:text-[11.5px] font-semibold ${meta.cls}`}>
               {meta.code}
             </div>
             <div className="min-w-0">
-              <div className="text-[13.5px] font-medium text-[var(--te-text-primary)] truncate">
+              <div className="text-[12.5px] sm:text-[13.5px] font-medium text-[var(--te-text-primary)] truncate">
                 {s.kind === 'service'
                   ? (s.productName || 'Servicio')
                   : (s.productName
@@ -73,14 +72,14 @@ const LatestSalesCard = ({ sales, onViewAll }: Props) => (
                       : `${s.itemsCount} producto${s.itemsCount === 1 ? '' : 's'}`)}
                 {s.saleNumber ? <span className="text-[var(--te-text-tertiary)] font-normal"> · #{s.saleNumber}</span> : null}
               </div>
-              <div className="text-[11.5px] text-[var(--te-text-tertiary)] mt-0.5 truncate">
+              <div className="text-[10.5px] sm:text-[11.5px] text-[var(--te-text-tertiary)] mt-0.5 truncate">
                 {s.customerName || 'Cliente sin registro'} · {meta.label}
               </div>
             </div>
-            <div className="text-[14px] font-semibold text-[var(--te-text-primary)] tabular-nums">
+            <div className="text-[12.5px] sm:text-[14px] font-semibold text-[var(--te-text-primary)] tabular-nums">
               ${fmt(Number(s.total))}
             </div>
-            <div className="text-[11.5px] text-[var(--te-text-tertiary)] min-w-[48px] text-right tabular-nums">
+            <div className="text-[10.5px] sm:text-[11.5px] text-[var(--te-text-tertiary)] min-w-[40px] sm:min-w-[48px] text-right tabular-nums">
               {time}
             </div>
           </div>
