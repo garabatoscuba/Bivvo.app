@@ -13,9 +13,11 @@ import { useOfflineCache } from '@/hooks/useOfflineCache';
 interface AppLayoutProps {
   children: ReactNode;
   title?: string;
+  hideHeader?: boolean;
+  noPadding?: boolean;
 }
 
-const AppLayout = ({ children, title }: AppLayoutProps) => {
+const AppLayout = ({ children, title, hideHeader, noPadding }: AppLayoutProps) => {
   useFeatureUsage();
   useOfflineCache();
 
@@ -27,11 +29,10 @@ const AppLayout = ({ children, title }: AppLayoutProps) => {
           <OfflineBanner />
           <InstallBanner />
           <SubscriptionBanner />
-          <AppHeader title={title} />
-          <main className="flex-1 overflow-auto p-3 md:p-6 px-2 py-[5px] border-transparent border-none border-0 max-w-full">
+          {!hideHeader && <AppHeader title={title} />}
+          <main className={`flex-1 overflow-auto max-w-full ${noPadding ? '' : 'p-3 md:p-6 px-2 py-[5px] border-transparent border-none border-0'}`}>
             {children}
           </main>
-          
         </SidebarInset>
       </div>
       <BivooAssistant />

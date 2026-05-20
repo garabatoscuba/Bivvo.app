@@ -56,7 +56,8 @@ export interface DashboardStats {
   pendingCredit: number;
   salesOverTime: { label: string; total: number }[];
   paymentMethods: { name: string; value: number; fill: string }[];
-  topProducts: { name: string; quantity: number }[];
+  topProducts: { name: string; quantity: number; revenue?: number; margin?: number }[];
+  topProductsTotalQty: number;
 }
 
 const PAYMENT_COLORS: Record<string, string> = {
@@ -140,7 +141,7 @@ export const useDashboardStats = (branchId?: string, period: Period = 'today') =
           .eq('status', 'pending'),
         supabase
           .from('sale_items')
-          .select('product_id, quantity, sale_id, sale:sales!inner(branch_id, status, created_at)')
+          .select('product_id, quantity, unit_price, sale_id, sale:sales!inner(branch_id, status, created_at)')
           .eq('sale.branch_id', branchId)
           .eq('sale.status', 'completed')
           .gte('sale.created_at', ranges.current.start.toISOString())
@@ -212,11 +213,10 @@ export const useDashboardStats = (branchId?: string, period: Period = 'today') =
         fill: PAYMENT_COLORS[key] || 'hsl(215, 20%, 65%)',
       }));
 
-      // Top 5 products
-      const productTotals: Record<string, number> = {};
-      const productIds = [...new Set(saleItems.map(si => si.product_id))];
-      
-      // Fetch product names
+      // Top 10 products with revenue
+      const productTotals: Record<string, { quantity: number; revenue: number }> = {};
+      const productIds = [...new Set(saleItems.map((si: any) => si.product_id))];
+
       let productMap: Record<string, string> = {};
       if (productIds.length > 0) {
         const { data: products } = await supabase
@@ -225,15 +225,20 @@ export const useDashboardStats = (branchId?: string, period: Period = 'today') =
           .in('id', productIds);
         (products || []).forEach(p => (productMap[p.id] = p.name));
       }
-      
-      saleItems.forEach(si => {
+
+      saleItems.forEach((si: any) => {
         const name = productMap[si.product_id] || 'Desconocido';
-        productTotals[name] = (productTotals[name] || 0) + si.quantity;
+        const qty = Number(si.quantity) || 0;
+        const rev = qty * (Number(si.unit_price) || 0);
+        if (!productTotals[name]) productTotals[name] = { quantity: 0, revenue: 0 };
+        productTotals[name].quantity += qty;
+        productTotals[name].revenue += rev;
       });
       const topProducts = Object.entries(productTotals)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([name, quantity]) => ({ name, quantity }));
+        .sort((a, b) => b[1].quantity - a[1].quantity)
+        .slice(0, 10)
+        .map(([name, v]) => ({ name, quantity: v.quantity, revenue: v.revenue, margin: 0 }));
+      const topProductsTotalQty = Object.values(productTotals).reduce((s, v) => s + v.quantity, 0);
 
       return {
         totalSales,
@@ -246,6 +251,7 @@ export const useDashboardStats = (branchId?: string, period: Period = 'today') =
         salesOverTime,
         paymentMethods,
         topProducts,
+        topProductsTotalQty,
       };
     },
     enabled: !!branchId && !!profile?.business_id,
