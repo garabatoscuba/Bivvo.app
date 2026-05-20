@@ -1,96 +1,89 @@
-## Accion 1 — Knowledge optimizado (reescritura)
+# Rediseño visual — Dashboard modo easy
 
-Objetivo: Reemplazar `<project-knowledge>` por version estructurada clara, ~5KB.
+Alcance puramente estético sobre `src/pages/Dashboard.tsx` (vista del dueño). Lógica, queries, rutas, sidebar (estructura/iconos/orden), AppHeader (estructura/lógica) y demás módulos quedan intactos.
 
-Secciones (10):
-1. REGLAS IRROMPIBLES — No tocar: POS, Tesoreria, Caja, BalancePersonalCards, TreasuryMovimientos, auth/roles, tablas existentes. Patron V2 antes de editar. Solo anadir columnas/tablas.
-2. STACK — Lovable+Supabase, multi-tenant, roles: SuperAdmin>Partner>Dueno>Gerente>Vendedor>Operario>Cocina>Cliente. Cuba CUP +53.
-3. AUTH/SESIONES — Sesion persistente: NUNCA cerrar por error transitorio de profile fetch, solo si profile === null. useSessionKeepAlive: stateRef, <5min refresh, throttle 2min. Login terminos obligatorio (checkbox bloquea Google/Apple/Email). Empleados sin @bivoo.app: buscar email existente desde 5to caracter, no crear cuenta nueva.
-4. HUB/ROUTING — / = Hub (Mis Negocios + Mi Empleo si empleo activo), /dashboard = Dashboard. Auto-redirect si 1 solo contexto.
-5. EMPLEADOS — Creacion atomica edge function, edicion sin cambio de contrasena. useResolvedBusinessId. Roles multiples (casillas). Operario por area (position=operator+is_jefe). QR onboarding JSON{type,employee_id,business_id}. Borrado via delete-bivoo-employee limpia auth+profiles+roles+employee.
-6. MODULOS DINAMICOS — business_type_configs x plan x rol. Sidebar spinner mientras employeeRecordLoading. Modulos desde platform_modules via module_plugin_pricing.
-7. MODULOS CLAVE (resumen):
-- POS/Ventas: metodo exacto efectivo/transferencia/mixto, monto recibido vacio inicial, confirmar deshabilitado si vacio/cero.
-- Caja: integra POS+jornadas, apertura fondo dia anterior automatico, cierre neto>0 crea treasury_pending_entries.
-- Contabilidad: solo Dueno, solo Enterprise. 4 tabs: Balance, Gastos, Activos, Analisis. Costos inmutables.
-- Reportes: /cobros, 3 tabs Resumen/Historial/Comparativa. TabsContent Historial con onMouseDown stopPropagation.
-- Nomina: modalidades desde salary_modalities, salario base=piso minimo, fijo+% suma aditiva.
-- Inventario: 5 tabs Productos/A la Venta/Almacen/Insumos/Movim. WAC costeo. Anulacion trazable. sessionStorage para tab activo.
-- Servicios: fichas independientes service_recipes. 3 metodos indirectos.
-- Impresiones: interfaz tipo POS, CMYK tracking.
-- Cocina KDS: solo restaurante, elaborado crea kitchen_orders.
-- Portal publico: /s/{slug}, free usa bivoo-demo.
-- Bitacora: audit_logs code BIV-YYYYMMDD-XXXX, 15 acciones, RLS owner+super_admin.
-- Cierre jornada: 2 pasos (conteo inventario + efectivo). Negativo>$1 bloquea.
-- Gestion datos: Cerrar Periodo (archived=true), Reset Completo (CONFIRMAR, edge function).
-8. PERSISTENCIA UI — sessionStorage para tabs activos (inventory-main-tab). No reiniciar estado al volver de background/WhatsApp.
-9. PATRONES TECNICOS — Sanitizar payloads update (eliminar virtuales). .maybeSingle() para opcionales. RLS por business_id/branch_id. Imagenes: Canvas->WEBP. Offline 48h. Camara: BarcodeDetector nativo fallback ZXing. Modales movil: header+botones fijos, scroll interno. Tabs scroll horizontal scrollbar-hide. Focus con outline.
-10. PLANES/PERMISOS — Free$0/Pro$10/Enterprise$15. Trial 7d. Free: portal demo, sin Contabilidad. Pro: portal propio, sin Contabilidad. Enterprise: todo. Downgrade: useIsDowngraded bloquea Inventario/Servicios clave.
+## 1. Design tokens (scoped al dashboard easy)
 
-Reglas nuevas explicitas:
-- Sesion solo cierra si profile === null (no en error de red).
-- useSessionKeepAlive usa stateRef (evita "Rendered more hooks").
-- sessionStorage para tabs al minimizar app.
-- Hub muestra Mi Empleo SIEMPRE con registro activo en employees.
-- Crear empleado: autocomplete email busca desde 5to char, si no hay match NO crear cuenta.
-- Editar empleado: SIN campo cambiar contrasena.
+Añadir tokens en `src/index.css` bajo un selector `.theme-easy` (o `[data-theme="easy"]`) para no afectar el resto del producto. Variables CSS exactas del HTML de referencia: `--bg-app`, `--bg-surface`, `--bg-surface-elevated`, `--border-subtle/default/strong`, `--text-primary/secondary/tertiary/quaternary`, brand `#10D9A0` + soft, `amber/red/blue/indigo` + soft, radios `--r-sm/md/lg/xl`.
 
-Entrega: Bloque de texto listo para pegar en Project Settings -> Knowledge.
+Cargar fuentes Google en `index.html`: Inter (400/500/600/700), Instrument Serif (regular + itálica), JetBrains Mono (400/500). Exponer como `--font-sans`, `--font-serif`, `--font-mono`.
 
----
+El wrapper raíz del dashboard aplicará `className="theme-easy font-sans bg-[var(--bg-app)] text-[var(--text-primary)]"` para aislar la paleta sin tocar el theme global.
 
-## Accion 2 — Mejorar Asistente IA (Solo contexto y precision)
+## 2. Estructura de componentes nuevos
 
-Objetivo: Asistente SIEMPRE use datos reales del modulo activo, NUNCA invente rutas/funciones/tablas. Sin escritura BD.
+Todos bajo `src/components/dashboard/easy/`:
 
-Cambios:
-A) Reforzar fetchModuleContext en supabase/functions/bivoo-assistant/index.ts:
-- Inventario: top 10 stock bajo, total productos, valor inventario, ultimas 5 mermas.
-- POS: ventas hoy/semana, ticket promedio, top 5 vendidos hoy.
-- Caja: estado (abierta/cerrada), saldo, ultimo cierre.
-- Nomina: empleados activos, total devengado periodo, proximo cierre.
-- Contabilidad: ingresos/gastos mes, margen, gastos pendientes.
-- Reportes: KPIs periodo seleccionado.
-- Cocina: pedidos pendientes/en preparacion.
-Limite ~2KB por consulta.
+- `HumanGreeting.tsx` — saludo contextual por hora; nombre en serif itálica verde; sub-botón "modo easy" (visual, sin menú); línea meta con fecha + ventas hoy + facturado + pill de caja abierta.
+- `EasyAlertsCard.tsx` — sólo renderiza si hay alertas. Borde izq ámbar, icono cuadrado, pill con conteo, lista con dot + texto + link contextual. Consume las mismas listas (`lowStockProducts`, `lowStockMaterials`) que ya calcula `Dashboard.tsx`.
+- `KPICard.tsx` — props `{ label, value, unit?, hint, badge?, sparklineData, sparklineColor }`. Sparkline SVG inline absolute `left:0 right:0 bottom:0` con relleno gradiente sutil. Card con `overflow:hidden`.
+- `TopProductsCard.tsx` — header con "Ver todo" y "+ Añadir" (link al modal de creación de producto existente). Sub-card "Producto estrella" para el #1 con stats (Vendidos / Ingresos / Margen). Lista #2…#N con ranking en serif, nombre, barra de progreso `flex-1`, unidades. Scroll vertical con `scrollbar-width:none` + `::-webkit-scrollbar{display:none}` y fade `::after` de 50px.
+- `LatestSalesCard.tsx` — lista de 6 ventas recientes. Icono cuadrado CT/TR/TJ por método con colores soft. Divisores `border-t border-[var(--border-subtle)]`. Padding vertical 17px por item para empatar altura.
+- `WeeklyHeatmap.tsx` — grid 7×24, celdas con 5 niveles de verde por volumen, tooltip al hover, totales día derecha (↑ verde para el máximo), eje horas inferior cada 3h con pico destacado, insight editorial al pie.
+- `RecommendationCard.tsx` — variantes `"garabatos"` (ámbar, estática) y `"bivoo"` (verde, dinámica vía props). Patrón común icono + label + título mixto sans/serif itálica + descripción + CTA pill.
 
-B) Prompt sistema endurecido:
-- Citar valores numericos SOLO si vienen del contexto inyectado.
-- Si dato no esta: "no tengo ese dato disponible".
-- Nunca mencionar rutas que no esten en whitelist.
-- Nunca mencionar nombres tablas/columnas Supabase al usuario.
-- NUNCA proponer modificar datos — solo explicar, resumir, sugerir acciones manuales.
+Componente contenedor `EasyDashboard.tsx` que orquesta layout vertical, recibe `period`, `stats`, `branchStock`, etc. desde `Dashboard.tsx`.
 
-C) Tabla nueva assistant_known_routes:
-- route_path, module_key, description, min_role.
-- Edge function inyecta lista filtrada por rol del usuario en prompt.
-- IA solo recomienda rutas de esta lista.
+## 3. Conexión a datos existentes
 
-D) Ampliar assistant_module_instructions (existe, max 800 chars) con:
-- "Datos disponibles en contexto".
-- "Acciones permitidas al usuario" (solo sugerir, no ejecutar).
-- "Prohibido mencionar" (nombres internos, rutas no whitelisted).
+Reusar exactamente lo que ya hay en `Dashboard.tsx`:
 
-E) (Opcional UI) Badges fuente en AssistantChat.tsx:
-- Dato de contexto: badge "dato actual".
-- Conocimiento general: badge "sugerencia general".
+- `useDashboardStats(branchId, period)` — alimenta los 3 KPIs (Ventas → `totalSales` + `salesOverTime` para sparkline; Caja → `OwnerFinancialCards` o consulta caja existente; Stock crítico → conteo desde `branchStock` + `products`).
+- `lowStockProducts`, `lowStockMaterials` → `EasyAlertsCard`.
+- `stats.topProducts` se amplía: el hook devuelve top 5 actualmente; lo extendemos a top 10 (solo cambio `.slice(0, 5)` → `.slice(0, 10)` y se añade `revenue`/`margin` por producto agregando un cálculo simple sobre `sale_items` ya cargados). Si añadir esos campos resulta invasivo, se renderizan vacíos/mock en esta iteración.
+- "Últimas ventas" → nueva query mínima `sales` orderby `created_at` desc limit 6 con `client_name`, `payment_type`, `total`, `items_count`. Se añade como hook `useLatestSales(branchId)` (lectura pura, sin tocar nada existente).
+- Heatmap → nuevo hook `useWeeklyHeatmap(branchId)` que agrega `sales.created_at` por día×hora de los últimos 7 días. Si lo dejamos para una iteración posterior, se renderiza con datos mock pero estructura final.
 
-F) Tests regresion (opcional):
-- Documentar 10 prompts de prueba en mem://logic/assistant-quality.
+Filtro de período: se aplica nuevo estilo a `PeriodFilter` mediante una prop `variant="easy"` (pill segmentada con fondo `brand-soft` en el activo). Cero cambios a su API.
 
-NO se toca:
-- Estructura UI panel/menu/boton flotante.
-- Modelo (Groq llama-3.1-8b-instant o actual).
-- Historial 24h/10msg/500chars.
-- Feature flags useAssistantFeatures.
-- NINGUNA capacidad de escritura en BD.
+## 4. Topbar
 
-Entregables:
-1. Migracion: tabla assistant_known_routes + seed.
-2. Edicion supabase/functions/bivoo-assistant/index.ts (fetchModuleContext + system prompt).
-3. Actualizacion assistant_module_instructions.
-4. (Opcional) Badges en AssistantChat.tsx.
+El AppHeader global se mantiene tal cual fuera del dashboard. Para el modo easy se monta una variante visual de "breadcrumb + iconos" **dentro** del propio dashboard (no se toca `AppHeader.tsx`) usando los mismos handlers expuestos (scanner, soporte, sync). Esto evita afectar otras pantallas. Si el usuario prefiere reemplazar el header global, se hace en una iteración separada.
+
+> Decisión a confirmar: ¿topbar sólo en el dashboard easy o reemplazar `AppHeader` para toda la app? Por defecto aplico la primera opción.
+
+## 5. Sidebar
+
+Sólo retoque de paleta dentro del scope `.theme-easy` o vía override CSS muy puntual en `AppSidebar`: fondo `var(--bg-app)`, borde derecho `var(--border-subtle)`, ítem activo con fondo `var(--brand-soft)` y texto `var(--brand)`. Sin tocar estructura, iconos, orden ni textos.
+
+## 6. Reemplazo en Dashboard.tsx
+
+Dentro de `Dashboard.tsx`, sustituir el JSX del bloque del dueño (líneas ~180–425) por `<EasyDashboard />` envuelto en `.theme-easy`. Se preservan:
+
+- Redirect a `/mi-empleo` para empleados.
+- Vista de afiliados (`isAffiliated`).
+- `OnboardingWizard` y `planInfoPopupOpen` dialogs.
+- `OwnerFinancialCards`, `EquipoActivoSection`, `PerformanceWidget` quedan disponibles pero **fuera del primer scroll**, al final, hasta que se rediseñen en iteraciones futuras (o se ocultan si el usuario lo prefiere — confirmar).
+
+> Decisión a confirmar: ¿conservar `OwnerFinancialCards` / `EquipoActivoSection` / `PerformanceWidget` debajo del nuevo diseño, o esconderlos en modo easy?
+
+## 7. Detalles visuales no negociables
+
+- Fade gradient (50px) al final de la lista de Más vendidos vía `::after`.
+- Scrollbar oculta sólo en esa lista.
+- Barra de progreso del podio con `grid-template-columns: auto 1fr auto`.
+- Sparkline absoluto edge-to-edge, card con `overflow:hidden`.
+- Grid inferior con `align-items:stretch` y cards `flex flex-col` para igualar alturas.
+- Heatmap `grid-template-columns: repeat(24, 1fr)` con gap 4px, sin scroll.
+- Botón "modo easy" con offset `-8px` respecto al saludo grande.
+
+## 8. Fuera de alcance (explícito)
+
+- POS, Tesorería, Caja, Empleados, Inventario, Ventas, Servicios, Cocina, Impresiones, Portal público, Admin, Asistente IA.
+- Lógica de detección de alertas, queries existentes, edge functions, RLS, hooks ya en producción.
+- Menú "modo easy" (sólo botón visual).
+- Lógica dinámica de la card "Activar capa" (sólo se deja la estructura preparada).
+
+## 9. QA visual antes de cerrar
+
+- Verificar paleta en `1640×926` (viewport actual) y en mobile.
+- Confirmar que Más vendidos y Últimas ventas tienen exactamente la misma altura.
+- Confirmar que la card de Alertas no se renderiza cuando no hay alertas.
+- Confirmar que el sidebar mantiene todos sus módulos y sólo cambió color.
 
 ---
 
-Orden: Ejecutar Accion 1 primero (entrego texto Knowledge). Luego confirmas para Accion 2 (codigo + migracion).
+**Antes de implementar necesito confirmar 2 puntos:**
+
+1. Topbar nuevo: ¿sólo en dashboard easy, o reemplazo global de `AppHeader`?
+2. `OwnerFinancialCards` / `EquipoActivoSection` / `PerformanceWidget` en el modo easy: ¿se conservan abajo o se ocultan hasta su rediseño?
