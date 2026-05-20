@@ -516,3 +516,72 @@
 .hub-fill-red    { background: #1f0d0d; }
 .hub-fill-teal   { background: #0d1a18; }
 .hub-fill-amber  { background: #1a140a; }
+/* =========================================================
+   THEME EASY — Dashboard editorial (scoped)
+   Inspirado en Mimoo. Solo aplica dentro de .theme-easy.
+   ========================================================= */
+.theme-easy {
+  --bg-app: #0A0A0B;
+  --bg-surface: #131316;
+  --bg-surface-elevated: #1A1A1E;
+  --bg-surface-hover: #1F1F24;
+
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-default: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  --te-text-primary: #FAFAFA;
+  --te-text-secondary: rgba(255, 255, 255, 0.62);
+  --te-text-tertiary: rgba(255, 255, 255, 0.40);
+  --te-text-quaternary: rgba(255, 255, 255, 0.28);
+
+  --te-brand: #10D9A0;
+  --te-brand-bright: #14E5AC;
+  --te-brand-soft: rgba(16, 217, 160, 0.12);
+  --te-brand-text: #0A1F18;
+
+  --te-indigo: #6366F1;
+  --te-indigo-soft: rgba(99, 102, 241, 0.14);
+  --te-amber: #F59E0B;
+  --te-amber-soft: rgba(245, 158, 11, 0.14);
+  --te-red: #EF4444;
+  --te-red-soft: rgba(239, 68, 68, 0.14);
+  --te-blue: #3B82F6;
+  --te-blue-soft: rgba(59, 130, 246, 0.14);
+  --te-purple: #A855F7;
+  --te-purple-soft: rgba(168, 85, 247, 0.14);
+
+  --te-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --te-font-serif: 'Instrument Serif', Georgia, serif;
+  --te-font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --te-r-sm: 6px;
+  --te-r-md: 10px;
+  --te-r-lg: 14px;
+  --te-r-xl: 18px;
+
+  background: var(--bg-app);
+  color: var(--te-text-primary);
+  font-family: var(--te-font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.theme-easy .te-font-serif { font-family: var(--te-font-serif); }
+.theme-easy .te-font-mono { font-family: var(--te-font-mono); }
+
+/* Hide scrollbar utility (scoped) */
+.theme-easy .te-no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.theme-easy .te-no-scrollbar::-webkit-scrollbar { display: none; width: 0; }
+
+/* Podium scroll fade */
+.theme-easy .te-podium-scroll-wrap { position: relative; display: flex; flex-direction: column; min-height: 0; }
+.theme-easy .te-podium-scroll-wrap::after {
+  content: ''; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 50px;
+  background: linear-gradient(to bottom, transparent 0%, var(--bg-surface) 85%);
+  pointer-events: none;
+  border-radius: 0 0 var(--te-r-lg) var(--te-r-lg);
+}
