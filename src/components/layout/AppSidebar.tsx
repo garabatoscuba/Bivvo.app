@@ -594,7 +594,7 @@ const AppSidebar = () => {
         </div>
       </SidebarHeader>
 
-      <Separator className="mx-4 w-auto" />
+
 
       <SidebarContent className="pt-2">
         {employeeRecordPending && isBivooAccount ? (
@@ -1015,7 +1015,7 @@ const AppSidebar = () => {
         </>)}
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-border/60 p-3 space-y-3">
+      <SidebarFooter className="p-3 space-y-3">
         {/* Theme toggle */}
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2 text-muted-foreground">
@@ -1029,7 +1029,7 @@ const AppSidebar = () => {
           />
         </div>
 
-        <Separator />
+        <Separator className="bg-white/5" />
 
         <div className="flex items-center gap-2.5">
           <Avatar className="h-8 w-8">
