@@ -3,8 +3,10 @@ import { format } from 'date-fns';
 
 export interface LatestSale {
   id: string;
+  kind?: 'sale' | 'service';
   saleNumber?: string | number | null;
   itemsCount: number;
+  productName?: string | null;
   customerName?: string | null;
   paymentType: string;
   total: number;
@@ -64,7 +66,12 @@ const LatestSalesCard = ({ sales, onViewAll }: Props) => (
             </div>
             <div className="min-w-0">
               <div className="text-[13.5px] font-medium text-[var(--te-text-primary)] truncate">
-                Venta {s.saleNumber ? `#${s.saleNumber}` : ''} · {s.itemsCount} producto{s.itemsCount === 1 ? '' : 's'}
+                {s.kind === 'service'
+                  ? (s.productName || 'Servicio')
+                  : (s.productName
+                      ? `${s.productName}${s.itemsCount > 1 ? ` · ${s.itemsCount} uds` : ''}`
+                      : `${s.itemsCount} producto${s.itemsCount === 1 ? '' : 's'}`)}
+                {s.saleNumber ? <span className="text-[var(--te-text-tertiary)] font-normal"> · #{s.saleNumber}</span> : null}
               </div>
               <div className="text-[11.5px] text-[var(--te-text-tertiary)] mt-0.5 truncate">
                 {s.customerName || 'Cliente sin registro'} · {meta.label}
