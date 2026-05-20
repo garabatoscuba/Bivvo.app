@@ -3,32 +3,16 @@ import { Link, useNavigate } from 'react-router-dom';
 import AppLayout from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/AuthContext';
-import { useProducts, useBranchStock } from '@/hooks/useProducts';
 import { useBranches } from '@/hooks/useBranches';
-import { useDashboardStats } from '@/hooks/useDashboardStats';
-import { PeriodFilter, type Period } from '@/components/ui/period-filter';
+import { type Period } from '@/components/ui/period-filter';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useRawMaterials } from '@/hooks/usePrintData';
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button as DialogButton } from '@/components/ui/button';
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  PieChart, Pie, Cell,
-  BarChart, Bar, ResponsiveContainer } from
-'recharts';
-import {
-  ShoppingCart, Package, TrendingUp, AlertTriangle,
-  Users, DollarSign, Hash, CreditCard,
-  ArrowUpRight, ArrowDownRight, Minus } from
-'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
-import PerformanceWidget from '@/components/dashboard/PerformanceWidget';
-import OwnerFinancialCards from '@/components/dashboard/OwnerFinancialCards';
-import EquipoActivoSection from '@/components/employees/EquipoActivoSection';
+import { ShoppingCart } from 'lucide-react';
 import OnboardingWizard from '@/components/onboarding/OnboardingWizard';
-import GarabatosPromoCard from '@/components/GarabatosPromoCard';
+import EasyDashboard from '@/components/dashboard/easy/EasyDashboard';
+
 
 
 const formatCurrency = (n: number) =>
@@ -177,252 +161,16 @@ const Dashboard = () => {
     );
   }
 
+  // Fetch business name for breadcrumb
+  const businessName = (profile as any)?.business_name || 'Mi negocio';
+
   return (
-    <AppLayout>
-      <div className="space-y-4 md:space-y-6 border-transparent border-2">
-        {/* Header */}
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="hidden md:block">
-            <h2 className="text-lg font-semibold text-foreground">
-              ¡Bienvenido, {profile?.full_name?.split(' ')[0]}!
-            </h2>
-            <p className="text-sm text-muted-foreground">
-              {roles.length > 0 ?
-              `Tu rol: ${roles.map((r) => r.replace('_', ' ')).join(', ')}` :
-              'Comienza configurando tu negocio'}
-            </p>
-          </div>
-          <PeriodFilter value={period} onChange={setPeriod} className="w-full sm:w-auto" />
-        </div>
-
-        {/* Alerts */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <AlertTriangle className="h-5 w-5 text-warning" />
-              Alertas
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {hasAlerts ?
-            <div className="space-y-2">
-                {lowStockProducts.slice(0, 5).map((bs: any) => {
-                const product = products.find((p) => p.id === bs.product_id);
-                return product ?
-                <div key={bs.id} className="flex items-center justify-between rounded-lg bg-warning/10 p-3">
-                      <span className="font-medium">{product.name}</span>
-                      <span className="text-sm text-warning">
-                        Stock: {bs.quantity} (mín: {product.min_stock})
-                      </span>
-                    </div> :
-                null;
-              })}
-                {lowStockMaterials.slice(0, 5).map((m: any) => {
-                  const totalStock = (m.stock_almacen || 0) + (m.stock_vendedor || 0);
-                  return (
-                    <div key={m.id} className="flex items-center justify-between rounded-lg bg-warning/10 p-3">
-                      <span className="font-medium">🖨️ {m.name}</span>
-                      <span className="text-sm text-warning">
-                        Stock: {totalStock} (mín: {m.stock_minimo})
-                      </span>
-                    </div>
-                  );
-                })}
-              </div> :
-            <p className="text-sm text-muted-foreground">
-                No hay alertas en este momento. ¡Todo está funcionando correctamente!
-              </p>
-            }
-          </CardContent>
-        </Card>
-
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {[
-          {
-            title: 'Total Ventas',
-            value: isLoading ? null : formatCurrency(stats?.totalSales || 0),
-            change: stats?.totalSalesChange || 0,
-            icon: DollarSign
-          },
-          {
-            title: 'Transacciones',
-            value: isLoading ? null : (stats?.salesCount || 0).toString(),
-            change: stats?.salesCountChange || 0,
-            icon: Hash
-          },
-          {
-            title: 'Ticket Prom.',
-            value: isLoading ? null : formatCurrency(stats?.avgTicket || 0),
-            change: stats?.avgTicketChange || 0,
-            icon: TrendingUp
-          },
-          {
-            title: 'Por Cobrar',
-            value: isLoading ? null : formatCurrency(stats?.pendingCredit || 0),
-            change: null,
-            icon: CreditCard
-          }].
-          map((kpi) =>
-          <Card key={kpi.title}>
-              <CardHeader className="flex flex-row items-center justify-between pb-1 md:pb-2 p-3 md:p-6 md:pt-6">
-                <CardTitle className="text-xs md:text-sm font-medium text-muted-foreground">{kpi.title}</CardTitle>
-                <kpi.icon className="h-3.5 w-3.5 md:h-4 md:w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent className="p-3 pt-0 md:p-6 md:pt-0">
-                {kpi.value === null ?
-              <Skeleton className="h-7 w-20 md:h-8 md:w-24" /> :
-
-              <div className="text-lg md:text-2xl font-bold">{kpi.value}</div>
-              }
-                {kpi.change !== null && !isLoading && <ChangeIndicator value={kpi.change} />}
-              </CardContent>
-            </Card>
-          )}
-        </div>
-
-        {/* Owner Financial Cards */}
-        {isOwner && profile?.business_id && (
-          <OwnerFinancialCards
-            businessId={profile.business_id}
-            branchId={currentBranch}
-            period={period}
-          />
-        )}
-
-        {/* Equipo activo ahora */}
-        {(isOwner || isManager) && profile?.business_id && (
-          <EquipoActivoSection
-            onlyActive
-            businessIdOverride={profile.business_id}
-          />
-        )}
-
-        <div className="grid gap-3 md:gap-4 lg:grid-cols-3 border-transparent">
-          {/* Sales over time */}
-          <Card className="lg:col-span-2 max-w-full overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-base">Ventas por Período</CardTitle>
-            </CardHeader>
-            <CardContent className="w-full overflow-hidden">
-              {isLoading ?
-              <Skeleton className="h-[180px] md:h-[250px] w-full" /> :
-
-              <ChartContainer config={areaChartConfig} className="h-[180px] md:h-[250px] w-full" style={{ minWidth: 0 }}>
-                  <AreaChart data={stats?.salesOverTime || []}>
-                    <defs>
-                      <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis dataKey="label" tickLine={false} axisLine={false} fontSize={11} />
-                    <YAxis tickLine={false} axisLine={false} fontSize={11} tickFormatter={(v) => `$${v}`} />
-                    <ChartTooltip
-                    content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />
-
-                    <Area
-                    type="monotone"
-                    dataKey="total"
-                    stroke="hsl(var(--chart-1))"
-                    fill="url(#fillTotal)"
-                    strokeWidth={2} />
-
-                  </AreaChart>
-                </ChartContainer>
-              }
-            </CardContent>
-          </Card>
-
-          {/* Payment methods donut */}
-          <Card className="max-w-full overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-base">Métodos de Pago</CardTitle>
-            </CardHeader>
-            <CardContent className="w-full overflow-hidden">
-              {isLoading ?
-              <Skeleton className="h-[180px] md:h-[250px] w-full" /> :
-              (stats?.paymentMethods?.length || 0) === 0 ?
-              <div className="flex h-[180px] md:h-[250px] items-center justify-center text-sm text-muted-foreground">
-                  Sin datos en este período
-                </div> :
-
-              <ChartContainer config={pieChartConfig} className="h-[180px] md:h-[250px] w-full mx-auto max-w-[300px]">
-                  <PieChart>
-                    <ChartTooltip
-                    content={<ChartTooltipContent formatter={(value) => formatCurrency(Number(value))} />} />
-
-                    <Pie
-                    data={stats?.paymentMethods}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={3}>
-
-                      {stats?.paymentMethods.map((entry, i) =>
-                    <Cell key={i} fill={entry.fill} />
-                    )}
-                    </Pie>
-                  </PieChart>
-                </ChartContainer>
-              }
-              {/* Legend */}
-              {(stats?.paymentMethods?.length || 0) > 0 &&
-              <div className="mt-2 flex flex-wrap justify-center gap-3">
-                  {stats?.paymentMethods.map((pm) =>
-                <div key={pm.name} className="flex items-center gap-1.5 text-xs">
-                      <div className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: pm.fill }} />
-                      <span className="text-muted-foreground">{pm.name}</span>
-                    </div>
-                )}
-                </div>
-              }
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Top Products */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Top 5 Productos Más Vendidos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {isLoading ?
-            <Skeleton className="h-[160px] md:h-[200px] w-full" /> :
-            (stats?.topProducts?.length || 0) === 0 ?
-            <p className="text-sm text-muted-foreground">Sin ventas en este período</p> :
-
-            <ChartContainer config={barChartConfig} className="h-[160px] md:h-[200px] w-full">
-                <BarChart data={stats?.topProducts} layout="vertical">
-                  <CartesianGrid horizontal={false} strokeDasharray="3 3" />
-                  <XAxis type="number" tickLine={false} axisLine={false} fontSize={11} />
-                  <YAxis
-                  type="category"
-                  dataKey="name"
-                  tickLine={false}
-                  axisLine={false}
-                  fontSize={11}
-                  width={120} />
-
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar dataKey="quantity" fill="hsl(var(--chart-2))" radius={[0, 4, 4, 0]} barSize={14} />
-                </BarChart>
-              </ChartContainer>
-            }
-          </CardContent>
-        </Card>
-
-        {/* Performance Widget */}
-        <PerformanceWidget />
-
-        {/* Estudio Garabatos promo */}
-        <GarabatosPromoCard />
-
-      </div>
+    <AppLayout hideHeader noPadding>
+      <EasyDashboard
+        period={period}
+        onPeriodChange={setPeriod}
+        businessName={businessName}
+      />
 
       {/* Onboarding Wizard for first-time users */}
       {showWelcome && profile && (
