@@ -16,6 +16,7 @@ import KPICard from './KPICard';
 import TopProductsCard from './TopProductsCard';
 import LatestSalesCard from './LatestSalesCard';
 import WeeklyHeatmap from './WeeklyHeatmap';
+import MobileHourlyChart from './MobileHourlyChart';
 import RecommendationCard from './RecommendationCard';
 
 interface Props {
@@ -161,7 +162,12 @@ const EasyDashboard = ({ period, onPeriodChange, businessName }: Props) => {
           />
         </div>
 
-        <WeeklyHeatmap matrix={weeklyMatrix} />
+        <div className="hidden sm:block">
+          <WeeklyHeatmap matrix={weeklyMatrix} />
+        </div>
+        <div className="sm:hidden">
+          <MobileHourlyChart matrix={weeklyMatrix} />
+        </div>
 
         <RecommendationCard
           variant="garabatos"
