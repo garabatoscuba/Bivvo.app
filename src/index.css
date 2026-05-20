@@ -216,11 +216,9 @@
 }
 
 /* Sidebar borders: ultra subtle on dark sidebar bg */
-[data-sidebar="sidebar"],
-.group\/sidebar-wrapper [data-variant="sidebar"] > div,
-.group\/sidebar-wrapper aside,
-.group\/sidebar-wrapper [class*="border-r"]:has([data-sidebar="sidebar"]),
-[data-side="left"].group {
+.peer[data-side="left"] > div.fixed,
+.peer[data-side="right"] > div.fixed,
+[data-sidebar="sidebar"] {
   border-color: hsl(var(--sidebar-border)) !important;
 }
 
