@@ -215,6 +215,15 @@
   }
 }
 
+/* Sidebar borders: ultra subtle on dark sidebar bg */
+[data-sidebar="sidebar"],
+.group\/sidebar-wrapper [data-variant="sidebar"] > div,
+.group\/sidebar-wrapper aside,
+.group\/sidebar-wrapper [class*="border-r"]:has([data-sidebar="sidebar"]),
+[data-side="left"].group {
+  border-color: hsl(var(--sidebar-border)) !important;
+}
+
 /* Global: modal/sheet/drawer content scrolls between header & footer */
 [role="dialog"] > *:not([class*="shrink-0"]):not(button) {
   overflow-y: auto;
