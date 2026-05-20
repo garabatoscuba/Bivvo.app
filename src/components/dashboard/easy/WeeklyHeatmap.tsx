@@ -119,6 +119,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                       <div
                         key={h}
                         title={`${dayLabels[dIdx]} · ${String(h).padStart(2,'0')}:00 · ${v} ventas`}
+                        className="hover:scale-[1.35] hover:z-10 hover:shadow-[0_0_0_1px_var(--te-brand),0_4px_12px_rgba(16,217,160,0.35)]"
                         style={{
                           aspectRatio: '1',
                           width: '88%',
@@ -127,7 +128,8 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                           background: cellBg(lvl),
                           border: lvl === 0 ? '1px solid var(--border-subtle)' : undefined,
                           cursor: 'pointer',
-                          transition: 'transform 0.15s ease',
+                          transition: 'transform 0.18s ease, box-shadow 0.18s ease',
+                          willChange: 'transform',
                         }}
                       />
                     );
