@@ -38,6 +38,13 @@ const KPICard = ({ label, value, unit, hint, delta, sparklineData, sparklineColo
         ? 'bg-[var(--te-red-soft)] text-[var(--te-red)]'
         : 'bg-white/[0.04] text-[var(--te-text-tertiary)]';
 
+  const deltaHalo =
+    delta?.direction === 'up'
+      ? 'rgba(16, 217, 160, 0.18)'
+      : delta?.direction === 'down'
+        ? 'rgba(239, 68, 68, 0.18)'
+        : 'rgba(255, 255, 255, 0.06)';
+
   const DeltaIcon = delta?.direction === 'up'
     ? ChevronUp
     : delta?.direction === 'down'
@@ -50,7 +57,10 @@ const KPICard = ({ label, value, unit, hint, delta, sparklineData, sparklineColo
         <div className="flex items-center justify-between text-[12.5px] font-medium text-[var(--te-text-tertiary)]">
           {label}
           {delta && (
-            <span className={`inline-flex items-center gap-1 text-[11.5px] font-semibold px-1.5 py-0.5 rounded-full ${deltaCls}`}>
+            <span
+              className={`relative z-[3] inline-flex items-center gap-1 text-[11.5px] font-semibold px-1.5 py-0.5 rounded-full ${deltaCls}`}
+              style={{ boxShadow: `0 0 0 3px ${deltaHalo}` }}
+            >
               <DeltaIcon className="w-2.5 h-2.5" strokeWidth={3} />
               {delta.value}
             </span>
