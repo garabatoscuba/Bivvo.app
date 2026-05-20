@@ -52,13 +52,13 @@ const KPICard = ({ label, value, unit, hint, delta, sparklineData, sparklineColo
       : Clock;
 
   return (
-    <div className="relative overflow-hidden flex flex-col rounded-[var(--te-r-lg)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] min-h-[140px]">
-      <div className="relative z-[2] px-5 pt-[18px]">
-        <div className="flex items-center justify-between text-[12.5px] font-medium text-[var(--te-text-tertiary)]">
+    <div className="relative overflow-hidden flex flex-col rounded-[var(--te-r-lg)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] min-h-[120px] sm:min-h-[140px]">
+      <div className="relative z-[2] px-4 sm:px-5 pt-3.5 sm:pt-[18px]">
+        <div className="flex items-center justify-between text-[11.5px] sm:text-[12.5px] font-medium text-[var(--te-text-tertiary)]">
           {label}
           {delta && (
             <span
-              className={`relative z-[3] inline-flex items-center gap-1 text-[11.5px] font-semibold px-1.5 py-0.5 rounded-full ${deltaCls}`}
+              className={`relative z-[3] inline-flex items-center gap-1 text-[10.5px] sm:text-[11.5px] font-semibold px-1.5 py-0.5 rounded-full ${deltaCls}`}
               style={{ boxShadow: `0 0 0 3px ${deltaHalo}` }}
             >
               <DeltaIcon className="w-2.5 h-2.5" strokeWidth={3} />
@@ -66,11 +66,11 @@ const KPICard = ({ label, value, unit, hint, delta, sparklineData, sparklineColo
             </span>
           )}
         </div>
-        <div className="text-[34px] font-semibold tracking-[-0.8px] mt-2.5 leading-[1.1] text-[var(--te-text-primary)]">
+        <div className="text-[26px] sm:text-[34px] font-semibold tracking-[-0.6px] sm:tracking-[-0.8px] mt-1.5 sm:mt-2.5 leading-[1.1] text-[var(--te-text-primary)]">
           {value}
-          {unit && <span className="text-[16px] text-[var(--te-text-tertiary)] font-medium ml-0.5">{unit}</span>}
+          {unit && <span className="text-[13px] sm:text-[16px] text-[var(--te-text-tertiary)] font-medium ml-0.5">{unit}</span>}
         </div>
-        {hint && <div className="text-[12px] text-[var(--te-text-tertiary)] mt-1">{hint}</div>}
+        {hint && <div className="text-[11px] sm:text-[12px] text-[var(--te-text-tertiary)] mt-1">{hint}</div>}
       </div>
 
       <svg
