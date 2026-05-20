@@ -92,6 +92,7 @@ const AppSidebar = () => {
   const { theme, setTheme } = useTheme();
 
   const [newBizOpen, setNewBizOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(() => typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'));
   const [bizModalOpen, setBizModalOpen] = useState(false);
   const [bizName, setBizName] = useState("");
   const [bizType, setBizType] = useState("store");
