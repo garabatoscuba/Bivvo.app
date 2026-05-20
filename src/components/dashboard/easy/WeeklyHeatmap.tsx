@@ -99,7 +99,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
         </div>
 
         <div
-          className="grid items-center [grid-template-columns:38px_1fr_38px] sm:[grid-template-columns:56px_1fr_62px] gap-x-2 sm:gap-x-3 gap-y-1 sm:gap-y-[5px]"
+          className="grid items-center [grid-template-columns:38px_1fr_26px] sm:[grid-template-columns:56px_1fr_62px] gap-x-1.5 sm:gap-x-3 gap-y-1 sm:gap-y-[5px]"
         >
           {data.map((row, dIdx) => {
             const isToday = dIdx === 6;
@@ -113,7 +113,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                 >
                   {dayLabels[dIdx]}
                 </div>
-                <div className="grid gap-[2px] sm:gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+                <div className="grid gap-[3px] sm:gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
                   {row.map((v, h) => {
                     const lvl = levelFor(v);
                     return (
@@ -123,8 +123,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                         className="hover:scale-[1.35] hover:z-10 hover:shadow-[0_0_0_1px_var(--te-brand),0_4px_12px_rgba(16,217,160,0.35)]"
                         style={{
                           aspectRatio: '1',
-                          width: '92%',
-                          margin: '0 auto',
+                          width: '100%',
                           borderRadius: 2,
                           background: cellBg(lvl),
                           border: lvl === 0 ? '1px solid var(--border-subtle)' : undefined,
@@ -150,12 +149,12 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
         </div>
 
         <div
-          className="grid mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-[var(--border-subtle)] [grid-template-columns:38px_1fr_38px] sm:[grid-template-columns:56px_1fr_62px] gap-x-2 sm:gap-x-3"
+          className="grid mt-3 sm:mt-3.5 pt-2.5 sm:pt-3 border-t border-[var(--border-subtle)] [grid-template-columns:38px_1fr_26px] sm:[grid-template-columns:56px_1fr_62px] gap-x-1.5 sm:gap-x-3"
         >
           <div className="text-[9px] sm:text-[10px] text-[var(--te-text-quaternary)] tracking-[0.5px] sm:tracking-[0.6px] uppercase text-right font-medium">
             hora
           </div>
-          <div className="grid gap-[2px] sm:gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+          <div className="grid gap-[3px] sm:gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
             {Array.from({ length: 24 }).map((_, h) => {
               const show = h % 6 === 0;
               const showSm = h % 3 === 0;
