@@ -53,39 +53,41 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
   const bestDayLabel = bestDayIdx === 6 ? 'hoy' : format(subDays(new Date(), 6 - bestDayIdx), 'EEEE', { locale: es });
 
   return (
-    <section className="overflow-hidden flex flex-col rounded-[var(--te-r-lg)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] mb-5">
-      <div className="flex items-center justify-between pt-[18px] px-[22px] pb-3.5">
-        <div className="flex items-center gap-2.5 text-[14.5px] font-semibold text-[var(--te-text-primary)]">
-          <div className="w-7 h-7 flex items-center justify-center rounded-[var(--te-r-sm)] bg-[var(--bg-surface-elevated)] text-[var(--te-text-secondary)]">
-            <Calendar className="w-3.5 h-3.5" strokeWidth={1.8} />
+    <section className="overflow-hidden flex flex-col rounded-[var(--te-r-lg)] bg-[var(--bg-surface)] border border-[var(--border-subtle)] mb-4 sm:mb-5">
+      <div className="flex items-center justify-between pt-3.5 sm:pt-[18px] px-3.5 sm:px-[22px] pb-3 sm:pb-3.5 gap-2">
+        <div className="flex items-center gap-2 sm:gap-2.5 text-[13px] sm:text-[14.5px] font-semibold text-[var(--te-text-primary)] min-w-0">
+          <div className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center rounded-[var(--te-r-sm)] bg-[var(--bg-surface-elevated)] text-[var(--te-text-secondary)] shrink-0">
+            <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" strokeWidth={1.8} />
           </div>
-          Patrón de la semana
+          <span className="truncate">Patrón de la semana</span>
         </div>
         <div
-          className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-[var(--te-brand-soft)] text-[var(--te-brand)] rounded-full font-medium text-[11.5px]"
+          className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 bg-[var(--te-brand-soft)] text-[var(--te-brand)] rounded-full font-medium text-[10.5px] sm:text-[11.5px] whitespace-nowrap shrink-0"
         >
-          <TrendingUp className="w-[11px] h-[11px]" strokeWidth={2.2} />
-          Pico: hoy a las {String(peakHour).padStart(2, '0')}:00
+          <TrendingUp className="w-[10px] h-[10px] sm:w-[11px] sm:h-[11px]" strokeWidth={2.2} />
+          <span className="hidden sm:inline">Pico: hoy a las {String(peakHour).padStart(2, '0')}:00</span>
+          <span className="sm:hidden">{String(peakHour).padStart(2, '0')}:00</span>
         </div>
       </div>
 
-      <div className="px-6 pb-6">
-        <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
-          <div className="flex items-baseline gap-3 text-[12.5px] text-[var(--te-text-tertiary)]">
-            <span>Cada celda es 1 hora · más vibrante, más ventas</span>
+      <div className="px-3 sm:px-6 pb-4 sm:pb-6">
+        <div className="flex items-center justify-between mb-3 sm:mb-5 gap-3 sm:gap-4 flex-wrap">
+          <div className="flex items-baseline gap-2 sm:gap-3 text-[11px] sm:text-[12.5px] text-[var(--te-text-tertiary)]">
+            <span className="hidden sm:inline">Cada celda es 1 hora · más vibrante, más ventas</span>
+            <span className="sm:hidden">1 celda = 1 hora</span>
             <span>·</span>
             <span>
-              <strong className="text-[var(--te-text-secondary)] font-medium tabular-nums">{totalSales}</strong> ventas en 7 días
+              <strong className="text-[var(--te-text-secondary)] font-medium tabular-nums">{totalSales}</strong> ventas / 7d
             </span>
           </div>
-          <div className="te-font-mono flex items-center gap-2 text-[10.5px] text-[var(--te-text-tertiary)] tracking-[0.3px]">
+          <div className="te-font-mono flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[10.5px] text-[var(--te-text-tertiary)] tracking-[0.3px]">
             <span>menos</span>
             <div className="flex gap-0.5">
               {[0,1,2,3,4].map((lvl) => (
                 <div
                   key={lvl}
                   style={{
-                    width: 13, height: 13, borderRadius: 2.5,
+                    width: 11, height: 11, borderRadius: 2.5,
                     background: cellBg(lvl),
                     border: lvl === 0 ? '1px solid var(--border-subtle)' : undefined,
                   }}
@@ -97,8 +99,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
         </div>
 
         <div
-          className="grid items-center"
-          style={{ gridTemplateColumns: '56px 1fr 62px', columnGap: 12, rowGap: 5 }}
+          className="grid items-center [grid-template-columns:38px_1fr_38px] sm:[grid-template-columns:56px_1fr_62px] gap-x-2 sm:gap-x-3 gap-y-1 sm:gap-y-[5px]"
         >
           {data.map((row, dIdx) => {
             const isToday = dIdx === 6;
