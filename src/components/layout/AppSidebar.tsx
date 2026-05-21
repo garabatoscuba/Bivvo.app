@@ -999,10 +999,11 @@ const AppSidebar = () => {
           </SidebarGroup>
         )}
 
-        {!isInstalled && (
-          <SidebarGroup>
-            <SidebarGroupContent>
-              <SidebarMenu>
+        <SidebarGroup>
+          <SidebarGroupContent>
+            <Separator className="mb-2 bg-white/5" />
+            <SidebarMenu>
+              {!isInstalled && (
                 <SidebarMenuItem>
                   <SidebarMenuButton asChild isActive={isActive("/install")}>
                     <Link to="/install">
@@ -1011,48 +1012,28 @@ const AppSidebar = () => {
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        )}
+              )}
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/plans")}>
+                  <Link to="/plans">
+                    <CreditCard className="h-4 w-4" />
+                    <span className="text-sm">Planes</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={isActive("/settings")}>
+                  <Link to="/settings">
+                    <Settings className="h-4 w-4" />
+                    <span className="text-sm">Configuración</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
         </>)}
       </SidebarContent>
-
-      <SidebarFooter className="p-3 space-y-3">
-        {/* Theme toggle */}
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            {isDark ? <Moon className="h-3.5 w-3.5" /> : <Sun className="h-3.5 w-3.5" />}
-            <span className="text-xs">{isDark ? "Oscuro" : "Claro"}</span>
-          </div>
-          <Switch
-            checked={isDark}
-            onCheckedChange={(checked) => setTheme(checked ? "dark" : "light")}
-            className="scale-75"
-          />
-        </div>
-
-        <Separator className="bg-white/5" />
-
-        <div className="flex items-center gap-2.5">
-          <Avatar className="h-8 w-8">
-            <AvatarImage src={profile?.avatar_url || ""} />
-            <AvatarFallback className="bg-primary/10 text-primary text-xs font-medium">
-              {profile?.full_name ? getInitials(profile.full_name) : "U"}
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <p className="truncate text-sm font-medium leading-tight">{profile?.full_name || "Usuario"}</p>
-            <p className="truncate text-[11px] text-muted-foreground">{profile?.email}</p>
-            {activeBranch && (
-              <p className="truncate text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                <MapPin className="h-2.5 w-2.5 shrink-0" />
-                {activeBranch.name}
-              </p>
-            )}
-          </div>
-        </div>
-      </SidebarFooter>
 
       {/* Create Business Dialog */}
       <Dialog open={newBizOpen} onOpenChange={setNewBizOpen}>
