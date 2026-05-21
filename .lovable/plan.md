@@ -1,37 +1,26 @@
-# Ajustes vista móvil del Dashboard
+# Reorganizar Sidebar
 
-## 1. Filtro de período al ancho de las tarjetas
+## Cambios
 
-En `EasyDashboard.tsx` el header con saludo + `EasyPeriodFilter` está dentro del contenedor padded (`px-3 sm:px-10`), pero el `EasyPeriodFilter` es `inline-flex` y queda corto. En móvil debe ocupar todo el ancho disponible (igual que las KPI cards de abajo), sin pasarse de los márgenes laterales.
+1. **Quitar bloque de usuario del footer** (Avatar + nombre + email + sucursal). El `SidebarFooter` queda vacío y se elimina del componente.
 
-- En `EasyPeriodFilter.tsx`: hacer el contenedor `flex w-full sm:inline-flex sm:w-auto`, y los botones `flex-1 sm:flex-none` para que se repartan equitativamente en móvil y mantengan el tamaño compacto en desktop.
+2. **Nueva sección después de Portal**, separada por una línea elegante (`Separator`):
+   - Descargar App (solo si `!isInstalled`)
+   - Planes
+   - Configuración
 
-## 2. Top bar auto-hide en móvil (scroll up muestra, scroll down oculta)
+   Se renderiza como un `SidebarGroup` final, justo después del módulo Portal/sección Partner, con un `Separator` arriba para crear la división visual limpia.
 
-En `EasyTopbar.tsx` la barra es `sticky top-0`. Añadir comportamiento de auto-hide solo en móvil:
+3. **Header del sidebar**: quitar los botones-icono de Settings (engranaje) y Planes (tarjeta). En su lugar va el **toggle de modo oscuro** (icono Sol/Luna) como `Button ghost icon`. El logo se mantiene a la izquierda.
 
-- Hook interno con `useEffect` que escucha `window.scroll`, compara `scrollY` con el valor previo, y togglea un estado `hidden`.
-- Umbral pequeño (≈8px) para evitar parpadeos, y siempre visible cerca del top (scrollY < 40).
-- Aplicar `translate-y-[-100%]` cuando `hidden && scrollingDown`, con `transition-transform duration-300`.
-- Solo activo en móvil (`sm:translate-y-0` para anular en ≥640px) o gateado por `window.innerWidth < 640`.
+4. Eliminar el `Switch` de modo oscuro del footer (ya queda arriba como icono).
 
-## 3. Botones de la top bar en móvil
+## Archivo
 
-Hoy en móvil solo se ve el icono de soporte. Pedido:
+- `src/components/layout/AppSidebar.tsx`
+  - Header (líneas ~581-595): reemplazar los dos botones por un único botón con `Sun`/`Moon` que alterna tema.
+  - Bloque `Descargar App` existente (líneas ~999-1014): mover dentro del nuevo grupo unificado.
+  - Nuevo `SidebarGroup` con `Separator` arriba y 3 items: Descargar App, Planes (`/plans`), Configuración (`/settings`).
+  - `SidebarFooter` (líneas ~1018-1052): eliminar completo.
 
-- Mostrar **nube** (sync) en móvil (quitar `hidden sm:inline-flex`).
-- Mostrar **cámara** (escáner) en móvil (quitar `hidden sm:inline-flex`).
-- Mantener **soporte** (WhatsApp).
-- Añadir un **botón de perfil** al final, idéntico en estilo al del Hub: avatar circular con iniciales, dropdown con nombre/email, opción "Perfil" (abre `ProfileModal` del Hub) y "Cerrar sesión" (`signOut` de `AuthContext`).
-- Orden final: `[SidebarTrigger] [Dashboard]  ...  [Nube] [Cámara] [Soporte] [Perfil ▾]`.
-
-## 4. Quitar "Cerrar sesión" de la sidebar
-
-En `AppSidebar.tsx` (línea ~1051) hay un botón ghost con `signOut`. Eliminar ese botón (y label asociado si queda huérfano) — el cierre de sesión vivirá solo en el menú de perfil de la top bar.
-
-## Archivos afectados
-
-- `src/components/dashboard/easy/EasyPeriodFilter.tsx` — filtro full-width en móvil.
-- `src/components/dashboard/easy/EasyTopbar.tsx` — auto-hide on scroll, mostrar nube/cámara en móvil, añadir dropdown de perfil.
-- `src/components/layout/AppSidebar.tsx` — quitar botón "Cerrar sesión".
-- Reutiliza `ProfileModal` de `@/components/hub/ProfileModal` y `signOut` de `useAuth`.
+Los cambios aplican a todas las vistas (Dueño, Gerente, Vendedor, Operario, Cocina, SuperAdmin, Partner) ya que el footer y header son compartidos.
