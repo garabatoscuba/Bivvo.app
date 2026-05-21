@@ -126,8 +126,6 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                         style={{
                           aspectRatio: '1',
                           width: '100%',
-                          maxWidth: 24,
-                          justifySelf: 'center',
                           borderRadius: 3,
                           background: cellBg(lvl),
                           border: lvl === 0 ? '1px solid var(--border-subtle)' : undefined,
