@@ -14,14 +14,14 @@ interface Props {
 }
 
 const EasyPeriodFilter = ({ value, onChange }: Props) => (
-  <div className="inline-flex bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--te-r-md)] p-[3px] gap-0.5">
+  <div className="flex w-full sm:inline-flex sm:w-auto bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-[var(--te-r-md)] p-[3px] gap-0.5">
     {OPTIONS.map(({ value: v, label, Icon }) => {
       const active = v === value;
       return (
         <button
           key={v}
           onClick={() => onChange(v)}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-[7px] rounded-[7px] text-[12.5px] font-medium border-0 cursor-pointer transition-colors ${
+          className={`flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-[7px] rounded-[7px] text-[12.5px] font-medium border-0 cursor-pointer transition-colors ${
             active
               ? 'bg-[var(--te-brand-soft)] text-[var(--te-brand)]'
               : 'bg-transparent text-[var(--te-text-tertiary)] hover:text-[var(--te-text-primary)]'
