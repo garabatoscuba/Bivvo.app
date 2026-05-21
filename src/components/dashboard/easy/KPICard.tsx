@@ -43,7 +43,7 @@ const KPICard = ({ label, value, unit, hint, delta, sparklineData, sparklineColo
       ? 'rgba(16, 217, 160, 0.18)'
       : delta?.direction === 'down'
         ? 'rgba(239, 68, 68, 0.18)'
-        : 'rgba(255, 255, 255, 0.06)';
+        : 'var(--border-default)';
 
   const DeltaIcon = delta?.direction === 'up'
     ? ChevronUp
