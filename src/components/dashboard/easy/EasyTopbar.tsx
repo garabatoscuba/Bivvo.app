@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Cloud, Camera, MessageCircle, WifiOff, Loader2 } from 'lucide-react';
 import { useOffline } from '@/contexts/OfflineContext';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 import ScannerModal from '@/components/layout/ScannerModal';
 import { SyncStatusModal } from '@/components/layout/SyncStatusModal';
 
