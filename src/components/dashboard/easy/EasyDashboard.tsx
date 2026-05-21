@@ -166,7 +166,7 @@ const EasyDashboard = ({ period, onPeriodChange, businessName }: Props) => {
           <WeeklyHeatmap matrix={weeklyMatrix} />
         </div>
         <div className="sm:hidden">
-          <MobileHourlyChart matrix={weeklyMatrix} period={period} />
+          <MobileHourlyChart matrix={weeklyMatrix} salesOverTime={stats?.salesOverTime} period={period} />
         </div>
 
         <RecommendationCard
