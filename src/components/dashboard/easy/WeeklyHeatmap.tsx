@@ -159,7 +159,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
           <div className="text-[9px] sm:text-[10px] text-[var(--te-text-quaternary)] tracking-[0.5px] sm:tracking-[0.6px] uppercase text-right font-medium">
             hora
           </div>
-          <div className="grid gap-[4px] sm:gap-[6px]" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+          <div className="grid gap-[3px] sm:gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
             {Array.from({ length: 24 }).map((_, h) => {
               const show = h % 6 === 0;
               const showSm = h % 3 === 0;
