@@ -584,11 +584,14 @@ const AppSidebar = () => {
             <img src={isDark ? "/logo-dark.png" : "/logo-light.png"} alt="Bivoo" className="h-6 w-auto" />
           </Link>
           <div className="flex items-center gap-1">
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate('/settings')}>
-              <Settings className="h-4 w-4 text-muted-foreground" />
-            </Button>
-            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate('/plans')}>
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+              title={isDark ? "Modo claro" : "Modo oscuro"}
+            >
+              {isDark ? <Moon className="h-4 w-4 text-muted-foreground" /> : <Sun className="h-4 w-4 text-muted-foreground" />}
             </Button>
           </div>
         </div>
