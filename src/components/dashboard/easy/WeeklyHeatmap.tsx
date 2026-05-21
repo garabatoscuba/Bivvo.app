@@ -114,7 +114,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                 >
                   {dayLabels[dIdx]}
                 </div>
-                <div className="grid gap-[3px] sm:gap-[5px] justify-items-center" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+                <div className="grid gap-[3px] sm:gap-[7px] justify-items-center" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
                   {row.map((v, h) => {
                     const lvl = levelFor(v);
                     const occupied = lvl > 0;
@@ -126,7 +126,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                         style={{
                           aspectRatio: '1',
                           width: '100%',
-                          maxWidth: 50,
+                          maxWidth: 42,
                           borderRadius: 3,
                           background: cellBg(lvl),
                           border: lvl === 0 ? '1px solid var(--border-subtle)' : undefined,
@@ -159,7 +159,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
           <div className="text-[9px] sm:text-[10px] text-[var(--te-text-quaternary)] tracking-[0.5px] sm:tracking-[0.6px] uppercase text-right font-medium">
             hora
           </div>
-          <div className="grid gap-[3px] sm:gap-[5px]" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+          <div className="grid gap-[3px] sm:gap-[7px]" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
             {Array.from({ length: 24 }).map((_, h) => {
               const show = h % 6 === 0;
               const showSm = h % 3 === 0;
