@@ -149,6 +149,6 @@ const Stat = ({ label, value, unit }: { label: string; value: string; unit?: str
   </div>
 );
 
-const Divider = () => <div className="w-px bg-[rgba(16,217,160,0.18)]" />;
+const Divider = ({ className = '' }: { className?: string }) => <div className={`w-px bg-[rgba(16,217,160,0.18)] ${className}`} />;
 
 export default TopProductsCard;
