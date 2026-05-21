@@ -113,7 +113,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                 >
                   {dayLabels[dIdx]}
                 </div>
-                <div className="grid gap-[4px] sm:gap-[6px]" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+                <div className="grid gap-[3px] sm:gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
                   {row.map((v, h) => {
                     const lvl = levelFor(v);
                     const occupied = lvl > 0;
@@ -121,13 +121,13 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                       <div
                         key={h}
                         title={`${dayLabels[dIdx]} · ${String(h).padStart(2,'0')}:00 · ${v} ventas`}
-                        className="hover:scale-125 hover:z-10"
+                        className="hover:scale-110 hover:z-10"
                         style={{
                           aspectRatio: '1',
                           width: '100%',
-                          maxWidth: 18,
+                          maxWidth: 24,
                           justifySelf: 'center',
-                          borderRadius: 2,
+                          borderRadius: 3,
                           background: cellBg(lvl),
                           border: lvl === 0 ? '1px solid var(--border-subtle)' : undefined,
                           cursor: 'pointer',
@@ -159,7 +159,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
           <div className="text-[9px] sm:text-[10px] text-[var(--te-text-quaternary)] tracking-[0.5px] sm:tracking-[0.6px] uppercase text-right font-medium">
             hora
           </div>
-          <div className="grid gap-[4px] sm:gap-[6px]" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+          <div className="grid gap-[3px] sm:gap-1" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
             {Array.from({ length: 24 }).map((_, h) => {
               const show = h % 6 === 0;
               const showSm = h % 3 === 0;
