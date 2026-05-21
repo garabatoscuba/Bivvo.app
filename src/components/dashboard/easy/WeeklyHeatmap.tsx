@@ -114,7 +114,7 @@ const WeeklyHeatmap = ({ matrix }: Props) => {
                 >
                   {dayLabels[dIdx]}
                 </div>
-                <div className="grid gap-[3px] sm:gap-[5px] justify-items-center" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
+                <div className="grid gap-[3px] sm:gap-[7px] justify-items-center" style={{ gridTemplateColumns: 'repeat(24, 1fr)' }}>
                   {row.map((v, h) => {
                     const lvl = levelFor(v);
                     const occupied = lvl > 0;
