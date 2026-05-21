@@ -74,15 +74,15 @@ const TopProductsCard = ({ products, totalQty, currency = 'CUP', onViewAll, onAd
             <div className="text-[17px] font-semibold text-[var(--te-text-primary)] mt-2 mb-3.5 truncate">
               {star.name}
             </div>
-            <div className="flex gap-7">
+            <div className="grid grid-cols-3 items-start gap-3 sm:flex sm:gap-7">
               <Stat label="Vendidos" value={String(star.quantity)} unit="unidades" />
-              <Divider />
+              <Divider className="hidden sm:block" />
               <Stat
                 label="Ingresos"
                 value={`$${fmt(star.revenue ?? 0)}`}
                 unit={currency}
               />
-              <Divider />
+              <Divider className="hidden sm:block" />
               <Stat
                 label="Margen"
                 value={`$${fmt(star.margin ?? 0)}`}
@@ -149,6 +149,6 @@ const Stat = ({ label, value, unit }: { label: string; value: string; unit?: str
   </div>
 );
 
-const Divider = () => <div className="w-px bg-[rgba(16,217,160,0.18)]" />;
+const Divider = ({ className = '' }: { className?: string }) => <div className={`w-px bg-[rgba(16,217,160,0.18)] ${className}`} />;
 
 export default TopProductsCard;
