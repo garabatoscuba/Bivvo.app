@@ -559,6 +559,12 @@
   --te-purple: #A855F7;
   --te-purple-soft: rgba(168, 85, 247, 0.14);
 
+  --te-heat-0: rgba(255,255,255,0.035);
+  --te-heat-1: rgba(16,217,160,0.14);
+  --te-heat-2: rgba(16,217,160,0.30);
+  --te-heat-3: rgba(16,217,160,0.55);
+
+
   --te-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --te-font-serif: 'Instrument Serif', Georgia, serif;
   --te-font-mono: 'JetBrains Mono', ui-monospace, monospace;
