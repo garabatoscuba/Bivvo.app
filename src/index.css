@@ -593,3 +593,30 @@
   pointer-events: none;
   border-radius: 0 0 var(--te-r-lg) var(--te-r-lg);
 }
+
+/* Light mode overrides for theme-easy. Keeps brand colors, swaps surfaces and text. */
+html:not(.dark) .theme-easy {
+  --bg-app: #F7F7F5;
+  --bg-surface: #FFFFFF;
+  --bg-surface-elevated: #F2F2EF;
+  --bg-surface-hover: #EBEBE7;
+
+  --border-subtle: rgba(10, 10, 11, 0.06);
+  --border-default: rgba(10, 10, 11, 0.10);
+  --border-strong: rgba(10, 10, 11, 0.18);
+
+  --te-text-primary: #0A0A0B;
+  --te-text-secondary: rgba(10, 10, 11, 0.66);
+  --te-text-tertiary: rgba(10, 10, 11, 0.48);
+  --te-text-quaternary: rgba(10, 10, 11, 0.34);
+
+  --te-brand: #059669;
+  --te-brand-bright: #047857;
+  --te-brand-soft: rgba(5, 150, 105, 0.10);
+  --te-brand-text: #FFFFFF;
+}
+
+html:not(.dark) .theme-easy .te-podium-scroll-wrap::after {
+  background: linear-gradient(to bottom, transparent 0%, var(--bg-surface) 85%);
+}
+
