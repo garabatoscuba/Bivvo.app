@@ -25,13 +25,14 @@ const levelFor = (v: number) => {
 
 const cellBg = (lvl: number) => {
   switch (lvl) {
-    case 0: return 'rgba(255,255,255,0.035)';
-    case 1: return 'rgba(16,217,160,0.14)';
-    case 2: return 'rgba(16,217,160,0.30)';
-    case 3: return 'rgba(16,217,160,0.55)';
+    case 0: return 'var(--te-heat-0)';
+    case 1: return 'var(--te-heat-1)';
+    case 2: return 'var(--te-heat-2)';
+    case 3: return 'var(--te-heat-3)';
     default: return 'var(--te-brand)';
   }
 };
+
 
 const WeeklyHeatmap = ({ matrix }: Props) => {
   const data = matrix && matrix.length === 7 ? matrix : buildMock();

@@ -129,7 +129,7 @@ const EasyDashboard = ({ period, onPeriodChange, businessName }: Props) => {
             hint="movimientos del período"
             delta={{ value: 'período', direction: 'neutral' }}
             sparklineData={cashSpark}
-            sparklineColor="rgba(255,255,255,0.35)"
+            sparklineColor="var(--te-text-tertiary)"
             sparklineFillId="sparkNeutralEasy"
           />
         </section>
