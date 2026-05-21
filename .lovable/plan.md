@@ -1,35 +1,61 @@
-# Arreglar dashboard cacheado en el preview de Lovable
+# Rediseñar tarjeta móvil de actividad con curva orgánica
 
-## Problema
+## Objetivo
 
-En el preview de Lovable la app se ejecuta dentro de un iframe. El service worker (vite-plugin-pwa) se registra dentro de ese iframe y empieza a servir HTML/JS cacheados, así que después de publicar cambios el usuario sigue viendo el dashboard **viejo** hasta que algo fuerza un refresh.
+Reemplazar la tarjeta `MobileHourlyChart` (la "actividad por hora" en vista móvil del Dashboard Easy) por la **Opción 1 — Curva orgánica** del HTML adjunto. Misma tarjeta para los 4 períodos (`Hoy`, `Semana`, `Mes`, `Año`), adaptando contenido según el filtro del Dashboard (no se añade filtro propio en la tarjeta).
 
-Esto es un problema conocido de service workers en iframes/previews — el SW persiste entre sesiones y sigue interfiriendo aunque actualicemos el código.
+Se conserva el resto del dashboard intacto. La vista escritorio (`WeeklyHeatmap`) no se toca.
 
-## Solución
+## Alcance
 
-Bloquear el registro del SW dentro de iframes y hosts de preview, y desregistrar cualquier SW que ya esté instalado en esos contextos. El SW solo debe activarse en producción (dominio publicado real).
+Solo la tarjeta. No se replica del HTML: el wrapper del teléfono, el filtro Hoy/Semana/Mes/Año, el nombre "Bivoo", ni los bloques de comparación entre opciones.
 
-### Cambios
+## Contenido por período
 
-**1. `src/hooks/usePWAUpdate.ts`** — añadir guarda al inicio:
+La tarjeta se alimenta de datos que ya existen:
 
-- Detectar si estamos dentro de un iframe (`window.self !== window.top`, con try/catch para cross-origin).
-- Detectar host de preview (`id-preview--`, `lovableproject.com`, `lovable.app` en subdominios de preview).
-- Si cualquiera de las dos es true:
-  - Llamar `navigator.serviceWorker.getRegistrations()` y `.unregister()` en todos.
-  - Llamar `caches.keys()` y `caches.delete()` para limpiar caches viejos.
-  - **Retornar antes** de llamar `useRegisterSW` → el SW no se registra en preview.
-- Si es producción real (host publicado, no iframe): mantener el comportamiento actual de `useRegisterSW` con `registerType: autoUpdate`.
+- `salesOverTime` de `useDashboardStats` (buckets ya calculados según `period`).
+- `matrix` 7×24 de `useWeeklySalesHeatmap` (solo para `today` → curva por hora real).
 
-**2. No tocar `vite.config.ts`** — la config del plugin está bien; solo controlamos el registro en runtime.
+| Período  | Título            | Eje X                  | Puntos | Stat 1 (brand)            | Stat 2          | Insight                                       |
+|----------|-------------------|------------------------|--------|---------------------------|-----------------|-----------------------------------------------|
+| today    | Patrón del día    | 00h · 06h · 12h · 18h · 23h | 24     | Hora pico (HH:00)         | Promedio / h    | "Pico a las HH:00 con N ventas"               |
+| week     | Patrón de la semana | lun · mar · mié · jue · vie · sáb · dom | 7      | Mejor día (LUN…)          | Promedio / día  | "Tu mejor día fue el {día} con N ventas"      |
+| month    | Patrón del mes    | 1 · 7 · 14 · 21 · 28   | 28-31  | Mejor día (Dn)            | Promedio / día  | "El día N fue tu mejor momento"               |
+| year     | Patrón del año    | ene · abr · jul · oct · dic | 12     | Mejor mes (MMM)           | Promedio / mes  | "{mes} fue tu mes más fuerte"                 |
 
-### Resultado esperado
+Meta superior: `N ventas` + sufijo del período (`hoy`, `en 7 días`, `este mes`, `este año`).
 
-- En el preview de Lovable: nunca hay SW activo → siempre se sirve la versión más reciente, sin caché vieja.
-- En producción publicada (`bivoo.app`, `test-bivoo.lovable.app`): el SW funciona normal con `autoUpdate` para ofrecer experiencia offline / instalable.
-- Usuarios que ya tienen un SW viejo registrado en el preview lo pierden la próxima vez que carguen.
+## Detalles visuales (Opción 1 del HTML)
 
-### Detalle técnico
+- Contenedor `bg-[var(--bg-surface)]`, borde sutil, `rounded-[var(--te-r-lg)]`.
+- Header con icono cuadrado (Clock para today, Calendar para resto) + título.
+- Línea meta con número en `--te-text-secondary`.
+- Grid 2 stats: label uppercase mono pequeño, valor 22px; el primero en color brand `#10D9A0`.
+- SVG curva orgánica:
+  - Path interpolado tipo monotone (Catmull-Rom → bezier) sobre los puntos del período.
+  - Relleno con gradient brand (0.32 → 0).
+  - Stroke `#10D9A0` 2px.
+  - Línea punteada vertical en el pico + dot relleno + halo translúcido.
+  - Etiqueta flotante itálica serif "Pico a las **HH:00**" / "Mejor: **sábado**" posicionada sobre el pico.
+- Eje X con 5 ticks (o 7 en semana) en mono pequeño, el pico en color brand.
+- Bloque insight inferior con borde izquierdo brand y texto editorial.
 
-`useRegisterSW` es un hook — no se puede llamar condicionalmente. La guarda se implementa exportando dos caminos: si es preview/iframe, el hook hace cleanup en un `useEffect` y no llama `useRegisterSW`. Si es producción, llama `useRegisterSW` normalmente. Para mantener la regla de hooks, separamos en dos componentes-hook internos seleccionados antes del render (la detección de iframe/host es estable durante la vida de la página).
+## Implementación
+
+1. Reescribir `src/components/dashboard/easy/MobileHourlyChart.tsx`:
+   - Quitar Recharts; pintar SVG manual con `viewBox="0 0 292 130"` para reproducir la curva editorial del HTML.
+   - Aceptar `period` y derivar `points: { label, value }[]` desde `salesOverTime` (props nueva) o `matrix` cuando `today`.
+   - Calcular peak, promedio y posición del peak en el viewBox.
+   - Construir el path con interpolación suave (monotone cubic) entre puntos normalizados.
+   - Renderizar etiqueta flotante, línea punteada y dot del pico.
+   - Renderizar eje X según período (ticks fijos descritos arriba).
+   - Render insight según período.
+   - Usar tokens existentes: `var(--bg-surface)`, `var(--bg-surface-elevated)`, `var(--border-subtle)`, `var(--te-text-*)`, `var(--te-brand)` (#10D9A0).
+2. Actualizar `EasyDashboard.tsx` para pasar `salesOverTime` (además de `matrix` y `period`) al componente móvil. Ya están disponibles en `stats`.
+3. No tocar `WeeklyHeatmap` ni la rama desktop.
+
+## Datos técnicos
+
+- `salesOverTime[i].total` ya viene en moneda (suma `$`), no en cantidad de ventas. Para que la curva represente intensidad de actividad sirve igual (lo importante es la forma). Las stats de "ventas" se siguen mostrando en cantidad solo cuando `today` (desde `matrix`); en el resto se etiquetan como "Total" / "Promedio" en CUP para no inventar conteos. Alternativa si se prefiere: usar `salesCount` para todos los períodos — confirmar en una iteración futura si hace falta.
+- Componente: 100% presentacional, sin queries nuevas.
