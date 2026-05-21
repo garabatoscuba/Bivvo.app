@@ -620,7 +620,13 @@ html:not(.dark) .theme-easy {
   --te-brand-bright: #047857;
   --te-brand-soft: rgba(5, 150, 105, 0.10);
   --te-brand-text: #FFFFFF;
+
+  --te-heat-0: rgba(10, 10, 11, 0.04);
+  --te-heat-1: rgba(5, 150, 105, 0.14);
+  --te-heat-2: rgba(5, 150, 105, 0.32);
+  --te-heat-3: rgba(5, 150, 105, 0.58);
 }
+
 
 html:not(.dark) .theme-easy .te-podium-scroll-wrap::after {
   background: linear-gradient(to bottom, transparent 0%, var(--bg-surface) 85%);
